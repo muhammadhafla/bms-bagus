@@ -1,0 +1,147 @@
+/**
+ * Format number to Indonesian Rupiah currency
+ */
+export const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+/**
+ * Debounce function for input handling
+ */
+export const debounce = <T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): ((...args: Parameters<T>) => void) & { cancel: () => void } => {
+  let timeout: NodeJS.Timeout;
+  const debouncedFn = (...args: Parameters<T>) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+  debouncedFn.cancel = () => clearTimeout(timeout);
+  return debouncedFn;
+};
+
+/**
+ * Normalize barcode input - trim whitespace, newlines, and convert to uppercase
+ */
+export const normalizeBarcode = (input: string): string => {
+  return input.trim().replace(/[\n\r\t]/g, '').toUpperCase();
+};
+
+/**
+ * Generate UUID v4 idempotency key
+ */
+export const generateIdempotencyKey = (): string => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
+/**
+ * Handle barcode scanner input - automatically submits on enter
+ */
+export const handleBarcodeInput = (
+  e: React.KeyboardEvent<HTMLInputElement>,
+  onSubmit: (barcode: string) => void
+): void => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const barcode = normalizeBarcode(e.currentTarget.value);
+    if (barcode) {
+      onSubmit(barcode);
+      e.currentTarget.value = '';
+    }
+  }
+};
+
+/**
+ * Create debounced handler that tracks if operation is in progress
+ */
+export const createDebouncedHandler = <T extends (...args: any[]) => any>(
+  func: T,
+  delay: number
+): T => {
+  let lastCall = 0;
+  let timeoutId: NodeJS.Timeout | null = null;
+
+  return ((...args: Parameters<T>) => {
+    const now = Date.now();
+    const timeSinceLastCall = now - lastCall;
+
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+
+    if (timeSinceLastCall >= delay) {
+      lastCall = now;
+      func(...args);
+    } else {
+      timeoutId = setTimeout(() => {
+        lastCall = Date.now();
+        func(...args);
+      }, delay - timeSinceLastCall);
+    }
+  }) as T;
+};
+
+/**
+ * Levenshtein distance algorithm to calculate string similarity
+ * Returns number of edits needed to turn a into b
+ */
+export const levenshteinDistance = (a: string, b: string): number => {
+  const matrix: number[][] = [];
+
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+
+  return matrix[b.length][a.length];
+};
+
+/**
+ * Calculate similarity percentage between two strings (0-100)
+ */
+export const stringSimilarity = (a: string, b: string): number => {
+  const aLower = a.toLowerCase().trim();
+  const bLower = b.toLowerCase().trim();
+  
+  if (aLower === bLower) return 100;
+  
+  const distance = levenshteinDistance(aLower, bLower);
+  const maxLength = Math.max(aLower.length, bLower.length);
+  
+  return Math.round(((maxLength - distance) / maxLength) * 100);
+};
+
+/**
+ * Generate auto barcode with format AUTO-XXXXXX
+ */
+export const generateAutoBarcode = (): string => {
+  const random = Math.floor(100000 + Math.random() * 900000);
+  return `AUTO-${random}`;
+};

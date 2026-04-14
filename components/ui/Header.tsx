@@ -8,6 +8,7 @@ import {
   IconReceipt,
   IconSun,
   IconMoon,
+  IconClipboardCheck,
 } from '@tabler/icons-react';
 import { useDarkMode } from '@/components/DarkModeProvider';
 
@@ -19,6 +20,7 @@ const navItems = [
   { href: '/inventory', title: 'Inventory' },
   { href: '/pembelian', title: 'Pembelian' },
   { href: '/return', title: 'Return' },
+  { href: '/stock-opname', title: 'Stock Opname' },
   { href: '/reports', title: 'Laporan' },
   { href: '/receipt', title: 'Struk' },
 ];

@@ -1,32 +1,31 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth';
 import Header from '@/components/ui/Header';
-import Footer from '@/components/ui/Footer';
-import Link from 'next/link';
-import Image from 'next/image';
 import {
   IconPackage,
   IconShoppingCart,
-  IconArrowBack,
-  IconReport,
-  IconReceipt,
+  IconArrowUpCircle,
+  IconCurrencyDollar,
+  IconAlertTriangle,
 } from '@tabler/icons-react';
-import Tooltip from '@/components/ui/Tooltip';
-
-const menuItems = [
-  { href: '/inventory', title: 'Inventory', desc: 'Kelola barang', icon: IconPackage, color: 'from-brand-500 to-brand-600', shortcut: 'I' },
-  { href: '/pembelian', title: 'Pembelian', desc: 'Input pembelian', icon: IconShoppingCart, color: 'from-brand-400 to-brand-500', shortcut: 'P' },
-  { href: '/return', title: 'Return', desc: 'Retur barang', icon: IconArrowBack, color: 'from-brand-300 to-brand-400', shortcut: 'R' },
-  { href: '/reports', title: 'Laporan', desc: 'Laporan & monitoring', icon: IconReport, color: 'from-brand-600 to-brand-700', shortcut: 'L' },
-  { href: '/receipt', title: 'Struk', desc: 'Template & logo', icon: IconReceipt, color: 'from-brand-400 to-brand-500', shortcut: 'S' },
-];
+import { StatCard, StatCardSkeleton } from '@/components/dashboard/StatCard';
+import { LowStockAlert } from '@/components/dashboard/LowStockAlert';
+import { TrendChart } from '@/components/dashboard/TrendChart';
+import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
+import { dashboardApi, DashboardStats, LowStockItem, TrendData, RecentTransaction } from '@/lib/api';
 
 function HomeContent() {
-  const { user, initialized, signOut } = useAuthStore();
+  const { user, initialized } = useAuthStore();
   const router = useRouter();
+
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [lowStock, setLowStock] = useState<LowStockItem[]>([]);
+  const [trend, setTrend] = useState<TrendData[]>([]);
+  const [transactions, setTransactions] = useState<RecentTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (initialized && !user) {
@@ -34,10 +33,36 @@ function HomeContent() {
     }
   }, [user, initialized, router]);
 
-  const handleSignOut = async () => {
-    await signOut();
-    router.push('/login');
-  };
+  useEffect(() => {
+    if (!user) return;
+
+    const loadDashboard = async () => {
+      setLoading(true);
+      try {
+        const [statsRes, lowStockRes, trendRes, transactionsRes] = await Promise.all([
+          dashboardApi.getStats(),
+          dashboardApi.getLowStockItems(),
+          dashboardApi.get7DayTrend(),
+          dashboardApi.getRecentTransactions(),
+        ]);
+
+        if (statsRes.data) setStats(statsRes.data);
+        if (lowStockRes.data) setLowStock(lowStockRes.data);
+        if (trendRes.data) setTrend(trendRes.data);
+        if (transactionsRes.data) setTransactions(transactionsRes.data);
+      } catch (error) {
+        console.error('Failed to load dashboard:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
+
+    // Refresh setiap 5 menit
+    const interval = setInterval(loadDashboard, 300000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   if (!initialized) {
     return (
@@ -56,54 +81,98 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 transition-colors">
-      <Header title="Home" />
+      <Header title="Dashboard" />
       
-      <div className="p-6 md:p-12">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center justify-center w-24 h-24 relative mb-6">
-              <Image
-                src="/images/logo.png"
-                alt="Logo"
-                fill
-                className="object-contain"
-              />
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 dark:text-white mb-3">
-              Inventory Management
+      <div className="p-4 md:p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 dark:text-white mb-1">
+              Dashboard
             </h1>
-            <p className="text-lg text-neutral-500 dark:text-neutral-400">Aplikasi admin untuk mengelola inventaris toko</p>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {menuItems.map((item) => (
-              <Tooltip key={item.href} content={`Press ${item.shortcut} to navigate`}>
-                <Link 
-                  key={item.href} 
-                  href={item.href} 
-                  className="group relative block w-full bg-white dark:bg-neutral-800 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-neutral-100 dark:border-neutral-700 hover:border-neutral-200 dark:hover:border-neutral-600"
-                >
-                  <div className={`inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br ${item.color} rounded-xl shadow-md mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                    <item.icon className="w-7 h-7 text-white" />
-                  </div>
-                  <h2 className="text-xl font-bold text-neutral-900 dark:text-white mb-1">{item.title}</h2>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">{item.desc}</p>
-                  <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <span className="text-neutral-400 dark:text-neutral-500 text-2xl">→</span>
-                  </div>
-                  <div className="absolute bottom-6 right-6">
-                    <span className="text-xs text-neutral-300 dark:text-neutral-600 font-mono">{item.shortcut}</span>
-                  </div>
-                </Link>
-              </Tooltip>
-            ))}
+            <p className="text-neutral-500 dark:text-neutral-400">
+              Selamat datang kembali, berikut ringkasan inventaris toko anda
+            </p>
           </div>
 
-          <Footer 
-            userEmail={user.email || 'Admin'} 
-            onLogout={handleSignOut}
-            version="1.0"
-          />
+          {/* Statistik Utama */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {loading ? (
+              <>
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+              </>
+            ) : (
+              <>
+                <StatCard
+                  title="Total Nilai Inventory"
+                  value={stats?.totalInventoryValue || 0}
+                  prefix="Rp "
+                  icon={<IconCurrencyDollar size={20} />}
+                  variant="default"
+                />
+                <StatCard
+                  title="Penjualan Hari Ini"
+                  value={stats?.todaySales || 0}
+                  prefix="Rp "
+                  icon={<IconArrowUpCircle size={20} />}
+                  variant="success"
+                />
+                <StatCard
+                  title="Pembelian Hari Ini"
+                  value={stats?.todayPurchases || 0}
+                  prefix="Rp "
+                  icon={<IconShoppingCart size={20} />}
+                  variant="warning"
+                />
+                <StatCard
+                  title="Stok Minimum"
+                  value={stats?.lowStockItems || 0}
+                  icon={<IconAlertTriangle size={20} />}
+                  suffix=" item"
+                  variant={stats && stats.lowStockItems > 0 ? 'danger' : 'default'}
+                />
+              </>
+            )}
+          </div>
+
+          {/* Baris 2 */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+            <div className="lg:col-span-2">
+              <TrendChart data={trend} isLoading={loading} />
+            </div>
+            <LowStockAlert items={lowStock} isLoading={loading} />
+          </div>
+
+          {/* Baris 3 */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <RecentTransactions transactions={transactions} isLoading={loading} />
+            <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                Ringkasan Inventaris
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                {loading ? (
+                  <>
+                    <div className="animate-pulse h-16 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+                    <div className="animate-pulse h-16 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+                  </>
+                ) : (
+                  <>
+                    <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Total Item Barang</p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-white">{stats?.totalItems || 0} SKU</p>
+                    </div>
+                    <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Transaksi Hari Ini</p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-white">{stats?.todayTransactions || 0}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

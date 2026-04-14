@@ -12,17 +12,20 @@ export const inventoryApi = {
     return safeQuery<InventoryItem>(queryToPromise(supabase.from('inventory').select('*').eq('kode_barcode', barcode).single()));
   },
 
-  async search(query: string) {
+  async search(query: string, includeDiscontinued = false) {
     const safeQueryString = query.replace(/%/g, '').toLowerCase();
-    return safeQuery<InventoryItem[]>(
-      queryToPromise(
-        supabase
-          .from('inventory')
-          .select('*')
-          .or(`nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`)
-          .order('nama_barang')
-      )
-    );
+    
+    const queryBuilder = supabase
+      .from('inventory')
+      .select('*')
+      .or(`nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`)
+      .order('nama_barang');
+
+    if (!includeDiscontinued) {
+      queryBuilder.eq('is_discontinued', false);
+    }
+
+    return safeQuery<InventoryItem[]>(queryToPromise(queryBuilder));
   },
 
   async fuzzySearch(query: string) {
@@ -83,5 +86,39 @@ export const inventoryApi = {
 
   async delete(id: string) {
     return safeQuery<void>(queryToPromise(supabase.from('inventory').delete().eq('id', id)));
+  },
+
+  async toggleDiscontinued(id: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { data: null, error: new Error('User not authenticated') };
+    }
+
+    const current = await supabase
+      .from('inventory')
+      .select('is_discontinued')
+      .eq('id', id)
+      .single();
+
+    if (current.error) return { data: null, error: current.error };
+
+    const newStatus = !current.data.is_discontinued;
+
+    return safeQuery<InventoryItem>(
+      queryToPromise(
+        supabase
+          .from('inventory')
+          .update({
+            is_discontinued: newStatus,
+            discontinued_at: newStatus ? new Date().toISOString() : null,
+            discontinued_by: newStatus ? user.id : null,
+            updated_by: user.id,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id)
+          .select()
+          .single()
+      )
+    );
   }
 };

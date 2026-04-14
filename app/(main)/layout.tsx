@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuthStore } from '@/lib/auth';
 import {
   IconPackage,
@@ -10,10 +11,7 @@ import {
   IconArrowBack,
   IconReport,
   IconReceipt,
-  IconSun,
-  IconMoon,
 } from '@tabler/icons-react';
-import { useDarkMode } from '@/components/DarkModeProvider';
 
 export default function MainLayout({
   children,
@@ -23,7 +21,6 @@ export default function MainLayout({
   const { user, initialized, signOut } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
-  const { theme, toggleTheme } = useDarkMode();
 
   useEffect(() => {
     if (initialized && !user) {
@@ -65,7 +62,7 @@ export default function MainLayout({
         <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
           <Link href="/" className="flex items-center gap-3">
             <div className="w-10 h-10 relative rounded-xl flex items-center justify-center shadow-md overflow-hidden">
-              <img src="/images/logo.png" alt="BMS Logo" className="w-full h-full object-contain" />
+              <Image src="/images/logo.png" alt="BMS Logo" fill className="object-contain" />
             </div>
             <h1 className="text-lg font-bold text-neutral-900 dark:text-white">BMS</h1>
           </Link>
@@ -92,18 +89,7 @@ export default function MainLayout({
           })}
         </nav>
 
-        <div className="p-4 border-t border-neutral-200 dark:border-neutral-800 space-y-2">
-          <button
-            onClick={toggleTheme}
-            className="w-full flex items-center gap-3 px-4 py-2 text-sm text-neutral-600 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-lg dark:text-neutral-300 dark:bg-neutral-900 dark:hover:text-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-          >
-            {theme === 'light' ? (
-              <IconMoon className="w-5 h-5" />
-            ) : (
-              <IconSun className="w-5 h-5" />
-            )}
-            <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
-          </button>
+        <div className="p-4 border-t border-neutral-200 dark:border-neutral-800">
           <button
             onClick={handleSignOut}
             className="w-full px-4 py-2 text-sm text-neutral-600 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-lg dark:text-neutral-300 dark:bg-neutral-900 dark:hover:text-neutral-100 dark:hover:bg-neutral-800 transition-colors"

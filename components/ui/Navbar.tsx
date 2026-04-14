@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   IconPackage,
@@ -13,6 +14,7 @@ import {
   IconLogout,
   IconMenu,
   IconX,
+  IconClipboardCheck,
 } from '@tabler/icons-react';
 import { useDarkMode } from '@/components/DarkModeProvider';
 import { useState, useEffect, useRef } from 'react';
@@ -26,6 +28,7 @@ const navItems = [
   { href: '/inventory', title: 'Inventory', icon: IconPackage },
   { href: '/pembelian', title: 'Pembelian', icon: IconShoppingCart },
   { href: '/return', title: 'Return', icon: IconArrowBack },
+  { href: '/stock-opname', title: 'Stock Opname', icon: IconClipboardCheck },
   { href: '/reports', title: 'Laporan', icon: IconReport },
   { href: '/receipt', title: 'Struk', icon: IconReceipt },
 ];
@@ -83,10 +86,12 @@ export default function Navbar({ userEmail, onLogout }: NavbarProps) {
             <IconMenu className="w-6 h-6" />
           </button>
           
-          <Link href="/" className="flex items-center gap-2">
-            <img src="/images/logo.png" alt="BMS Logo" className="w-8 h-8 rounded-lg" />
-            <span className="font-bold text-neutral-900 dark:text-white hidden sm:block">BMS</span>
-          </Link>
+           <Link href="/" className="flex items-center gap-2">
+             <div className="w-8 h-8 relative rounded-lg overflow-hidden">
+               <Image src="/images/logo.png" alt="BMS Logo" fill className="object-contain" />
+             </div>
+             <span className="font-bold text-neutral-900 dark:text-white hidden sm:block">BMS</span>
+           </Link>
           
           <div className="hidden md:block h-6 w-px bg-neutral-200 dark:bg-neutral-700" />
           
@@ -155,10 +160,12 @@ export default function Navbar({ userEmail, onLogout }: NavbarProps) {
         >
           <div className="flex flex-col h-full">
             <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-200 dark:border-neutral-800">
-              <Link href="/" className="flex items-center gap-2">
-                <img src="/images/logo.png" alt="BMS Logo" className="w-8 h-8 rounded-lg" />
-                <span className="font-bold text-neutral-900 dark:text-white">BMS</span>
-              </Link>
+               <Link href="/" className="flex items-center gap-2">
+                 <div className="w-8 h-8 relative rounded-lg overflow-hidden">
+                   <Image src="/images/logo.png" alt="BMS Logo" fill className="object-contain" />
+                 </div>
+                 <span className="font-bold text-neutral-900 dark:text-white">BMS</span>
+               </Link>
               <button
                 ref={closeButtonRef}
                 onClick={() => setIsMobileMenuOpen(false)}

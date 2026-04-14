@@ -564,7 +564,7 @@ export default function PembelianPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [items, tanggal, totalSupplier, submitting, reset, setTotalSupplier, focusInput]);
+  }, [items, tanggal, totalSupplier, submitting, reset, setTotalSupplier, focusInput, selectedSupplierId, supplier]);
 
   const handleEditSubmit = useCallback(() => {
     if (selectedIndex === null || !editMode) return;

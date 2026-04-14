@@ -6,11 +6,18 @@ export interface ReceiptTemplate {
   name: string;
   type: 'SALE' | 'RETURN';
   template: {
-    header?: string;
-    footer?: string;
+    header?: string[];
+    body?: {
+      show_discount?: boolean;
+    };
+    footer?: string[];
+    logo?: {
+      enabled: boolean;
+      mode: 'bitmap' | 'url';
+      path?: string;
+      bucket?: string;
+    };
   };
-  header_text?: string;
-  footer_text?: string;
   is_active: boolean;
   created_at: string;
 }
@@ -34,16 +41,17 @@ export const receiptApi = {
   async createTemplate(data: {
     name: string;
     type: 'SALE' | 'RETURN';
-    header_text?: string;
-    footer_text?: string;
+    template?: ReceiptTemplate['template'];
     is_active?: boolean;
   }) {
     const payload = {
       name: data.name,
       type: data.type,
-      template: {
-        header: data.header_text,
-        footer: data.footer_text,
+      template: data.template || {
+        header: [],
+        body: { show_discount: data.type === 'SALE' },
+        footer: [],
+        logo: { enabled: false, mode: 'bitmap' }
       },
       is_active: data.is_active,
     };
@@ -55,8 +63,7 @@ export const receiptApi = {
     data: {
       name?: string;
       type?: 'SALE' | 'RETURN';
-      header_text?: string;
-      footer_text?: string;
+      template?: ReceiptTemplate['template'];
       is_active?: boolean;
     }
   ) {
@@ -64,12 +71,8 @@ export const receiptApi = {
     if (data.name !== undefined) payload.name = data.name;
     if (data.type !== undefined) payload.type = data.type;
     if (data.is_active !== undefined) payload.is_active = data.is_active;
-    if (data.header_text !== undefined || data.footer_text !== undefined) {
-      payload.template = {
-        header: data.header_text || '',
-        footer: data.footer_text || '',
-      };
-    }
+    if (data.template !== undefined) payload.template = data.template;
+    
     return safeQuery(queryToPromise(supabase.from('receipt_templates').update(payload).eq('id', id).select().single()));
   },
 
@@ -90,16 +93,26 @@ export const receiptApi = {
   },
 
   async uploadLogo(file: File) {
-    const fileName = `logo_${Date.now()}_${file.name}`;
+    const fileName = `logo/${Date.now()}_${file.name}`;
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('receipts')
-      .upload(fileName, file);
+      .from('assets')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
 
     if (uploadError) return { data: null, error: { message: uploadError.message, details: uploadError.name } };
 
-    const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(fileName);
+    const { data: urlData } = supabase.storage.from('assets').getPublicUrl(fileName);
 
-    return safeQuery(queryToPromise(supabase.from('receipt_logos').insert({ name: file.name, image_url: urlData.publicUrl }).select().single()));
+    return { 
+      data: { 
+        path: fileName, 
+        publicUrl: urlData.publicUrl,
+        bucket: 'assets'
+      }, 
+      error: null 
+    };
   },
 
   async deleteLogo(id: string) {

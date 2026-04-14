@@ -8,7 +8,6 @@ import Header from '@/components/ui/Header';
 
 export default function ReceiptPage() {
   const [templates, setTemplates] = useState<ReceiptTemplate[]>([]);
-  const [logos, setLogos] = useState<ReceiptLogo[]>([]);
   const [activeTemplate, setActiveTemplate] = useState<ReceiptTemplate | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<ReceiptTemplate | null>(null);
   const [loading, setLoading] = useState(false);
@@ -18,17 +17,19 @@ export default function ReceiptPage() {
 
   const [name, setName] = useState('');
   const [type, setType] = useState<'SALE' | 'RETURN'>('SALE');
-  const [headerText, setHeaderText] = useState('');
-  const [footerText, setFooterText] = useState('');
+  const [headerLines, setHeaderLines] = useState<string[]>([]);
+  const [footerLines, setFooterLines] = useState<string[]>([]);
+  const [showDiscount, setShowDiscount] = useState(false);
+  const [logoEnabled, setLogoEnabled] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [logoPath, setLogoPath] = useState('');
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [templatesResult, logosResult, activeResult] = await Promise.all([
+      const [templatesResult, activeResult] = await Promise.all([
         receiptApi.getAllTemplates(),
-        receiptApi.getAllLogos(),
         receiptApi.getActiveTemplate(),
       ]);
 
@@ -38,18 +39,16 @@ export default function ReceiptPage() {
         setTemplates(templatesResult.data || []);
       }
 
-      if (logosResult.error) {
-        setError('Gagal memuat logo');
-      } else {
-        setLogos(logosResult.data || []);
-      }
-
       if (activeResult.data) {
         setActiveTemplate(activeResult.data);
         setSelectedTemplate(activeResult.data);
         setName(activeResult.data.name);
-        setHeaderText(activeResult.data.header_text || '');
-        setFooterText(activeResult.data.footer_text || '');
+        setType(activeResult.data.type);
+        setHeaderLines(activeResult.data.template?.header || []);
+        setFooterLines(activeResult.data.template?.footer || []);
+        setShowDiscount(activeResult.data.template?.body?.show_discount || false);
+        setLogoEnabled(activeResult.data.template?.logo?.enabled || false);
+        setLogoPath(activeResult.data.template?.logo?.path || '');
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -66,8 +65,12 @@ export default function ReceiptPage() {
   const handleSelectTemplate = useCallback((template: ReceiptTemplate) => {
     setSelectedTemplate(template);
     setName(template.name);
-    setHeaderText(template.header_text || '');
-    setFooterText(template.footer_text || '');
+    setType(template.type);
+    setHeaderLines(template.template?.header || []);
+    setFooterLines(template.template?.footer || []);
+    setShowDiscount(template.template?.body?.show_discount || false);
+    setLogoEnabled(template.template?.logo?.enabled || false);
+    setLogoPath(template.template?.logo?.path || '');
   }, []);
 
   const handleSaveTemplate = useCallback(async () => {
@@ -80,12 +83,23 @@ export default function ReceiptPage() {
     setError(null);
     setSuccess(null);
 
+    const templateData = {
+      header: headerLines.filter(line => line.trim()),
+      body: { show_discount: showDiscount },
+      footer: footerLines.filter(line => line.trim()),
+      logo: {
+        enabled: logoEnabled,
+        mode: 'bitmap' as const,
+        path: logoPath,
+        bucket: 'assets'
+      }
+    };
+
     try {
       if (selectedTemplate) {
         const result = await receiptApi.updateTemplate(selectedTemplate.id, {
           name: name.trim(),
-          header_text: headerText,
-          footer_text: footerText,
+          template: templateData
         });
 
         if (result.error) {
@@ -98,8 +112,7 @@ export default function ReceiptPage() {
         const result = await receiptApi.createTemplate({
           name: name.trim(),
           type: type,
-          header_text: headerText,
-          footer_text: footerText,
+          template: templateData
         });
 
         if (result.error) {
@@ -115,7 +128,7 @@ export default function ReceiptPage() {
     } finally {
       setSaving(false);
     }
-  }, [name, headerText, footerText, type, selectedTemplate, loadData]);
+  }, [name, headerLines, footerLines, showDiscount, logoEnabled, logoPath, type, selectedTemplate, loadData]);
 
   const handleSetActive = useCallback(async () => {
     if (!selectedTemplate) return;
@@ -152,8 +165,12 @@ export default function ReceiptPage() {
         setSuccess('Template dihapus');
         setSelectedTemplate(null);
         setName('');
-        setHeaderText('');
-        setFooterText('');
+        setType('SALE');
+        setHeaderLines([]);
+        setFooterLines([]);
+        setShowDiscount(true);
+        setLogoEnabled(false);
+        setLogoPath('');
         loadData();
       }
     } catch (err) {
@@ -172,10 +189,11 @@ export default function ReceiptPage() {
       const result = await receiptApi.uploadLogo(logoFile);
       if (result.error) {
         setError('Gagal upload logo');
-      } else {
+      } else if (result.data) {
+        setLogoPath(result.data.path);
+        setLogoEnabled(true);
         setSuccess('Logo berhasil diupload');
         setLogoFile(null);
-        loadData();
       }
     } catch (err) {
       console.error('Error uploading logo:', err);
@@ -183,24 +201,7 @@ export default function ReceiptPage() {
     } finally {
       setLogoUploading(false);
     }
-  }, [logoFile, loadData]);
-
-  const handleDeleteLogo = useCallback(async (id: string) => {
-    if (!confirm('Yakin hapus logo?')) return;
-
-    try {
-      const result = await receiptApi.deleteLogo(id);
-      if (result.error) {
-        setError('Gagal menghapus logo');
-      } else {
-        setSuccess('Logo dihapus');
-        loadData();
-      }
-    } catch (err) {
-      console.error('Error deleting logo:', err);
-      setError('Terjadi kesalahan');
-    }
-  }, [loadData]);
+  }, [logoFile]);
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
@@ -249,8 +250,12 @@ export default function ReceiptPage() {
                 onClick={() => {
                   setSelectedTemplate(null);
                   setName('');
-                  setHeaderText('');
-                  setFooterText('');
+                  setType('SALE');
+                  setHeaderLines([]);
+                  setFooterLines([]);
+                  setShowDiscount(true);
+                  setLogoEnabled(false);
+                  setLogoPath('');
                 }}
                 className="text-sm text-brand-600 hover:text-brand-700 font-medium"
               >
@@ -258,118 +263,191 @@ export default function ReceiptPage() {
               </button>
             </div>
 
-            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-sm">
-              <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-4">Logo</h2>
-              <div className="flex gap-2 mb-4">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
-                  className="flex-1 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 text-neutral-900 dark:text-neutral-100"
-                />
-                <button
-                  onClick={handleUploadLogo}
-                  disabled={!logoFile || logoUploading}
-                  className="px-5 py-2 bg-gradient-to-r from-brand-500 to-brand-600 text-white rounded-xl hover:from-brand-600 hover:to-brand-700 disabled:opacity-50 text-sm font-medium shadow-md transition-all"
-                >
-                  {logoUploading ? '...' : 'Upload'}
-                </button>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                {logos.map((logo) => (
-                  <div key={logo.id} className="border-2 border-neutral-100 dark:border-neutral-800 rounded-xl p-2 relative group hover:shadow-md transition-all bg-white dark:bg-neutral-950">
-                    <div className="relative aspect-square">
-                      <Image src={logo.image_url} alt={logo.name} fill className="object-contain" />
-                    </div>
-                    <button
-                      onClick={() => handleDeleteLogo(logo.id)}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-                {logos.length === 0 && (
-                  <p className="text-neutral-500 text-sm col-span-3">Belum ada logo</p>
-                )}
-              </div>
-            </div>
+             <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-sm">
+               <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-4">Logo</h2>
+               <div className="space-y-4">
+                 <label className="flex items-center gap-2">
+                   <input 
+                     type="checkbox" 
+                     checked={logoEnabled} 
+                     onChange={(e) => setLogoEnabled(e.target.checked)} 
+                     className="w-4 h-4"
+                   />
+                   <span className="text-sm font-medium">Tampilkan logo</span>
+                 </label>
+                 
+                 <div className="flex gap-2">
+                   <input
+                     type="file"
+                     accept="image/*"
+                     onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+                     className="flex-1 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 text-neutral-900 dark:text-neutral-100"
+                   />
+                   <button
+                     onClick={handleUploadLogo}
+                     disabled={!logoFile || logoUploading}
+                     className="px-5 py-2 bg-gradient-to-r from-brand-500 to-brand-600 text-white rounded-xl hover:from-brand-600 hover:to-brand-700 disabled:opacity-50 text-sm font-medium shadow-md transition-all"
+                   >
+                     {logoUploading ? '...' : 'Upload'}
+                   </button>
+                 </div>
+                 
+                 {logoPath && (
+                   <div className="border rounded-xl p-3 bg-neutral-50 dark:bg-neutral-950">
+                     <p className="text-xs text-neutral-500 mb-2">Path logo: {logoPath}</p>
+                     <Image 
+                       src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/assets/${logoPath}`} 
+                       alt="Logo preview" 
+                       width={128} 
+                       height={128} 
+                       className="object-contain mx-auto"
+                     />
+                   </div>
+                 )}
+               </div>
+             </div>
           </div>
 
           <div className="bg-white border border-neutral-200 rounded-2xl p-5 shadow-sm">
             <h2 className="text-lg font-bold text-neutral-900 mb-4">
               {selectedTemplate ? 'Edit Template' : 'Template Baru'}
             </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-2">Nama</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all"
-                  placeholder="Default"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-2">Header</label>
-                <textarea
-                  value={headerText}
-                  onChange={(e) => setHeaderText(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white dark:focus:bg-neutral-800 text-neutral-900 dark:text-neutral-100 transition-all"
-                  placeholder="Nama toko, alamat, telepon"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-2">Footer</label>
-                <textarea
-                  value={footerText}
-                  onChange={(e) => setFooterText(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white dark:focus:bg-neutral-800 text-neutral-900 dark:text-neutral-100 transition-all"
-                  placeholder="Terima kasih..."
-                />
-              </div>
+             <div className="space-y-4">
+               <div>
+                 <label className="block text-sm font-semibold text-neutral-700 mb-2">Nama</label>
+                 <input
+                   type="text"
+                   value={name}
+                   onChange={(e) => setName(e.target.value)}
+                   className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all"
+                   placeholder="Default"
+                 />
+               </div>
+               
+               {!selectedTemplate && (
+                 <div>
+                   <label className="block text-sm font-semibold text-neutral-700 mb-2">Tipe</label>
+                   <select 
+                     value={type} 
+                     onChange={(e) => {
+                       setType(e.target.value as 'SALE' | 'RETURN');
+                       setShowDiscount(e.target.value === 'SALE');
+                     }}
+                     className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all"
+                   >
+                     <option value="SALE">Penjualan (SALE)</option>
+                     <option value="RETURN">Pengembalian (RETURN)</option>
+                   </select>
+                 </div>
+               )}
 
-              <div className="border-t border-neutral-200 pt-4">
-                <h3 className="text-sm font-semibold text-neutral-700 mb-2">Preview</h3>
-                <div className="bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-4 text-xs font-mono whitespace-pre-wrap text-neutral-900 dark:text-neutral-100">
-                  {headerText ? (
-                    <div className="border-b-2 border-neutral-300 pb-2 mb-2 text-center">{headerText}</div>
-                  ) : (
-                    <div className="border-b-2 border-neutral-300 pb-2 mb-2">
-                      <p className="font-bold text-center">TOKO SAYA</p>
-                      <p className="text-center">Jl. Contoh No. 123</p>
-                      <p className="text-center">Telp: 081234567890</p>
-                    </div>
-                  )}
-                  <div className="space-y-1">
-                    <div className="flex justify-between">
-                      <span>Item 1</span>
-                      <span>10,000</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Item 2</span>
-                      <span>20,000</span>
-                    </div>
-                  </div>
-                  <div className="border-t-2 border-neutral-300 pt-2 mt-2">
-                    <div className="flex justify-between font-bold">
-                      <span>TOTAL</span>
-                      <span>30,000</span>
-                    </div>
-                  </div>
-                  {footerText ? (
-                    <div className="border-t-2 border-neutral-300 pt-2 mt-2 text-center">{footerText}</div>
-                  ) : (
-                    <div className="border-t-2 border-neutral-300 pt-2 mt-2 text-center">
-                      <p>Terima kasih</p>
-                      <p>Silahkan datang lagi</p>
-                    </div>
-                  )}
-                </div>
-              </div>
+               <div>
+                 <label className="block text-sm font-semibold text-neutral-700 mb-2">Header (setiap baris baru)</label>
+                 <textarea
+                   value={headerLines.join('\n')}
+                   onChange={(e) => setHeaderLines(e.target.value.split('\n'))}
+                   rows={4}
+                   className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white dark:focus:bg-neutral-800 text-neutral-900 dark:text-neutral-100 transition-all font-mono text-sm"
+                   placeholder="TOKO ABC
+Jl. Contoh No.1
+------------------------"
+                 />
+               </div>
+
+               <div>
+                 <label className="flex items-center gap-2 text-sm font-semibold text-neutral-700">
+                   <input 
+                     type="checkbox" 
+                     checked={showDiscount} 
+                     onChange={(e) => setShowDiscount(e.target.checked)} 
+                     className="w-4 h-4"
+                   />
+                   Tampilkan diskon pada item
+                 </label>
+               </div>
+
+               <div>
+                 <label className="block text-sm font-semibold text-neutral-700 mb-2">Footer (setiap baris baru)</label>
+                 <textarea
+                   value={footerLines.join('\n')}
+                   onChange={(e) => setFooterLines(e.target.value.split('\n'))}
+                   rows={4}
+                   className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white dark:focus:bg-neutral-800 text-neutral-900 dark:text-neutral-100 transition-all font-mono text-sm"
+                   placeholder="Terima kasih
+Silahkan datang lagi"
+                 />
+               </div>
+
+               <div className="border-t border-neutral-200 pt-4">
+                 <h3 className="text-sm font-semibold text-neutral-700 mb-2">Preview</h3>
+                 <div className="bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-4 text-xs font-mono text-neutral-900 dark:text-neutral-100 max-w-xs mx-auto">
+                   {logoEnabled && logoPath && (
+                     <div className="text-center mb-2">
+                       <Image 
+                         src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/assets/${logoPath}`} 
+                         alt="Logo" 
+                         width={64} 
+                         height={64} 
+                         className="object-contain mx-auto"
+                       />
+                     </div>
+                   )}
+                   
+                   <div className="border-b border-neutral-300 pb-2 mb-2 text-center">
+                     {headerLines.length > 0 ? (
+                       headerLines.map((line, i) => <div key={i}>{line}</div>)
+                     ) : (
+                       <>
+                         <div className="font-bold">TOKO ABC</div>
+                         <div>Jl. Contoh No.1</div>
+                         <div>------------------------</div>
+                       </>
+                     )}
+                   </div>
+                   
+                   <div className="space-y-1 my-2">
+                     <div className="flex justify-between">
+                       <span>Item 1</span>
+                       <span>15,000</span>
+                     </div>
+                     {showDiscount && (
+                       <div className="flex justify-between text-neutral-500 text-[10px]">
+                         <span>  Diskon 10%</span>
+                         <span>-1,500</span>
+                       </div>
+                     )}
+                     <div className="flex justify-between">
+                       <span>Item 2</span>
+                       <span>20,000</span>
+                     </div>
+                   </div>
+                   
+                   <div className="border-t border-neutral-300 pt-2 mt-2">
+                     <div className="flex justify-between font-bold">
+                       <span>{type === 'RETURN' ? 'TOTAL REFUND' : 'TOTAL'}</span>
+                       <span>{type === 'RETURN' ? '-33,500' : '33,500'}</span>
+                     </div>
+                     {type === 'SALE' && (
+                       <>
+                         <div className="flex justify-between mt-1">
+                           <span>BAYAR</span>
+                           <span>35,000</span>
+                         </div>
+                         <div className="flex justify-between">
+                           <span>KEMBALI</span>
+                           <span>1,500</span>
+                         </div>
+                       </>
+                     )}
+                   </div>
+                   
+                   {footerLines.length > 0 && (
+                     <div className="border-t border-neutral-300 pt-2 mt-2 text-center">
+                       {footerLines.map((line, i) => <div key={i}>{line}</div>)}
+                     </div>
+                   )}
+                 </div>
+               </div>
 
               <div className="flex gap-2 pt-4">
                 <button

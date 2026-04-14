@@ -104,9 +104,49 @@ CREATE TABLE IF NOT EXISTS penjualan_items (
 CREATE TABLE IF NOT EXISTS stock_movements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   inventory_id UUID NOT NULL REFERENCES inventory(id),
-  tipe TEXT NOT NULL CHECK (tipe = ANY (ARRAY['IN', 'OUT'])),
+  tipe TEXT NOT NULL CHECK (tipe = ANY (ARRAY['IN', 'OUT', 'ADJUSTMENT'])),
   qty INTEGER CHECK (qty > 0),
   referensi TEXT,
+  created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
+);
+
+-- Stock Opname Header
+CREATE TABLE IF NOT EXISTS stock_opname (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  opname_date DATE NOT NULL,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status = ANY (ARRAY['draft', 'pending', 'approved', 'rejected', 'completed'])),
+  note TEXT,
+  created_by UUID NOT NULL REFERENCES profiles(id),
+  approved_by UUID REFERENCES profiles(id),
+  created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
+);
+
+-- Stock Opname Items (Detail Per Barang)
+CREATE TABLE IF NOT EXISTS stock_opname_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  stock_opname_id UUID NOT NULL REFERENCES stock_opname(id) ON DELETE CASCADE,
+  inventory_id UUID NOT NULL REFERENCES inventory(id),
+  system_stock INTEGER NOT NULL,
+  physical_stock INTEGER NOT NULL,
+  difference INTEGER NOT NULL,
+  reason TEXT CHECK (reason = ANY (ARRAY['salah_input', 'rusak', 'hilang', 'kadaluarsa', 'salah_hitung', 'lainnya'])),
+  note TEXT,
+  adjusted BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
+);
+
+-- Stock Adjustments
+CREATE TABLE IF NOT EXISTS stock_adjustments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  stock_opname_item_id UUID REFERENCES stock_opname_items(id),
+  inventory_id UUID NOT NULL REFERENCES inventory(id),
+  adjustment_qty INTEGER NOT NULL,
+  adjustment_type TEXT NOT NULL CHECK (adjustment_type = ANY (ARRAY['increase', 'decrease'])),
+  reason TEXT NOT NULL,
+  note TEXT,
+  created_by UUID NOT NULL REFERENCES profiles(id),
   created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
 );
 
@@ -192,6 +232,11 @@ CREATE INDEX IF NOT EXISTS idx_stock_movements_inventory_id ON stock_movements(i
 CREATE INDEX IF NOT EXISTS idx_stock_movements_created_at ON stock_movements(created_at);
 CREATE INDEX IF NOT EXISTS idx_inventory_barcodes_barcode ON inventory_barcodes(barcode);
 CREATE INDEX IF NOT EXISTS idx_inventory_barcodes_inventory_id ON inventory_barcodes(inventory_id);
+CREATE INDEX IF NOT EXISTS idx_stock_opname_date ON stock_opname(opname_date);
+CREATE INDEX IF NOT EXISTS idx_stock_opname_status ON stock_opname(status);
+CREATE INDEX IF NOT EXISTS idx_stock_opname_items_opname_id ON stock_opname_items(stock_opname_id);
+CREATE INDEX IF NOT EXISTS idx_stock_opname_items_inventory_id ON stock_opname_items(inventory_id);
+CREATE INDEX IF NOT EXISTS idx_stock_adjustments_inventory_id ON stock_adjustments(inventory_id);
 
 -- Enable RLS
 ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
@@ -243,6 +288,15 @@ CREATE POLICY "penjualan_items anon delete" ON penjualan_items FOR DELETE USING 
 
 -- Allow anon key for stock_movements insert
 CREATE POLICY "stock_movements anon insert" ON stock_movements FOR INSERT WITH CHECK (true);
+
+-- RLS Policies for stock opname
+ALTER TABLE stock_opname ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stock_opname_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stock_adjustments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "stock_opname all access" ON stock_opname FOR ALL WITH CHECK (true);
+CREATE POLICY "stock_opname_items all access" ON stock_opname_items FOR ALL WITH CHECK (true);
+CREATE POLICY "stock_adjustments all access" ON stock_adjustments FOR ALL WITH CHECK (true);
 
 -- Allow anon key for inventory_barcodes
 CREATE POLICY "inventory_barcodes anon insert" ON inventory_barcodes FOR INSERT WITH CHECK (true);
@@ -313,6 +367,18 @@ BEGIN
       WHERE LOWER(nama_barang) = LOWER(v_item->>'nama_barang')
       LIMIT 1
     );
+
+    -- If found and discontinued, automatically re-activate it
+    IF v_inventory_id IS NOT NULL THEN
+      UPDATE inventory 
+      SET 
+        is_discontinued = false,
+        discontinued_at = NULL,
+        discontinued_by = NULL,
+        updated_at = NOW(),
+        updated_by = p_user
+      WHERE id = v_inventory_id AND is_discontinued = true;
+    END IF;
 
     IF v_inventory_id IS NULL THEN
       INSERT INTO inventory (

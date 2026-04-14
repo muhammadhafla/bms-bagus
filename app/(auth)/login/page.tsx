@@ -72,7 +72,7 @@ export default function LoginPage() {
         <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl p-8 border border-neutral-200 dark:border-neutral-800">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl shadow-lg mb-4 overflow-hidden">
-              <img src="/images/logo.png" alt="BMS Logo" className="w-full h-full object-contain" />
+              <Image src="/images/logo.png" alt="BMS Logo" fill className="object-contain" />
             </div>
             <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">BMS</h1>
             <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">Bagus Management System</p>

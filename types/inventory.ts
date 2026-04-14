@@ -20,6 +20,9 @@ export interface InventoryItem {
   harga_beli?: number;
   barcode?: string;
   updated_by?: string;
+  is_discontinued?: boolean;
+  discontinued_at?: string;
+  discontinued_by?: string;
 }
 
 export interface InventoryFilters {

@@ -403,6 +403,7 @@ DROP POLICY IF EXISTS "receipt_templates_delete_admin" ON receipt_templates;
 
 -- ========== KATEGORI POLICIES ==========
 CREATE POLICY "kategori_select" ON kategori FOR SELECT TO authenticated USING (true);
+CREATE POLICY "kategori_insert" ON kategori FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "kategori_all_admin" ON kategori FOR ALL TO authenticated USING (is_admin());
 
 -- ========== INVENTORY POLICIES ==========
@@ -458,6 +459,7 @@ CREATE POLICY "supplier_all_admin" ON supplier FOR ALL TO authenticated USING (i
 -- ========== STOCK_MOVEMENTS POLICIES ==========
 CREATE POLICY "stock_movements_select" ON stock_movements FOR SELECT TO authenticated USING (true);
 CREATE POLICY "stock_movements_insert_service" ON stock_movements FOR INSERT TO service_role WITH CHECK (true);
+CREATE POLICY "stock_movements_insert_authenticated" ON stock_movements FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "stock_movements_update_none" ON stock_movements FOR UPDATE TO authenticated USING (false);
 CREATE POLICY "stock_movements_delete_none" ON stock_movements FOR DELETE TO authenticated USING (false);
 

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { usePembelianStore } from '@/lib/store';
-import { inventoryApi, PembelianItem, pembelianApi, kategoriApi, supplierApi, Supplier } from '@/lib/api';
+import { inventoryApi, PembelianItem, pembelianApi, kategoriApi, supplierApi, Supplier, preloadInventoryCache } from '@/lib/api';
 import { InventoryItem } from '@/types/inventory';
 import { formatCurrency, normalizeBarcode, generateIdempotencyKey, generateAutoBarcode } from '@/lib/utils';
 import { IconShoppingCart, IconCamera, IconPackage } from '@tabler/icons-react';
@@ -334,6 +334,10 @@ export default function PembelianPage() {
     loadSuppliers();
   }, []);
 
+  useEffect(() => {
+    preloadInventoryCache();
+  }, []);
+
   const handleSupplierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSupplier(value);
@@ -403,12 +407,36 @@ export default function PembelianPage() {
     setError(null);
 
     try {
-      // First try fuzzy search for name and barcode
+      // First try exact barcode match for better performance
+      const exactResult = await inventoryApi.getByExactBarcode(normalized);
+      
+      if (exactResult.data) {
+        const item = exactResult.data;
+        addItem({
+          id: item.id,
+          barcode: item.kode_barcode,
+          nama_barang: item.nama_barang,
+          harga_jual: item.harga_jual,
+          harga_beli: item.harga_beli_terakhir || 0,
+          diskon: item.diskon || 0,
+          stok: item.stok,
+          minimum_stock: item.minimum_stock,
+          kategori: item.kategori,
+        });
+        setBarcodeInput('');
+        focusInput();
+        setLoading(false);
+        return;
+      }
+      
+      // Fallback to fuzzy search for name and barcode
       const fuzzyResult = await inventoryApi.fuzzySearch(normalized);
       
       if (fuzzyResult.data && fuzzyResult.data.length > 0) {
-        // Check for exact match first
-        const exactMatch = (fuzzyResult.data as any[]).find(item => item.similarity === 100);
+        // Check for exact match in fuzzy results
+        const fuzzyItems = fuzzyResult.data as Array<InventoryItem & { similarity: number }>;
+        const exactMatch = fuzzyItems.find(item => item.similarity === 100);
+        
         if (exactMatch) {
           addItem({
             id: exactMatch.id,
@@ -427,18 +455,37 @@ export default function PembelianPage() {
           return;
         }
         
-        // Show suggestions if we have similar items
-        if (fuzzyResult.data.length > 0) {
-          setSuggestionQuery(normalized);
-          setSuggestionItems(fuzzyResult.data);
-          setShowSuggestionDialog(true);
+        // Skip dialog if only 1 item with high similarity (>=80%)
+        if (fuzzyItems.length === 1 && fuzzyItems[0].similarity >= 80) {
+          const item = fuzzyItems[0];
+          addItem({
+            id: item.id,
+            barcode: item.kode_barcode,
+            nama_barang: item.nama_barang,
+            harga_jual: item.harga_jual,
+            harga_beli: item.harga_beli_terakhir || 0,
+            diskon: item.diskon || 0,
+            stok: item.stok,
+            minimum_stock: item.minimum_stock,
+            kategori: item.kategori,
+          });
+          setBarcodeInput('');
+          focusInput();
           setLoading(false);
           return;
         }
+        
+        // Show suggestions if we have multiple similar items
+        setSuggestionQuery(normalized);
+        setSuggestionItems(fuzzyResult.data);
+        setShowSuggestionDialog(true);
+        setLoading(false);
+        return;
       }
       
-      // If no matches at all, open new item form directly
-      const isLikelyBarcode = /^\d{8,}$/.test(normalized);
+      // If no matches at all, open new item form
+      // Check if input looks like a barcode (numeric or alphanumeric pattern)
+      const isLikelyBarcode = /^[A-Z0-9]{4,}$/i.test(normalized);
       
       setNewItemBarcode(isLikelyBarcode ? normalized : '');
       setNewItemName(isLikelyBarcode ? '' : normalized);
@@ -497,11 +544,13 @@ export default function PembelianPage() {
           diskon: result.data.diskon || 0,
           stok: 0,
           minimum_stock: 0,
-          kategori: result.data.kategori,
+          kategori: result.data.id_kategori ?? { id: '', nama: data.kategori },
         });
         setShowNewItemDialog(false);
         setBarcodeInput('');
         focusInput();
+      } else if (result.error) {
+        setError(result.error.message || 'Gagal membuat barang baru');
       }
     } catch (err) {
       console.error('Error creating item:', err);
@@ -548,7 +597,8 @@ export default function PembelianPage() {
       });
 
       if (result.error) {
-        setError('Gagal menyimpan pembelian');
+        console.error('Pembelian error:', result.error);
+        setError(result.error.message || 'Gagal menyimpan pembelian');
       } else {
         setSuccess('Pembelian berhasil disimpan');
         reset();

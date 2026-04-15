@@ -145,8 +145,15 @@ export const PriceInput = ({
       setDisplayValue(value > 0 ? formatNumber(value) : '');
       inputRef.current?.blur();
     }
+    if (e.key === 'Tab') {
+      return;
+    }
+    // Allow navigation keys
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Backspace', 'Delete', 'Insert'].includes(e.key)) {
+      return;
+    }
     // Cegah input karakter yang tidak valid
-    if (!/[0-9.,\b\t\n\x7F\x03\x16\x18]/.test(e.key) && !e.ctrlKey && !e.metaKey) {
+    if (!/[0-9.,]/.test(e.key) && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
     }
   }, [value, formatNumber]);

@@ -24,6 +24,7 @@ interface AuthState {
   initialize: () => Promise<void>;
   isAdmin: () => boolean;
   isStaff: () => boolean;
+  authSubscription: { unsubscribe: () => void } | null;
 }
 
 const fetchProfile = async (userId: string) => {
@@ -42,6 +43,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loading: false,
   initialized: false,
   supabase,
+  authSubscription: null,
 
   isAdmin: () => {
     const profile = get().profile;
@@ -75,6 +77,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        if (_event === 'TOKEN_REFRESHED' && !session) {
+          console.warn('Token refresh failed - clearing session');
+          set({ user: null, profile: null });
+          return;
+        }
         if (session?.user) {
           const profile = await fetchProfile(session.user.id);
           set({ user: session.user, profile });
@@ -82,6 +89,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           set({ user: null, profile: null });
         }
       });
+
+      set({ authSubscription: subscription });
 
     } catch (error) {
       console.error('Auth initialization error:', error);
@@ -109,6 +118,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signOut: async () => {
     try {
+      const { authSubscription } = get();
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
       await supabase.auth.signOut();
     } catch (error) {
       console.error('Supabase sign out error:', error);
@@ -128,7 +141,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     }
     
-    set({ user: null, profile: null, loading: false, initialized: true });
-    window.location.replace('/login');
+    set({ user: null, profile: null, loading: false, initialized: true, authSubscription: null });
+    window.location.reload();
   },
 }));

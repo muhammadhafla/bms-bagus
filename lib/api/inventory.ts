@@ -3,6 +3,44 @@ import { safeQuery, queryToPromise } from './utils';
 import { stringSimilarity } from '@/lib/utils';
 import { InventoryItem } from '@/types/inventory';
 
+let inventoryCache: InventoryItem[] | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+async function getInventoryWithCache() {
+  const now = Date.now();
+  
+  if (inventoryCache && (now - cacheTimestamp) < CACHE_DURATION) {
+    return { data: inventoryCache, error: null };
+  }
+  
+  const result = await safeQuery<InventoryItem[]>(
+    queryToPromise(
+      supabase
+        .from('inventory')
+        .select('*, id_kategori:id_kategori(*)')
+        .order('nama_barang')
+        .limit(200)
+    )
+  );
+  
+  if (!result.error && result.data) {
+    inventoryCache = result.data;
+    cacheTimestamp = now;
+  }
+  
+  return result;
+}
+
+export function clearInventoryCache() {
+  inventoryCache = null;
+  cacheTimestamp = 0;
+}
+
+export async function preloadInventoryCache() {
+  await getInventoryWithCache();
+}
+
 export const inventoryApi = {
   async getAll() {
     return safeQuery<InventoryItem[]>(queryToPromise(supabase.from('inventory').select('*, id_kategori:id_kategori(*)').order('nama_barang').limit(1000)));
@@ -28,24 +66,40 @@ export const inventoryApi = {
     return safeQuery<InventoryItem[]>(queryToPromise(queryBuilder.limit(100)));
   },
 
-  async fuzzySearch(query: string) {
-    const result = await this.getAll();
-    if (result.error || !result.data) return result;
+  async fuzzySearch(query: string, limit = 20) {
+    const queryLower = query.toLowerCase().trim();
+    if (queryLower.length < 2) return { data: [], error: null };
+
+    const result = await getInventoryWithCache();
+    if (result.error || !result.data) return { data: [], error: result.error };
     
-    const safeQuery = query.toLowerCase().trim();
-    
-    const scoredItems = result.data
-      .map(item => ({
+    const scoredItems: Array<InventoryItem & { similarity: number }> = result.data
+      .map((item: InventoryItem) => ({
         ...item,
         similarity: Math.max(
-          stringSimilarity(safeQuery, item.nama_barang.toLowerCase()),
-          stringSimilarity(safeQuery, (item.kode_barcode || '').toLowerCase())
+          stringSimilarity(queryLower, item.nama_barang.toLowerCase()),
+          stringSimilarity(queryLower, (item.kode_barcode || '').toLowerCase())
         )
       }))
-      .filter(item => item.similarity >= 50)
+      .filter((item: InventoryItem & { similarity: number }) => item.similarity >= 50)
       .sort((a, b) => b.similarity - a.similarity);
     
-    return { data: scoredItems.slice(0, 5), error: null };
+    return { data: scoredItems.slice(0, limit), error: null };
+  },
+
+  async getByExactBarcode(barcode: string) {
+    const normalizedBarcode = barcode.toUpperCase().trim();
+    if (!normalizedBarcode) return { data: null, error: null };
+    
+    return safeQuery<InventoryItem>(
+      queryToPromise(
+        supabase
+          .from('inventory')
+          .select('*, id_kategori:id_kategori(*)')
+          .eq('kode_barcode', normalizedBarcode)
+          .single()
+      )
+    );
   },
 
   async update(id: string, data: Partial<{ harga_jual: number; diskon: number; minimum_stock: number; harga_beli_terakhir: number }>) {
@@ -58,16 +112,12 @@ export const inventoryApi = {
       return { data: null, error: new Error('User not authenticated') };
     }
     
-    // Generate unique slug from nama_barang
-    const slug = data.nama_barang.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
-    
     return safeQuery<InventoryItem>(
       queryToPromise(
         supabase
           .from('inventory')
           .insert({ 
             nama_barang: data.nama_barang,
-            slug: slug,
             kode_barcode: data.kode_barcode || null,
             id_kategori: data.id_kategori || null,
             created_by: user.id,

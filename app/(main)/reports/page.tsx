@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { reportApi, StockMutation, InventoryValue, SalesSummary, ProfitSummary } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { IconReport, IconPackage, IconCash, IconShoppingCart, IconTrendingUp } from '@tabler/icons-react';
-import Header from '@/components/ui/Header';
+import DateInput from '@/components/ui/DateInput';
 
 type ReportType = 'stock' | 'value' | 'sales' | 'profit';
 
@@ -79,7 +79,6 @@ export default function ReportsPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
-      <Header title="Laporan" />
       <header className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 py-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
           <div className="flex items-center gap-4">
@@ -138,24 +137,18 @@ export default function ReportsPage() {
 
         {reportType !== 'value' && (
           <div className="flex flex-wrap gap-3 items-center">
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-neutral-600 dark:text-neutral-400 font-medium">Dari:</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="px-4 py-2.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-neutral-900 dark:text-neutral-100 transition-all"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-neutral-600 dark:text-neutral-400 font-medium">Sampai:</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="px-4 py-2.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-neutral-900 dark:text-neutral-100 transition-all"
-              />
-            </div>
+            <DateInput
+              value={startDate}
+              onChange={setStartDate}
+              label="Dari:"
+              inputSize="sm"
+            />
+            <DateInput
+              value={endDate}
+              onChange={setEndDate}
+              label="Sampai:"
+              inputSize="sm"
+            />
             <button
               onClick={loadReport}
               disabled={loading}

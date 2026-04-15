@@ -6,7 +6,10 @@ export interface InventoryItem {
   harga_beli_terakhir?: number;
   harga_jual: number;
   stok: number;
-  id_kategori?: string;
+  id_kategori?: {
+    id: string;
+    nama: string;
+  };
   kategori?: {
     id: string;
     nama: string;

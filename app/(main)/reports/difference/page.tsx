@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Header from '@/components/ui/Header';
 import { stockAdjustmentApi, StockAdjustment } from '@/lib/api/stockAdjustment';
 
 const reasonLabels: Record<string, string> = {
@@ -42,8 +41,6 @@ export default function DifferenceReportPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
-      <Header title="Laporan Selisih Stok" />
-      
       <div className="max-w-7xl mx-auto p-4">
         <h1 className="text-2xl font-bold mb-6">Laporan Selisih Stok</h1>
 

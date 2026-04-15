@@ -5,7 +5,7 @@ import { InventoryItem } from '@/types/inventory';
 
 export const inventoryApi = {
   async getAll() {
-    return safeQuery<InventoryItem[]>(queryToPromise(supabase.from('inventory').select('*, kategori:kategori(*)').order('nama_barang')));
+    return safeQuery<InventoryItem[]>(queryToPromise(supabase.from('inventory').select('*, id_kategori:id_kategori(*)').order('nama_barang').limit(1000)));
   },
 
   async getByBarcode(barcode: string) {
@@ -17,7 +17,7 @@ export const inventoryApi = {
     
     const queryBuilder = supabase
       .from('inventory')
-      .select('*')
+      .select('*, id_kategori:id_kategori(*)')
       .or(`nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`)
       .order('nama_barang');
 
@@ -25,7 +25,7 @@ export const inventoryApi = {
       queryBuilder.eq('is_discontinued', false);
     }
 
-    return safeQuery<InventoryItem[]>(queryToPromise(queryBuilder));
+    return safeQuery<InventoryItem[]>(queryToPromise(queryBuilder.limit(100)));
   },
 
   async fuzzySearch(query: string) {
@@ -78,7 +78,7 @@ export const inventoryApi = {
             minimum_stock: 0,
             unit: 'pcs'
           })
-          .select('*, kategori:kategori(*)')
+          .select('*, id_kategori:id_kategori(*)')
           .single()
       )
     );

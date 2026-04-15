@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import Header from '@/components/ui/Header';
 import { StockOpname } from '@/lib/api/stockOpname';
 import { stockOpnameApi } from '@/lib/api';
 import { IconPlus, IconEye, IconCheck, IconX, IconTrash } from '@tabler/icons-react';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 const statusColors: Record<string, string> = {
   draft: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
@@ -27,12 +27,15 @@ export default function StockOpnameListPage() {
   const [opnames, setOpnames] = useState<StockOpname[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const fetchOpnames = useCallback(async () => {
     setLoading(true);
     const result = await stockOpnameApi.getAll();
     if (!result.error && result.data) {
       setOpnames(result.data);
+    } else if (result.error) {
+      console.error('Error fetching opnames:', result.error);
     }
     setLoading(false);
   }, []);
@@ -46,28 +49,34 @@ export default function StockOpnameListPage() {
     const result = await stockOpnameApi.create();
     if (!result.error && result.data && 'id' in result.data) {
       window.location.href = `/stock-opname/${result.data.id}`;
+    } else if (result.error) {
+      console.error('Error creating opname:', result.error);
+      alert('Gagal membuat stock opname: ' + result.error.message);
     }
     setCreating(false);
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Yakin ingin menghapus stock opname ini?')) {
-      await stockOpnameApi.delete(id);
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (deleteId) {
+      await stockOpnameApi.delete(deleteId);
       fetchOpnames();
+      setDeleteId(null);
     }
   };
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
-      <Header title="Stock Opname" />
-      
       <div className="max-w-7xl mx-auto p-4">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Stock Opname</h1>
           <button
             onClick={handleCreate}
             disabled={creating}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors disabled:opacity-50"
           >
             <IconPlus size={18} />
             Buat Opname Baru
@@ -101,12 +110,12 @@ export default function StockOpnameListPage() {
                         {statusLabels[opname.status]}
                       </span>
                     </td>
-                    <td className="p-4">{opname.created_by}</td>
+                    <td className="p-4">{opname.profiles?.nama || opname.created_by}</td>
                     <td className="p-4 text-right">
                       <div className="flex justify-end gap-2">
                         <Link
                           href={`/stock-opname/${opname.id}`}
-                          className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                          className="p-2 text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded"
                         >
                           <IconEye size={18} />
                         </Link>
@@ -127,6 +136,17 @@ export default function StockOpnameListPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={!!deleteId}
+        title="Hapus Stock Opname"
+        message="Yakin ingin menghapus stock opname ini? Tindakan ini tidak dapat dibatalkan."
+        confirmLabel="Hapus"
+        cancelLabel="Batal"
+        danger
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

@@ -6,7 +6,8 @@ import { inventoryApi, PembelianItem, pembelianApi, kategoriApi, supplierApi, Su
 import { InventoryItem } from '@/types/inventory';
 import { formatCurrency, normalizeBarcode, generateIdempotencyKey, generateAutoBarcode } from '@/lib/utils';
 import { IconShoppingCart, IconCamera, IconPackage } from '@tabler/icons-react';
-import Header from '@/components/ui/Header';
+import { PriceInput } from '@/components/ui/PriceInput';
+import DateInput from '@/components/ui/DateInput';
 
 interface ItemSuggestionDialogProps {
   open: boolean;
@@ -224,33 +225,29 @@ function NewItemDialog({ open, initialBarcode, initialName, onClose, onSubmit }:
           <div className="grid grid-cols-3 gap-3 mb-4">
             <div>
               <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Harga Beli</label>
-              <input
-                type="number"
+              <PriceInput
                 value={harga_beli}
-                onChange={(e) => setHargaBeli(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-neutral-900 dark:text-neutral-100"
-                min="0"
+                onChange={setHargaBeli}
+                className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500"
+                min={0}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Harga Jual</label>
-              <input
-                type="number"
+              <PriceInput
                 value={harga_jual}
-                onChange={(e) => setHargaJual(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-neutral-900 dark:text-neutral-100"
-                min="0"
+                onChange={setHargaJual}
+                className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500"
+                min={0}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Diskon</label>
-              <input
-                type="number"
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Diskon (Rp)</label>
+              <PriceInput
                 value={diskon}
-                onChange={(e) => setDiskon(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-neutral-900 dark:text-neutral-100"
-                min="0"
-                max="100"
+                onChange={setDiskon}
+                className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500"
+                min={0}
               />
             </div>
           </div>
@@ -284,7 +281,7 @@ export default function PembelianPage() {
   const [submitting, setSubmitting] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [editMode, setEditMode] = useState<'qty' | 'harga' | null>(null);
-  const [editValue, setEditValue] = useState('');
+  const [editValue, setEditValue] = useState<number>(0);
   const [showNewItemDialog, setShowNewItemDialog] = useState(false);
   const [newItemBarcode, setNewItemBarcode] = useState('');
   const [newItemName, setNewItemName] = useState('');
@@ -368,7 +365,7 @@ export default function PembelianPage() {
         if (items.length > 0) {
           setSelectedIndex(0);
           setEditMode('qty');
-          setEditValue(String(items[0].qty));
+          setEditValue(items[0].qty);
           setTimeout(() => editInputRef.current?.focus(), 0);
         }
       } else if (e.key === 'F3') {
@@ -376,7 +373,7 @@ export default function PembelianPage() {
         if (items.length > 0) {
           setSelectedIndex(0);
           setEditMode('harga');
-          setEditValue(String(items[0].harga_beli || 0));
+          setEditValue(items[0].harga_beli || 0);
           setTimeout(() => editInputRef.current?.focus(), 0);
         }
       } else if (e.key === 'Delete' && selectedIndex !== null) {
@@ -569,7 +566,7 @@ export default function PembelianPage() {
   const handleEditSubmit = useCallback(() => {
     if (selectedIndex === null || !editMode) return;
     
-    const value = parseInt(editValue);
+    const value = editValue;
     if (isNaN(value) || value < 0) return;
 
     if (editMode === 'qty') {
@@ -593,7 +590,6 @@ export default function PembelianPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
-      <Header title="Pembelian" />
       <header className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 py-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
           <div className="flex items-center gap-4">
@@ -607,15 +603,12 @@ export default function PembelianPage() {
           </div>
           
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-neutral-600 dark:text-neutral-300">Tanggal:</label>
-              <input
-                type="date"
-                value={tanggal}
-                onChange={(e) => setTanggal(e.target.value)}
-                className="px-3 py-2 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white dark:focus:bg-neutral-800 transition-all"
-              />
-            </div>
+            <DateInput
+              value={tanggal}
+              onChange={setTanggal}
+              label="Tanggal:"
+              inputSize="sm"
+            />
           </div>
         </div>
 
@@ -670,16 +663,16 @@ export default function PembelianPage() {
              )}
            </div>
 
-           <div className="flex flex-col gap-2 min-w-[18rem]">
-             <label className="text-sm text-neutral-600 dark:text-neutral-300 font-medium">Total Supplier:</label>
-             <input
-               type="number"
-               value={totalSupplier || ''}
-               onChange={(e) => setTotalSupplier(parseInt(e.target.value) || 0)}
-               className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white dark:focus:bg-neutral-800 transition-all"
-               placeholder="0"
-             />
-           </div>
+<div className="flex flex-col gap-2 min-w-[18rem]">
+              <label className="text-sm text-neutral-600 dark:text-neutral-300 font-medium">Total Supplier:</label>
+              <PriceInput
+                value={totalSupplier || 0}
+                onChange={setTotalSupplier}
+                className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white dark:focus:bg-neutral-800 transition-all"
+                placeholder="0"
+                min={0}
+              />
+            </div>
         </div>
 
         {error && (
@@ -725,21 +718,12 @@ export default function PembelianPage() {
                   <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">{item.nama_barang}</td>
                   <td className="px-4 py-3 text-right">
                     {selectedIndex === index && editMode === 'qty' ? (
-                      <input
-                        ref={editInputRef}
-                        type="number"
+                      <PriceInput
                         value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleEditSubmit();
-                          if (e.key === 'Escape') {
-                            setEditMode(null);
-                            setSelectedIndex(null);
-                            focusInput();
-                          }
-                        }}
+                        onChange={setEditValue}
                         onBlur={handleEditSubmit}
-                        className="w-20 px-2 py-1 text-right border-2 border-brand-500 rounded"
+                        className="w-20 px-2 py-1 border-2 border-brand-500 rounded"
+                        min={1}
                         autoFocus
                       />
                     ) : (
@@ -747,8 +731,7 @@ export default function PembelianPage() {
                         onClick={() => {
                           setSelectedIndex(index);
                           setEditMode('qty');
-                          setEditValue(String(item.qty));
-                          setTimeout(() => editInputRef.current?.focus(), 0);
+                          setEditValue(item.qty);
                         }}
                         className="px-2 py-1 text-right hover:bg-neutral-100 rounded w-20 block ml-auto"
                       >
@@ -758,21 +741,12 @@ export default function PembelianPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {selectedIndex === index && editMode === 'harga' ? (
-                      <input
-                        ref={editInputRef}
-                        type="number"
+                      <PriceInput
                         value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleEditSubmit();
-                          if (e.key === 'Escape') {
-                            setEditMode(null);
-                            setSelectedIndex(null);
-                            focusInput();
-                          }
-                        }}
+                        onChange={setEditValue}
                         onBlur={handleEditSubmit}
-                        className="w-24 px-2 py-1 text-right border-2 border-brand-500 rounded"
+                        className="w-24 px-2 py-1 border-2 border-brand-500 rounded"
+                        min={0}
                         autoFocus
                       />
                     ) : (
@@ -780,8 +754,7 @@ export default function PembelianPage() {
                         onClick={() => {
                           setSelectedIndex(index);
                           setEditMode('harga');
-                          setEditValue(String(item.harga_beli || 0));
-                          setTimeout(() => editInputRef.current?.focus(), 0);
+                          setEditValue(item.harga_beli || 0);
                         }}
                         className="px-2 py-1 text-right hover:bg-neutral-100 rounded w-24 block ml-auto"
                       >

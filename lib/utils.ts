@@ -11,6 +11,23 @@ export const formatCurrency = (amount: number): string => {
 };
 
 /**
+ * Format number with thousand separators only (without Rp prefix)
+ */
+export const formatNumber = (num: number): string => {
+  return new Intl.NumberFormat('id-ID').format(num);
+};
+
+/**
+ * Parse price input string to clean number
+ * Accepts input with dots, commas, or any non-numeric characters
+ */
+export const parsePrice = (input: string | number): number => {
+  if (typeof input === 'number') return Math.max(0, input);
+  const cleaned = input.replace(/[^0-9]/g, '');
+  return cleaned ? parseInt(cleaned, 10) : 0;
+};
+
+/**
  * Debounce function for input handling
  */
 export const debounce = <T extends (...args: any[]) => any>(
@@ -67,11 +84,11 @@ export const handleBarcodeInput = (
 export const createDebouncedHandler = <T extends (...args: any[]) => any>(
   func: T,
   delay: number
-): T => {
+): ((...args: Parameters<T>) => void) & { cancel: () => void } => {
   let lastCall = 0;
   let timeoutId: NodeJS.Timeout | null = null;
 
-  return ((...args: Parameters<T>) => {
+  const handler = (...args: Parameters<T>) => {
     const now = Date.now();
     const timeSinceLastCall = now - lastCall;
 
@@ -85,10 +102,20 @@ export const createDebouncedHandler = <T extends (...args: any[]) => any>(
     } else {
       timeoutId = setTimeout(() => {
         lastCall = Date.now();
+        timeoutId = null;
         func(...args);
       }, delay - timeSinceLastCall);
     }
-  }) as T;
+  };
+
+  handler.cancel = () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+  };
+
+  return handler;
 };
 
 /**

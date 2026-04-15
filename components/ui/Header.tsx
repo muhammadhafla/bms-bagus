@@ -1,14 +1,7 @@
-import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
-  IconShoppingCart,
-  IconArrowBack,
-  IconReport,
-  IconReceipt,
   IconSun,
   IconMoon,
-  IconClipboardCheck,
 } from '@tabler/icons-react';
 import { useDarkMode } from '@/components/DarkModeProvider';
 
@@ -37,23 +30,9 @@ export default function Header({ title }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
-      <div className="flex items-center justify-between px-4 py-3">
+    <header className="sticky top-0 z-40 bg-white dark:bg-neutral-900 shadow-sm">
+      <div className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 relative flex items-center justify-center">
-              <Image
-                src="/images/logo.png"
-                alt="Logo"
-                fill
-                className="object-contain"
-              />
-            </div>
-            <span className="font-bold text-neutral-900 dark:text-white hidden sm:block">BMS</span>
-          </Link>
-          
-          <span className="text-neutral-400 dark:text-neutral-500">/</span>
-          
           <span className="font-medium text-neutral-900 dark:text-white">
             {getCurrentPage()}
           </span>

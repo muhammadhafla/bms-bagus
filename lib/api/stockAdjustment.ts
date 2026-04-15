@@ -15,14 +15,36 @@ export interface StockAdjustment {
 
 export const stockAdjustmentApi = {
   async getAll() {
-    return safeQuery<StockAdjustment[]>(
-      queryToPromise(
-        supabase
-          .from('stock_adjustments')
-          .select('*, inventory:inventory(nama_barang)')
-          .order('created_at', { ascending: false })
-      )
+    const { data, error } = await queryToPromise(
+      supabase
+        .from('stock_adjustments')
+        .select('*')
+        .order('created_at', { ascending: false })
     );
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    if (!data || data.length === 0) {
+      return { data: [], error: null };
+    }
+
+    const adjustmentsWithInventory: any[] = await Promise.all(
+      data.map(async (adj) => {
+        if (adj.inventory_id) {
+          const { data: inventory } = await supabase
+            .from('inventory')
+            .select('nama_barang')
+            .eq('id', adj.inventory_id)
+            .single();
+          return { ...adj, inventory: inventory };
+        }
+        return adj;
+      })
+    );
+
+    return { data: adjustmentsWithInventory, error: null };
   },
 
   async processOpnameAdjustments(opnameId: string) {

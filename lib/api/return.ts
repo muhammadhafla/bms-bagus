@@ -17,6 +17,36 @@ export interface ReturnItem {
   return_subtotal: number;
 }
 
+export interface AvailableReturnItem {
+  pembelian_item_id: string;
+  pembelian_id: string;
+  inventory_id: string;
+  nama_barang: string;
+  harga_beli: number;
+  diskon?: number;
+  qty_original: number;
+  qty_returned: number;
+  qty_remaining: number;
+  tanggal_pembelian: string;
+  nomor_nota?: string;
+  return_qty?: number;
+  selected?: boolean;
+  qty?: number;
+}
+
+export interface BatchReturnInput {
+  supplier_id: string;
+  supplier_nama: string;
+  tanggal: string;
+  note?: string;
+  idempotency_key?: string;
+  items: {
+    pembelian_item_id: string;
+    inventory_id: string;
+    qty: number;
+  }[];
+}
+
 export interface ReturnedTransaction {
   id: string;
   idempotency_key: string;
@@ -107,4 +137,51 @@ export const returnApi = {
       p_items: data.items,
     })));
   },
+
+  async getAvailableItemsBySupplier(supplierId: string) {
+    return safeQuery<AvailableReturnItem[]>(queryToPromise(
+      supabase.rpc('get_available_return_items', { p_supplier_id: supplierId })
+    ));
+  },
+
+  async submitBatchReturn(data: BatchReturnInput) {
+    const idempotencyKey = data.idempotency_key || generateIdempotencyKey();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: { message: 'User not authenticated' } };
+
+    return safeQuery(queryToPromise(supabase.rpc('proses_return_batch', {
+      p_supplier_id: data.supplier_id,
+      p_supplier_nama: data.supplier_nama,
+      p_tanggal: data.tanggal,
+      p_note: data.note ?? null,
+      p_items: data.items,
+      p_idempotency_key: idempotencyKey,
+      p_created_by: user.id,
+    })));
+  },
+
+  async getReturnDetail(returnId: string) {
+    const [headerResult, itemsResult] = await Promise.all([
+      supabase.from('pembelian_return').select('*').eq('id', returnId).single(),
+      supabase.from('pembelian_return_items').select('*').eq('pembelian_return_id', returnId)
+    ]);
+
+    return {
+      data: {
+        ...headerResult.data,
+        items: itemsResult.data
+      },
+      error: headerResult.error || itemsResult.error
+    };
+  },
+
+  async getReturnList() {
+    return safeQuery(queryToPromise(
+      supabase
+        .from('pembelian_return')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100)
+    ));
+  }
 };

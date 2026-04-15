@@ -40,11 +40,13 @@ export const usePembelianStore = create<PembelianStore>((set, get) => ({
     );
 
     if (existingIndex >= 0) {
-      const newItems = [...state.items];
-      newItems[existingIndex].qty += 1;
-      newItems[existingIndex].subtotal = 
-        newItems[existingIndex].qty * newItems[existingIndex].harga_final;
-      return { items: newItems };
+      return {
+        items: state.items.map((item, i) =>
+          i === existingIndex
+            ? { ...item, qty: item.qty + 1, subtotal: (item.qty + 1) * item.harga_final }
+            : item
+        )
+      };
     }
 
     const harga_final = (item.harga_beli || 0) - item.diskon;
@@ -62,18 +64,21 @@ export const usePembelianStore = create<PembelianStore>((set, get) => ({
     if (qty <= 0) {
       return { items: state.items.filter((_, i) => i !== index) };
     }
-    const newItems = [...state.items];
-    newItems[index].qty = qty;
-    newItems[index].subtotal = qty * newItems[index].harga_final;
-    return { items: newItems };
+    return {
+      items: state.items.map((item, i) =>
+        i === index ? { ...item, qty, subtotal: qty * item.harga_final } : item
+      )
+    };
   }),
 
   updateHargaBeli: (index, harga) => set((state) => {
-    const newItems = [...state.items];
-    newItems[index].harga_beli = harga;
-    newItems[index].harga_final = harga - newItems[index].diskon;
-    newItems[index].subtotal = newItems[index].qty * newItems[index].harga_final;
-    return { items: newItems };
+    return {
+      items: state.items.map((item, i) => {
+        if (i !== index) return item;
+        const harga_final = harga - item.diskon;
+        return { ...item, harga_beli: harga, harga_final, subtotal: item.qty * harga_final };
+      })
+    };
   }),
 
   removeItem: (index) => set((state) => ({

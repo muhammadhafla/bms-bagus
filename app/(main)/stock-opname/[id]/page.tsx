@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Header from '@/components/ui/Header';
 import { StockOpname, StockOpnameItem, stockOpnameApi } from '@/lib/api/stockOpname';
 import { stockAdjustmentApi } from '@/lib/api/stockAdjustment';
 import { inventoryApi } from '@/lib/api';
 import { IconArrowLeft, IconCheck, IconX, IconSend, IconLoader2, IconDeviceFloppy, IconRefresh, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react';
-import { ToastProvider, useToast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import SelectInput from '@/components/ui/SelectInput';
+import TextareaInput from '@/components/ui/TextareaInput';
 
 const reasonOptions = [
   { value: 'salah_input', label: 'Kesalahan Input' },
@@ -54,11 +55,15 @@ export default function StockOpnameDetailPage() {
 
     if (!opnameResult.error && opnameResult.data) {
       setOpname(opnameResult.data);
+    } else if (opnameResult.error) {
+      console.error('Error fetching opname:', opnameResult.error);
     }
     if (!itemsResult.error && itemsResult.data) {
       setItems(itemsResult.data);
       setOriginalItems(JSON.parse(JSON.stringify(itemsResult.data)));
       setHasChanges(false);
+    } else if (itemsResult.error) {
+      console.error('Error fetching items:', itemsResult.error);
     }
     setLoading(false);
   }, [opnameId]);
@@ -126,7 +131,8 @@ export default function StockOpnameDetailPage() {
       return;
     }
 
-    const result = await inventoryApi.search(query);
+    // Gunakan fuzzy search sama seperti di halaman pembelian
+    const result = await inventoryApi.fuzzySearch(query);
     if (!result.error && result.data) {
       const existingIds = items.map(i => i.inventory_id);
       const filtered = result.data.filter((i: any) => !existingIds.includes(i.id));
@@ -144,6 +150,9 @@ export default function StockOpnameDetailPage() {
       setInventorySearchResults([]);
       setShowAddDropdown(false);
       addToast({ type: 'success', message: `${inventory.nama_barang} ditambahkan` });
+      
+      // Auto focus kembali ke input untuk scan berikutnya
+      setTimeout(() => addSearchRef.current?.focus(), 0);
     }
   };
 
@@ -175,7 +184,7 @@ export default function StockOpnameDetailPage() {
     setSaving(true);
     const result = await stockOpnameApi.approve(opnameId);
     if (result.error) {
-      alert(result.error.message);
+      addToast({ type: "error", message: result.error.message });
     } else {
       setProcessing(true);
       await stockAdjustmentApi.processOpnameAdjustments(opnameId);
@@ -193,7 +202,7 @@ export default function StockOpnameDetailPage() {
     setSaving(true);
     const result = await stockOpnameApi.reject(opnameId, rejectNote);
     if (result.error) {
-      alert(result.error.message);
+      addToast({ type: "error", message: result.error.message });
     } else {
       setShowRejectModal(false);
       fetchData();
@@ -204,8 +213,26 @@ export default function StockOpnameDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
-        <Header title="Stock Opname" />
         <div className="text-center py-12 text-neutral-500">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!opname) {
+    return (
+      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
+        <div className="max-w-7xl mx-auto p-4">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+            <p className="text-red-700 dark:text-red-300">Gagal memuat data stock opname. Pastikan Anda memiliki akses yang tepat.</p>
+          </div>
+          <button
+            onClick={() => router.push('/stock-opname')}
+            className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700"
+          >
+            <IconArrowLeft size={18} />
+            Kembali ke Daftar
+          </button>
+        </div>
       </div>
     );
   }
@@ -223,14 +250,11 @@ export default function StockOpnameDetailPage() {
     );
   });
 
-  const hasInvalidItems = items.some(item => item.difference !== 0 && !item.reason);
+   const hasInvalidItems = items.some(item => item.difference !== 0 && !item.reason);
+   const invalidItemCount = items.filter(item => item.difference !== 0 && !item.reason).length;
 
-  return (
+return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
-      <Header title="Stock Opname Detail" />
-      
-
-      
       <div className="max-w-7xl mx-auto p-4">
         <div className="flex justify-between items-center mb-6">
           <button
@@ -242,35 +266,38 @@ export default function StockOpnameDetailPage() {
           </button>
 
           <div className="flex gap-2">
-            {isDraft && hasChanges && (
+            {isDraft && (
               <>
+                {hasChanges && (
+                  <button
+                    onClick={() => setShowConfirmDiscard(true)}
+                    disabled={saving}
+                    className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                  >
+                    <IconRefresh size={18} />
+                    Batal
+                  </button>
+                )}
+                {hasChanges && (
+                  <button
+                    onClick={saveChanges}
+                    disabled={saving || hasInvalidItems}
+                    className="flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors disabled:opacity-50"
+                  >
+                    {saving ? <IconLoader2 size={18} className="animate-spin" /> : <IconDeviceFloppy size={18} />}
+                    {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                  </button>
+                )}
                 <button
-                  onClick={() => setShowConfirmDiscard(true)}
-                  disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-                >
-                  <IconRefresh size={18} />
-                  Batal
-                </button>
-                <button
-                  onClick={saveChanges}
+                  onClick={handleSubmit}
                   disabled={saving || hasInvalidItems}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                  title={hasInvalidItems ? 'Isi alasan untuk semua item dengan selisih terlebih dahulu' : ''}
                 >
-                  {saving ? <IconLoader2 size={18} className="animate-spin" /> : <IconDeviceFloppy size={18} />}
-                  {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                  <IconSend size={18} />
+                  {saving ? 'Mengirim...' : 'Submit untuk Approval'}
                 </button>
               </>
-            )}
-            {isDraft && !hasChanges && (
-              <button
-                onClick={handleSubmit}
-                disabled={saving || hasInvalidItems}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-              >
-                <IconSend size={18} />
-                {saving ? 'Mengirim...' : 'Submit untuk Approval'}
-              </button>
             )}
             {isPending && (
               <>
@@ -311,7 +338,13 @@ export default function StockOpnameDetailPage() {
                   searchInventory(e.target.value);
                 }}
                 onFocus={() => searchAdd.length >= 2 && searchInventory(searchAdd)}
-                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && inventorySearchResults.length > 0) {
+                    e.preventDefault();
+                    addItemToOpname(inventorySearchResults[0]);
+                  }
+                }}
+                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               {showAddDropdown && inventorySearchResults.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg max-h-64 overflow-auto">
@@ -319,17 +352,22 @@ export default function StockOpnameDetailPage() {
                     <button
                       key={inventory.id}
                       onClick={() => addItemToOpname(inventory)}
-                      className="w-full px-4 py-2 text-left hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                      className="w-full px-4 py-2 text-left hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex justify-between items-center"
                     >
-                      <div className="font-medium">{inventory.nama_barang}</div>
-                      <div className="text-xs text-neutral-500">{inventory.kode_barcode} | Stok: {inventory.stok}</div>
+                      <div>
+                        <div className="font-medium text-neutral-900 dark:text-neutral-100">{inventory.nama_barang}</div>
+                        <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">{inventory.kode_barcode || 'Tanpa barcode'} | Stok: {inventory.stok}</div>
+                      </div>
+                      <div className="text-xs bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2 py-1 rounded-full">
+                        {inventory.similarity}% cocok
+                      </div>
                     </button>
                   ))}
                 </div>
               )}
             </div>
             
-            {items.length > 10 && (
+            {items.length > 0 && (
               <div className="relative flex-1 max-w-md">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
                   <IconSearch size={18} />
@@ -339,14 +377,22 @@ export default function StockOpnameDetailPage() {
                   placeholder="Cari di dalam daftar..."
                   value={searchFilter}
                   onChange={(e) => setSearchFilter(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
             )}
           </div>
         )}
 
-         <div className="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 overflow-hidden mb-6">
+          {hasInvalidItems && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+              <p className="text-red-700 dark:text-red-300 font-medium">
+                ⚠️ Ada {invalidItemCount} item yang belum diisi alasan selisih. Mohon isi alasan sebelum submit.
+              </p>
+            </div>
+          )}
+
+          <div className="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 overflow-hidden mb-6">
            <div className="overflow-x-auto">
              {items.length === 0 ? (
                <div className="text-center py-12">
@@ -374,13 +420,13 @@ export default function StockOpnameDetailPage() {
                          <td className="p-3">{item.inventory?.nama_barang || item.inventory_id}</td>
                          <td className="p-3 text-right font-mono">{item.system_stock}</td>
                          <td className="p-3">
-                           <input
-                             type="number"
-                             value={item.physical_stock}
-                             onChange={(e) => updateItem(item.id, 'physical_stock', parseInt(e.target.value) || 0)}
-                             disabled={!isEditable}
-                             className="w-20 text-right bg-transparent border border-neutral-200 dark:border-neutral-700 rounded px-2 py-1 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                           />
+                          <input
+                            type="number"
+                            value={item.physical_stock}
+                            onChange={(e) => updateItem(item.id, 'physical_stock', parseInt(e.target.value) || 0)}
+                            disabled={!isEditable}
+                            className="w-20 text-right bg-transparent border border-neutral-200 dark:border-neutral-700 rounded px-2 py-1 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          />
                          </td>
                          <td className={`p-3 text-right font-mono font-medium ${item.difference > 0 ? 'text-green-600' : item.difference < 0 ? 'text-red-600' : 'text-neutral-600'}`}>
                            {item.difference > 0 ? '+' : ''}{item.difference}
@@ -390,7 +436,7 @@ export default function StockOpnameDetailPage() {
                              value={item.reason || ''}
                              onChange={(e) => updateItem(item.id, 'reason', e.target.value || null)}
                              disabled={!isEditable || item.difference === 0}
-                             className={`w-32 bg-transparent border rounded px-2 py-1 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 ${!isValid ? 'border-red-500' : 'border-neutral-200 dark:border-neutral-700'}`}
+                             className={`w-32 bg-transparent border rounded px-2 py-1 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-brand-500 ${!isValid ? 'border-red-500' : 'border-neutral-200 dark:border-neutral-700'}`}
                            >
                              <option value="">Pilih Alasan</option>
                              {reasonOptions.map(opt => (
@@ -399,14 +445,14 @@ export default function StockOpnameDetailPage() {
                            </select>
                          </td>
                          <td className="p-3">
-                           <input
-                             type="text"
-                             value={item.note || ''}
-                             onChange={(e) => updateItem(item.id, 'note', e.target.value)}
-                             disabled={!isEditable}
-                             className="w-full bg-transparent border border-neutral-200 dark:border-neutral-700 rounded px-2 py-1 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                             placeholder="Catatan"
-                           />
+                            <input
+                              type="text"
+                              value={item.note || ''}
+                              onChange={(e) => updateItem(item.id, 'note', e.target.value)}
+                              disabled={!isEditable}
+                              className="w-full bg-transparent border border-neutral-200 dark:border-neutral-700 rounded px-2 py-1 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                              placeholder="Catatan"
+                            />
                          </td>
                          {isEditable && (
                            <td className="p-3 text-right">

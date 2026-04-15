@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth';
 import { IconLock } from '@tabler/icons-react';
 import Image from 'next/image';
+import TextInput from '@/components/ui/TextInput';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -71,7 +72,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl p-8 border border-neutral-200 dark:border-neutral-800">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl shadow-lg mb-4 overflow-hidden">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl shadow-lg mb-4 overflow-hidden relative">
               <Image src="/images/logo.png" alt="BMS Logo" fill className="object-contain" />
             </div>
             <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">BMS</h1>

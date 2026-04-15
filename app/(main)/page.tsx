@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth';
-import Header from '@/components/ui/Header';
 import {
   IconPackage,
   IconShoppingCart,
@@ -81,8 +80,6 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 transition-colors">
-      <Header title="Dashboard" />
-      
       <div className="p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-6">
@@ -148,25 +145,25 @@ function HomeContent() {
           {/* Baris 3 */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <RecentTransactions transactions={transactions} isLoading={loading} />
-            <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+            <div className="lg:col-span-2 bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-4 shadow-sm">
               <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
                 Ringkasan Inventaris
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 {loading ? (
                   <>
-                    <div className="animate-pulse h-16 bg-gray-200 dark:bg-gray-700 rounded-lg" />
-                    <div className="animate-pulse h-16 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+                    <div className="animate-pulse h-16 bg-neutral-200 dark:bg-neutral-700 rounded-lg" />
+                    <div className="animate-pulse h-16 bg-neutral-200 dark:bg-neutral-700 rounded-lg" />
                   </>
                 ) : (
                   <>
                     <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Total Item Barang</p>
-                      <p className="text-xl font-bold text-gray-900 dark:text-white">{stats?.totalItems || 0} SKU</p>
+                      <p className="text-sm text-neutral-500 dark:text-neutral-400">Total Item Barang</p>
+                      <p className="text-xl font-bold text-neutral-900 dark:text-white">{stats?.totalItems || 0} SKU</p>
                     </div>
                     <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Transaksi Hari Ini</p>
-                      <p className="text-xl font-bold text-gray-900 dark:text-white">{stats?.todayTransactions || 0}</p>
+                      <p className="text-sm text-neutral-500 dark:text-neutral-400">Transaksi Hari Ini</p>
+                      <p className="text-xl font-bold text-neutral-900 dark:text-white">{stats?.todayTransactions || 0}</p>
                     </div>
                   </>
                 )}

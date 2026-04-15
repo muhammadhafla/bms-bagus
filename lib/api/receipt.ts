@@ -35,7 +35,12 @@ export const receiptApi = {
   },
 
   async getActiveTemplate(type: 'SALE' | 'RETURN' = 'SALE') {
-    return safeQuery<ReceiptTemplate>(queryToPromise(supabase.from('receipt_templates').select('*').eq('is_active', true).eq('type', type).single()));
+    const query = supabase.from('receipt_templates').select('*').eq('is_active', true).eq('type', type).limit(1);
+    const result = await safeQuery<ReceiptTemplate[]>(queryToPromise(query));
+    if (result.error || !result.data || result.data.length === 0) {
+      return { data: null, error: null };
+    }
+    return { data: result.data[0], error: null };
   },
 
   async createTemplate(data: {

@@ -7,7 +7,8 @@ import { debounce } from '@/lib/utils';
 import { InventoryTable } from '@/components/inventory/InventoryTable';
 import { IconPackage, IconSearch } from '@tabler/icons-react';
 import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
-import Header from '@/components/ui/Header';
+import SelectInput from '@/components/ui/SelectInput';
+import CheckboxInput from '@/components/ui/CheckboxInput';
 
 interface Shortcut {
   key: string;
@@ -49,7 +50,7 @@ export default function InventoryPage() {
         let filtered = result.data || [];
         
         if (kategori) {
-          filtered = filtered.filter((item: InventoryItem) => item.kategori?.nama === kategori);
+          filtered = filtered.filter((item: InventoryItem) => item.id_kategori?.nama === kategori);
         }
         
         if (lowStockOnly) {
@@ -58,7 +59,7 @@ export default function InventoryPage() {
         
         setItems(filtered);
         
-        const uniqueKategoris = [...new Set(filtered.map((item: InventoryItem) => item.kategori?.nama).filter(Boolean))];
+        const uniqueKategoris = [...new Set(filtered.map((item: InventoryItem) => item.id_kategori?.nama).filter(Boolean))];
         setKategoriList(uniqueKategoris as string[]);
       }
     } catch (error) {
@@ -140,7 +141,6 @@ export default function InventoryPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
-      <Header title="Inventory" />
       {showShortcutsHelp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowShortcutsHelp(false)}>
           <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl max-w-md w-full p-6 border border-neutral-200 dark:border-neutral-800" onClick={e => e.stopPropagation()}>
@@ -192,26 +192,20 @@ export default function InventoryPage() {
             />
           </div>
           
-          <select
+          <SelectInput
             value={kategori}
-            onChange={(e) => setKategori(e.target.value)}
-            className="px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white dark:focus:bg-neutral-800 transition-all"
-          >
-            <option value="">Semua Kategori</option>
-            {kategoriList.map(k => (
-              <option key={k} value={k}>{k}</option>
-            ))}
-          </select>
+            onChange={setKategori}
+            options={kategoriList.map(k => ({ value: k, label: k }))}
+            placeholder="Semua Kategori"
+            className="min-w-[180px]"
+          />
           
-          <label className="flex items-center gap-3 px-5 py-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all">
-            <input
-              type="checkbox"
-              checked={lowStockOnly}
-              onChange={(e) => setLowStockOnly(e.target.checked)}
-              className="w-5 h-5 text-brand-600 rounded focus:ring-brand-500"
-            />
-            <span className="text-neutral-700 dark:text-neutral-300 font-medium">Low Stock Only</span>
-          </label>
+          <CheckboxInput
+            checked={lowStockOnly}
+            onChange={setLowStockOnly}
+            label="Low Stock Only"
+            labelClassName="px-5 py-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
+          />
         </div>
       </header>
 

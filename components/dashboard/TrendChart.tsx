@@ -9,10 +9,10 @@ interface TrendChartProps {
 export function TrendChart({ data, isLoading }: TrendChartProps) {
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+      <div className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-4 shadow-sm">
         <div className="animate-pulse">
-          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-4" />
-          <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded" />
+          <div className="h-5 bg-neutral-200 dark:bg-neutral-700 rounded w-32 mb-4" />
+          <div className="h-64 bg-neutral-200 dark:bg-neutral-700 rounded" />
         </div>
       </div>
     );
@@ -31,8 +31,8 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-      <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+    <div className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-4 shadow-sm">
+      <h3 className="font-semibold text-neutral-900 dark:text-white mb-4">
         Trend 7 Hari Terakhir
       </h3>
 
@@ -62,7 +62,7 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
                 month: 'long',
               })}
               contentStyle={{
-                backgroundColor: 'var(--tw-bg-opacity, 1) var(--tw-bg-gray-800)',
+                backgroundColor: 'rgba(38, 38, 38, 0.95)',
                 border: 'none',
                 borderRadius: '8px',
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',

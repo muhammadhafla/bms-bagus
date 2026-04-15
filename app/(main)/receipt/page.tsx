@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { receiptApi, ReceiptTemplate, ReceiptLogo } from '@/lib/api';
 import { IconReceipt } from '@tabler/icons-react';
-import Header from '@/components/ui/Header';
 
 export default function ReceiptPage() {
   const [templates, setTemplates] = useState<ReceiptTemplate[]>([]);
@@ -33,22 +32,25 @@ export default function ReceiptPage() {
         receiptApi.getActiveTemplate(),
       ]);
 
-      if (templatesResult.error) {
-        setError('Gagal memuat template');
-      } else {
-        setTemplates(templatesResult.data || []);
+      const templatesData = templatesResult.data || [];
+      const activeData = activeResult.data;
+
+      setTemplates(templatesData);
+      setActiveTemplate(activeData);
+      setSelectedTemplate(activeData);
+
+      if (activeData) {
+        setName(activeData.name);
+        setType(activeData.type);
+        setHeaderLines(Array.isArray(activeData.template?.header) ? activeData.template.header : []);
+        setFooterLines(Array.isArray(activeData.template?.footer) ? activeData.template.footer : []);
+        setShowDiscount(activeData.template?.body?.show_discount || false);
+        setLogoEnabled(activeData.template?.logo?.enabled || false);
+        setLogoPath(activeData.template?.logo?.path || '');
       }
 
-      if (activeResult.data) {
-        setActiveTemplate(activeResult.data);
-        setSelectedTemplate(activeResult.data);
-        setName(activeResult.data.name);
-        setType(activeResult.data.type);
-        setHeaderLines(activeResult.data.template?.header || []);
-        setFooterLines(activeResult.data.template?.footer || []);
-        setShowDiscount(activeResult.data.template?.body?.show_discount || false);
-        setLogoEnabled(activeResult.data.template?.logo?.enabled || false);
-        setLogoPath(activeResult.data.template?.logo?.path || '');
+      if (templatesResult.error) {
+        setError('Gagal memuat template');
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -66,8 +68,8 @@ export default function ReceiptPage() {
     setSelectedTemplate(template);
     setName(template.name);
     setType(template.type);
-    setHeaderLines(template.template?.header || []);
-    setFooterLines(template.template?.footer || []);
+    setHeaderLines(Array.isArray(template.template?.header) ? template.template.header : []);
+    setFooterLines(Array.isArray(template.template?.footer) ? template.template.footer : []);
     setShowDiscount(template.template?.body?.show_discount || false);
     setLogoEnabled(template.template?.logo?.enabled || false);
     setLogoPath(template.template?.logo?.path || '');
@@ -205,7 +207,6 @@ export default function ReceiptPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
-      <Header title="Struk" />
       <header className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 py-5 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl flex items-center justify-center shadow-md">

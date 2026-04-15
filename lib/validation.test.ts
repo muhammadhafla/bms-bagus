@@ -32,10 +32,10 @@ describe('inventoryUpdateSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should reject diskon over 100%', () => {
+  it('should allow diskon in any amount', () => {
     const data = { diskon: 150 };
     const result = inventoryUpdateSchema.safeParse(data);
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 });
 

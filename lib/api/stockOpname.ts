@@ -11,6 +11,7 @@ export interface StockOpname {
   approved_by: string | null;
   created_at: string;
   updated_at: string;
+  profiles?: { nama: string } | null;
 }
 
 export interface StockOpnameItem {
@@ -34,38 +35,95 @@ export interface StockOpnameItem {
 
 export const stockOpnameApi = {
   async getAll() {
-    return safeQuery<StockOpname[]>(
-      queryToPromise(
-        supabase
-          .from('stock_opname')
-          .select('*, profiles:profiles(nama)')
-          .order('created_at', { ascending: false })
-      )
+    const { data, error } = await queryToPromise(
+      supabase
+        .from('stock_opname')
+        .select('*')
+        .order('created_at', { ascending: false })
     );
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    if (!data || data.length === 0) {
+      return { data: [], error: null };
+    }
+
+    const opnamesWithCreator: any[] = await Promise.all(
+      data.map(async (opname) => {
+        if (opname.created_by) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('nama')
+            .eq('id', opname.created_by)
+            .single();
+          return { ...opname, profiles: profile };
+        }
+        return opname;
+      })
+    );
+
+    return { data: opnamesWithCreator, error: null };
   },
 
   async getById(id: string) {
-    return safeQuery<StockOpname>(
-      queryToPromise(
-        supabase
-          .from('stock_opname')
-          .select('*')
-          .eq('id', id)
-          .single()
-      )
+    const { data, error } = await queryToPromise<any>(
+      supabase
+        .from('stock_opname')
+        .select('*')
+        .eq('id', id)
+        .single()
     );
+
+    if (error || !data) {
+      return { data: null, error };
+    }
+
+    if (data.created_by) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('nama')
+        .eq('id', data.created_by)
+        .single();
+      return { data: { ...data, profiles: profile }, error: null };
+    }
+
+    return { data, error: null };
   },
 
   async getItems(opnameId: string) {
-    return safeQuery<StockOpnameItem[]>(
-      queryToPromise(
-        supabase
-          .from('stock_opname_items')
-          .select('*, inventory:nama_barang, inventory:kode_barcode, inventory:unit')
-          .eq('stock_opname_id', opnameId)
-          .order('created_at')
-      )
+    const { data, error } = await queryToPromise(
+      supabase
+        .from('stock_opname_items')
+        .select('*')
+        .eq('stock_opname_id', opnameId)
+        .order('created_at')
     );
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    if (!data || data.length === 0) {
+      return { data: [], error: null };
+    }
+
+    const itemsWithInventory: any[] = await Promise.all(
+      data.map(async (item) => {
+        if (item.inventory_id) {
+          const { data: inventory } = await supabase
+            .from('inventory')
+            .select('nama_barang, kode_barcode, unit')
+            .eq('id', item.inventory_id)
+            .single();
+          return { ...item, inventory };
+        }
+        return item;
+      })
+    );
+
+    return { data: itemsWithInventory, error: null };
   },
 
   async create() {
@@ -74,6 +132,14 @@ export const stockOpnameApi = {
       return { data: null, error: new Error('User not authenticated') };
     }
 
+    // Cek apakah user adalah admin
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const isAdmin = profile?.role === 'admin';
     const today = new Date().toISOString().split('T')[0];
     
     const opnameResult = await safeQuery<StockOpname>(
@@ -89,6 +155,10 @@ export const stockOpnameApi = {
           .single()
       )
     );
+
+    if (opnameResult.error || !opnameResult.data) {
+      return opnameResult;
+    }
 
     return opnameResult;
   },
@@ -178,9 +248,10 @@ export const stockOpnameApi = {
       .eq('id', opnameId)
       .single();
 
-    if (opname && opname.created_by === user.id) {
-      return { data: null, error: new Error('Tidak dapat approve opname yang dibuat sendiri') };
-    }
+    // Admin boleh approve opname yang dibuat sendiri
+    // if (opname && opname.created_by === user.id) {
+    //   return { data: null, error: new Error('Tidak dapat approve opname yang dibuat sendiri') };
+    // }
 
     return safeQuery<StockOpname>(
       queryToPromise(
@@ -253,7 +324,7 @@ export const stockOpnameApi = {
       return { data: null, error: new Error('Inventory not found') };
     }
 
-    return safeQuery<StockOpnameItem>(
+    const insertResult = await safeQuery<StockOpnameItem>(
       queryToPromise(
         supabase
           .from('stock_opname_items')
@@ -265,10 +336,19 @@ export const stockOpnameApi = {
             difference: 0,
             adjusted: false
           })
-          .select('*')
+          .select()
           .single()
       )
     );
+
+    if (insertResult.error || !insertResult.data) {
+      return insertResult;
+    }
+
+    return {
+      data: { ...insertResult.data, inventory },
+      error: null
+    };
   },
 
   async deleteItem(itemId: string) {

@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { IconPackage, IconTrash } from '@tabler/icons-react';
 import { InventoryItem } from '@/types/inventory';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatNumber } from '@/lib/utils';
 import { inventoryApi } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { AdminOnly } from '@/components/role';
+import { PriceInput } from '@/components/ui/PriceInput';
 
 interface UndoHistory {
   id: string;
@@ -22,7 +25,7 @@ interface InventoryTableProps {
 export function InventoryTable({ items, onUpdate, onDelete }: InventoryTableProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editField, setEditField] = useState<'harga_jual' | 'diskon' | 'minimum_stock' | null>(null);
-  const [editValue, setEditValue] = useState<string>('');
+  const [editValue, setEditValue] = useState<number>(0);
   const [undoHistory, setUndoHistory] = useState<UndoHistory[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; itemId: string | null }>({
     isOpen: false,
@@ -44,7 +47,8 @@ export function InventoryTable({ items, onUpdate, onDelete }: InventoryTableProp
   const startEdit = useCallback((item: InventoryItem, field: 'harga_jual' | 'diskon' | 'minimum_stock') => {
     setEditingId(item.id);
     setEditField(field);
-    setEditValue(String(item[field]));
+    const val = item[field];
+    setEditValue(typeof val === 'number' ? val : 0);
   }, []);
 
   const saveEdit = useCallback(async () => {
@@ -54,8 +58,8 @@ export function InventoryTable({ items, onUpdate, onDelete }: InventoryTableProp
     if (!item) return;
 
     const value = editField === 'diskon' || editField === 'minimum_stock' 
-      ? parseInt(editValue) 
-      : parseFloat(editValue);
+      ? Math.floor(editValue)
+      : editValue;
 
     if (isNaN(value)) {
       setEditingId(null);
@@ -115,7 +119,7 @@ export function InventoryTable({ items, onUpdate, onDelete }: InventoryTableProp
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
-        <span className="text-5xl mb-4">📦</span>
+        <IconPackage size={64} className="mb-4 opacity-50" />
         <p className="text-lg font-medium">Tidak ada data inventory</p>
         <p className="text-sm">Tambahkan barang melalui halaman Pembelian</p>
       </div>
@@ -169,82 +173,93 @@ export function InventoryTable({ items, onUpdate, onDelete }: InventoryTableProp
                 <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">{item.nama_barang}</td>
                 <td className="px-4 py-3">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
-                    {item.kategori?.nama || '-'}
+                    {item.id_kategori?.nama || '-'}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {isEditing && editField === 'harga_jual' ? (
-                    <input
-                      type="number"
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      onBlur={saveEdit}
-                      autoFocus
-                      className="w-28 px-3 py-2 text-right border-2 border-brand-500 rounded-lg bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100"
-                    />
-                  ) : (
-                    <button
-                      onClick={() => startEdit(item, 'harga_jual')}
-                      className="px-3 py-2 text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg w-28 block ml-auto font-medium text-neutral-900 dark:text-neutral-100"
-                    >
-                      {formatCurrency(item.harga_jual)}
-                    </button>
-                  )}
+                  <AdminOnly fallback={
+                    <span className="px-3 py-2 text-right w-28 block ml-auto font-medium text-neutral-900 dark:text-neutral-100">{formatCurrency(item.harga_jual)}</span>
+                  }>
+                    {isEditing && editField === 'harga_jual' ? (
+                      <PriceInput
+                        value={editValue}
+                        onChange={setEditValue}
+                        onBlur={saveEdit}
+                        autoFocus
+                        className="w-28 px-3 py-2 border-2 border-brand-500 rounded-lg"
+                      />
+                    ) : (
+                      <button
+                        onClick={() => startEdit(item, 'harga_jual')}
+                        className="px-3 py-2 text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg w-28 block ml-auto font-medium text-neutral-900 dark:text-neutral-100"
+                      >
+                        {formatCurrency(item.harga_jual)}
+                      </button>
+                    )}
+                  </AdminOnly>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {isEditing && editField === 'diskon' ? (
-                    <input
-                      type="number"
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      onBlur={saveEdit}
-                      autoFocus
-                      className="w-24 px-3 py-2 text-right border-2 border-brand-500 rounded-lg bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100"
-                    />
-                  ) : (
-                    <button
-                      onClick={() => startEdit(item, 'diskon')}
-                      className="px-3 py-2 text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg w-24 block ml-auto text-neutral-600 dark:text-neutral-300"
-                    >
-                      {formatCurrency(item.diskon)}
-                    </button>
-                  )}
+                  <AdminOnly fallback={
+                    <span className="px-3 py-2 text-right w-24 block ml-auto text-neutral-600 dark:text-neutral-300">{formatCurrency(item.diskon)}</span>
+                  }>
+                    {isEditing && editField === 'diskon' ? (
+                      <PriceInput
+                        value={editValue}
+                        onChange={setEditValue}
+                        onBlur={saveEdit}
+                        autoFocus
+                        min={0}
+                        max={100}
+                        className="w-24 px-3 py-2 border-2 border-brand-500 rounded-lg"
+                      />
+                    ) : (
+                      <button
+                        onClick={() => startEdit(item, 'diskon')}
+                        className="px-3 py-2 text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg w-24 block ml-auto text-neutral-600 dark:text-neutral-300"
+                      >
+                        {formatCurrency(item.diskon)}
+                      </button>
+                    )}
+                  </AdminOnly>
                 </td>
                 <td className={`px-4 py-3 text-right font-bold ${isLowStock ? 'text-red-600 dark:text-red-300' : 'text-neutral-900 dark:text-neutral-100'}`}>
                   {item.stok}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {isEditing && editField === 'minimum_stock' ? (
-                    <input
-                      type="number"
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      onBlur={saveEdit}
-                      autoFocus
-                      className="w-20 px-3 py-2 text-right border-2 border-brand-500 rounded-lg bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100"
-                    />
-                  ) : (
-                    <button
-                      onClick={() => startEdit(item, 'minimum_stock')}
-                      className="px-3 py-2 text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg w-20 block ml-auto text-neutral-500 dark:text-neutral-300"
-                    >
-                      {item.minimum_stock}
-                    </button>
-                  )}
+                  <AdminOnly fallback={
+                    <span className="px-3 py-2 text-right w-20 block ml-auto text-neutral-500 dark:text-neutral-300">{item.minimum_stock}</span>
+                  }>
+                    {isEditing && editField === 'minimum_stock' ? (
+                      <PriceInput
+                        value={editValue}
+                        onChange={setEditValue}
+                        onBlur={saveEdit}
+                        autoFocus
+                        min={0}
+                        className="w-20 px-3 py-2 border-2 border-brand-500 rounded-lg"
+                      />
+                    ) : (
+                      <button
+                        onClick={() => startEdit(item, 'minimum_stock')}
+                        className="px-3 py-2 text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg w-20 block ml-auto text-neutral-500 dark:text-neutral-300"
+                      >
+                        {item.minimum_stock}
+                      </button>
+                    )}
+                  </AdminOnly>
                 </td>
                 <td className="px-4 py-3 text-center">
-                  {onDelete && (
-                    <button
-                      onClick={() => setDeleteConfirm({ isOpen: true, itemId: item.id })}
-                      className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-                      aria-label={`Hapus ${item.nama_barang}`}
-                    >
-                      🗑️
-                    </button>
-                  )}
+                  <AdminOnly>
+                    {onDelete && (
+                      <button
+                        onClick={() => setDeleteConfirm({ isOpen: true, itemId: item.id })}
+                        className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                        aria-label={`Hapus ${item.nama_barang}`}
+                      >
+                        <IconTrash size={18} stroke={2} />
+                      </button>
+                    )}
+                  </AdminOnly>
                 </td>
               </tr>
             );

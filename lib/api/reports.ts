@@ -61,7 +61,7 @@ export const reportApi = {
       query = query.lte('created_at', endDate);
     }
 
-    const result = await queryToPromise(query);
+    const result = await query.limit(500);
     
     if (result.error) {
       return { data: [], error: result.error };
@@ -87,8 +87,8 @@ export const reportApi = {
   async getInventoryValue() {
     const { data, error } = await supabase
       .from('inventory')
-      .select('*')
-      .order('nama_barang');
+      .select('*, id_kategori:id_kategori(nama)')
+      .order('nama_barang').limit(1000);
 
     if (error) return { data: null, error: { message: error.message, details: error.name } };
 
@@ -96,11 +96,11 @@ export const reportApi = {
       id: item.id,
       barcode: item.kode_barcode || '',
       nama_barang: item.nama_barang,
-      kategori: item.id_kategori || '',
+      kategori: item.id_kategori?.nama || '-',
       stok: item.stok,
       harga_beli: item.harga_beli_terakhir || 0,
       harga_jual: item.harga_jual,
-      total_value: item.stok * (item.harga_beli || 0),
+      total_value: item.stok * (item.harga_beli_terakhir || 0),
     }));
 
     return { data: values, error: null };

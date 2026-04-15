@@ -8,7 +8,7 @@ export const inventoryItemSchema = z.object({
 
 export const inventoryUpdateSchema = z.object({
   harga_jual: z.number().min(0, 'Harga jual tidak boleh negatif').optional(),
-  diskon: z.number().min(0, 'Diskon tidak boleh negatif').max(100, 'Diskon maksimal 100%').optional(),
+  diskon: z.number().min(0, 'Diskon tidak boleh negatif').optional(),
   minimum_stock: z.number().int('Minimal stock harus bilangan bulat').min(0, 'Minimal stock tidak boleh negatif').optional(),
 });
 

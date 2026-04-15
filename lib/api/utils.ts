@@ -1,4 +1,4 @@
-import { generateIdempotencyKey } from '../utils';
+// Local copy to avoid circular dependency
 
 export interface ApiError {
   message: string;
@@ -26,4 +26,7 @@ export function queryToPromise<T>(query: { then(onfulfilled: (value: { data: T |
   return query.then((value) => ({ data: value.data as T | null, error: value.error as Error | null })) as Promise<{ data: T | null; error: Error | null }>;
 }
 
-export { generateIdempotencyKey };
+export function generateIdempotencyKey(): string {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+}
+

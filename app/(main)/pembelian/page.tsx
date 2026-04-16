@@ -8,6 +8,7 @@ import { formatCurrency, normalizeBarcode, generateIdempotencyKey, generateAutoB
 import { IconShoppingCart, IconCamera, IconPackage } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
 import DateInput from '@/components/ui/DateInput';
+import SelectInput from '@/components/ui/SelectInput';
 
 interface ItemSuggestionDialogProps {
   open: boolean;
@@ -307,14 +308,10 @@ export default function PembelianPage() {
     }
   }, [success]);
   const [supplier, setSupplier] = useState('');
-  const [supplierList, setSupplierList] = useState<Supplier[]>([]);
-  const [showSupplierSuggestions, setShowSupplierSuggestions] = useState(false);
-  const [filteredSupplier, setFilteredSupplier] = useState<Supplier[]>([]);
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
-  
+  const [supplierList, setSupplierList] = useState<Supplier[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
-  const supplierInputRef = useRef<HTMLInputElement>(null);
 
   const focusInput = useCallback(() => {
     setTimeout(() => inputRef.current?.focus(), 0);
@@ -338,28 +335,9 @@ export default function PembelianPage() {
     preloadInventoryCache();
   }, []);
 
-  const handleSupplierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSupplier(value);
-    setSelectedSupplierId(null);
-    
-    if (value.trim().length > 0) {
-      const filtered = supplierList.filter(s => 
-        s.nama.toLowerCase().includes(value.toLowerCase())
-      ).slice(0, 5);
-      setFilteredSupplier(filtered);
-      setShowSupplierSuggestions(filtered.length > 0);
-    } else {
-      setShowSupplierSuggestions(false);
-    }
-  };
 
-  const handleSelectSupplier = (supplier: Supplier) => {
-    setSupplier(supplier.nama);
-    setSelectedSupplierId(supplier.id);
-    setShowSupplierSuggestions(false);
-    focusInput();
-  };
+
+
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -562,20 +540,19 @@ export default function PembelianPage() {
     if (items.length === 0) return;
     if (submitting) return;
 
+    // Validasi semua item memiliki qty > 0
+    const invalidItem = items.find(item => !item.qty || item.qty <= 0);
+    if (invalidItem) {
+      setError(`Qty untuk barang ${invalidItem.nama_barang} harus lebih dari 0`);
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     setSuccess(null);
 
     try {
-      let supplierId = selectedSupplierId;
-      
-      // Auto create supplier if name is entered but not selected from list
-      if (supplier.trim() && !supplierId) {
-        const supplierResult = await supplierApi.getOrCreate(supplier.trim());
-        if (supplierResult.data) {
-          supplierId = supplierResult.data.id;
-        }
-      }
+      const supplierId = selectedSupplierId;
 
       const pembelianItems: PembelianItem[] = items.map(item => ({
         inventory_id: item.id,
@@ -588,21 +565,30 @@ export default function PembelianPage() {
         subtotal: item.subtotal,
       }));
 
+      // Generate idempotency key untuk mencegah double submit
+      const idempotencyKey = generateIdempotencyKey();
+      
       const result = await pembelianApi.submit({
         supplier_id: supplierId,
         supplier_nama: supplier.trim() || null,
         tanggal,
         items: pembelianItems,
         total_supplier: totalSupplier,
+        idempotency_key: idempotencyKey,
       });
 
       if (result.error) {
         console.error('Pembelian error:', result.error);
-        setError(result.error.message || 'Gagal menyimpan pembelian');
+        const errorMsg = result.error.message 
+          || result.error 
+          || 'Gagal menyimpan pembelian';
+        setError(String(errorMsg));
       } else {
         setSuccess('Pembelian berhasil disimpan');
         reset();
         setTotalSupplier(0);
+        setSelectedSupplierId(null);
+        setSupplier('');
         focusInput();
       }
     } catch (err: any) {
@@ -682,36 +668,21 @@ export default function PembelianPage() {
             />
           </div>
           
-           <div className="flex flex-col gap-2 relative min-w-[18rem]">
-             <label className="text-sm text-neutral-600 dark:text-neutral-300 font-medium">Supplier:</label>
-             <input
-               ref={supplierInputRef}
-               type="text"
-               value={supplier}
-               onChange={handleSupplierChange}
-               onFocus={() => supplierList.length > 0 && setShowSupplierSuggestions(true)}
-               onBlur={() => setTimeout(() => setShowSupplierSuggestions(false), 200)}
-               className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white dark:focus:bg-neutral-800 transition-all"
-               placeholder="Pilih supplier"
-               autoComplete="off"
-             />
-             
-             {showSupplierSuggestions && (
-               <div className="absolute top-full left-0 mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg z-20 overflow-hidden min-w-[18rem]">
-                 {filteredSupplier.map((s) => (
-                   <button
-                     key={s.id}
-                     type="button"
-                     onClick={() => handleSelectSupplier(s)}
-                     className="w-full text-left px-4 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-800 text-sm transition-colors"
-                   >
-                     <div className="font-medium text-neutral-900 dark:text-neutral-100">{s.nama}</div>
-                     {s.kontak && <div className="text-xs text-neutral-400 dark:text-neutral-500 ml-2">{s.kontak}</div>}
-                   </button>
-                 ))}
-               </div>
-             )}
-           </div>
+            <SelectInput
+              label="Supplier"
+              value={selectedSupplierId || ''}
+              onChange={(id) => {
+                const s = supplierList.find(x => x.id === id);
+                setSelectedSupplierId(id || null);
+                setSupplier(s ? s.nama : '');
+              }}
+              options={supplierList.map(s => ({
+                value: s.id,
+                label: s.nama + (s.kontak ? ` (${s.kontak})` : '')
+              }))}
+              placeholder="-- Pilih Supplier --"
+              className="min-w-[18rem]"
+            />
 
 <div className="flex flex-col gap-2 min-w-[18rem]">
               <label className="text-sm text-neutral-600 dark:text-neutral-300 font-medium">Total Supplier:</label>

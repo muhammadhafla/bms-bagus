@@ -8,9 +8,7 @@ CREATE OR REPLACE FUNCTION tambah_pembelian_batch(
 )
 RETURNS UUID
 LANGUAGE plpgsql
-SECURITY DEFINER
 SET search_path = public
-SET row_security = off
 AS $$
 DECLARE
   v_pembelian_id UUID;
@@ -20,43 +18,44 @@ DECLARE
   v_harga_beli NUMERIC;
   v_qty INTEGER;
   v_harga_final NUMERIC;
+  v_idempotency_key UUID;
 BEGIN
   -- Validate input
   IF p_items IS NULL OR jsonb_typeof(p_items) <> 'array' OR jsonb_array_length(p_items) = 0 THEN
     RAISE EXCEPTION 'p_items harus berupa JSON array non-kosong';
   END IF;
 
-  -- Check idempotency
-  IF p_idempotency_key IS NOT NULL THEN
+  -- Determine final idempotency key
+  v_idempotency_key := COALESCE(p_idempotency_key, gen_random_uuid());
+
+  -- Insert idempotent (race-condition safe)
+  WITH ins AS (
+    INSERT INTO pembelian (
+      supplier_id,
+      tanggal,
+      created_by,
+      supplier_nama,
+      idempotency_key
+    )
+    SELECT
+      p_supplier_id,
+      p_tanggal,
+      p_user,
+      COALESCE((SELECT nama FROM supplier WHERE id = p_supplier_id), 'Tanpa Supplier'),
+      v_idempotency_key
+    ON CONFLICT (idempotency_key) DO NOTHING
+    RETURNING id
+  )
+  SELECT id INTO v_pembelian_id
+  FROM ins;
+
+  -- If insert didn't happen (conflict), get existing id
+  IF v_pembelian_id IS NULL THEN
     SELECT id INTO v_pembelian_id
     FROM pembelian
-    WHERE idempotency_key = p_idempotency_key
+    WHERE idempotency_key = v_idempotency_key
     LIMIT 1;
-    IF v_pembelian_id IS NOT NULL THEN
-      RETURN v_pembelian_id;
-    END IF;
   END IF;
-
-  -- Generate idempotency key if not provided
-  IF p_idempotency_key IS NULL THEN
-    p_idempotency_key := gen_random_uuid();
-  END IF;
-
-  -- Create the purchase record
-  INSERT INTO pembelian (
-    supplier_id,
-    tanggal,
-    created_by,
-    supplier_nama,
-    idempotency_key
-  )
-  SELECT 
-    p_supplier_id,
-    p_tanggal,
-    p_user,
-    COALESCE((SELECT nama FROM supplier WHERE id = p_supplier_id), 'Tanpa Supplier'),
-    p_idempotency_key
-  RETURNING id INTO v_pembelian_id;
 
   -- Process each item
   FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
@@ -170,4 +169,5 @@ BEGIN
 END;
 $$;
 
+GRANT EXECUTE ON FUNCTION tambah_pembelian_batch(jsonb, uuid, date, uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION tambah_pembelian_batch(jsonb, uuid, date, uuid, uuid) TO authenticated;

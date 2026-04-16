@@ -57,6 +57,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initialize: async () => {
     try {
+      // Unsubscribe existing subscription before creating new one
+      const existingSubscription = get().authSubscription;
+      if (existingSubscription) {
+        existingSubscription.unsubscribe();
+      }
+
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {
@@ -118,30 +124,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signOut: async () => {
     try {
+      await supabase.auth.signOut();
+      
       const { authSubscription } = get();
       if (authSubscription) {
         authSubscription.unsubscribe();
       }
-      await supabase.auth.signOut();
     } catch (error) {
       console.error('Supabase sign out error:', error);
     }
     
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
-      if (key && (key.startsWith('sb-') || key.includes('auth') || key.includes('supabase'))) {
-        localStorage.removeItem(key);
-      }
-    }
-    
-    for (let i = sessionStorage.length - 1; i >= 0; i--) {
-      const key = sessionStorage.key(i);
-      if (key && (key.includes('auth') || key.includes('supabase'))) {
-        sessionStorage.removeItem(key);
-      }
-    }
-    
     set({ user: null, profile: null, loading: false, initialized: true, authSubscription: null });
-    window.location.reload();
   },
 }));

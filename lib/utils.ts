@@ -19,12 +19,28 @@ export const formatNumber = (num: number): string => {
 
 /**
  * Parse price input string to clean number
- * Accepts input with dots, commas, or any non-numeric characters
+ * Handles Indonesian format: dot as thousand separator, comma as decimal
  */
 export const parsePrice = (input: string | number): number => {
   if (typeof input === 'number') return Math.max(0, input);
-  const cleaned = input.replace(/[^0-9]/g, '');
-  return cleaned ? parseInt(cleaned, 10) : 0;
+  
+  // Handle Indonesian format: 1.500.000,50 or 1,500,000.50
+  let normalized = input.replace(/\s/g, '');
+  
+  // Find decimal separator (last non-digit character)
+  const lastNonDigit = normalized.match(/[^\d](?=\d*$)/);
+  
+  if (lastNonDigit) {
+    const decimalPos = normalized.lastIndexOf(lastNonDigit[0]);
+    const integerPart = normalized.slice(0, decimalPos).replace(/[^\d]/g, '');
+    const decimalPart = normalized.slice(decimalPos + 1).replace(/[^\d]/g, '');
+    normalized = `${integerPart}.${decimalPart}`;
+  } else {
+    normalized = normalized.replace(/[^\d]/g, '');
+  }
+  
+  const parsed = parseFloat(normalized);
+  return isNaN(parsed) ? 0 : Math.max(0, parsed);
 };
 
 /**
@@ -54,11 +70,7 @@ export const normalizeBarcode = (input: string): string => {
  * Generate UUID v4 idempotency key
  */
 export const generateIdempotencyKey = (): string => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+  return crypto.randomUUID();
 };
 
 /**

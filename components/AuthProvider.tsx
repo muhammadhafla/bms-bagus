@@ -4,11 +4,17 @@ import { useEffect } from 'react';
 import { useAuthStore } from '@/lib/auth';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { initialize, initialized } = useAuthStore();
+  const { initialize, initialized, authSubscription } = useAuthStore();
 
   useEffect(() => {
     initialize();
-  }, [initialize]);
+
+    return () => {
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
+    };
+  }, [initialize, authSubscription]);
 
   if (!initialized) {
     return (

@@ -32,12 +32,17 @@ export default function InventoryPage() {
   const debouncedFetchRef = useRef<ReturnType<typeof debounce> | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchItems = useCallback(async (signal?: AbortSignal) => {
+  const fetchItems = useCallback(async (
+    currentSearch: string,
+    currentKategori: string,
+    currentLowStockOnly: boolean,
+    signal?: AbortSignal
+  ) => {
     setLoading(true);
     try {
       let result;
-      if (search) {
-        result = await inventoryApi.search(search);
+      if (currentSearch) {
+        result = await inventoryApi.search(currentSearch);
       } else {
         result = await inventoryApi.getAll();
       }
@@ -49,11 +54,11 @@ export default function InventoryPage() {
       } else {
         let filtered = result.data || [];
         
-        if (kategori) {
-          filtered = filtered.filter((item: InventoryItem) => item.id_kategori?.nama === kategori);
+        if (currentKategori) {
+          filtered = filtered.filter((item: InventoryItem) => item.id_kategori?.nama === currentKategori);
         }
         
-        if (lowStockOnly) {
+        if (currentLowStockOnly) {
           filtered = filtered.filter((item: InventoryItem) => item.minimum_stock != null && item.stok <= item.minimum_stock);
         }
         
@@ -67,9 +72,11 @@ export default function InventoryPage() {
         console.error('Error fetching inventory:', error);
       }
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
-  }, [search, kategori, lowStockOnly]);
+  }, []);
 
   useEffect(() => {
     if (debouncedFetchRef.current) {
@@ -81,7 +88,7 @@ export default function InventoryPage() {
         abortControllerRef.current.abort();
       }
       abortControllerRef.current = new AbortController();
-      fetchItems(abortControllerRef.current.signal);
+      fetchItems(search, kategori, lowStockOnly, abortControllerRef.current.signal);
     }, 300);
 
     debouncedFetchRef.current();
@@ -94,7 +101,7 @@ export default function InventoryPage() {
         abortControllerRef.current.abort();
       }
     };
-  }, [fetchItems]);
+  }, [search, kategori, lowStockOnly, fetchItems]);
 
   const handleUpdate = useCallback(async (id: string, data: Partial<InventoryItem>) => {
     const result = await inventoryApi.update(id, data);

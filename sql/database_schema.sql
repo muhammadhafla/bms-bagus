@@ -409,7 +409,7 @@ CREATE POLICY "kategori_all_admin" ON kategori FOR ALL TO authenticated USING (i
 -- ========== INVENTORY POLICIES ==========
 CREATE POLICY "inventory_select" ON inventory FOR SELECT TO authenticated USING (true);
 CREATE POLICY "inventory_insert" ON inventory FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "inventory_update_admin" ON inventory FOR UPDATE TO authenticated USING (is_admin());
+CREATE POLICY "inventory_update_allow_stock_purchase" ON inventory FOR UPDATE TO authenticated USING (true);
 CREATE POLICY "inventory_delete_admin" ON inventory FOR DELETE TO authenticated USING (is_admin());
 
 -- ========== INVENTORY_BARCODES POLICIES ==========
@@ -422,7 +422,7 @@ CREATE POLICY "inventory_barcodes_delete" ON inventory_barcodes FOR DELETE TO au
 CREATE POLICY "pembelian_anon_select" ON pembelian FOR SELECT TO public USING (true);
 CREATE POLICY "pembelian_select" ON pembelian FOR SELECT TO authenticated USING (true);
 CREATE POLICY "pembelian_insert_staff" ON pembelian FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "pembelian_update_admin" ON pembelian FOR UPDATE TO authenticated USING (is_admin());
+CREATE POLICY "pembelian_update_own_or_admin" ON pembelian FOR UPDATE TO authenticated USING (is_admin() OR created_by = auth.uid());
 CREATE POLICY "pembelian_delete_admin" ON pembelian FOR DELETE TO authenticated USING (is_admin());
 
 -- ========== PEMBELIAN_ITEMS POLICIES ==========

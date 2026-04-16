@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { usePembelianStore } from '@/lib/store';
-import { inventoryApi, PembelianItem, pembelianApi, kategoriApi, supplierApi, Supplier, preloadInventoryCache } from '@/lib/api';
+import { inventoryApi, PembelianItem, purchaseApi, kategoriApi, supplierApi, Supplier, preloadInventoryCache } from '@/lib/api';
 import { InventoryItem } from '@/types/inventory';
 import { formatCurrency, normalizeBarcode, generateIdempotencyKey, generateAutoBarcode } from '@/lib/utils';
 import { IconShoppingCart, IconCamera, IconPackage } from '@tabler/icons-react';
@@ -568,7 +568,7 @@ export default function PembelianPage() {
       // Generate idempotency key untuk mencegah double submit
       const idempotencyKey = generateIdempotencyKey();
       
-      const result = await pembelianApi.submit({
+      const result = await purchaseApi.submit({
         supplier_id: supplierId,
         supplier_nama: supplier.trim() || null,
         tanggal,

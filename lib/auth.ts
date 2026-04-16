@@ -22,6 +22,7 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   initialize: () => Promise<void>;
+  cleanup: () => void;
   isAdmin: () => boolean;
   isStaff: () => boolean;
   authSubscription: { unsubscribe: () => void } | null;
@@ -53,6 +54,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isStaff: () => {
     const profile = get().profile;
     return profile?.role === 'staff';
+  },
+
+  cleanup: () => {
+    const { authSubscription } = get();
+    if (authSubscription) {
+      authSubscription.unsubscribe();
+    }
+    set({ authSubscription: null });
   },
 
   initialize: async () => {

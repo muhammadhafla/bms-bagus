@@ -30,7 +30,146 @@ export interface Pembelian {
   created_at: string;
 }
 
-export const pembelianApi = {
+export interface PembelianWithDetails extends Pembelian {
+  items: PembelianItem[];
+  supplier_nama?: string;
+  created_by_nama?: string;
+}
+
+export const purchasesApi = {
+  async getAll(options?: {
+    limit?: number;
+    offset?: number;
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    try {
+      let query = supabase
+        .from('pembelian')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (options?.limit) {
+        query = query.limit(options.limit);
+      }
+      if (options?.offset) {
+        query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
+      }
+      if (options?.search) {
+        query = query.or(`nomor_nota.ilike.%${options.search}%,supplier_nama.ilike.%${options.search}%`);
+      }
+      if (options?.startDate) {
+        query = query.gte('tanggal', options.startDate);
+      }
+      if (options?.endDate) {
+        query = query.lte('tanggal', options.endDate);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        return { data: null, error: { message: error.message } };
+      }
+
+      const formatted = (data || []).map((item: any) => ({
+        id: item.id,
+        idempotency_key: item.idempotency_key,
+        supplier_id: item.supplier_id,
+        tanggal: item.tanggal,
+        total: item.total_sistem,
+        total_supplier: item.total_supplier,
+        selisih: item.total_sistem - item.total_supplier,
+        created_at: item.created_at,
+        nomor_nota: item.nomor_nota,
+        supplier_nama: item.supplier_nama,
+        note: item.note,
+        created_by: item.created_by,
+        created_by_nama: null,
+      }));
+
+      return { data: formatted, error: null };
+    } catch (err: any) {
+      console.error('Error fetching purchases:', err);
+      return { data: null, error: { message: err.message || 'Terjadi kesalahan' } };
+    }
+  },
+
+  async getById(id: string) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const { data: purchase, error: purchaseError } = await supabase
+        .from('pembelian')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      clearTimeout(timeoutId);
+
+      if (purchaseError) {
+        return { data: null, error: { message: purchaseError.message } };
+      }
+
+      const { data: items, error: itemsError } = await supabase
+        .from('pembelian_items')
+        .select('*')
+        .eq('pembelian_id', id);
+
+      if (itemsError) {
+        console.error('Items fetch error:', itemsError);
+      }
+
+      return {
+        data: {
+          ...purchase,
+          items: items || [],
+          total: purchase?.total_sistem || 0,
+          total_supplier: purchase?.total_supplier || 0,
+          selisih: (purchase?.total_sistem || 0) - (purchase?.total_supplier || 0),
+          created_by_nama: null,
+        },
+        error: null,
+      };
+    } catch (err: any) {
+      console.error('Error fetching purchase detail:', err);
+      return { data: null, error: { message: err.message || 'Terjadi kesalahan' } };
+    }
+  },
+
+  async getCount(options?: {
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    try {
+      let query = supabase.from('pembelian').select('*', { count: 'exact', head: true });
+
+      if (options?.search) {
+        query = query.or(`nomor_nota.ilike.%${options.search}%,supplier_nama.ilike.%${options.search}%`);
+      }
+      if (options?.startDate) {
+        query = query.gte('tanggal', options.startDate);
+      }
+      if (options?.endDate) {
+        query = query.lte('tanggal', options.endDate);
+      }
+
+      const { count, error } = await query;
+
+      if (error) {
+        return { data: 0, error: { message: error.message } };
+      }
+
+      return { data: count || 0, error: null };
+    } catch (err: any) {
+      return { data: 0, error: { message: err.message || 'Terjadi kesalahan' } };
+    }
+  },
+};
+
+export const purchaseApi = {
   async submit(data: {
     supplier_id: string | null;
     supplier_nama?: string | null;

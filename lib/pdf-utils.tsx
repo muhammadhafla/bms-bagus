@@ -1,10 +1,5 @@
 'use client';
 
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
-
-(pdfMake as any).vfs = pdfFonts.pdfMake?.vfs || pdfFonts;
-
 interface ReturnItem {
   nama_barang: string;
   nomor_nota?: string;
@@ -25,6 +20,9 @@ interface ReturnData {
 }
 
 export async function generateReturnPdf(returnData: ReturnData): Promise<Buffer> {
+  const pdfMake = require('pdfmake/build/pdfmake');
+  const pdfFonts = require('pdfmake/build/vfs_fonts');
+  (pdfMake as any).vfs = pdfFonts.pdfMake?.vfs || pdfFonts;
   const docDefinition = {
     pageSize: 'A4',
     pageMargins: [30, 30, 30, 30],

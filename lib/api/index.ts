@@ -1,11 +1,11 @@
 export { supabase } from './client';
 
 export { inventoryApi, preloadInventoryCache } from './inventory';
-export { pembelianApi, type PembelianItem, type Pembelian } from './pembelian';
+export { purchasesApi, purchaseApi, type PembelianItem, type Pembelian } from './pembelian';
 export { penjualanApi, type PenjualanItem, type Penjualan } from './penjualan';
 export { returnApi, type ReturnItem, type ReturnedTransaction } from './return';
 export { supplierApi, type Supplier } from './supplier';
-export { reportApi, type StockMutation, type InventoryValue, type SalesSummary, type ProfitSummary } from './reports';
+export { reportApi, type StockMutation, type InventoryValue, type SalesSummary, type ProfitSummary, type PaginationOptions, type PaginatedResult } from './reports';
 export { receiptApi, type ReceiptTemplate, type ReceiptLogo } from './receipt';
 export { kategoriApi, type Kategori } from './kategori';
 export { stockOpnameApi, type StockOpname, type StockOpnameItem } from './stockOpname';

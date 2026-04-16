@@ -19,6 +19,8 @@ import {
   IconLogout,
   IconSun,
   IconMoon,
+  IconChevronRight,
+  IconHistory,
 } from '@tabler/icons-react';
 
 export default function MainLayout({
@@ -33,6 +35,9 @@ export default function MainLayout({
   const { showToast } = useToast();
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [inventoryExpanded, setInventoryExpanded] = useState(true);
+  const [purchasingExpanded, setPurchasingExpanded] = useState(true);
+  const [transactionsExpanded, setTransactionsExpanded] = useState(true);
 
   useEffect(() => {
     if (initialized && !user) {
@@ -68,16 +73,31 @@ export default function MainLayout({
   }
 
   const navItems = [
-    { href: '/inventory', title: 'Inventory', icon: IconPackage },
-    { href: '/pembelian', title: 'Pembelian', icon: IconShoppingCart },
-    { href: '/return', title: 'Return', icon: IconArrowBack },
-    { href: '/stock-opname', title: 'Stock Opname', icon: IconClipboardCheck },
-    { href: '/reports', title: 'Laporan', icon: IconReport },
-    { href: '/receipt', title: 'Struk', icon: IconReceipt },
+    { href: '/dashboard', title: 'Dashboard', icon: IconPackage },
     ...(isAdmin() ? [
-      { href: '/users', title: 'Manajemen User', icon: IconUsers },
+      { href: '/users', title: 'Users', icon: IconUsers },
     ] : []),
   ];
+
+  const inventoryItems = [
+    { href: '/inventory', title: 'Stock', icon: IconPackage },
+    { href: '/inventory/stock-opname', title: 'Stock Opname', icon: IconClipboardCheck },
+    { href: '/inventory/reports', title: 'Laporan', icon: IconReport },
+  ];
+
+  const purchasingItems = [
+    { href: '/purchasing', title: 'Transaksi Baru', icon: IconShoppingCart },
+    { href: '/purchasing/riwayat', title: 'Riwayat', icon: IconHistory },
+  ];
+
+  const transactionsItems = [
+    { href: '/transactions/receipt', title: 'Struk', icon: IconReceipt },
+    { href: '/transactions/return', title: 'Return', icon: IconArrowBack },
+  ];
+
+  const isInventoryActive = pathname.startsWith('/inventory');
+  const isPurchasingActive = pathname.startsWith('/purchasing');
+  const isTransactionsActive = pathname.startsWith('/transactions');
 
   return (
     <div className="flex min-h-screen bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100">
@@ -125,6 +145,117 @@ export default function MainLayout({
               </Link>
             );
           })}
+
+          {/* Inventory Group */}
+          <button
+            onClick={() => setInventoryExpanded(!inventoryExpanded)}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              isInventoryActive
+                ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300 shadow-sm'
+                : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100'
+            }`}
+          >
+            <IconPackage className="w-5 h-5" />
+            <span className="flex-1 text-left">Inventory</span>
+            <IconChevronRight className={`w-4 h-4 transition-transform ${inventoryExpanded ? 'rotate-90' : ''}`} />
+          </button>
+
+          {inventoryExpanded && (
+            <div className="ml-4 pl-4 border-l border-neutral-200 dark:border-neutral-700 space-y-1">
+              {inventoryItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      isActive
+                        ? 'text-brand-700 dark:text-brand-300 font-semibold'
+                        : 'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'
+                    }`}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.title}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Purchasing Group */}
+          <button
+            onClick={() => setPurchasingExpanded(!purchasingExpanded)}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              isPurchasingActive
+                ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300 shadow-sm'
+                : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100'
+            }`}
+          >
+            <IconShoppingCart className="w-5 h-5" />
+            <span className="flex-1 text-left">Purchasing</span>
+            <IconChevronRight className={`w-4 h-4 transition-transform ${purchasingExpanded ? 'rotate-90' : ''}`} />
+          </button>
+
+          {purchasingExpanded && (
+            <div className="ml-4 pl-4 border-l border-neutral-200 dark:border-neutral-700 space-y-1">
+              {purchasingItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      isActive
+                        ? 'text-brand-700 dark:text-brand-300 font-semibold'
+                        : 'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'
+                    }`}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.title}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Transactions Group */}
+          <button
+            onClick={() => setTransactionsExpanded(!transactionsExpanded)}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              isTransactionsActive
+                ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300 shadow-sm'
+                : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100'
+            }`}
+          >
+            <IconReceipt className="w-5 h-5" />
+            <span className="flex-1 text-left">Transactions</span>
+            <IconChevronRight className={`w-4 h-4 transition-transform ${transactionsExpanded ? 'rotate-90' : ''}`} />
+          </button>
+
+          {transactionsExpanded && (
+            <div className="ml-4 pl-4 border-l border-neutral-200 dark:border-neutral-700 space-y-1">
+              {transactionsItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      isActive
+                        ? 'text-brand-700 dark:text-brand-300 font-semibold'
+                        : 'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'
+                    }`}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.title}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </nav>
 
         {/* User Info & Control */}

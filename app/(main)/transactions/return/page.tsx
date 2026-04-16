@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import { returnApi, AvailableReturnItem } from '@/lib/api/return';
 import { supplierApi } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { IconArrowBack, IconSearch, IconFileExport } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
-import { generateReturnPdf } from '@/lib/pdf-utils';
 
 const downloadPdf = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
@@ -246,6 +245,7 @@ export default function ReturnPage() {
         total: result.data.total || 0
       };
 
+      const { generateReturnPdf } = await import('@/lib/pdf-utils');
       const pdfBuffer = await generateReturnPdf(returnData);
       const blob = new Blob([new Uint8Array(pdfBuffer)], { type: 'application/pdf' });
       downloadPdf(blob, `return-${lastReturnId.slice(0, 8)}.pdf`);

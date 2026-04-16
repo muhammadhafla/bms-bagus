@@ -43,3 +43,16 @@ body {
 @utility text-balance {
   text-wrap: balance;
 }
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@utility animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}

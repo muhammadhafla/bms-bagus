@@ -15,30 +15,36 @@ export interface StockAdjustment {
 
 export const stockAdjustmentApi = {
   async getAll() {
-    const { data, error } = await queryToPromise(
-      supabase
-        .from('stock_adjustments')
-        .select('*')
-        .order('created_at', { ascending: false })
+    const result = await safeQuery<any[]>(
+      queryToPromise(
+        supabase
+          .from('stock_adjustments')
+          .select('*')
+          .order('created_at', { ascending: false })
+      )
     );
 
-    if (error) {
-      return { data: null, error };
+    if (result.error) {
+      return { data: null, error: result.error };
     }
 
-    if (!data || data.length === 0) {
+    if (!result.data || result.data.length === 0) {
       return { data: [], error: null };
     }
 
     const adjustmentsWithInventory: any[] = await Promise.all(
-      data.map(async (adj) => {
+      result.data.map(async (adj) => {
         if (adj.inventory_id) {
-          const { data: inventory } = await supabase
-            .from('inventory')
-            .select('nama_barang')
-            .eq('id', adj.inventory_id)
-            .single();
-          return { ...adj, inventory: inventory };
+          const invResult = await safeQuery<any>(
+            queryToPromise(
+              supabase
+                .from('inventory')
+                .select('nama_barang')
+                .eq('id', adj.inventory_id)
+                .single()
+            )
+          );
+          return { ...adj, inventory: invResult.data };
         }
         return adj;
       })
@@ -53,29 +59,40 @@ export const stockAdjustmentApi = {
       return { data: null, error: new Error('User not authenticated') };
     }
 
-    const { data: opname } = await supabase
-      .from('stock_opname')
-      .select('status')
-      .eq('id', opnameId)
-      .single();
+    const opnameResult = await safeQuery<any>(
+      queryToPromise(
+        supabase
+          .from('stock_opname')
+          .select('status')
+          .eq('id', opnameId)
+          .single()
+      )
+    );
 
-    if (!opname || opname.status !== 'approved') {
+    if (!opnameResult.data || opnameResult.data.status !== 'approved') {
       return { data: null, error: new Error('Opname harus di-approve terlebih dahulu') };
     }
 
-    const { data: items } = await supabase
-      .from('stock_opname_items')
-      .select('*')
-      .eq('stock_opname_id', opnameId)
-      .eq('adjusted', false)
-      .not('difference', 'eq', 0);
+    const itemsResult = await safeQuery<any[]>(
+      queryToPromise(
+        supabase
+          .from('stock_opname_items')
+          .select('*')
+          .eq('stock_opname_id', opnameId)
+          .eq('adjusted', false)
+          .not('difference', 'eq', 0)
+      )
+    );
 
-    if (!items || items.length === 0) {
-      await supabase
-        .from('stock_opname')
-        .update({ status: 'completed' })
-        .eq('id', opnameId);
-      
+    if (!itemsResult.data || itemsResult.data.length === 0) {
+      await safeQuery<any>(
+        queryToPromise(
+          supabase
+            .from('stock_opname')
+            .update({ status: 'completed' })
+            .eq('id', opnameId)
+        )
+      );
       return { data: [], error: null };
     }
 
@@ -83,7 +100,7 @@ export const stockAdjustmentApi = {
     const movementInserts = [];
     const inventoryUpdates = [];
 
-    for (const item of items) {
+    for (const item of itemsResult.data) {
       const adjustmentType = item.difference > 0 ? 'increase' : 'decrease';
       const adjustmentQty = Math.abs(item.difference);
 
@@ -112,29 +129,45 @@ export const stockAdjustmentApi = {
 
     try {
       if (adjustments.length > 0) {
-        await supabase.from('stock_adjustments').insert(adjustments);
+        await safeQuery<any>(
+          queryToPromise(supabase.from('stock_adjustments').insert(adjustments))
+        );
       }
 
       if (movementInserts.length > 0) {
-        await supabase.from('stock_movements').insert(movementInserts);
+        await safeQuery<any>(
+          queryToPromise(supabase.from('stock_movements').insert(movementInserts))
+        );
       }
 
       for (const update of inventoryUpdates) {
-        await supabase
-          .from('inventory')
-          .update({ stok: update.stok })
-          .eq('id', update.id);
+        await safeQuery<any>(
+          queryToPromise(
+            supabase
+              .from('inventory')
+              .update({ stok: update.stok })
+              .eq('id', update.id)
+          )
+        );
       }
 
-      await supabase
-        .from('stock_opname_items')
-        .update({ adjusted: true })
-        .eq('stock_opname_id', opnameId);
+      await safeQuery<any>(
+        queryToPromise(
+          supabase
+            .from('stock_opname_items')
+            .update({ adjusted: true })
+            .eq('stock_opname_id', opnameId)
+        )
+      );
 
-      await supabase
-        .from('stock_opname')
-        .update({ status: 'completed' })
-        .eq('id', opnameId);
+      await safeQuery<any>(
+        queryToPromise(
+          supabase
+            .from('stock_opname')
+            .update({ status: 'completed' })
+            .eq('id', opnameId)
+        )
+      );
 
       return { data: adjustments, error: null };
     } catch (error) {
@@ -148,19 +181,23 @@ export const stockAdjustmentApi = {
       return { data: null, error: new Error('User not authenticated') };
     }
 
-    const { data: inventory } = await supabase
-      .from('inventory')
-      .select('stok')
-      .eq('id', inventoryId)
-      .single();
+    const invResult = await safeQuery<any>(
+      queryToPromise(
+        supabase
+          .from('inventory')
+          .select('stok')
+          .eq('id', inventoryId)
+          .single()
+      )
+    );
 
-    if (!inventory) {
+    if (!invResult.data) {
       return { data: null, error: new Error('Inventory not found') };
     }
 
     const newStock = adjustmentType === 'increase' 
-      ? inventory.stok + adjustmentQty 
-      : inventory.stok - adjustmentQty;
+      ? invResult.data.stok + adjustmentQty 
+      : invResult.data.stok - adjustmentQty;
 
     if (newStock < 0) {
       return { data: null, error: new Error('Stok tidak bisa negatif') };

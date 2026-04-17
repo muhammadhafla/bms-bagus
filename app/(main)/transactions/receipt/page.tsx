@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { receiptApi, ReceiptTemplate, ReceiptLogo } from '@/lib/api';
 import { IconReceipt } from '@tabler/icons-react';
+import { Button } from '@/components/ui';
 
 export default function ReceiptPage() {
   const [templates, setTemplates] = useState<ReceiptTemplate[]>([]);
@@ -217,8 +218,8 @@ export default function ReceiptPage() {
             <p className="text-sm text-neutral-500 dark:text-neutral-400">Template & logo receipt</p>
           </div>
         </div>
-        {error && <div className="mt-3 p-3 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-200 rounded-lg text-sm border border-red-100 dark:border-red-800">{error}</div>}
-        {success && <div className="mt-3 p-3 bg-green-50 dark:bg-emerald-950 text-green-600 dark:text-emerald-200 rounded-lg text-sm border border-green-100 dark:border-emerald-800">{success}</div>}
+        {error && <div className="mt-3 p-3 bg-danger-50 dark:bg-danger-900 text-danger-600 dark:text-danger-200 rounded-lg text-sm border border-danger-100 dark:border-danger-800">{error}</div>}
+        {success && <div className="mt-3 p-3 bg-success-50 dark:bg-success-900 text-success-600 dark:text-success-200 rounded-lg text-sm border border-success-100 dark:border-success-800">{success}</div>}
       </header>
 
       <main className="flex-1 overflow-auto p-6">
@@ -238,7 +239,7 @@ export default function ReceiptPage() {
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-neutral-900">{template.name}</span>
                       {activeTemplate?.id === template.id && (
-                        <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">Aktif</span>
+                        <span className="text-xs bg-success-100 text-success-700 px-3 py-1 rounded-full font-medium">Aktif</span>
                       )}
                     </div>
                   </div>
@@ -247,7 +248,9 @@ export default function ReceiptPage() {
                   <p className="text-neutral-500 text-sm">Belum ada template</p>
                 )}
               </div>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setSelectedTemplate(null);
                   setName('');
@@ -258,10 +261,9 @@ export default function ReceiptPage() {
                   setLogoEnabled(false);
                   setLogoPath('');
                 }}
-                className="text-sm text-brand-600 hover:text-brand-700 font-medium"
               >
                 + Template Baru
-              </button>
+              </Button>
             </div>
 
              <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-sm">
@@ -284,13 +286,14 @@ export default function ReceiptPage() {
                      onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
                      className="flex-1 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 text-neutral-900 dark:text-neutral-100"
                    />
-                   <button
-                     onClick={handleUploadLogo}
-                     disabled={!logoFile || logoUploading}
-                     className="px-5 py-2 bg-gradient-to-r from-brand-500 to-brand-600 text-white rounded-xl hover:from-brand-600 hover:to-brand-700 disabled:opacity-50 text-sm font-medium shadow-md transition-all"
-                   >
-                     {logoUploading ? '...' : 'Upload'}
-                   </button>
+<Button
+                      onClick={handleUploadLogo}
+                      disabled={!logoFile || logoUploading}
+                      variant="primary"
+                      size="sm"
+                    >
+                      {logoUploading ? '...' : 'Upload'}
+                    </Button>
                  </div>
                  
                  {logoPath && (
@@ -451,29 +454,29 @@ Silahkan datang lagi"
                </div>
 
               <div className="flex gap-2 pt-4">
-                <button
+                <Button
                   onClick={handleSaveTemplate}
                   disabled={saving}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-brand-500 to-brand-600 text-white rounded-xl hover:from-brand-600 hover:to-brand-700 disabled:opacity-50 font-medium shadow-md transition-all"
+                  variant="primary"
                 >
                   {saving ? 'Menyimpan...' : 'Simpan'}
-                </button>
+                </Button>
                 {selectedTemplate && (
                   <>
-                    <button
+                    <Button
+                      variant="secondary"
                       onClick={handleSetActive}
                       disabled={loading || activeTemplate?.id === selectedTemplate.id}
-                      className="px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 disabled:opacity-50 font-medium shadow-md transition-all"
                     >
                       Aktifkan
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="danger"
                       onClick={handleDeleteTemplate}
                       disabled={loading}
-                      className="px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 disabled:opacity-50 font-medium shadow-md transition-all"
                     >
                       Hapus
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>

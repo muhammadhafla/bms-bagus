@@ -102,8 +102,11 @@ export const inventoryApi = {
     );
   },
 
-  async update(id: string, data: Partial<{ harga_jual: number; diskon: number; minimum_stock: number; harga_beli_terakhir: number }>) {
-    return safeQuery<InventoryItem>(queryToPromise(supabase.from('inventory').update(data).eq('id', id).select().single()));
+  async update(id: string, data: Record<string, unknown>) {
+    console.log('API update called with id:', id, 'data:', data);
+    const query = supabase.from('inventory').update(data).eq('id', id).select().single();
+    console.log('Supabase query ready');
+    return safeQuery<InventoryItem>(queryToPromise(query));
   },
 
   async create(data: { nama_barang: string; kode_barcode?: string; id_kategori?: string; kategori?: string; harga_beli_terakhir?: number; harga_jual?: number; diskon?: number }) {

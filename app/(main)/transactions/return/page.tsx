@@ -6,6 +6,7 @@ import { supplierApi } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { IconArrowBack, IconSearch, IconFileExport } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
+import { Button } from '@/components/ui';
 
 const downloadPdf = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
@@ -271,63 +272,52 @@ export default function ReturnPage() {
         </div>
 
         <div className="flex gap-2 mb-5 flex-wrap">
-          <button
+          <Button
+            variant={returnType === 'pembelian' ? 'primary' : 'ghost'}
+            size="sm"
             onClick={() => handleTypeChange('pembelian')}
-            className={`px-5 py-2.5 rounded-xl font-medium transition-all ${
-              returnType === 'pembelian'
-                ? 'bg-gradient-to-r from-brand-400 to-brand-500 text-white shadow-md'
-                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-            }`}
           >
             Retur Pembelian
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={returnType === 'penjualan' ? 'primary' : 'ghost'}
+            size="sm"
             onClick={() => handleTypeChange('penjualan')}
-            className={`px-5 py-2.5 rounded-xl font-medium transition-all ${
-              returnType === 'penjualan'
-                ? 'bg-gradient-to-r from-brand-400 to-brand-500 text-white shadow-md'
-                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-            }`}
           >
             Retur Penjualan
-          </button>
+          </Button>
           <div className="flex-1" />
-          <button
+          <Button
+            variant={mode === 'single' ? 'secondary' : 'ghost'}
+            size="sm"
             onClick={() => setMode('single')}
-            className={`px-5 py-2.5 rounded-xl font-medium transition-all ${
-              mode === 'single'
-                ? 'bg-neutral-200 text-neutral-900'
-                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-            }`}
           >
             Per Transaksi
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={mode === 'batch' ? 'primary' : 'ghost'}
+            size="sm"
             onClick={() => setMode('batch')}
-            className={`px-5 py-2.5 rounded-xl font-medium transition-all ${
-              mode === 'batch'
-                ? 'bg-gradient-to-r from-brand-400 to-brand-500 text-white shadow-md'
-                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-            }`}
           >
             Batch (Multi Transaksi)
-          </button>
+          </Button>
         </div>
 
         {error && (
-          <div className="mt-3 p-3 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-200 rounded-lg text-sm border border-red-100 dark:border-red-800">{error}</div>
+          <div className="mt-3 p-3 bg-danger-50 dark:bg-danger-900 text-danger-600 dark:text-danger-200 rounded-lg text-sm border border-danger-100 dark:border-danger-800">{error}</div>
         )}
         {success && (
-          <div className="mt-3 p-3 bg-green-50 dark:bg-emerald-950 text-green-600 dark:text-emerald-200 rounded-lg text-sm border border-green-100 dark:border-emerald-800 flex justify-between items-center">
+          <div className="mt-3 p-3 bg-success-50 dark:bg-success-900 text-success-600 dark:text-success-200 rounded-lg text-sm border border-success-100 dark:border-success-800 flex justify-between items-center">
             <span>{success}</span>
             {lastReturnId && (
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={handleExportPdf}
-                className="px-3 py-1 bg-white dark:bg-neutral-800 rounded-lg text-sm font-medium flex items-center gap-2"
               >
                 <IconFileExport className="w-4 h-4" />
                 Export PDF
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -520,19 +510,16 @@ export default function ReturnPage() {
             </div>
 
             <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowPreview(false)}
-                className="px-4 py-2 rounded-lg font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200"
-              >
+              <Button variant="secondary" onClick={() => setShowPreview(false)}>
                 Batal
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleConfirmSubmit}
                 disabled={submitting}
-                className="px-4 py-2 rounded-lg font-medium text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50"
+                variant="primary"
               >
                 {submitting ? 'Menyimpan...' : 'Konfirmasi Simpan'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

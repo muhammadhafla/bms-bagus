@@ -5,6 +5,7 @@ import { reportApi, StockMutation, InventoryValue, SalesSummary, ProfitSummary }
 import { formatCurrency } from '@/lib/utils';
 import { IconReport, IconPackage, IconCash, IconShoppingCart, IconTrendingUp } from '@tabler/icons-react';
 import DateInput from '@/components/ui/DateInput';
+import { Button, Breadcrumb } from '@/components/ui';
 
 type ReportType = 'stock' | 'value' | 'sales' | 'profit';
 
@@ -86,53 +87,46 @@ export default function ReportsPage() {
               <IconReport className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">Laporan</h1>
+              <Breadcrumb
+                items={[
+                  { label: 'Inventory', href: '/inventory' },
+                  { label: 'Laporan', isActive: true },
+                ]}
+              />
               <p className="text-sm text-neutral-500 dark:text-neutral-400">Monitoring & analytics</p>
             </div>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2 mb-5">
-          <button
+          <Button
+            variant={reportType === 'stock' ? 'primary' : 'ghost'}
+            size="sm"
             onClick={() => setReportType('stock')}
-            className={`px-5 py-2.5 rounded-xl font-medium transition-all ${
-              reportType === 'stock'
-                ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-md'
-                : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-            }`}
           >
             Mutasi Stock
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={reportType === 'value' ? 'primary' : 'ghost'}
+            size="sm"
             onClick={() => setReportType('value')}
-            className={`px-5 py-2.5 rounded-xl font-medium transition-all ${
-              reportType === 'value'
-                ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-md'
-                : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-            }`}
           >
             Nilai Inventory
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={reportType === 'sales' ? 'primary' : 'ghost'}
+            size="sm"
             onClick={() => setReportType('sales')}
-            className={`px-5 py-2.5 rounded-xl font-medium transition-all ${
-              reportType === 'sales'
-                ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-md'
-                : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-            }`}
           >
             Penjualan
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={reportType === 'profit' ? 'primary' : 'ghost'}
+            size="sm"
             onClick={() => setReportType('profit')}
-            className={`px-5 py-2.5 rounded-xl font-medium transition-all ${
-              reportType === 'profit'
-                ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-md'
-                : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-            }`}
           >
             Profit
-          </button>
+          </Button>
         </div>
 
         {reportType !== 'value' && (
@@ -149,18 +143,19 @@ export default function ReportsPage() {
               label="Sampai:"
               inputSize="sm"
             />
-            <button
+            <Button
               onClick={loadReport}
               disabled={loading}
-              className="px-5 py-2.5 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl hover:from-brand-700 hover:to-brand-800 disabled:opacity-50 shadow-md transition-all font-medium"
+              variant="primary"
+              size="sm"
             >
               Refresh
-            </button>
+            </Button>
           </div>
         )}
 
         {error && (
-          <div className="mt-3 p-4 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl text-sm border border-red-100 dark:border-red-800 flex items-center gap-2">
+          <div className="mt-3 p-4 bg-danger-50 dark:bg-danger-900/30 text-danger-600 dark:text-danger-400 rounded-xl text-sm border border-danger-100 dark:border-danger-800 flex items-center gap-2">
             <span className="font-medium">{error}</span>
           </div>
         )}

@@ -9,14 +9,16 @@ export default {
   ],
   theme: {
     extend: {
-      animation: {
-        'fade-in': 'fadeIn 0.2s ease-out',
-      },
-      keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0', transform: 'translateX(-50%) translateY(4px)' },
-          '100%': { opacity: '1', transform: 'translateX(-50%) translateY(0)' },
-        },
+      fontSize: {
+        display: ['3.5rem', { lineHeight: '1.1', fontWeight: '700' }],
+        h1: ['2.5rem', { lineHeight: '1.2', fontWeight: '600' }],
+        h2: ['2rem', { lineHeight: '1.25', fontWeight: '600' }],
+        h3: ['1.5rem', { lineHeight: '1.3', fontWeight: '600' }],
+        h4: ['1.25rem', { lineHeight: '1.35', fontWeight: '600' }],
+        'body-lg': ['1.125rem', { lineHeight: '1.6' }],
+        body: ['1rem', { lineHeight: '1.5' }],
+        caption: ['0.875rem', { lineHeight: '1.4' }],
+        'caption-sm': ['0.75rem', { lineHeight: '1.4' }],
       },
     },
   },

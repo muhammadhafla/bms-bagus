@@ -161,10 +161,16 @@ export const returnApi = {
   },
 
   async getReturnDetail(returnId: string) {
-    const [headerResult, itemsResult] = await Promise.all([
-      supabase.from('pembelian_return').select('*').eq('id', returnId).single(),
-      supabase.from('pembelian_return_items').select('*').eq('pembelian_return_id', returnId)
-    ]);
+    const headerResult = await safeQuery<any>(
+      queryToPromise(
+        supabase.from('pembelian_return').select('*').eq('id', returnId).single()
+      )
+    );
+    const itemsResult = await safeQuery<any[]>(
+      queryToPromise(
+        supabase.from('pembelian_return_items').select('*').eq('pembelian_return_id', returnId)
+      )
+    );
 
     return {
       data: {

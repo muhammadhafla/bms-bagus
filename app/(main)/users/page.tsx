@@ -199,7 +199,7 @@ export default function UsersPage() {
                         <AdminOnly>
                           <button
                             onClick={() => setDeleteConfirm({ isOpen: true, userId: user.id })}
-                            className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400"
+                            className="p-2 rounded-lg hover:bg-danger-50 dark:hover:bg-danger-900/30 text-danger-600 dark:text-danger-400"
                           >
                             <IconTrash className="w-4 h-4" />
                           </button>

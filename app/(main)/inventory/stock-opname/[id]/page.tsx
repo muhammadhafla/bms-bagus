@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import SelectInput from '@/components/ui/SelectInput';
 import TextareaInput from '@/components/ui/TextareaInput';
+import { Button, Breadcrumb, Badge, Card } from '@/components/ui';
 
 const reasonOptions = [
   { value: 'salah_input', label: 'Kesalahan Input' },
@@ -220,10 +221,9 @@ export default function StockOpnameDetailPage() {
 
   if (!opname) {
     return (
-      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
-        <div className="max-w-7xl mx-auto p-4">
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
-            <p className="text-red-700 dark:text-red-300">Gagal memuat data stock opname. Pastikan Anda memiliki akses yang tepat.</p>
+      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 p-4">
+        <div className="bg-danger-50 dark:bg-danger-900/20 border border-danger-200 dark:border-danger-800 rounded-lg p-4 mb-4">
+            <p className="text-danger-700 dark:text-danger-300">Gagal memuat data stock opname. Pastikan Anda memiliki akses yang tepat.</p>
           </div>
           <button
             onClick={() => router.push('/stock-opname')}
@@ -232,7 +232,6 @@ export default function StockOpnameDetailPage() {
             <IconArrowLeft size={18} />
             Kembali ke Daftar
           </button>
-        </div>
       </div>
     );
   }
@@ -254,69 +253,57 @@ export default function StockOpnameDetailPage() {
    const invalidItemCount = items.filter(item => item.difference !== 0 && !item.reason).length;
 
 return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
-      <div className="max-w-7xl mx-auto p-4">
-        <div className="flex justify-between items-center mb-6">
-          <button
-            onClick={() => router.push('/stock-opname')}
-            className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-          >
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 p-4">
+      <Breadcrumb
+        items={[
+          { label: 'Inventory', href: '/inventory' },
+          { label: 'Stock Opname', href: '/inventory/stock-opname' },
+          { label: opname?.opname_date ? new Date(opname.opname_date).toLocaleDateString('id-ID') : 'Detail', isActive: true },
+        ]}
+        className="mb-4"
+      />
+      
+      <div className="flex justify-between items-center mb-6">
+          <Button variant="ghost" onClick={() => router.push('/inventory/stock-opname')}>
             <IconArrowLeft size={18} />
             Kembali
-          </button>
+          </Button>
 
           <div className="flex gap-2">
             {isDraft && (
               <>
                 {hasChanges && (
-                  <button
-                    onClick={() => setShowConfirmDiscard(true)}
-                    disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-                  >
+                  <Button variant="ghost" onClick={() => setShowConfirmDiscard(true)} disabled={saving}>
                     <IconRefresh size={18} />
                     Batal
-                  </button>
+                  </Button>
                 )}
                 {hasChanges && (
-                  <button
-                    onClick={saveChanges}
-                    disabled={saving || hasInvalidItems}
-                    className="flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors disabled:opacity-50"
-                  >
+                  <Button onClick={saveChanges} disabled={saving || hasInvalidItems}>
                     {saving ? <IconLoader2 size={18} className="animate-spin" /> : <IconDeviceFloppy size={18} />}
                     {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
                   onClick={handleSubmit}
                   disabled={saving || hasInvalidItems}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                  title={hasInvalidItems ? 'Isi alasan untuk semua item dengan selisih terlebih dahulu' : ''}
+                  className={hasInvalidItems ? 'opacity-50 cursor-not-allowed' : ''}
                 >
                   <IconSend size={18} />
                   {saving ? 'Mengirim...' : 'Submit untuk Approval'}
-                </button>
+                </Button>
               </>
             )}
             {isPending && (
               <>
-                <button
-                  onClick={() => setShowRejectModal(true)}
-                  disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                >
+                <Button variant="danger" onClick={() => setShowRejectModal(true)} disabled={saving}>
                   <IconX size={18} />
                   Tolak
-                </button>
-                <button
-                  onClick={handleApprove}
-                  disabled={saving || processing}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                >
+                </Button>
+                <Button variant="primary" onClick={handleApprove} disabled={saving || processing}>
                   {processing ? <IconLoader2 size={18} className="animate-spin" /> : <IconCheck size={18} />}
                   {processing ? 'Memproses...' : 'Approve'}
-                </button>
+                </Button>
               </>
             )}
           </div>
@@ -358,7 +345,7 @@ return (
                         <div className="font-medium text-neutral-900 dark:text-neutral-100">{inventory.nama_barang}</div>
                         <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">{inventory.kode_barcode || 'Tanpa barcode'} | Stok: {inventory.stok}</div>
                       </div>
-                      <div className="text-xs bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2 py-1 rounded-full">
+                      <div className="text-xs bg-success-100 dark:bg-success-900/40 text-success-700 dark:text-success-300 px-2 py-1 rounded-full">
                         {inventory.similarity}% cocok
                       </div>
                     </button>
@@ -385,93 +372,93 @@ return (
         )}
 
           {hasInvalidItems && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
-              <p className="text-red-700 dark:text-red-300 font-medium">
+            <div className="bg-danger-50 dark:bg-danger-900/20 border border-danger-200 dark:border-danger-800 rounded-lg p-4 mb-4">
+              <p className="text-danger-700 dark:text-danger-300 font-medium">
                 ⚠️ Ada {invalidItemCount} item yang belum diisi alasan selisih. Mohon isi alasan sebelum submit.
               </p>
             </div>
           )}
 
-          <div className="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 overflow-hidden mb-6">
-           <div className="overflow-x-auto">
-             {items.length === 0 ? (
-               <div className="text-center py-12">
-                 <div className="text-neutral-500 mb-2">Belum ada barang yang ditambahkan</div>
-                 <div className="text-sm text-neutral-400">Gunakan kotak pencarian di atas untuk menambahkan barang yang akan dihitung</div>
-               </div>
-             ) : (
-             <table className="w-full">
-               <thead>
-                 <tr className="border-b border-neutral-200 dark:border-neutral-800">
-                   <th className="text-left p-3 font-medium">Barang</th>
-                   <th className="text-right p-3 font-medium">Stok Sistem</th>
-                   <th className="text-right p-3 font-medium">Stok Fisik</th>
-                   <th className="text-right p-3 font-medium">Selisih</th>
-                   <th className="text-left p-3 font-medium">Alasan</th>
-                   <th className="text-left p-3 font-medium">Catatan</th>
-                   {isEditable && <th className="text-right p-3 font-medium w-10"></th>}
-                 </tr>
-               </thead>
-               <tbody>
-                 {filteredItems.map((item) => {
-                     const isValid = item.difference === 0 || item.reason;
-                     return (
-                       <tr key={item.id} className={`border-b border-neutral-100 dark:border-neutral-800/50 ${!isValid ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
-                         <td className="p-3">{item.inventory?.nama_barang || item.inventory_id}</td>
-                         <td className="p-3 text-right font-mono">{item.system_stock}</td>
-                         <td className="p-3">
-                          <input
-                            type="number"
-                            value={item.physical_stock}
-                            onChange={(e) => updateItem(item.id, 'physical_stock', parseInt(e.target.value) || 0)}
-                            disabled={!isEditable}
-                            className="w-20 text-right bg-transparent border border-neutral-200 dark:border-neutral-700 rounded px-2 py-1 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                          />
-                         </td>
-                         <td className={`p-3 text-right font-mono font-medium ${item.difference > 0 ? 'text-green-600' : item.difference < 0 ? 'text-red-600' : 'text-neutral-600'}`}>
-                           {item.difference > 0 ? '+' : ''}{item.difference}
-                         </td>
-                         <td className="p-3">
-                           <select
-                             value={item.reason || ''}
-                             onChange={(e) => updateItem(item.id, 'reason', e.target.value || null)}
-                             disabled={!isEditable || item.difference === 0}
-                             className={`w-32 bg-transparent border rounded px-2 py-1 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-brand-500 ${!isValid ? 'border-red-500' : 'border-neutral-200 dark:border-neutral-700'}`}
-                           >
-                             <option value="">Pilih Alasan</option>
-                             {reasonOptions.map(opt => (
-                               <option key={opt.value} value={opt.value}>{opt.label}</option>
-                             ))}
-                           </select>
-                         </td>
-                         <td className="p-3">
-                            <input
-                              type="text"
-                              value={item.note || ''}
-                              onChange={(e) => updateItem(item.id, 'note', e.target.value)}
-                              disabled={!isEditable}
-                              className="w-full bg-transparent border border-neutral-200 dark:border-neutral-700 rounded px-2 py-1 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                              placeholder="Catatan"
-                            />
-                         </td>
-                         {isEditable && (
-                           <td className="p-3 text-right">
-                             <button
-                               onClick={() => removeItem(item.id)}
-                               className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                             >
-                               <IconTrash size={16} />
-                             </button>
-                           </td>
-                         )}
-                       </tr>
-                      );
-                    })}
-              </tbody>
-             </table>
-             )}
-           </div>
-         </div>
+          <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm overflow-hidden mb-6">
+            <div className="overflow-x-auto">
+              {items.length === 0 ? (
+                <div className="px-4 py-12 text-center">
+                  <div className="text-neutral-500 mb-2">Belum ada barang yang ditambahkan</div>
+                  <div className="text-sm text-neutral-400">Gunakan kotak pencarian di atas untuk menambahkan barang yang akan dihitung</div>
+                </div>
+              ) : (
+              <table className="w-full min-w-[600px]">
+                <thead>
+                  <tr className="bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Barang</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Stok Sistem</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Stok Fisik</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Selisih</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Alasan</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Catatan</th>
+                    {isEditable && <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider w-10"></th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+                  {filteredItems.map((item) => {
+                      const isValid = item.difference === 0 || item.reason;
+                      return (
+                        <tr key={item.id} className={`${!isValid ? 'bg-danger-50 dark:bg-danger-900/10' : ''} hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors`}>
+                          <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">{item.inventory?.nama_barang || item.inventory_id}</td>
+                          <td className="px-4 py-3 text-right text-sm text-neutral-900 dark:text-neutral-100 font-mono">{item.system_stock}</td>
+                          <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">
+                           <input
+                             type="number"
+                             value={item.physical_stock}
+                             onChange={(e) => updateItem(item.id, 'physical_stock', parseInt(e.target.value) || 0)}
+                             disabled={!isEditable}
+                             className="w-20 text-right bg-transparent border border-neutral-200 dark:border-neutral-700 rounded px-2 py-1 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                           />
+                          </td>
+                          <td className={`px-4 py-3 text-right text-sm font-mono font-medium ${item.difference > 0 ? 'text-success-600' : item.difference < 0 ? 'text-danger-600' : 'text-neutral-600'}`}>
+                            {item.difference > 0 ? '+' : ''}{item.difference}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">
+                            <select
+                              value={item.reason || ''}
+                              onChange={(e) => updateItem(item.id, 'reason', e.target.value || null)}
+                              disabled={!isEditable || item.difference === 0}
+                              className={`w-32 bg-transparent border rounded px-2 py-1 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-brand-500 ${!isValid ? 'border-red-500' : 'border-neutral-200 dark:border-neutral-700'}`}
+                            >
+                              <option value="">Pilih Alasan</option>
+                              {reasonOptions.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">
+                             <input
+                               type="text"
+                               value={item.note || ''}
+                               onChange={(e) => updateItem(item.id, 'note', e.target.value)}
+                               disabled={!isEditable}
+                               className="w-full bg-transparent border border-neutral-200 dark:border-neutral-700 rounded px-2 py-1 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                               placeholder="Catatan"
+                             />
+                          </td>
+                          {isEditable && (
+                            <td className="px-4 py-3 text-right text-sm text-neutral-900 dark:text-neutral-100">
+                              <button
+                                onClick={() => removeItem(item.id)}
+                                className="p-1 text-danger-600 hover:bg-danger-50 dark:hover:bg-danger-900/20 rounded transition-colors"
+                              >
+                                <IconTrash size={16} />
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                       );
+                     })}
+                </tbody>
+              </table>
+              )}
+            </div>
+          </div>
 
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
@@ -479,21 +466,20 @@ return (
             <div className="text-2xl font-bold mt-1">{items.length}</div>
           </div>
           <div className="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
-            <div className="text-sm text-green-600">Selisih Positif</div>
-            <div className="text-2xl font-bold mt-1 text-green-600">
+            <div className="text-sm text-success-600">Selisih Positif</div>
+            <div className="text-2xl font-bold mt-1 text-success-600">
               +{items.filter(i => i.difference > 0).reduce((sum, i) => sum + i.difference, 0)}
             </div>
           </div>
           <div className="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
-            <div className="text-sm text-red-600">Selisih Negatif</div>
-            <div className="text-2xl font-bold mt-1 text-red-600">
+            <div className="text-sm text-danger-600">Selisih Negatif</div>
+            <div className="text-2xl font-bold mt-1 text-danger-600">
               {items.filter(i => i.difference < 0).reduce((sum, i) => sum + i.difference, 0)}
             </div>
           </div>
         </div>
-      </div>
 
-       <ConfirmDialog
+        <ConfirmDialog
          isOpen={showConfirmDiscard}
          title="Batalkan Perubahan"
          message="Semua perubahan yang belum disimpan akan hilang. Yakin ingin melanjutkan?"
@@ -523,7 +509,7 @@ return (
                <button
                  onClick={handleReject}
                  disabled={saving}
-                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                 className="px-4 py-2 bg-danger-600 text-white rounded-lg hover:bg-danger-700 disabled:opacity-50"
                >
                  Konfirmasi Tolak
                </button>

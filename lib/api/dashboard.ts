@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { queryToPromise } from './utils';
+import { safeQuery, queryToPromise } from './utils';
 
 export interface DashboardStats {
   totalInventoryValue: number;
@@ -38,10 +38,18 @@ export const dashboardApi = {
     const today = new Date().toISOString().split('T')[0];
 
     const [inventoryResult, salesResult, purchasesResult, lowStockResult] = await Promise.all([
-      supabase.from('inventory').select('stok, harga_beli_terakhir'),
-      supabase.from('penjualan').select('total').eq('tanggal', today),
-      supabase.from('pembelian').select('total_sistem, tanggal').eq('tanggal', today),
-      supabase.from('inventory').select('id, nama_barang, stok, minimum_stock'),
+      safeQuery<{ stok: number; harga_beli_terakhir: number }[]>(
+        queryToPromise(supabase.from('inventory').select('stok, harga_beli_terakhir'))
+      ),
+      safeQuery<{ total: number }[]>(
+        queryToPromise(supabase.from('penjualan').select('total').eq('tanggal', today))
+      ),
+      safeQuery<{ total_sistem: number; tanggal: string }[]>(
+        queryToPromise(supabase.from('pembelian').select('total_sistem, tanggal').eq('tanggal', today))
+      ),
+      safeQuery<{ id: string; nama_barang: string; stok: number; minimum_stock: number }[]>(
+        queryToPromise(supabase.from('inventory').select('id, nama_barang, stok, minimum_stock'))
+      ),
     ]);
 
     if (inventoryResult.error || salesResult.error || purchasesResult.error || lowStockResult.error) {
@@ -78,12 +86,16 @@ export const dashboardApi = {
   },
 
   async getLowStockItems(): Promise<{ data: LowStockItem[]; error: unknown }> {
-    const result = await supabase
-      .from('inventory')
-      .select('id, nama_barang, stok, minimum_stock')
-      .eq('is_discontinued', false)
-      .order('stok', { ascending: true })
-      .limit(10);
+    const result = await safeQuery<LowStockItem[]>(
+      queryToPromise(
+        supabase
+          .from('inventory')
+          .select('id, nama_barang, stok, minimum_stock')
+          .eq('is_discontinued', false)
+          .order('stok', { ascending: true })
+          .limit(10)
+      )
+    );
 
     if (result.error) {
       return { data: [], error: result.error };
@@ -108,8 +120,12 @@ export const dashboardApi = {
     }
 
     const [pembelianResult, penjualanResult] = await Promise.all([
-      supabase.from('pembelian').select('tanggal, total_sistem').gte('tanggal', dates[0]),
-      supabase.from('penjualan').select('tanggal, total').gte('tanggal', dates[0]),
+      safeQuery<{ tanggal: string; total_sistem: number }[]>(
+        queryToPromise(supabase.from('pembelian').select('tanggal, total_sistem').gte('tanggal', dates[0]))
+      ),
+      safeQuery<{ tanggal: string; total: number }[]>(
+        queryToPromise(supabase.from('penjualan').select('tanggal, total').gte('tanggal', dates[0]))
+      ),
     ]);
 
     if (pembelianResult.error || penjualanResult.error) {
@@ -138,17 +154,29 @@ export const dashboardApi = {
 
   async getRecentTransactions(): Promise<{ data: RecentTransaction[]; error: unknown }> {
     const [penjualan, pembelian] = await Promise.all([
-      supabase
-        .from('penjualan')
-        .select('id, total, tanggal, created_at')
-        .order('created_at', { ascending: false })
-        .limit(5),
-      supabase
-        .from('pembelian')
-        .select('id, total_sistem, tanggal, created_at')
-        .order('created_at', { ascending: false })
-        .limit(5),
+      safeQuery<{ id: string; total: number; tanggal: string; created_at: string }[]>(
+        queryToPromise(
+          supabase
+            .from('penjualan')
+            .select('id, total, tanggal, created_at')
+            .order('created_at', { ascending: false })
+            .limit(5)
+        )
+      ),
+      safeQuery<{ id: string; total_sistem: number; tanggal: string; created_at: string }[]>(
+        queryToPromise(
+          supabase
+            .from('pembelian')
+            .select('id, total_sistem, tanggal, created_at')
+            .order('created_at', { ascending: false })
+            .limit(5)
+        )
+      ),
     ]);
+
+    if (penjualan.error || pembelian.error) {
+      return { data: [], error: penjualan.error || pembelian.error };
+    }
 
     const transactions: RecentTransaction[] = [
       ...(penjualan.data || []).map((t) => ({ ...t, type: 'penjualan' as const })),

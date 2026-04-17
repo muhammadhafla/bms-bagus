@@ -1,11 +1,23 @@
+import type { Viewport } from "next";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
 import { AuthProvider } from "@/components/AuthProvider";
 import { DarkModeProvider } from "@/components/DarkModeProvider";
 
-const inter = Inter({ subsets: ["latin"] });
+const poppins = Poppins({
+  weight: ['300', '400', '500', '600', '700'],
+  subsets: ["latin"],
+  variable: '--font-poppins',
+});
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export const metadata: Metadata = {
   title: "BMS - Bagus Management System",
@@ -23,7 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" suppressHydrationWarning className="light">
-      <body className={`${inter.className} min-h-screen transition-colors`}>
+      <body className={`${poppins.className} min-h-screen transition-colors`}>
         <AuthProvider>
           <DarkModeProvider>
             <ToastProvider>{children}</ToastProvider>

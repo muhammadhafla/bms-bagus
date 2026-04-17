@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { safeQuery, queryToPromise } from './utils';
 
 export interface PembelianItem {
   id?: string;
@@ -66,13 +67,13 @@ export const purchasesApi = {
         query = query.lte('tanggal', options.endDate);
       }
 
-      const { data, error } = await query;
+      const result = await safeQuery<any[]>(queryToPromise(query));
 
-      if (error) {
-        return { data: null, error: { message: error.message } };
+      if (result.error) {
+        return { data: null, error: { message: result.error.message } };
       }
 
-      const formatted = (data || []).map((item: any) => ({
+      const formatted = (result.data || []).map((item: any) => ({
         id: item.id,
         idempotency_key: item.idempotency_key,
         supplier_id: item.supplier_id,
@@ -100,34 +101,42 @@ export const purchasesApi = {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const { data: purchase, error: purchaseError } = await supabase
-        .from('pembelian')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const purchaseResult = await safeQuery<any>(
+        queryToPromise(
+          supabase
+            .from('pembelian')
+            .select('*')
+            .eq('id', id)
+            .single()
+        )
+      );
 
       clearTimeout(timeoutId);
 
-      if (purchaseError) {
-        return { data: null, error: { message: purchaseError.message } };
+      if (purchaseResult.error) {
+        return { data: null, error: { message: purchaseResult.error.message } };
       }
 
-      const { data: items, error: itemsError } = await supabase
-        .from('pembelian_items')
-        .select('*')
-        .eq('pembelian_id', id);
+      const itemsResult = await safeQuery<any[]>(
+        queryToPromise(
+          supabase
+            .from('pembelian_items')
+            .select('*')
+            .eq('pembelian_id', id)
+        )
+      );
 
-      if (itemsError) {
-        console.error('Items fetch error:', itemsError);
+      if (itemsResult.error) {
+        console.error('Items fetch error:', itemsResult.error);
       }
 
       return {
         data: {
-          ...purchase,
-          items: items || [],
-          total: purchase?.total_sistem || 0,
-          total_supplier: purchase?.total_supplier || 0,
-          selisih: (purchase?.total_sistem || 0) - (purchase?.total_supplier || 0),
+          ...purchaseResult.data,
+          items: itemsResult.data || [],
+          total: purchaseResult.data?.total_sistem || 0,
+          total_supplier: purchaseResult.data?.total_supplier || 0,
+          selisih: (purchaseResult.data?.total_sistem || 0) - (purchaseResult.data?.total_supplier || 0),
           created_by_nama: null,
         },
         error: null,
@@ -156,13 +165,13 @@ export const purchasesApi = {
         query = query.lte('tanggal', options.endDate);
       }
 
-      const { count, error } = await query;
+      const result = await safeQuery<any[]>(queryToPromise(query));
 
-      if (error) {
-        return { data: 0, error: { message: error.message } };
+      if (result.error) {
+        return { data: 0, error: { message: result.error.message } };
       }
 
-      return { data: count || 0, error: null };
+      return { data: result.data?.length || 0, error: null };
     } catch (err: any) {
       return { data: 0, error: { message: err.message || 'Terjadi kesalahan' } };
     }

@@ -82,7 +82,11 @@ export const receiptApi = {
   },
 
   async setActiveTemplate(id: string) {
-    const resetResult = await supabase.from('receipt_templates').update({ is_active: false }).eq('is_active', true);
+    const resetResult = await safeQuery<any>(
+      queryToPromise(
+        supabase.from('receipt_templates').update({ is_active: false }).eq('is_active', true)
+      )
+    );
     if (resetResult.error) {
       return safeQuery(queryToPromise(supabase.from('receipt_templates').update({ is_active: true }).eq('id', id).select().single()));
     }

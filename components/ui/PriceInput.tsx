@@ -14,6 +14,10 @@ interface PriceInputProps {
   id?: string;
   name?: string;
   disabled?: boolean;
+  prefix?: string;
+  suffix?: string;
+  label?: string;
+  error?: string;
 }
 
 /**
@@ -28,6 +32,7 @@ interface PriceInputProps {
  * - Shortcut keyboard: Enter untuk save, Escape untuk batalkan
  * - Auto select seluruh nilai saat fokus
  * - Menangani posisi kursor dengan benar saat formatting
+ * - Prefix/suffix untuk mata uang
  */
 export const PriceInput = ({
   value,
@@ -41,6 +46,10 @@ export const PriceInput = ({
   id,
   name,
   disabled = false,
+  prefix = 'Rp',
+  suffix,
+  label,
+  error,
 }: PriceInputProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [displayValue, setDisplayValue] = useState<string>('');
@@ -168,31 +177,61 @@ export const PriceInput = ({
   }, [parseInput, formatNumber, onChange]);
 
   return (
-    <input
-      ref={inputRef}
-      type="text"
-      inputMode="numeric"
-      value={displayValue}
-      onChange={handleChange}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      onKeyDown={handleKeyDown}
-      onPaste={handlePaste}
-      placeholder={placeholder}
-      id={id}
-      name={name}
-      disabled={disabled}
-      className={`
-        text-right font-mono
-        ${!isValid ? 'border-red-500 bg-red-50 dark:bg-red-950' : ''}
-        ${disabled ? 'opacity-50' : ''}
-        ${className}
-      `}
-      style={{ 
-        MozAppearance: 'textfield',
-        appearance: 'textfield'
-      }}
-    />
+    <div>
+      {label && (
+        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+          {label}
+        </label>
+      )}
+      <div className="relative">
+        {prefix && (
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400 text-sm">
+            {prefix}
+          </span>
+        )}
+        <input
+          ref={inputRef}
+          type="text"
+          inputMode="numeric"
+          value={displayValue}
+          onChange={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
+          placeholder={placeholder}
+          id={id}
+          name={name}
+          disabled={disabled}
+          className={`
+            w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100
+            transition-colors
+            focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent focus:bg-white dark:focus:bg-neutral-900
+            placeholder:text-neutral-400 dark:placeholder:text-neutral-500
+            ${prefix ? 'pl-10' : ''}
+            ${suffix ? 'pr-10' : ''}
+            ${!isValid || error ? 'border-accent-rose-500 focus:ring-accent-rose-200 dark:focus:ring-accent-rose-900' : ''}
+            ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+            text-right font-mono
+            ${className}
+          `}
+          style={{ 
+            MozAppearance: 'textfield',
+            appearance: 'textfield'
+          }}
+        />
+        {suffix && (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400 text-sm">
+            {suffix}
+          </span>
+        )}
+      </div>
+      {error && (
+        <p className="mt-1 text-sm text-accent-rose-600 dark:text-accent-rose-400">
+          {error}
+        </p>
+      )}
+    </div>
   );
 };
 

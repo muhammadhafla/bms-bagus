@@ -24,12 +24,25 @@ export async function safeQuery<T>(query: Promise<{ data: T | null; error: Error
     if (isAuthError(error)) {
       const { useAuthStore } = await import('@/lib/auth');
       try {
-        const refreshed = await useAuthStore.getState().refreshSession();
+        const refreshed = await useAuthStore.getState().checkAndRefreshSession();
         if (refreshed) {
-          return safeQuery(query);
+          const retryResult = await query;
+          if (retryResult.error) {
+            return { data: null, error: createError(retryResult.error.message, retryResult.error.name) };
+          }
+          return { data: retryResult.data as T, error: null };
         }
       } catch {
-        // Session refresh failed
+        // Session check failed
+      }
+      
+      const refreshed = await useAuthStore.getState().refreshSession();
+      if (refreshed) {
+        const retryResult = await query;
+        if (retryResult.error) {
+          return { data: null, error: createError(retryResult.error.message, retryResult.error.name) };
+        }
+        return { data: retryResult.data as T, error: null };
       }
     }
     

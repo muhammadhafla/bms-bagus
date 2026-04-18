@@ -1,16 +1,23 @@
 import { supabase } from './client';
 import { safeQuery, queryToPromise } from './utils';
 
-export interface StockOpname {
-  id: string;
-  opname_date: string;
-  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'completed';
-  note: string | null;
-  created_by: string;
-  approved_by: string | null;
-  created_at: string;
-  updated_at: string;
+export interface StockOpnameWithProfile extends StockOpname {
   profiles?: { nama: string } | null;
+}
+
+export interface InventoryBasic {
+  id: string;
+  nama_barang: string;
+  kode_barcode: string;
+  unit: string;
+}
+
+export interface StockOpnameItemWithInventory extends StockOpnameItem {
+  inventory?: {
+    nama_barang: string;
+    kode_barcode: string;
+    unit: string;
+  } | null;
 }
 
 export interface StockOpnameItem {
@@ -51,23 +58,29 @@ export const stockOpnameApi = {
       return { data: [], error: null };
     }
 
-    const opnamesWithCreator: any[] = await Promise.all(
-      result.data.map(async (opname) => {
-        if (opname.created_by) {
-          const profileResult = await safeQuery<any>(
-            queryToPromise(
-              supabase
-                .from('profiles')
-                .select('nama')
-                .eq('id', opname.created_by)
-                .single()
-            )
-          );
-          return { ...opname, profiles: profileResult.data };
-        }
-        return opname;
-      })
-    );
+    const uniqueUserIds = [...new Set(result.data.map(o => o.created_by).filter(Boolean))];
+    
+    let profilesMap: Record<string, { nama: string }> = {};
+    if (uniqueUserIds.length > 0) {
+      const profilesResult = await safeQuery<{ id: string; nama: string }[]>(
+        queryToPromise(
+          supabase
+            .from('profiles')
+            .select('id, nama')
+            .in('id', uniqueUserIds)
+        )
+      );
+      if (profilesResult.data) {
+        profilesResult.data.forEach(p => {
+          profilesMap[p.id] = { nama: p.nama };
+        });
+      }
+    }
+
+    const opnamesWithCreator = result.data.map(opname => ({
+      ...opname,
+      profiles: opname.created_by ? profilesMap[opname.created_by] : null
+    }));
 
     return { data: opnamesWithCreator, error: null };
   },
@@ -122,23 +135,29 @@ export const stockOpnameApi = {
       return { data: [], error: null };
     }
 
-    const itemsWithInventory: any[] = await Promise.all(
-      result.data.map(async (item) => {
-        if (item.inventory_id) {
-          const invResult = await safeQuery<any>(
-            queryToPromise(
-              supabase
-                .from('inventory')
-                .select('nama_barang, kode_barcode, unit')
-                .eq('id', item.inventory_id)
-                .single()
-            )
-          );
-          return { ...item, inventory: invResult.data };
-        }
-        return item;
-      })
-    );
+    const uniqueInventoryIds = [...new Set(result.data.map(i => i.inventory_id).filter(Boolean))];
+    
+    let inventoryMap: Record<string, { nama_barang: string; kode_barcode: string; unit: string }> = {};
+    if (uniqueInventoryIds.length > 0) {
+      const invResult = await safeQuery<{ id: string; nama_barang: string; kode_barcode: string; unit: string }[]>(
+        queryToPromise(
+          supabase
+            .from('inventory')
+            .select('id, nama_barang, kode_barcode, unit')
+            .in('id', uniqueInventoryIds)
+        )
+      );
+      if (invResult.data) {
+        invResult.data.forEach(inv => {
+          inventoryMap[inv.id] = { nama_barang: inv.nama_barang, kode_barcode: inv.kode_barcode, unit: inv.unit };
+        });
+      }
+    }
+
+    const itemsWithInventory = result.data.map(item => ({
+      ...item,
+      inventory: item.inventory_id ? inventoryMap[item.inventory_id] : null
+    }));
 
     return { data: itemsWithInventory, error: null };
   },

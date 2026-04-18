@@ -103,9 +103,7 @@ export const inventoryApi = {
   },
 
   async update(id: string, data: Record<string, unknown>) {
-    console.log('API update called with id:', id, 'data:', data);
     const query = supabase.from('inventory').update(data).eq('id', id).select().single();
-    console.log('Supabase query ready');
     return safeQuery<InventoryItem>(queryToPromise(query));
   },
 

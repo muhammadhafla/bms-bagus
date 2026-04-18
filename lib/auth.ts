@@ -8,6 +8,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+    flowType: 'pkce',
+  },
+  global: {
+    headers: {
+      'x-client-info': 'supabase-js/2.x',
+    },
   },
 });
 
@@ -33,6 +39,7 @@ interface AuthState {
   isStaff: () => boolean;
   authSubscription: { unsubscribe: () => void } | null;
   refreshSession: () => Promise<boolean>;
+  checkAndRefreshSession: () => Promise<boolean>;
 }
 
 const fetchProfile = async (userId: string) => {
@@ -98,6 +105,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  checkAndRefreshSession: async () => {
+    const { user } = get();
+    if (!user) {
+      const refreshed = await get().refreshSession();
+      return refreshed;
+    }
+    
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error || !session) {
+        set({ user: null, profile: null });
+        return false;
+      }
+      if (session.user.id !== user.id) {
+        const profile = await fetchProfile(session.user.id);
+        set({ user: session.user, profile });
+      }
+      return true;
+    } catch (error) {
+      console.error('Session check failed:', error);
+      const refreshed = await get().refreshSession();
+      return refreshed;
+    }
+  },
+
   cleanup: () => {
     const { authSubscription } = get();
     if (authSubscription) {
@@ -133,24 +165,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ user: null, profile: null, initialized: true });
       }
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        try {
-          if (event === 'SIGNED_OUT') {
-            set({ user: null, profile: null });
-            return;
-          }
-          if (event === 'TOKEN_REFRESHED' && !session) {
-            set({ user: null, profile: null });
-            return;
-          }
-          if (session?.user) {
-            const profile = await fetchProfile(session.user.id);
-            set({ user: session.user, profile });
-          }
-        } catch (error) {
-          console.error('Auth state change error:', error);
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT') {
           set({ user: null, profile: null });
+          return;
         }
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          set({ user: null, profile: null });
+          return;
+        }
+        if (event === 'SIGNED_IN' && session?.user) {
+          set({ user: session.user, profile: null });
+          return;
+        }
+        if (event === 'USER_UPDATED' && session?.user) {
+          set({ user: session.user });
+          return;
+        }
+        set({ user: null, profile: null });
       });
 
       set({ authSubscription: subscription });

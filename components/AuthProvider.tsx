@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/lib/auth';
 
+const SESSION_CHECK_INTERVAL = 60000;
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { initialize, cleanup, initialized } = useAuthStore();
+  const { initialize, cleanup, initialized, checkAndRefreshSession, user, profile } = useAuthStore();
+  const prevUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     initialize();
@@ -13,6 +16,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       cleanup();
     };
   }, [initialize, cleanup]);
+
+  useEffect(() => {
+    if (!user || !initialized) return;
+
+    const interval = setInterval(() => {
+      checkAndRefreshSession();
+    }, SESSION_CHECK_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [user, initialized, checkAndRefreshSession]);
+
+  useEffect(() => {
+    const userId = user?.id ?? null;
+    if (!userId) {
+      prevUserIdRef.current = null;
+      return;
+    }
+
+    if (userId !== prevUserIdRef.current) {
+      prevUserIdRef.current = userId;
+      checkAndRefreshSession();
+    }
+  }, [user?.id, checkAndRefreshSession]);
 
   if (!initialized) {
     return (

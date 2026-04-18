@@ -43,7 +43,7 @@ export function RecentTransactions({ transactions, isLoading }: RecentTransactio
           {transactions.map((tx) => (
             <Link
               key={tx.id}
-              href={tx.type === 'penjualan' ? `/penjualan` : `/pembelian`}
+              href={tx.type === 'penjualan' ? `/transactions/receipt` : `/purchasing`}
               className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
             >
               <div className="flex items-center gap-3">

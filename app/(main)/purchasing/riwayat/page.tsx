@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { purchasesApi, PembelianItem } from '@/lib/api/pembelian';
 import { formatCurrency } from '@/lib/utils';
-import { IconSearch, IconEye, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import { IconSearch, IconEye, IconChevronLeft, IconChevronRight, IconFileSpreadsheet } from '@tabler/icons-react';
 import { SlideOver } from '@/components/ui/SlideOver';
 
 interface PembelianRecord {
@@ -101,9 +101,18 @@ export default function RiwayatPembelianPage() {
   const totalPages = Math.ceil(total / limit) || 1;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">Riwayat Pembelian</h1>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="animate-fade-in-up">
+        <h1 className="text-display font-bold text-neutral-900 dark:text-white tracking-tight flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-brand-50 dark:bg-brand-900/30">
+            <IconFileSpreadsheet className="w-6 h-6 text-brand-600 dark:text-brand-400" />
+          </div>
+          Riwayat Pembelian
+        </h1>
+        <p className="text-neutral-500 dark:text-neutral-400 mt-1.5 text-base font-medium">
+          Lihat record pembelian yang telah dilakukan
+        </p>
       </div>
 
       <form onSubmit={handleSearch} className="flex gap-2">

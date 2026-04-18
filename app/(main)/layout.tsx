@@ -24,8 +24,8 @@ import {
   IconHistory,
   IconMenu,
   IconX,
-  IconArrowLeft,
-  IconArrowRight,
+  IconLayoutSidebarLeftCollapse,
+  IconLayoutSidebarLeftExpand,
 } from '@tabler/icons-react';
 
 // Constants extracted outside component to prevent re-creation
@@ -359,7 +359,7 @@ export default function MainLayout({
             <CollapsedIconButton
               onClick={handleToggleSidebar}
               title={sidebarCollapsed ? 'Buka Sidebar' : 'Tutup Sidebar'}
-              icon={sidebarCollapsed ? IconArrowRight : IconArrowLeft}
+              icon={sidebarCollapsed ? IconLayoutSidebarLeftExpand : IconLayoutSidebarLeftCollapse}
               aria-label={sidebarCollapsed ? 'Buka Sidebar' : 'Tutup Sidebar'}
             />
             <button

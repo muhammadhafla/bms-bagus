@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth';
-import { IconLock, IconMail } from '@tabler/icons-react';
+import { IconLock, IconMail, IconMoon, IconSun } from '@tabler/icons-react';
+import { useDarkMode } from '@/components/DarkModeProvider';
 import Image from 'next/image';
 import TextInput from '@/components/ui/TextInput';
 import { Button } from '@/components/ui';
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const { signIn, loading, user } = useAuthStore();
   const router = useRouter();
   const emailInputRef = useRef<HTMLInputElement>(null);
+  const { theme, toggleTheme } = useDarkMode();
 
   useEffect(() => {
     if (user) {
@@ -70,6 +72,15 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      {/* Theme Toggle */}
+      <button
+        onClick={toggleTheme}
+        className="absolute top-4 right-4 p-2.5 rounded-xl bg-white dark:bg-neutral-900 shadow-elevated border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:border-neutral-300 dark:hover:border-neutral-700 transition-all btn-press z-10"
+        aria-label={theme === 'light' ? 'Aktifkan Dark Mode' : 'Aktifkan Light Mode'}
+      >
+        {theme === 'light' ? <IconMoon className="w-5 h-5" /> : <IconSun className="w-5 h-5" />}
+      </button>
+      
       {/* Background pattern */}
       <div className="absolute inset-0 bg-gradient-to-br from-neutral-50 via-neutral-100 to-neutral-50 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950" />
       <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02]" 

@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { safeQuery, queryToPromise } from './utils';
+import { safeQuery } from './utils';
 
 export interface ReceiptTemplate {
   id: string;
@@ -31,12 +31,18 @@ export interface ReceiptLogo {
 
 export const receiptApi = {
   async getAllTemplates() {
-    return safeQuery<ReceiptTemplate[]>(queryToPromise(supabase.from('receipt_templates').select('*').order('name')));
+    return safeQuery<ReceiptTemplate[]>(async () => {
+      const result = await supabase.from('receipt_templates').select('*').order('name');
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async getActiveTemplate(type: 'SALE' | 'RETURN' = 'SALE') {
     const query = supabase.from('receipt_templates').select('*').eq('is_active', true).eq('type', type).limit(1);
-    const result = await safeQuery<ReceiptTemplate[]>(queryToPromise(query));
+    const result = await safeQuery<ReceiptTemplate[]>(async () => {
+      const result = await query;
+      return { data: result.data, error: result.error as Error | null };
+    });
     if (result.error || !result.data || result.data.length === 0) {
       return { data: null, error: null };
     }
@@ -60,7 +66,10 @@ export const receiptApi = {
       },
       is_active: data.is_active,
     };
-    return safeQuery(queryToPromise(supabase.from('receipt_templates').insert(payload).select().single()));
+    return safeQuery(async () => {
+      const result = await supabase.from('receipt_templates').insert(payload).select().single();
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async updateTemplate(
@@ -78,27 +87,41 @@ export const receiptApi = {
     if (data.is_active !== undefined) payload.is_active = data.is_active;
     if (data.template !== undefined) payload.template = data.template;
     
-    return safeQuery(queryToPromise(supabase.from('receipt_templates').update(payload).eq('id', id).select().single()));
+    return safeQuery(async () => {
+      const result = await supabase.from('receipt_templates').update(payload).eq('id', id).select().single();
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async setActiveTemplate(id: string) {
-    const resetResult = await safeQuery<any>(
-      queryToPromise(
-        supabase.from('receipt_templates').update({ is_active: false }).eq('is_active', true)
-      )
-    );
+    const resetResult = await safeQuery<any>(async () => {
+      const result = await supabase.from('receipt_templates').update({ is_active: false }).eq('is_active', true);
+      return { data: result.data, error: result.error as Error | null };
+    });
     if (resetResult.error) {
-      return safeQuery(queryToPromise(supabase.from('receipt_templates').update({ is_active: true }).eq('id', id).select().single()));
+      return safeQuery(async () => {
+        const result = await supabase.from('receipt_templates').update({ is_active: true }).eq('id', id).select().single();
+        return { data: result.data, error: result.error as Error | null };
+      });
     }
-    return safeQuery(queryToPromise(supabase.from('receipt_templates').update({ is_active: true }).eq('id', id).select().single()));
+    return safeQuery(async () => {
+      const result = await supabase.from('receipt_templates').update({ is_active: true }).eq('id', id).select().single();
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async deleteTemplate(id: string) {
-    return safeQuery(queryToPromise(supabase.from('receipt_templates').delete().eq('id', id)));
+    return safeQuery(async () => {
+      const result = await supabase.from('receipt_templates').delete().eq('id', id);
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async getAllLogos() {
-    return safeQuery(queryToPromise(supabase.from('receipt_logos').select('*').order('name')));
+    return safeQuery(async () => {
+      const result = await supabase.from('receipt_logos').select('*').order('name');
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async uploadLogo(file: File) {
@@ -125,6 +148,9 @@ export const receiptApi = {
   },
 
   async deleteLogo(id: string) {
-    return safeQuery(queryToPromise(supabase.from('receipt_logos').delete().eq('id', id)));
+    return safeQuery(async () => {
+      const result = await supabase.from('receipt_logos').delete().eq('id', id);
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 };

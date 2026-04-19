@@ -9,6 +9,7 @@ import { IconPackage, IconSearch, IconFilter } from '@tabler/icons-react';
 import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
 import SelectInput from '@/components/ui/SelectInput';
 import CheckboxInput from '@/components/ui/CheckboxInput';
+import { API_ERROR_MESSAGES, UI_MESSAGES, INVENTORY_MESSAGES } from '@/lib/constants';
 
 interface Shortcut {
   key: string;
@@ -22,6 +23,7 @@ interface Shortcut {
 export default function InventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [kategori, setKategori] = useState('');
   const [lowStockOnly, setLowStockOnly] = useState(false);
@@ -39,6 +41,7 @@ export default function InventoryPage() {
     signal?: AbortSignal
   ) => {
     setLoading(true);
+    setError(null);
     try {
       let result;
       if (currentSearch) {
@@ -50,7 +53,7 @@ export default function InventoryPage() {
       if (signal?.aborted) return;
       
       if (result.error) {
-        console.error('Error fetching inventory:', result.error);
+        setError(result.error.message || API_ERROR_MESSAGES.FETCH_FAILED);
       } else {
         let filtered = result.data || [];
         
@@ -69,7 +72,7 @@ export default function InventoryPage() {
       }
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
-        console.error('Error fetching inventory:', error);
+        setError(API_ERROR_MESSAGES.UNKNOWN_ERROR);
       }
     } finally {
       if (!signal?.aborted) {
@@ -264,6 +267,21 @@ export default function InventoryPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="p-4">
+            <div className="text-center py-12 bg-danger-50 dark:bg-danger-900/20 rounded-lg border border-danger-200 dark:border-danger-800">
+              <p className="text-danger-600 dark:text-danger-400">{error}</p>
+              <button onClick={() => fetchItems(search, kategori, lowStockOnly)} className="mt-4 text-sm text-brand-600 hover:underline">
+                {UI_MESSAGES.TRY_AGAIN}
+              </button>
+            </div>
+          </div>
+        ) : items.length === 0 ? (
+          <div className="p-4">
+            <div className="text-center py-12 bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
+              <p className="text-neutral-500">{INVENTORY_MESSAGES.NO_ITEMS}</p>
             </div>
           </div>
         ) : (

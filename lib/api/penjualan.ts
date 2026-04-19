@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { safeQuery, queryToPromise, generateIdempotencyKey } from './utils';
+import { safeQuery, generateIdempotencyKey } from './utils';
 
 export interface PenjualanItem {
   inventory_id: string;
@@ -49,6 +49,9 @@ export const penjualanApi = {
       })),
     };
 
-    return safeQuery(queryToPromise(supabase.rpc('create_penjualan', payload)));
+    return safeQuery(async () => {
+      const result = await supabase.rpc('create_penjualan', payload);
+      return { data: result.data, error: result.error as Error | null };
+    });
   }
 };

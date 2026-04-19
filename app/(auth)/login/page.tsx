@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth';
-import { IconLock, IconMail, IconMoon, IconSun } from '@tabler/icons-react';
+import { IconLock, IconMail, IconMoon, IconSun, IconEye, IconEyeOff } from '@tabler/icons-react';
 import { useDarkMode } from '@/components/DarkModeProvider';
 import Image from 'next/image';
 import TextInput from '@/components/ui/TextInput';
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -90,7 +91,7 @@ export default function LoginPage() {
       <div className="relative w-full max-w-md px-4">
         <div className="bg-white dark:bg-neutral-900 rounded-3xl shadow-elevated border border-neutral-200 dark:border-neutral-800 p-8 animate-scale-in">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl shadow-brand mb-5 overflow-hidden bg-gradient-to-br from-brand-400 to-brand-600">
+            <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl shadow-brand mb-5 overflow-hidden bg-gradient-to-br from-brand-400 to-brand-600">
               <Image src="/images/logo.png" alt="BMS Logo" fill className="object-contain p-3" />
             </div>
             <h1 className="text-h1 font-bold text-neutral-900 dark:text-white tracking-tight">BMS</h1>
@@ -145,10 +146,10 @@ export default function LoginPage() {
                 </div>
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full pl-11 pr-4 py-3.5 rounded-xl border-2 outline-none transition-all btn-press ${
+                  className={`w-full pl-11 pr-12 py-3.5 rounded-xl border-2 outline-none transition-all btn-press ${
                     passwordError 
                       ? 'border-accent-rose-400 focus:border-accent-rose-500 focus:shadow-[0_0_0_4px_rgba(244,63,94,0.15)]' 
                       : 'border-neutral-200 dark:border-neutral-700 focus:border-brand-500 focus:shadow-brand'
@@ -159,6 +160,14 @@ export default function LoginPage() {
                   aria-invalid={!!passwordError}
                   aria-describedby={passwordError ? 'password-error' : undefined}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
+                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                >
+                  {showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+                </button>
               </div>
               {passwordError && (
                 <p id="password-error" className="text-sm text-accent-rose-600 dark:text-accent-rose-400">{passwordError}</p>

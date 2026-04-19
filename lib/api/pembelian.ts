@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { safeQuery, queryToPromise } from './utils';
+import { safeQuery } from './utils';
 
 export interface PembelianItem {
   id?: string;
@@ -67,7 +67,10 @@ export const purchasesApi = {
         query = query.lte('tanggal', options.endDate);
       }
 
-      const result = await safeQuery<any[]>(queryToPromise(query));
+      const result = await safeQuery<any[]>(async () => {
+        const result = await query;
+        return { data: result.data, error: result.error as Error | null };
+      });
 
       if (result.error) {
         return { data: null, error: { message: result.error.message } };
@@ -101,15 +104,14 @@ export const purchasesApi = {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const purchaseResult = await safeQuery<any>(
-        queryToPromise(
-          supabase
-            .from('pembelian')
-            .select('*')
-            .eq('id', id)
-            .single()
-        )
-      );
+      const purchaseResult = await safeQuery<any>(async () => {
+        const result = await supabase
+          .from('pembelian')
+          .select('*')
+          .eq('id', id)
+          .single();
+        return { data: result.data, error: result.error as Error | null };
+      });
 
       clearTimeout(timeoutId);
 
@@ -117,14 +119,13 @@ export const purchasesApi = {
         return { data: null, error: { message: purchaseResult.error.message } };
       }
 
-      const itemsResult = await safeQuery<any[]>(
-        queryToPromise(
-          supabase
-            .from('pembelian_items')
-            .select('*')
-            .eq('pembelian_id', id)
-        )
-      );
+      const itemsResult = await safeQuery<any[]>(async () => {
+        const result = await supabase
+          .from('pembelian_items')
+          .select('*')
+          .eq('pembelian_id', id);
+        return { data: result.data, error: result.error as Error | null };
+      });
 
       if (itemsResult.error) {
         console.error('Items fetch error:', itemsResult.error);
@@ -165,7 +166,10 @@ export const purchasesApi = {
         query = query.lte('tanggal', options.endDate);
       }
 
-      const result = await safeQuery<any[]>(queryToPromise(query));
+      const result = await safeQuery<any[]>(async () => {
+        const result = await query;
+        return { data: result.data, error: result.error as Error | null };
+      });
 
       if (result.error) {
         return { data: 0, error: { message: result.error.message } };

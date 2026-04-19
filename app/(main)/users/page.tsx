@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation';
 
 interface Profile {
   id: string;
-  name: string;
+  nama: string;
   email: string;
   role: 'admin' | 'staff';
   created_at: string;
@@ -160,7 +160,7 @@ export default function UsersPage() {
               ) : (
                 users.map(user => (
                   <tr key={user.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800">
-                    <td className="px-6 py-4 font-medium">{user.name}</td>
+                    <td className="px-6 py-4 font-medium">{user.nama}</td>
                     <td className="px-6 py-4 text-neutral-600 dark:text-neutral-400">{user.email}</td>
                     <td className="px-6 py-4">
                       {editingUserId === user.id ? (

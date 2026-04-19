@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { safeQuery, queryToPromise } from './utils';
+import { safeQuery } from './utils';
 
 export interface DashboardStats {
   totalInventoryValue: number;
@@ -39,16 +39,28 @@ export const dashboardApi = {
 
     const [inventoryResult, salesResult, purchasesResult, lowStockResult] = await Promise.all([
       safeQuery<{ stok: number; harga_beli_terakhir: number }[]>(
-        queryToPromise(supabase.from('inventory').select('stok, harga_beli_terakhir'))
+        async () => {
+          const result = await supabase.from('inventory').select('stok, harga_beli_terakhir');
+          return { data: result.data, error: result.error as Error | null };
+        }
       ),
       safeQuery<{ total: number }[]>(
-        queryToPromise(supabase.from('penjualan').select('total').eq('tanggal', today))
+        async () => {
+          const result = await supabase.from('penjualan').select('total').eq('tanggal', today);
+          return { data: result.data, error: result.error as Error | null };
+        }
       ),
       safeQuery<{ total_sistem: number; tanggal: string }[]>(
-        queryToPromise(supabase.from('pembelian').select('total_sistem, tanggal').eq('tanggal', today))
+        async () => {
+          const result = await supabase.from('pembelian').select('total_sistem, tanggal').eq('tanggal', today);
+          return { data: result.data, error: result.error as Error | null };
+        }
       ),
       safeQuery<{ id: string; nama_barang: string; stok: number; minimum_stock: number }[]>(
-        queryToPromise(supabase.from('inventory').select('id, nama_barang, stok, minimum_stock'))
+        async () => {
+          const result = await supabase.from('inventory').select('id, nama_barang, stok, minimum_stock');
+          return { data: result.data, error: result.error as Error | null };
+        }
       ),
     ]);
 
@@ -87,14 +99,15 @@ export const dashboardApi = {
 
   async getLowStockItems(): Promise<{ data: LowStockItem[]; error: unknown }> {
     const result = await safeQuery<LowStockItem[]>(
-      queryToPromise(
-        supabase
+      async () => {
+        const result = await supabase
           .from('inventory')
           .select('id, nama_barang, stok, minimum_stock')
           .eq('is_discontinued', false)
           .order('stok', { ascending: true })
-          .limit(10)
-      )
+          .limit(10);
+        return { data: result.data, error: result.error as Error | null };
+      }
     );
 
     if (result.error) {
@@ -121,10 +134,16 @@ export const dashboardApi = {
 
     const [pembelianResult, penjualanResult] = await Promise.all([
       safeQuery<{ tanggal: string; total_sistem: number }[]>(
-        queryToPromise(supabase.from('pembelian').select('tanggal, total_sistem').gte('tanggal', dates[0]))
+        async () => {
+          const result = await supabase.from('pembelian').select('tanggal, total_sistem').gte('tanggal', dates[0]);
+          return { data: result.data, error: result.error as Error | null };
+        }
       ),
       safeQuery<{ tanggal: string; total: number }[]>(
-        queryToPromise(supabase.from('penjualan').select('tanggal, total').gte('tanggal', dates[0]))
+        async () => {
+          const result = await supabase.from('penjualan').select('tanggal, total').gte('tanggal', dates[0]);
+          return { data: result.data, error: result.error as Error | null };
+        }
       ),
     ]);
 
@@ -155,22 +174,24 @@ export const dashboardApi = {
   async getRecentTransactions(): Promise<{ data: RecentTransaction[]; error: unknown }> {
     const [penjualan, pembelian] = await Promise.all([
       safeQuery<{ id: string; total: number; tanggal: string; created_at: string }[]>(
-        queryToPromise(
-          supabase
+        async () => {
+          const result = await supabase
             .from('penjualan')
             .select('id, total, tanggal, created_at')
             .order('created_at', { ascending: false })
-            .limit(5)
-        )
+            .limit(5);
+          return { data: result.data, error: result.error as Error | null };
+        }
       ),
       safeQuery<{ id: string; total_sistem: number; tanggal: string; created_at: string }[]>(
-        queryToPromise(
-          supabase
+        async () => {
+          const result = await supabase
             .from('pembelian')
             .select('id, total_sistem, tanggal, created_at')
             .order('created_at', { ascending: false })
-            .limit(5)
-        )
+            .limit(5);
+          return { data: result.data, error: result.error as Error | null };
+        }
       ),
     ]);
 

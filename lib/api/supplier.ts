@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { safeQuery, queryToPromise } from './utils';
+import { safeQuery } from './utils';
 
 export interface Supplier {
   id: string;
@@ -11,19 +11,24 @@ export interface Supplier {
 
 export const supplierApi = {
   async getAll() {
-    return safeQuery<Supplier[]>(queryToPromise(supabase.from('supplier').select('*').order('nama')));
+    return safeQuery<Supplier[]>(async () => {
+      const result = await supabase.from('supplier').select('*').order('nama');
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async getByName(nama: string) {
-    return safeQuery<Supplier>(
-      queryToPromise(
-        supabase.from('supplier').select('*').eq('nama', nama).single()
-      )
-    );
+    return safeQuery<Supplier>(async () => {
+      const result = await supabase.from('supplier').select('*').eq('nama', nama).single();
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async create(data: { nama: string; kontak?: string; alamat?: string }) {
-    return safeQuery<Supplier>(queryToPromise(supabase.from('supplier').insert(data).select().single()));
+    return safeQuery<Supplier>(async () => {
+      const result = await supabase.from('supplier').insert(data).select().single();
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async getOrCreate(nama: string) {

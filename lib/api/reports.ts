@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { safeQuery, queryToPromise } from './utils';
+import { safeQuery } from './utils';
 
 export interface StockMutation {
   id: string;
@@ -71,13 +71,12 @@ export const reportApi = {
     const { page, limit } = calculatePagination(pagination?.page, pagination?.limit);
     const offset = (page - 1) * limit;
 
-    const countResult = await safeQuery<any[]>(
-      queryToPromise(
-        supabase
-          .from('stock_movements')
-          .select('*', { count: 'exact', head: true })
-      )
-    );
+    const countResult = await safeQuery<any[]>(async () => {
+      const result = await supabase
+        .from('stock_movements')
+        .select('*', { count: 'exact', head: true });
+      return { data: result.data, error: result.error as Error | null };
+    });
 
     if (countResult.error) {
       return { data: [], error: { message: countResult.error.message }, total: 0, page: 1, limit: 50, hasMore: false };
@@ -85,22 +84,21 @@ export const reportApi = {
 
     const count = countResult.data?.length || 0;
 
-    const result = await safeQuery<any[]>(
-      queryToPromise(
-        supabase
-          .from('stock_movements')
-          .select(`
-            *,
-            inventory:inventory_id (
-              id,
-              nama_barang,
-              kode_barcode
-            )
-          `)
-          .order('created_at', { ascending: false })
-          .range(offset, offset + limit - 1)
-      )
-    );
+    const result = await safeQuery<any[]>(async () => {
+      const result = await supabase
+        .from('stock_movements')
+        .select(`
+          *,
+          inventory:inventory_id (
+            id,
+            nama_barang,
+            kode_barcode
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+      return { data: result.data, error: result.error as Error | null };
+    });
 
     if (result.error) {
       return { 
@@ -141,13 +139,12 @@ export const reportApi = {
     const { page, limit } = calculatePagination(pagination?.page, pagination?.limit);
     const offset = (page - 1) * limit;
 
-    const countResult = await safeQuery<any[]>(
-      queryToPromise(
-        supabase
-          .from('inventory')
-          .select('*', { count: 'exact', head: true })
-      )
-    );
+    const countResult = await safeQuery<any[]>(async () => {
+      const result = await supabase
+        .from('inventory')
+        .select('*', { count: 'exact', head: true });
+      return { data: result.data, error: result.error as Error | null };
+    });
 
     if (countResult.error) {
       return { data: null, error: { message: countResult.error.message } };
@@ -155,15 +152,14 @@ export const reportApi = {
 
     const count = countResult.data?.length || 0;
 
-    const result = await safeQuery<any[]>(
-      queryToPromise(
-        supabase
-          .from('inventory')
-          .select('*, id_kategori:id_kategori(nama)')
-          .order('nama_barang')
-          .range(offset, offset + limit - 1)
-      )
-    );
+    const result = await safeQuery<any[]>(async () => {
+      const result = await supabase
+        .from('inventory')
+        .select('*, id_kategori:id_kategori(nama)')
+        .order('nama_barang')
+        .range(offset, offset + limit - 1);
+      return { data: result.data, error: result.error as Error | null };
+    });
 
     if (result.error) return { data: null, error: { message: result.error.message } };
 
@@ -196,13 +192,12 @@ export const reportApi = {
     const { page, limit } = calculatePagination(pagination?.page, pagination?.limit);
     const offset = (page - 1) * limit;
 
-    const countResult = await safeQuery<any[]>(
-      queryToPromise(
-        supabase
-          .from('penjualan_transactions')
-          .select('*', { count: 'exact', head: true })
-      )
-    );
+    const countResult = await safeQuery<any[]>(async () => {
+      const result = await supabase
+        .from('penjualan_transactions')
+        .select('*', { count: 'exact', head: true });
+      return { data: result.data, error: result.error as Error | null };
+    });
 
     if (countResult.error) {
       return { data: null, error: { message: countResult.error.message } };
@@ -210,15 +205,14 @@ export const reportApi = {
 
     const count = countResult.data?.length || 0;
 
-    const result = await safeQuery<any[]>(
-      queryToPromise(
-        supabase
-          .from('penjualan_transactions')
-          .select('*')
-          .order('tanggal', { ascending: false })
-          .range(offset, offset + limit - 1)
-      )
-    );
+    const result = await safeQuery<any[]>(async () => {
+      const result = await supabase
+        .from('penjualan_transactions')
+        .select('*')
+        .order('tanggal', { ascending: false })
+        .range(offset, offset + limit - 1);
+      return { data: result.data, error: result.error as Error | null };
+    });
 
     if (result.error) return { data: null, error: { message: result.error.message } };
 
@@ -261,13 +255,12 @@ export const reportApi = {
     const { page, limit } = calculatePagination(pagination?.page, pagination?.limit);
     const offset = (page - 1) * limit;
 
-    const countResult = await safeQuery<any[]>(
-      queryToPromise(
-        supabase
-          .from('pembelian_transactions')
-          .select('*', { count: 'exact', head: true })
-      )
-    );
+    const countResult = await safeQuery<any[]>(async () => {
+      const result = await supabase
+        .from('pembelian_transactions')
+        .select('*', { count: 'exact', head: true });
+      return { data: result.data, error: result.error as Error | null };
+    });
 
     if (countResult.error) {
       return { data: null, error: { message: countResult.error.message } };
@@ -276,24 +269,22 @@ export const reportApi = {
     const count = countResult.data?.length || 0;
 
     const [pembelianResult, penjualanResult] = await Promise.all([
-      safeQuery<any[]>(
-        queryToPromise(
-          supabase
-            .from('pembelian_transactions')
-            .select('tanggal, total')
-            .order('tanggal', { ascending: false })
-            .range(offset, offset + limit - 1)
-        )
-      ),
-      safeQuery<any[]>(
-        queryToPromise(
-          supabase
-            .from('penjualan_transactions')
-            .select('tanggal, total')
-            .order('tanggal', { ascending: false })
-            .range(offset, offset + limit - 1)
-        )
-      ),
+      safeQuery<any[]>(async () => {
+        const result = await supabase
+          .from('pembelian_transactions')
+          .select('tanggal, total')
+          .order('tanggal', { ascending: false })
+          .range(offset, offset + limit - 1);
+        return { data: result.data, error: result.error as Error | null };
+      }),
+      safeQuery<any[]>(async () => {
+        const result = await supabase
+          .from('penjualan_transactions')
+          .select('tanggal, total')
+          .order('tanggal', { ascending: false })
+          .range(offset, offset + limit - 1);
+        return { data: result.data, error: result.error as Error | null };
+      }),
     ]);
 
     if (pembelianResult.error || penjualanResult.error) {

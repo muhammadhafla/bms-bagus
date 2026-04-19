@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { StockOpname } from '@/lib/api/stockOpname';
-import { stockOpnameApi } from '@/lib/api';
+import { StockOpname, stockOpnameApi } from '@/lib/api';
 import { IconPlus, IconEye, IconCheck, IconX, IconTrash } from '@tabler/icons-react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Breadcrumb, Button, Badge } from '@/components/ui';
+import { API_ERROR_MESSAGES, UI_MESSAGES, STOCK_OPNAME_MESSAGES } from '@/lib/constants';
 
 const statusBadgeVariant: Record<string, 'warning' | 'info' | 'success' | 'danger' | 'default'> = {
   draft: 'warning',
@@ -29,14 +29,16 @@ export default function StockOpnameListPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchOpnames = useCallback(async () => {
     setLoading(true);
+    setError(null);
     const result = await stockOpnameApi.getAll();
     if (!result.error && result.data) {
       setOpnames(result.data);
     } else if (result.error) {
-      console.error('Error fetching opnames:', result.error);
+      setError(result.error.message || API_ERROR_MESSAGES.FETCH_FAILED);
     }
     setLoading(false);
   }, []);
@@ -51,8 +53,7 @@ export default function StockOpnameListPage() {
     if (!result.error && result.data && 'id' in result.data) {
       window.location.href = `/inventory/stock-opname/${result.data.id}`;
     } else if (result.error) {
-      console.error('Error creating opname:', result.error);
-      alert('Gagal membuat stock opname: ' + result.error.message);
+      alert(result.error.message || API_ERROR_MESSAGES.SAVE_FAILED);
     }
     setCreating(false);
   };
@@ -92,11 +93,16 @@ return (
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-neutral-500">Loading...</div>
+        <div className="text-center py-12 text-neutral-500">{UI_MESSAGES.LOADING}</div>
+      ) : error ? (
+        <div className="text-center py-12 text-danger-600 bg-danger-50 dark:bg-danger-900/20 rounded-lg">
+          <p>{error}</p>
+          <button onClick={fetchOpnames} className="text-sm underline mt-2">{UI_MESSAGES.TRY_AGAIN}</button>
+        </div>
       ) : opnames.length === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
-          <p className="text-neutral-500">Belum ada stock opname</p>
-          <p className="text-sm text-neutral-400 mt-1">Klik tombol di atas untuk membuat opname baru</p>
+          <p className="text-neutral-500">{STOCK_OPNAME_MESSAGES.NO_OPNAME}</p>
+          <p className="text-sm text-neutral-400 mt-1">{STOCK_OPNAME_MESSAGES.CREATE_HINT}</p>
         </div>
        ) : (
          <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm overflow-hidden">
@@ -148,8 +154,8 @@ return (
 
       <ConfirmDialog
         isOpen={!!deleteId}
-        title="Hapus Stock Opname"
-        message="Yakin ingin menghapus stock opname ini? Tindakan ini tidak dapat dibatalkan."
+        title={STOCK_OPNAME_MESSAGES.NO_OPNAME.split('')[0] === 'B' ? 'Hapus Stock Opname' : 'Hapus Stock Opname'}
+        message={STOCK_OPNAME_MESSAGES.DELETE_CONFIRM}
         confirmLabel="Hapus"
         cancelLabel="Batal"
         danger

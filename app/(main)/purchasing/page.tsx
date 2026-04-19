@@ -5,10 +5,13 @@ import { usePembelianStore } from '@/lib/store';
 import { inventoryApi, PembelianItem, purchaseApi, kategoriApi, supplierApi, Supplier, preloadInventoryCache } from '@/lib/api';
 import { InventoryItem } from '@/types/inventory';
 import { formatCurrency, normalizeBarcode, generateIdempotencyKey, generateAutoBarcode } from '@/lib/utils';
-import { IconShoppingCart, IconCamera, IconPackage } from '@tabler/icons-react';
+import { IconShoppingCart, IconCamera, IconPackage, IconX, IconCheck } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
 import DateInput from '@/components/ui/DateInput';
 import SelectInput from '@/components/ui/SelectInput';
+import { Button } from '@/components/ui';
+import { Badge } from '@/components/ui';
+import { Banner } from '@/components/ui';
 
 interface ItemSuggestionDialogProps {
   open: boolean;
@@ -23,23 +26,23 @@ function ItemSuggestionDialog({ open, query, items, onSelect, onCreateNew, onClo
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-96 p-6 border border-neutral-100 dark:border-neutral-800">
-        <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Apakah maksud anda:</h2>
+    <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+      <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-elevated w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-800 animate-scale-in">
+        <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-1">Apakah maksud anda:</h2>
         <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">Pencarian untuk: <span className="font-medium text-neutral-900 dark:text-neutral-100">{query}</span></p>
         
         <div className="space-y-2 mb-6 max-h-64 overflow-auto">
-          {items.map((item, index) => (
+          {items.map((item) => (
             <button
               key={item.id}
               onClick={() => onSelect(item)}
-              className="w-full text-left p-3 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 transition-all flex justify-between items-center"
+              className="w-full text-left p-3 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 transition-all flex justify-between items-center btn-press"
             >
               <div>
                 <div className="font-medium text-neutral-900 dark:text-neutral-100">{item.nama_barang}</div>
                 <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">{item.kode_barcode || 'Tanpa barcode'}</div>
               </div>
-              <div className="text-xs bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2 py-1 rounded-full">
+              <div className="text-xs bg-accent-teal-100 dark:bg-accent-teal-900/40 text-accent-teal-700 dark:text-accent-teal-300 px-2.5 py-1 rounded-full font-medium">
                 {item.similarity}% cocok
               </div>
             </button>
@@ -47,20 +50,12 @@ function ItemSuggestionDialog({ open, query, items, onSelect, onCreateNew, onClo
         </div>
         
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 px-4 py-3 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 font-medium text-neutral-700 dark:text-neutral-300 transition-all"
-          >
+          <Button variant="secondary" onClick={onClose}>
             Batal
-          </button>
-          <button
-            type="button"
-            onClick={onCreateNew}
-            className="flex-1 px-4 py-3 bg-gradient-to-r from-brand-500 to-brand-600 text-white rounded-xl hover:from-brand-600 hover:to-brand-700 font-medium shadow-md transition-all"
-          >
+          </Button>
+          <Button variant="primary" onClick={onCreateNew}>
             Tambah Baru
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -162,24 +157,24 @@ function NewItemDialog({ open, initialBarcode, initialName, onClose, onSubmit }:
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-96 p-6 border border-neutral-100 dark:border-neutral-800">
-        <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Barang Baru</h2>
+    <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+      <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-elevated w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-800 animate-scale-in">
+        <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-4">Barang Baru</h2>
         
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Nama Barang</label>
+            <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Nama Barang</label>
             <input
               type="text"
               value={nama_barang}
               onChange={(e) => setNamaBarang(e.target.value)}
-              className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white dark:focus:bg-neutral-900 transition-all text-neutral-900 dark:text-neutral-100"
+              className="w-full px-4 py-3.5 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-neutral-900 dark:text-neutral-100"
               autoFocus
             />
           </div>
           
           <div className="mb-4">
-            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+            <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
               Barcode 
               <span className="text-xs text-neutral-400 dark:text-neutral-500 ml-2">(kosongkan untuk auto generate)</span>
             </label>
@@ -187,34 +182,36 @@ function NewItemDialog({ open, initialBarcode, initialName, onClose, onSubmit }:
               type="text"
               value={barcode}
               onChange={handleBarcodeChange}
-              className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white dark:focus:bg-neutral-900 transition-all font-mono text-neutral-900 dark:text-neutral-100"
+              className="w-full px-4 py-3.5 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all font-mono text-neutral-900 dark:text-neutral-100"
             />
             {barcode.startsWith('AUTO-') && (
-              <p className="text-xs text-green-600 dark:text-green-400 mt-1">✓ Barcode dihasilkan otomatis oleh sistem</p>
+              <p className="text-xs text-accent-teal-600 dark:text-accent-teal-400 mt-1.5 flex items-center gap-1">
+                <IconCheck size={14} /> Barcode dihasilkan otomatis oleh sistem
+              </p>
             )}
           </div>
           
-          <div className="mb-6 relative">
-            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Kategori</label>
+          <div className="mb-5 relative">
+            <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Kategori</label>
             <input
               type="text"
               value={kategori}
               onChange={handleKategoriChange}
               onFocus={() => kategoriList.length > 0 && setShowKategoriSuggestions(true)}
               onBlur={() => setTimeout(() => setShowKategoriSuggestions(false), 200)}
-              className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white dark:focus:bg-neutral-900 transition-all text-neutral-900 dark:text-neutral-100"
+              className="w-full px-4 py-3.5 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-neutral-900 dark:text-neutral-100"
               placeholder="Masukkan nama kategori"
               autoComplete="off"
             />
             
             {showKategoriSuggestions && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg z-10 overflow-hidden">
-                {filteredKategori.map((nama, index) => (
+                {filteredKategori.map((nama) => (
                   <button
                     key={nama}
                     type="button"
                     onClick={() => handleSelectKategori(nama)}
-                    className="w-full text-left px-4 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-800 text-sm text-neutral-900 dark:text-neutral-100 transition-colors"
+                    className="w-full text-left px-4 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-800 text-sm text-neutral-900 dark:text-neutral-100 transition-colors"
                   >
                     {nama}
                   </button>
@@ -223,50 +220,43 @@ function NewItemDialog({ open, initialBarcode, initialName, onClose, onSubmit }:
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-3 gap-3 mb-5">
             <div>
-              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Harga Beli</label>
+              <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Harga Beli</label>
               <PriceInput
                 value={harga_beli}
                 onChange={setHargaBeli}
-                className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3 py-2.5 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:border-brand-500"
                 min={0}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Harga Jual</label>
+              <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Harga Jual</label>
               <PriceInput
                 value={harga_jual}
                 onChange={setHargaJual}
-                className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3 py-2.5 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:border-brand-500"
                 min={0}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Diskon (Rp)</label>
+              <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Diskon (Rp)</label>
               <PriceInput
                 value={diskon}
                 onChange={setDiskon}
-                className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3 py-2.5 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:border-brand-500"
                 min={0}
               />
             </div>
           </div>
           
           <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-3 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 font-medium text-neutral-700 dark:text-neutral-300 transition-all"
-            >
+            <Button variant="secondary" onClick={onClose}>
               Batal
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-brand-500 to-brand-600 text-white rounded-xl hover:from-brand-600 hover:to-brand-700 font-medium shadow-md transition-all"
-            >
+            </Button>
+            <Button variant="primary" type="submit">
               Simpan
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -290,23 +280,7 @@ export default function PembelianPage() {
   const [suggestionQuery, setSuggestionQuery] = useState('');
   const [suggestionItems, setSuggestionItems] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
-
-  // Auto-clear messages after 3 seconds
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => setError(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [error]);
   const [success, setSuccess] = useState<string | null>(null);
-
-  // Auto-clear success message after 3 seconds
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => setSuccess(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [success]);
   const [supplier, setSupplier] = useState('');
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
   const [supplierList, setSupplierList] = useState<Supplier[]>([]);
@@ -335,11 +309,20 @@ export default function PembelianPage() {
     preloadInventoryCache();
   }, []);
 
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
 
-
-
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F2') {
@@ -385,7 +368,6 @@ export default function PembelianPage() {
     setError(null);
 
     try {
-      // First try exact barcode match for better performance
       const exactResult = await inventoryApi.getByExactBarcode(normalized);
       
       if (exactResult.data) {
@@ -407,11 +389,9 @@ export default function PembelianPage() {
         return;
       }
       
-      // Fallback to fuzzy search for name and barcode
       const fuzzyResult = await inventoryApi.fuzzySearch(normalized);
       
       if (fuzzyResult.data && fuzzyResult.data.length > 0) {
-        // Check for exact match in fuzzy results
         const fuzzyItems = fuzzyResult.data as Array<InventoryItem & { similarity: number }>;
         const exactMatch = fuzzyItems.find(item => item.similarity === 100);
         
@@ -433,7 +413,6 @@ export default function PembelianPage() {
           return;
         }
         
-        // Skip dialog if only 1 item with high similarity (>=80%)
         if (fuzzyItems.length === 1 && fuzzyItems[0].similarity >= 80) {
           const item = fuzzyItems[0];
           addItem({
@@ -453,7 +432,6 @@ export default function PembelianPage() {
           return;
         }
         
-        // Show suggestions if we have multiple similar items
         setSuggestionQuery(normalized);
         setSuggestionItems(fuzzyResult.data);
         setShowSuggestionDialog(true);
@@ -461,8 +439,6 @@ export default function PembelianPage() {
         return;
       }
       
-      // If no matches at all, open new item form
-      // Check if input looks like a barcode (numeric or alphanumeric pattern)
       const isLikelyBarcode = /^[A-Z0-9]{4,}$/i.test(normalized);
       
       setNewItemBarcode(isLikelyBarcode ? normalized : '');
@@ -540,7 +516,6 @@ export default function PembelianPage() {
     if (items.length === 0) return;
     if (submitting) return;
 
-    // Validasi semua item memiliki qty > 0
     const invalidItem = items.find(item => !item.qty || item.qty <= 0);
     if (invalidItem) {
       setError(`Qty untuk barang ${invalidItem.nama_barang} harus lebih dari 0`);
@@ -565,7 +540,6 @@ export default function PembelianPage() {
         subtotal: item.subtotal,
       }));
 
-      // Generate idempotency key untuk mencegah double submit
       const idempotencyKey = generateIdempotencyKey();
       
       const result = await purchaseApi.submit({
@@ -626,14 +600,14 @@ export default function PembelianPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
-      <header className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 py-5 shadow-sm">
+      <header className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 py-5 shadow-card">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-gradient-to-br from-brand-400 to-brand-500 rounded-xl flex items-center justify-center shadow-md">
-              <IconShoppingCart className="w-5 h-5 text-white" />
+            <div className="w-12 h-12 bg-gradient-to-br from-brand-400 to-brand-500 rounded-xl flex items-center justify-center shadow-brand">
+              <IconShoppingCart className="w-6 h-6 text-white" stroke={1.5} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Pembelian</h1>
+              <h1 className="text-h2 font-bold tracking-tight">Pembelian</h1>
               <p className="text-sm text-neutral-500 dark:text-neutral-400">Input barang masuk</p>
             </div>
           </div>
@@ -650,7 +624,9 @@ export default function PembelianPage() {
 
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="flex-1 relative">
-            <IconCamera className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
+              <IconCamera size={20} />
+            </div>
             <input
               ref={inputRef}
               type="text"
@@ -663,7 +639,7 @@ export default function PembelianPage() {
                 }
               }}
               disabled={loading}
-              className="w-full pl-12 pr-4 py-3 bg-neutral-50 dark:bg-neutral-900 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white dark:focus:bg-neutral-800 transition-all text-lg"
+              className="w-full pl-12 pr-4 py-3.5 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-lg"
               autoFocus
             />
           </div>
@@ -684,37 +660,37 @@ export default function PembelianPage() {
               className="min-w-[18rem]"
             />
 
-<div className="flex flex-col gap-2 min-w-[18rem]">
-              <label className="text-sm text-neutral-600 dark:text-neutral-300 font-medium">Total Supplier:</label>
-              <PriceInput
-                value={totalSupplier || 0}
-                onChange={setTotalSupplier}
-                className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white dark:focus:bg-neutral-800 transition-all"
-                placeholder="0"
-                min={0}
-              />
-            </div>
+          <div className="flex flex-col gap-2 min-w-[18rem]">
+            <label className="text-sm text-neutral-600 dark:text-neutral-300 font-semibold">Total Supplier:</label>
+            <PriceInput
+              value={totalSupplier || 0}
+              onChange={setTotalSupplier}
+              className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all"
+              placeholder="0"
+              min={0}
+            />
+          </div>
         </div>
 
         {error && (
-          <div className="mt-3 p-3 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-200 rounded-lg text-sm border border-red-100 dark:border-red-800">{error}</div>
+          <div className="mt-3 p-3 bg-accent-rose-50 dark:bg-accent-rose-950 text-accent-rose-600 dark:text-accent-rose-200 rounded-xl text-sm border border-accent-rose-200 dark:border-accent-rose-800 animate-fade-in">{error}</div>
         )}
         {success && (
-          <div className="mt-3 p-3 bg-green-50 dark:bg-emerald-950 text-green-600 dark:text-emerald-200 rounded-lg text-sm border border-green-100 dark:border-emerald-800">{success}</div>
+          <div className="mt-3 p-3 bg-accent-teal-50 dark:bg-accent-teal-950 text-accent-teal-600 dark:text-accent-teal-200 rounded-xl text-sm border border-accent-teal-200 dark:border-accent-teal-800 animate-fade-in">{success}</div>
         )}
       </header>
 
       <main className="flex-1 overflow-auto p-6">
         {items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-neutral-400">
-            <div className="w-24 h-24 bg-neutral-100 dark:bg-neutral-900 rounded-2xl flex items-center justify-center mb-4">
-              <IconCamera className="w-12 h-12 text-neutral-400" />
+          <div className="flex flex-col items-center justify-center h-full text-neutral-400 py-20">
+            <div className="w-28 h-28 bg-gradient-to-br from-neutral-100 to-neutral-200 dark:from-neutral-800 dark:to-neutral-900 rounded-2xl flex items-center justify-center mb-5 shadow-card">
+              <IconCamera className="w-14 h-14 text-neutral-400" stroke={1} />
             </div>
-            <p className="text-lg font-medium text-neutral-600 dark:text-neutral-200">Scan barcode untuk menambah barang</p>
-            <p className="text-sm text-neutral-400 dark:text-neutral-500 mt-1">atau tekan F2 untuk edit qty, F3 untuk edit harga</p>
+            <p className="text-lg font-semibold text-neutral-600 dark:text-neutral-300">Scan barcode untuk menambah barang</p>
+            <p className="text-sm text-neutral-400 dark:text-neutral-500 mt-1.5">atau tekan F2 untuk edit qty, F3 untuk edit harga</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
+          <div className="overflow-x-auto rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-card">
             <table className="w-full min-w-[900px]">
               <thead className="bg-neutral-50 dark:bg-neutral-950 sticky top-0">
                 <tr>
@@ -732,7 +708,7 @@ export default function PembelianPage() {
               {items.map((item, index) => (
                 <tr 
                   key={`${item.id}-${index}`} 
-                  className={selectedIndex === index ? 'bg-brand-50 dark:bg-brand-900/40' : 'bg-white dark:bg-neutral-900'}
+                  className={`transition-colors ${selectedIndex === index ? 'bg-brand-50 dark:bg-brand-900/30' : 'bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800'}`}
                 >
                   <td className="px-4 py-3 text-sm text-neutral-600 dark:text-neutral-400">{index + 1}</td>
                   <td className="px-4 py-3 text-sm font-mono text-neutral-900 dark:text-neutral-100">{item.barcode}</td>
@@ -743,7 +719,7 @@ export default function PembelianPage() {
                         value={editValue}
                         onChange={setEditValue}
                         onBlur={handleEditSubmit}
-                        className="w-20 px-2 py-1 border-2 border-brand-500 rounded"
+                        className="w-20 px-2 py-1 border-2 border-brand-500 rounded-lg"
                         min={1}
                         autoFocus
                       />
@@ -754,7 +730,7 @@ export default function PembelianPage() {
                           setEditMode('qty');
                           setEditValue(item.qty);
                         }}
-                        className="px-2 py-1 text-right hover:bg-neutral-100 rounded w-20 block ml-auto"
+                        className="px-2 py-1 text-right hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg w-20 block ml-auto btn-press"
                       >
                         {item.qty}
                       </button>
@@ -766,7 +742,7 @@ export default function PembelianPage() {
                         value={editValue}
                         onChange={setEditValue}
                         onBlur={handleEditSubmit}
-                        className="w-24 px-2 py-1 border-2 border-brand-500 rounded"
+                        className="w-24 px-2 py-1 border-2 border-brand-500 rounded-lg"
                         min={0}
                         autoFocus
                       />
@@ -777,7 +753,7 @@ export default function PembelianPage() {
                           setEditMode('harga');
                           setEditValue(item.harga_beli || 0);
                         }}
-                        className="px-2 py-1 text-right hover:bg-neutral-100 rounded w-24 block ml-auto"
+                        className="px-2 py-1 text-right hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg w-24 block ml-auto btn-press"
                       >
                         {formatCurrency(item.harga_beli || 0)}
                       </button>
@@ -786,15 +762,15 @@ export default function PembelianPage() {
                   <td className="px-4 py-3 text-right text-neutral-600 dark:text-neutral-300">
                     {formatCurrency(item.diskon)}
                   </td>
-                  <td className="px-4 py-3 text-right font-medium text-neutral-900 dark:text-neutral-100">
+                  <td className="px-4 py-3 text-right font-semibold text-neutral-900 dark:text-neutral-100">
                     {formatCurrency(item.subtotal)}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button
                       onClick={() => removeItem(index)}
-                      className="text-red-500 hover:text-red-700 dark:text-red-300 dark:hover:text-red-100 text-sm"
+                      className="text-accent-rose-500 hover:text-accent-rose-700 dark:text-accent-rose-400 dark:hover:text-accent-rose-200 text-lg btn-press p-1 rounded-lg transition-colors"
                     >
-                      ×
+                      <IconX size={18} />
                     </button>
                   </td>
                 </tr>
@@ -805,43 +781,44 @@ export default function PembelianPage() {
         )}
       </main>
 
-      <footer className="bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 px-6 py-5 shadow-sm">
+      <footer className="bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 px-6 py-5 shadow-card">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="bg-neutral-50 dark:bg-neutral-950 rounded-3xl px-5 py-4 shadow-sm border border-neutral-200 dark:border-neutral-800">
+            <div className="bg-neutral-50 dark:bg-neutral-950 rounded-2xl px-5 py-4 shadow-card border border-neutral-200 dark:border-neutral-800">
               <p className="text-sm text-neutral-500 dark:text-neutral-400">Total Sistem</p>
               <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{formatCurrency(totalSistem)}</p>
             </div>
-            <div className="bg-neutral-50 dark:bg-neutral-950 rounded-3xl px-5 py-4 shadow-sm border border-neutral-200 dark:border-neutral-800">
+            <div className="bg-neutral-50 dark:bg-neutral-950 rounded-2xl px-5 py-4 shadow-card border border-neutral-200 dark:border-neutral-800">
               <p className="text-sm text-neutral-500 dark:text-neutral-400">Total Supplier</p>
               <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{formatCurrency(totalSupplier)}</p>
             </div>
-            <div className="bg-neutral-50 dark:bg-neutral-950 rounded-3xl px-5 py-4 shadow-sm border border-neutral-200 dark:border-neutral-800">
+            <div className="bg-neutral-50 dark:bg-neutral-950 rounded-2xl px-5 py-4 shadow-card border border-neutral-200 dark:border-neutral-800">
               <p className="text-sm text-neutral-500 dark:text-neutral-400">Selisih</p>
-              <p className={`text-2xl font-bold ${isValid ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-red-300'}`}>
+              <p className={`text-2xl font-bold ${isValid ? 'text-accent-teal-600 dark:text-accent-teal-300' : 'text-accent-rose-600 dark:text-accent-rose-300'}`}>
                 {formatCurrency(selisih)}
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-3 justify-end">
-            <button
+            <Button
+              variant="secondary"
               onClick={() => {
                 reset();
                 setTotalSupplier(0);
                 focusInput();
               }}
-              className="px-6 py-3 border-2 border-neutral-200 dark:border-neutral-800 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-950 font-medium text-neutral-700 dark:text-neutral-200 transition-all"
             >
               Reset
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleSubmit}
               disabled={items.length === 0 || submitting}
-              className="px-8 py-3 bg-gradient-to-r from-brand-500 to-brand-600 text-white rounded-xl hover:from-brand-600 hover:to-brand-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-md transition-all"
+              variant="primary"
+              size="lg"
             >
               {submitting ? 'Menyimpan...' : 'Simpan Pembelian'}
-            </button>
+            </Button>
           </div>
         </div>
       </footer>
@@ -873,4 +850,3 @@ export default function PembelianPage() {
     </div>
   );
 }
-

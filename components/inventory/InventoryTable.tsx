@@ -1,20 +1,17 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { IconPackage, IconTrash } from '@tabler/icons-react';
+import { useState, useCallback, useEffect } from 'react';
+import { IconPackage, IconDotsVertical } from '@tabler/icons-react';
 import { InventoryItem } from '@/types/inventory';
-import { formatCurrency, formatNumber } from '@/lib/utils';
-import { inventoryApi } from '@/lib/api';
+import { formatCurrency } from '@/lib/utils';
+import { inventoryApi, kategoriApi } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { AdminOnly } from '@/components/role';
-import { PriceInput } from '@/components/ui/PriceInput';
-
-interface UndoHistory {
-  id: string;
-  previousData: Partial<InventoryItem>;
-  timestamp: number;
-}
+import { SlideOver } from '@/components/ui/SlideOver';
+import TextInput from '@/components/ui/TextInput';
+import SelectInput from '@/components/ui/SelectInput';
+import Button from '@/components/ui/Button';
 
 interface InventoryTableProps {
   items: InventoryItem[];
@@ -22,99 +19,108 @@ interface InventoryTableProps {
   onDelete?: (id: string) => void;
 }
 
-export function InventoryTable({ items, onUpdate, onDelete }: InventoryTableProps) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editField, setEditField] = useState<'harga_jual' | 'diskon' | 'minimum_stock' | null>(null);
-  const [editValue, setEditValue] = useState<number>(0);
-  const [undoHistory, setUndoHistory] = useState<UndoHistory[]>([]);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; itemId: string | null }>({
-    isOpen: false,
-    itemId: null,
-  });
-  const { showToast } = useToast();
-  const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+interface EditForm {
+  nama_barang: string;
+  kode_barcode: string;
+  id_kategori: string;
+  harga_beli_terakhir: number;
+  harga_jual: number;
+  diskon: number;
+  minimum_stock: number;
+}
 
-  const UNDO_DURATION = 10000;
+export function InventoryTable({ items, onUpdate, onDelete }: InventoryTableProps) {
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
+  const [kategoriList, setKategoriList] = useState<string[]>([]);
+  const [editForm, setEditForm] = useState<EditForm>({
+    nama_barang: '',
+    kode_barcode: '',
+    id_kategori: '',
+    harga_beli_terakhir: 0,
+    harga_jual: 0,
+    diskon: 0,
+    minimum_stock: 0,
+  });
+  const [saveConfirm, setSaveConfirm] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
-    return () => {
-      if (undoTimeoutRef.current) {
-        clearTimeout(undoTimeoutRef.current);
+    const fetchKategoris = async () => {
+      const result = await kategoriApi.getAll();
+      if (!result.error && result.data) {
+        setKategoriList(result.data.map(k => k.nama));
       }
     };
+    fetchKategoris();
   }, []);
 
-  const startEdit = useCallback((item: InventoryItem, field: 'harga_jual' | 'diskon' | 'minimum_stock') => {
-    setEditingId(item.id);
-    setEditField(field);
-    const val = item[field];
-    setEditValue(typeof val === 'number' ? val : 0);
-  }, []);
-
-  const saveEdit = useCallback(async () => {
-    if (!editingId || !editField) return;
-
-    const item = items.find(i => i.id === editingId);
-    if (!item) return;
-
-    const value = editField === 'diskon' || editField === 'minimum_stock' 
-      ? Math.floor(editValue)
-      : editValue;
-
-    if (isNaN(value)) {
-      setEditingId(null);
-      setEditField(null);
-      return;
-    }
-
-    const previousData = { [editField]: item[editField] };
-
-    setUndoHistory(prev => {
-      const newHistory = [...prev, { id: editingId, previousData, timestamp: Date.now() }];
-      
-      if (undoTimeoutRef.current) {
-        clearTimeout(undoTimeoutRef.current);
-      }
-      
-      undoTimeoutRef.current = setTimeout(() => {
-        setUndoHistory(h => h.filter(history => history.id !== editingId));
-      }, UNDO_DURATION);
-      
-      return newHistory;
+  const openSlideOver = useCallback((item: InventoryItem) => {
+    setSelectedItem(item);
+    setEditForm({
+      nama_barang: item.nama_barang || '',
+      kode_barcode: item.kode_barcode || '',
+      id_kategori: item.id_kategori?.nama || '',
+      harga_beli_terakhir: item.harga_beli_terakhir || 0,
+      harga_jual: item.harga_jual || 0,
+      diskon: item.diskon || 0,
+      minimum_stock: item.minimum_stock || 0,
     });
-
-    await onUpdate(editingId, { [editField]: value });
-    setEditingId(null);
-    setEditField(null);
-  }, [editingId, editField, editValue, items, onUpdate]);
-
-  const cancelEdit = useCallback(() => {
-    setEditingId(null);
-    setEditField(null);
+    setIsSlideOverOpen(true);
   }, []);
 
-  const handleUndo = useCallback((id: string) => {
-    const history = undoHistory.find(h => h.id === id);
-    if (!history) return;
+  const closeSlideOver = useCallback(() => {
+    setIsSlideOverOpen(false);
+    setSelectedItem(null);
+  }, []);
 
-    onUpdate(id, history.previousData);
-    setUndoHistory(prev => prev.filter(h => h.id !== id));
-    showToast('Edit dibatalkan', 'info');
-  }, [undoHistory, onUpdate, showToast]);
+  const handleSave = useCallback(async () => {
+    if (!selectedItem) return;
+
+    let id_kategori: string | undefined;
+    if (editForm.id_kategori) {
+      const kategoriResult = await kategoriApi.getByName(editForm.id_kategori);
+      id_kategori = kategoriResult.data?.id;
+    }
+    
+    const updateData: Record<string, unknown> = {
+      nama_barang: editForm.nama_barang,
+      kode_barcode: editForm.kode_barcode,
+      ...(id_kategori && { id_kategori }),
+      harga_beli_terakhir: editForm.harga_beli_terakhir,
+      harga_jual: editForm.harga_jual,
+      diskon: editForm.diskon,
+      minimum_stock: editForm.minimum_stock,
+    };
+
+    const result = await inventoryApi.update(selectedItem.id, updateData);
+    console.log('Update result:', result);
+    console.log('Update data sent:', updateData);
+    console.log('Item ID:', selectedItem.id);
+    if (!result.error && result.data) {
+      const updatedItem = {
+        ...result.data,
+        id_kategori: result.data.id_kategori || result.data.kategori,
+      };
+      onUpdate(selectedItem.id, updatedItem);
+      showToast('Perubahan disimpan', 'success');
+    } else {
+      console.log('Update error:', result.error);
+      showToast('Gagal menyimpan perubahan', 'error');
+    }
+    setSaveConfirm(false);
+    closeSlideOver();
+  }, [selectedItem, editForm, onUpdate, showToast, closeSlideOver]);
 
   const handleDelete = useCallback(async () => {
-    if (!deleteConfirm.itemId || !onDelete) return;
-    await onDelete(deleteConfirm.itemId);
-    setDeleteConfirm({ isOpen: false, itemId: null });
-  }, [deleteConfirm.itemId, onDelete]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      saveEdit();
-    } else if (e.key === 'Escape') {
-      cancelEdit();
-    }
-  }, [saveEdit, cancelEdit]);
+    if (!selectedItem || !onDelete) return;
+    
+    await onDelete(selectedItem.id);
+    showToast('Barang dihapus', 'success');
+    setDeleteConfirm(false);
+    closeSlideOver();
+  }, [selectedItem, onDelete, showToast, closeSlideOver]);
 
   if (items.length === 0) {
     return (
@@ -128,30 +134,13 @@ export function InventoryTable({ items, onUpdate, onDelete }: InventoryTableProp
 
   return (
     <div className="overflow-auto rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
-      {undoHistory.length > 0 && (
-        <div className="bg-brand-50 dark:bg-brand-900/30 border-b border-brand-200 dark:border-brand-800 px-4 py-2 flex items-center justify-between">
-          <span className="text-sm text-brand-700 dark:text-brand-300">
-            Perubahan tersimpan. Klik undo untuk membatalkan.
-          </span>
-          <div className="flex items-center gap-2">
-            {undoHistory.map((history) => (
-              <button
-                key={history.id}
-                onClick={() => handleUndo(history.id)}
-                className="text-sm text-brand-600 dark:text-brand-400 hover:text-brand-800 dark:hover:text-brand-200 font-medium"
-              >
-                Undo
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
       <table className="w-full min-w-[900px]">
         <thead className="bg-neutral-50 dark:bg-neutral-950 sticky top-0">
           <tr>
             <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Barcode</th>
             <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Nama Barang</th>
             <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Kategori</th>
+            <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Beli</th>
             <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Jual</th>
             <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Diskon</th>
             <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Stok</th>
@@ -162,104 +151,42 @@ export function InventoryTable({ items, onUpdate, onDelete }: InventoryTableProp
         <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
           {items.map((item) => {
             const isLowStock = item.stok <= (item.minimum_stock || 0);
-            const isEditing = editingId === item.id;
 
             return (
               <tr 
                 key={item.id} 
                 className={isLowStock ? 'bg-red-50/50 dark:bg-red-900/40 hover:bg-red-50 dark:hover:bg-red-900/50' : 'bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800'}
               >
-                <td className="px-4 py-3 text-sm font-mono text-neutral-900 dark:text-neutral-100">{item.barcode}</td>
+                <td className="px-4 py-3 text-sm font-mono text-neutral-900 dark:text-neutral-100">{item.kode_barcode}</td>
                 <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">{item.nama_barang}</td>
                 <td className="px-4 py-3">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
                     {item.id_kategori?.nama || '-'}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <AdminOnly fallback={
-                    <span className="px-3 py-2 text-right w-28 block ml-auto font-medium text-neutral-900 dark:text-neutral-100">{formatCurrency(item.harga_jual)}</span>
-                  }>
-                    {isEditing && editField === 'harga_jual' ? (
-                      <PriceInput
-                        value={editValue}
-                        onChange={setEditValue}
-                        onBlur={saveEdit}
-                        autoFocus
-                        className="w-28 px-3 py-2 border-2 border-brand-500 rounded-lg"
-                      />
-                    ) : (
-                      <button
-                        onClick={() => startEdit(item, 'harga_jual')}
-                        className="px-3 py-2 text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg w-28 block ml-auto font-medium text-neutral-900 dark:text-neutral-100"
-                      >
-                        {formatCurrency(item.harga_jual)}
-                      </button>
-                    )}
-                  </AdminOnly>
+                <td className="px-4 py-3 text-right text-neutral-600 dark:text-neutral-300">
+                  {formatCurrency(item.harga_beli_terakhir || 0)}
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <AdminOnly fallback={
-                    <span className="px-3 py-2 text-right w-24 block ml-auto text-neutral-600 dark:text-neutral-300">{formatCurrency(item.diskon)}</span>
-                  }>
-                    {isEditing && editField === 'diskon' ? (
-                      <PriceInput
-                        value={editValue}
-                        onChange={setEditValue}
-                        onBlur={saveEdit}
-                        autoFocus
-                        min={0}
-                        max={100}
-                        className="w-24 px-3 py-2 border-2 border-brand-500 rounded-lg"
-                      />
-                    ) : (
-                      <button
-                        onClick={() => startEdit(item, 'diskon')}
-                        className="px-3 py-2 text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg w-24 block ml-auto text-neutral-600 dark:text-neutral-300"
-                      >
-                        {formatCurrency(item.diskon)}
-                      </button>
-                    )}
-                  </AdminOnly>
+                <td className="px-4 py-3 text-right font-medium text-neutral-900 dark:text-neutral-100">
+                  {formatCurrency(item.harga_jual)}
+                </td>
+                <td className="px-4 py-3 text-right text-neutral-600 dark:text-neutral-300">
+                  {formatCurrency(item.diskon)}
                 </td>
                 <td className={`px-4 py-3 text-right font-bold ${isLowStock ? 'text-red-600 dark:text-red-300' : 'text-neutral-900 dark:text-neutral-100'}`}>
                   {item.stok}
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <AdminOnly fallback={
-                    <span className="px-3 py-2 text-right w-20 block ml-auto text-neutral-500 dark:text-neutral-300">{item.minimum_stock}</span>
-                  }>
-                    {isEditing && editField === 'minimum_stock' ? (
-                      <PriceInput
-                        value={editValue}
-                        onChange={setEditValue}
-                        onBlur={saveEdit}
-                        autoFocus
-                        min={0}
-                        className="w-20 px-3 py-2 border-2 border-brand-500 rounded-lg"
-                      />
-                    ) : (
-                      <button
-                        onClick={() => startEdit(item, 'minimum_stock')}
-                        className="px-3 py-2 text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg w-20 block ml-auto text-neutral-500 dark:text-neutral-300"
-                      >
-                        {item.minimum_stock}
-                      </button>
-                    )}
-                  </AdminOnly>
+                <td className="px-4 py-3 text-right text-neutral-500 dark:text-neutral-300">
+                  {item.minimum_stock}
                 </td>
                 <td className="px-4 py-3 text-center">
-                  <AdminOnly>
-                    {onDelete && (
-                      <button
-                        onClick={() => setDeleteConfirm({ isOpen: true, itemId: item.id })}
-                        className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-                        aria-label={`Hapus ${item.nama_barang}`}
-                      >
-                        <IconTrash size={18} stroke={2} />
-                      </button>
-                    )}
-                  </AdminOnly>
+                  <button
+                    onClick={() => openSlideOver(item)}
+                    className="p-2 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition-colors"
+                    aria-label={`Buka menu untuk ${item.nama_barang}`}
+                  >
+                    <IconDotsVertical size={18} stroke={2} />
+                  </button>
                 </td>
               </tr>
             );
@@ -267,14 +194,128 @@ export function InventoryTable({ items, onUpdate, onDelete }: InventoryTableProp
         </tbody>
       </table>
 
+      <SlideOver
+        isOpen={isSlideOverOpen}
+        onClose={closeSlideOver}
+        title={selectedItem ? `Edit ${selectedItem.nama_barang}` : ''}
+        size="md"
+      >
+        <AdminOnly
+          fallback={
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">Nama Barang</p>
+                <p className="text-neutral-900 dark:text-white">{editForm.nama_barang}</p>
+              </div>
+              <div>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">Barcode</p>
+                <p className="text-neutral-900 dark:text-white font-mono">{editForm.kode_barcode}</p>
+              </div>
+              <div>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">Kategori</p>
+                <p className="text-neutral-900 dark:text-white">{editForm.id_kategori}</p>
+              </div>
+              <div>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">Harga Beli Terakhir</p>
+                <p className="text-neutral-900 dark:text-white">{formatCurrency(editForm.harga_beli_terakhir)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">Harga Jual</p>
+                <p className="text-neutral-900 dark:text-white">{formatCurrency(editForm.harga_jual)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">Diskon</p>
+                <p className="text-neutral-900 dark:text-white">{formatCurrency(editForm.diskon)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">Minimum Stock</p>
+                <p className="text-neutral-900 dark:text-white">{editForm.minimum_stock}</p>
+              </div>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <TextInput
+              label="Nama Barang"
+              value={editForm.nama_barang}
+              onChange={(e) => setEditForm(prev => ({ ...prev, nama_barang: e.target.value }))}
+              required
+            />
+            <TextInput
+              label="Barcode"
+              value={editForm.kode_barcode}
+              onChange={(e) => setEditForm(prev => ({ ...prev, kode_barcode: e.target.value }))}
+            />
+            <SelectInput
+              label="Kategori"
+              value={editForm.id_kategori}
+              onChange={(value) => setEditForm(prev => ({ ...prev, id_kategori: value }))}
+              options={kategoriList.map(k => ({ value: k, label: k }))}
+              placeholder="Pilih kategori"
+            />
+            <TextInput
+              label="Harga Beli Terakhir"
+              type="number"
+              value={editForm.harga_beli_terakhir}
+              onChange={(e) => setEditForm(prev => ({ ...prev, harga_beli_terakhir: parseInt(e.target.value) || 0 }))}
+            />
+            <TextInput
+              label="Harga Jual"
+              type="number"
+              value={editForm.harga_jual}
+              onChange={(e) => setEditForm(prev => ({ ...prev, harga_jual: parseInt(e.target.value) || 0 }))}
+            />
+            <TextInput
+              label="Diskon"
+              type="number"
+              value={editForm.diskon}
+              onChange={(e) => setEditForm(prev => ({ ...prev, diskon: parseInt(e.target.value) || 0 }))}
+            />
+            <TextInput
+              label="Minimum Stock"
+              type="number"
+              value={editForm.minimum_stock}
+              onChange={(e) => setEditForm(prev => ({ ...prev, minimum_stock: parseInt(e.target.value) || 0 }))}
+            />
+          </div>
+        </AdminOnly>
+        <AdminOnly>
+          <div className="flex gap-3 mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+            <Button
+              variant="primary"
+              onClick={() => setSaveConfirm(true)}
+              className="flex-1"
+            >
+              Simpan Perubahan
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => setDeleteConfirm(true)}
+            >
+              Hapus Barang
+            </Button>
+          </div>
+        </AdminOnly>
+      </SlideOver>
+
       <ConfirmDialog
-        isOpen={deleteConfirm.isOpen}
+        isOpen={saveConfirm}
+        title="Simpan Perubahan"
+        message={`Yakin ingin menyimpan perubahan pada ${editForm.nama_barang}?`}
+        confirmLabel="Ya, Simpan"
+        cancelLabel="Batal"
+        onConfirm={handleSave}
+        onCancel={() => setSaveConfirm(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={deleteConfirm}
         title="Hapus Barang"
-        message={`Apakah Anda yakin ingin menghapus "${items.find(i => i.id === deleteConfirm.itemId)?.nama_barang}"? Tindakan ini tidak dapat dibatalkan.`}
-        confirmLabel="Hapus"
+        message={`Apakah Anda yakin ingin menghapus "${editForm.nama_barang}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmLabel="Ya, Hapus"
         cancelLabel="Batal"
         onConfirm={handleDelete}
-        onCancel={() => setDeleteConfirm({ isOpen: false, itemId: null })}
+        onCancel={() => setDeleteConfirm(false)}
         danger
       />
     </div>

@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { safeQuery, queryToPromise } from './utils';
+import { safeQuery } from './utils';
 import { stringSimilarity } from '@/lib/utils';
 import { InventoryItem } from '@/types/inventory';
 
@@ -15,14 +15,15 @@ async function getInventoryWithCache() {
   }
   
   const result = await safeQuery<InventoryItem[]>(
-    queryToPromise(
-      supabase
-        .from('inventory')
-        .select('*, id_kategori:id_kategori(*)')
-        .order('nama_barang')
-        .limit(200)
-    )
-  );
+      async () => {
+        const result = await supabase
+          .from('inventory')
+          .select('*, id_kategori:id_kategori(*)')
+          .order('nama_barang')
+          .limit(200);
+        return { data: result.data, error: result.error as Error | null };
+      }
+    );
   
   if (!result.error && result.data) {
     inventoryCache = result.data;
@@ -43,11 +44,17 @@ export async function preloadInventoryCache() {
 
 export const inventoryApi = {
   async getAll() {
-    return safeQuery<InventoryItem[]>(queryToPromise(supabase.from('inventory').select('*, id_kategori:id_kategori(*)').order('nama_barang').limit(1000)));
+    return safeQuery<InventoryItem[]>(async () => {
+      const result = await supabase.from('inventory').select('*, id_kategori:id_kategori(*)').order('nama_barang').limit(1000);
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async getByBarcode(barcode: string) {
-    return safeQuery<InventoryItem>(queryToPromise(supabase.from('inventory').select('*').eq('kode_barcode', barcode).single()));
+    return safeQuery<InventoryItem>(async () => {
+      const result = await supabase.from('inventory').select('*').eq('kode_barcode', barcode).single();
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async search(query: string, includeDiscontinued = false) {
@@ -63,7 +70,10 @@ export const inventoryApi = {
       queryBuilder.eq('is_discontinued', false);
     }
 
-    return safeQuery<InventoryItem[]>(queryToPromise(queryBuilder.limit(100)));
+    return safeQuery<InventoryItem[]>(async () => {
+      const result = await queryBuilder.limit(100);
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async fuzzySearch(query: string, limit = 20) {
@@ -91,19 +101,22 @@ export const inventoryApi = {
     const normalizedBarcode = barcode.toUpperCase().trim();
     if (!normalizedBarcode) return { data: null, error: null };
     
-    return safeQuery<InventoryItem>(
-      queryToPromise(
-        supabase
-          .from('inventory')
-          .select('*, id_kategori:id_kategori(*)')
-          .eq('kode_barcode', normalizedBarcode)
-          .single()
-      )
-    );
+    return safeQuery<InventoryItem>(async () => {
+      const result = await supabase
+        .from('inventory')
+        .select('*, id_kategori:id_kategori(*)')
+        .eq('kode_barcode', normalizedBarcode)
+        .single();
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
-  async update(id: string, data: Partial<{ harga_jual: number; diskon: number; minimum_stock: number; harga_beli_terakhir: number }>) {
-    return safeQuery<InventoryItem>(queryToPromise(supabase.from('inventory').update(data).eq('id', id).select().single()));
+  async update(id: string, data: Record<string, unknown>) {
+    const query = supabase.from('inventory').update(data).eq('id', id).select().single();
+    return safeQuery<InventoryItem>(async () => {
+      const result = await query;
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async create(data: { nama_barang: string; kode_barcode?: string; id_kategori?: string; kategori?: string; harga_beli_terakhir?: number; harga_jual?: number; diskon?: number }) {
@@ -112,30 +125,32 @@ export const inventoryApi = {
       return { data: null, error: new Error('User not authenticated') };
     }
     
-    return safeQuery<InventoryItem>(
-      queryToPromise(
-        supabase
-          .from('inventory')
-          .insert({ 
-            nama_barang: data.nama_barang,
-            kode_barcode: data.kode_barcode || null,
-            id_kategori: data.id_kategori || null,
-            created_by: user.id,
-            harga_beli_terakhir: data.harga_beli_terakhir ?? 0,
-            harga_jual: data.harga_jual ?? 0,
-            diskon: data.diskon ?? 0,
-            stok: 0,
-            minimum_stock: 0,
-            unit: 'pcs'
-          })
-          .select('*, id_kategori:id_kategori(*)')
-          .single()
-      )
-    );
+    return safeQuery<InventoryItem>(async () => {
+      const result = await supabase
+        .from('inventory')
+        .insert({ 
+          nama_barang: data.nama_barang,
+          kode_barcode: data.kode_barcode || null,
+          id_kategori: data.id_kategori || null,
+          created_by: user.id,
+          harga_beli_terakhir: data.harga_beli_terakhir ?? 0,
+          harga_jual: data.harga_jual ?? 0,
+          diskon: data.diskon ?? 0,
+          stok: 0,
+          minimum_stock: 0,
+          unit: 'pcs'
+        })
+        .select('*, id_kategori:id_kategori(*)')
+        .single();
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async delete(id: string) {
-    return safeQuery<void>(queryToPromise(supabase.from('inventory').delete().eq('id', id)));
+    return safeQuery<void>(async () => {
+      const result = await supabase.from('inventory').delete().eq('id', id);
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async toggleDiscontinued(id: string) {
@@ -154,21 +169,20 @@ export const inventoryApi = {
 
     const newStatus = !current.data.is_discontinued;
 
-    return safeQuery<InventoryItem>(
-      queryToPromise(
-        supabase
-          .from('inventory')
-          .update({
-            is_discontinued: newStatus,
-            discontinued_at: newStatus ? new Date().toISOString() : null,
-            discontinued_by: newStatus ? user.id : null,
-            updated_by: user.id,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', id)
-          .select()
-          .single()
-      )
-    );
+    return safeQuery<InventoryItem>(async () => {
+      const result = await supabase
+        .from('inventory')
+        .update({
+          is_discontinued: newStatus,
+          discontinued_at: newStatus ? new Date().toISOString() : null,
+          discontinued_by: newStatus ? user.id : null,
+          updated_by: user.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      return { data: result.data, error: result.error as Error | null };
+    });
   }
 };

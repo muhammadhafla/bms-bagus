@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { safeQuery, queryToPromise } from './utils';
+import { safeQuery } from './utils';
 
 export interface StockAdjustment {
   id: string;
@@ -13,36 +13,50 @@ export interface StockAdjustment {
   created_at: string;
 }
 
+export interface StockAdjustmentWithInventory extends StockAdjustment {
+  inventory?: { nama_barang: string } | null;
+}
+
 export const stockAdjustmentApi = {
   async getAll() {
-    const { data, error } = await queryToPromise(
-      supabase
+    const result = await safeQuery<StockAdjustment[]>(async () => {
+      const result = await supabase
         .from('stock_adjustments')
         .select('*')
-        .order('created_at', { ascending: false })
-    );
+        .order('created_at', { ascending: false });
+      return { data: result.data, error: result.error as Error | null };
+    });
 
-    if (error) {
-      return { data: null, error };
+    if (result.error) {
+      return { data: null, error: result.error };
     }
 
-    if (!data || data.length === 0) {
+    if (!result.data || result.data.length === 0) {
       return { data: [], error: null };
     }
 
-    const adjustmentsWithInventory: any[] = await Promise.all(
-      data.map(async (adj) => {
-        if (adj.inventory_id) {
-          const { data: inventory } = await supabase
-            .from('inventory')
-            .select('nama_barang')
-            .eq('id', adj.inventory_id)
-            .single();
-          return { ...adj, inventory: inventory };
-        }
-        return adj;
-      })
-    );
+    const uniqueInventoryIds = [...new Set(result.data.map(a => a.inventory_id).filter(Boolean))];
+    
+    let inventoryMap: Record<string, { nama_barang: string }> = {};
+    if (uniqueInventoryIds.length > 0) {
+      const invResult = await safeQuery<{ id: string; nama_barang: string }[]>(async () => {
+        const result = await supabase
+          .from('inventory')
+          .select('id, nama_barang')
+          .in('id', uniqueInventoryIds);
+        return { data: result.data, error: result.error as Error | null };
+      });
+      if (invResult.data) {
+        invResult.data.forEach(inv => {
+          inventoryMap[inv.id] = { nama_barang: inv.nama_barang };
+        });
+      }
+    }
+
+    const adjustmentsWithInventory: StockAdjustmentWithInventory[] = result.data.map(adj => ({
+      ...adj,
+      inventory: adj.inventory_id ? inventoryMap[adj.inventory_id] : null
+    }));
 
     return { data: adjustmentsWithInventory, error: null };
   },
@@ -53,37 +67,45 @@ export const stockAdjustmentApi = {
       return { data: null, error: new Error('User not authenticated') };
     }
 
-    const { data: opname } = await supabase
-      .from('stock_opname')
-      .select('status')
-      .eq('id', opnameId)
-      .single();
+    const opnameResult = await safeQuery<any>(async () => {
+      const result = await supabase
+        .from('stock_opname')
+        .select('status')
+        .eq('id', opnameId)
+        .single();
+      return { data: result.data, error: result.error as Error | null };
+    });
 
-    if (!opname || opname.status !== 'approved') {
+    if (!opnameResult.data || opnameResult.data.status !== 'approved') {
       return { data: null, error: new Error('Opname harus di-approve terlebih dahulu') };
     }
 
-    const { data: items } = await supabase
-      .from('stock_opname_items')
-      .select('*')
-      .eq('stock_opname_id', opnameId)
-      .eq('adjusted', false)
-      .not('difference', 'eq', 0);
+    const itemsResult = await safeQuery<any[]>(async () => {
+      const result = await supabase
+        .from('stock_opname_items')
+        .select('*')
+        .eq('stock_opname_id', opnameId)
+        .eq('adjusted', false)
+        .not('difference', 'eq', 0);
+      return { data: result.data, error: result.error as Error | null };
+    });
 
-    if (!items || items.length === 0) {
-      await supabase
-        .from('stock_opname')
-        .update({ status: 'completed' })
-        .eq('id', opnameId);
-      
+    if (!itemsResult.data || itemsResult.data.length === 0) {
+      await safeQuery<any>(async () => {
+        const result = await supabase
+          .from('stock_opname')
+          .update({ status: 'completed' })
+          .eq('id', opnameId);
+        return { data: result.data, error: result.error as Error | null };
+      });
       return { data: [], error: null };
     }
 
-    const adjustments = [];
-    const movementInserts = [];
-    const inventoryUpdates = [];
+    const adjustments: any[] = [];
+    const movementInserts: any[] = [];
+    const inventoryUpdates: any[] = [];
 
-    for (const item of items) {
+    for (const item of itemsResult.data) {
       const adjustmentType = item.difference > 0 ? 'increase' : 'decrease';
       const adjustmentQty = Math.abs(item.difference);
 
@@ -112,29 +134,44 @@ export const stockAdjustmentApi = {
 
     try {
       if (adjustments.length > 0) {
-        await supabase.from('stock_adjustments').insert(adjustments);
+        await safeQuery<any>(async () => {
+          const result = await supabase.from('stock_adjustments').insert(adjustments);
+          return { data: result.data, error: result.error as Error | null };
+        });
       }
 
       if (movementInserts.length > 0) {
-        await supabase.from('stock_movements').insert(movementInserts);
+        await safeQuery<any>(async () => {
+          const result = await supabase.from('stock_movements').insert(movementInserts);
+          return { data: result.data, error: result.error as Error | null };
+        });
       }
 
       for (const update of inventoryUpdates) {
-        await supabase
-          .from('inventory')
-          .update({ stok: update.stok })
-          .eq('id', update.id);
+        await safeQuery<any>(async () => {
+          const result = await supabase
+            .from('inventory')
+            .update({ stok: update.stok })
+            .eq('id', update.id);
+          return { data: result.data, error: result.error as Error | null };
+        });
       }
 
-      await supabase
-        .from('stock_opname_items')
-        .update({ adjusted: true })
-        .eq('stock_opname_id', opnameId);
+      await safeQuery<any>(async () => {
+        const result = await supabase
+          .from('stock_opname_items')
+          .update({ adjusted: true })
+          .eq('stock_opname_id', opnameId);
+        return { data: result.data, error: result.error as Error | null };
+      });
 
-      await supabase
-        .from('stock_opname')
-        .update({ status: 'completed' })
-        .eq('id', opnameId);
+      await safeQuery<any>(async () => {
+        const result = await supabase
+          .from('stock_opname')
+          .update({ status: 'completed' })
+          .eq('id', opnameId);
+        return { data: result.data, error: result.error as Error | null };
+      });
 
       return { data: adjustments, error: null };
     } catch (error) {
@@ -148,41 +185,43 @@ export const stockAdjustmentApi = {
       return { data: null, error: new Error('User not authenticated') };
     }
 
-    const { data: inventory } = await supabase
-      .from('inventory')
-      .select('stok')
-      .eq('id', inventoryId)
-      .single();
+    const invResult = await safeQuery<any>(async () => {
+      const result = await supabase
+        .from('inventory')
+        .select('stok')
+        .eq('id', inventoryId)
+        .single();
+      return { data: result.data, error: result.error as Error | null };
+    });
 
-    if (!inventory) {
+    if (!invResult.data) {
       return { data: null, error: new Error('Inventory not found') };
     }
 
     const newStock = adjustmentType === 'increase' 
-      ? inventory.stok + adjustmentQty 
-      : inventory.stok - adjustmentQty;
+      ? invResult.data.stok + adjustmentQty 
+      : invResult.data.stok - adjustmentQty;
 
     if (newStock < 0) {
       return { data: null, error: new Error('Stok tidak bisa negatif') };
     }
 
     try {
-      const adjustment = await safeQuery<StockAdjustment>(
-        queryToPromise(
-          supabase
-            .from('stock_adjustments')
-            .insert({
-              inventory_id: inventoryId,
-              adjustment_qty: adjustmentQty,
-              adjustment_type: adjustmentType,
-              reason,
-              note,
-              created_by: user.id
-            })
-            .select()
-            .single()
-        )
-      );
+      const adjustment = await safeQuery<StockAdjustment>(async () => {
+        const result = await supabase
+          .from('stock_adjustments')
+          .insert({
+            inventory_id: inventoryId,
+            adjustment_qty: adjustmentQty,
+            adjustment_type: adjustmentType,
+            reason,
+            note,
+            created_by: user.id
+          })
+          .select()
+          .single();
+        return { data: result.data, error: result.error as Error | null };
+      });
 
       if (adjustment.error) throw adjustment.error;
 

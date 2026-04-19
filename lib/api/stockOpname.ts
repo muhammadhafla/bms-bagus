@@ -1,6 +1,5 @@
 import { supabase } from './client';
-import { safeQuery, queryToPromise } from './utils';
-import { inventoryApi } from './inventory';
+import { safeQuery } from './utils';
 
 export interface StockOpname {
   id: string;
@@ -11,7 +10,17 @@ export interface StockOpname {
   approved_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface StockOpnameWithProfile extends StockOpname {
   profiles?: { nama: string } | null;
+}
+
+export interface InventoryBasic {
+  id: string;
+  nama_barang: string;
+  kode_barcode: string;
+  unit: string;
 }
 
 export interface StockOpnameItem {
@@ -30,98 +39,130 @@ export interface StockOpnameItem {
     nama_barang: string;
     kode_barcode: string;
     unit: string;
-  };
+  } | null;
+}
+
+export interface StockOpnameItemWithInventory extends StockOpnameItem {
+  inventory: {
+    nama_barang: string;
+    kode_barcode: string;
+    unit: string;
+  } | null;
 }
 
 export const stockOpnameApi = {
   async getAll() {
-    const { data, error } = await queryToPromise(
-      supabase
+    const result = await safeQuery<StockOpname[]>(async () => {
+      const result = await supabase
         .from('stock_opname')
         .select('*')
-        .order('created_at', { ascending: false })
-    );
+        .order('created_at', { ascending: false });
+      return { data: result.data, error: result.error as Error | null };
+    });
 
-    if (error) {
-      return { data: null, error };
+    if (result.error) {
+      return { data: null, error: result.error };
     }
 
-    if (!data || data.length === 0) {
+    if (!result.data || result.data.length === 0) {
       return { data: [], error: null };
     }
 
-    const opnamesWithCreator: any[] = await Promise.all(
-      data.map(async (opname) => {
-        if (opname.created_by) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('nama')
-            .eq('id', opname.created_by)
-            .single();
-          return { ...opname, profiles: profile };
-        }
-        return opname;
-      })
-    );
+    const uniqueUserIds = [...new Set(result.data.map(o => o.created_by).filter(Boolean))];
+    
+    let profilesMap: Record<string, { nama: string }> = {};
+    if (uniqueUserIds.length > 0) {
+      const profilesResult = await safeQuery<{ id: string; nama: string }[]>(async () => {
+        const result = await supabase
+          .from('profiles')
+          .select('id, nama')
+          .in('id', uniqueUserIds);
+        return { data: result.data, error: result.error as Error | null };
+      });
+      if (profilesResult.data) {
+        profilesResult.data.forEach(p => {
+          profilesMap[p.id] = { nama: p.nama };
+        });
+      }
+    }
+
+    const opnamesWithCreator: StockOpnameWithProfile[] = result.data.map(opname => ({
+      ...opname,
+      profiles: opname.created_by ? profilesMap[opname.created_by] : null
+    }));
 
     return { data: opnamesWithCreator, error: null };
   },
 
   async getById(id: string) {
-    const { data, error } = await queryToPromise<any>(
-      supabase
+    const result = await safeQuery<StockOpname>(async () => {
+      const result = await supabase
         .from('stock_opname')
         .select('*')
         .eq('id', id)
-        .single()
-    );
-
-    if (error || !data) {
-      return { data: null, error };
-    }
-
-    if (data.created_by) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('nama')
-        .eq('id', data.created_by)
         .single();
-      return { data: { ...data, profiles: profile }, error: null };
+      return { data: result.data, error: result.error as Error | null };
+    });
+
+    if (result.error || !result.data) {
+      return { data: null, error: result.error };
     }
 
-    return { data, error: null };
+    if (result.data.created_by) {
+      const profileResult = await safeQuery<{ nama: string }>(async () => {
+        const profileRes = await supabase
+          .from('profiles')
+          .select('nama')
+          .eq('id', result.data!.created_by)
+          .single();
+        return { data: profileRes.data, error: profileRes.error as Error | null };
+      });
+      return { data: { ...result.data, profiles: profileResult.data }, error: null };
+    }
+
+    return { data: result.data, error: null };
   },
 
   async getItems(opnameId: string) {
-    const { data, error } = await queryToPromise(
-      supabase
+    const result = await safeQuery<StockOpnameItem[]>(async () => {
+      const result = await supabase
         .from('stock_opname_items')
         .select('*')
         .eq('stock_opname_id', opnameId)
-        .order('created_at')
-    );
+        .order('created_at');
+      return { data: result.data, error: result.error as Error | null };
+    });
 
-    if (error) {
-      return { data: null, error };
+    if (result.error) {
+      return { data: null, error: result.error };
     }
 
-    if (!data || data.length === 0) {
+    if (!result.data || result.data.length === 0) {
       return { data: [], error: null };
     }
 
-    const itemsWithInventory: any[] = await Promise.all(
-      data.map(async (item) => {
-        if (item.inventory_id) {
-          const { data: inventory } = await supabase
-            .from('inventory')
-            .select('nama_barang, kode_barcode, unit')
-            .eq('id', item.inventory_id)
-            .single();
-          return { ...item, inventory };
-        }
-        return item;
-      })
-    );
+    const uniqueInventoryIds = [...new Set(result.data.map(i => i.inventory_id).filter(Boolean))];
+    
+    let inventoryMap: Record<string, InventoryBasic> = {};
+    if (uniqueInventoryIds.length > 0) {
+      const invResult = await safeQuery<InventoryBasic[]>(async () => {
+        const result = await supabase
+          .from('inventory')
+          .select('id, nama_barang, kode_barcode, unit')
+          .in('id', uniqueInventoryIds);
+        return { data: result.data, error: result.error as Error | null };
+      });
+      if (invResult.data) {
+        invResult.data.forEach(inv => {
+          inventoryMap[inv.id] = { id: inv.id, nama_barang: inv.nama_barang, kode_barcode: inv.kode_barcode, unit: inv.unit };
+        });
+      }
+    }
+
+    const itemsWithInventory: StockOpnameItemWithInventory[] = result.data.map(item => ({
+      ...item,
+      inventory: item.inventory_id ? inventoryMap[item.inventory_id] : null
+    }));
 
     return { data: itemsWithInventory, error: null };
   },
@@ -132,29 +173,20 @@ export const stockOpnameApi = {
       return { data: null, error: new Error('User not authenticated') };
     }
 
-    // Cek apakah user adalah admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    const isAdmin = profile?.role === 'admin';
     const today = new Date().toISOString().split('T')[0];
     
-    const opnameResult = await safeQuery<StockOpname>(
-      queryToPromise(
-        supabase
-          .from('stock_opname')
-          .insert({
-            opname_date: today,
-            status: 'draft',
-            created_by: user.id
-          })
-          .select()
-          .single()
-      )
-    );
+    const opnameResult = await safeQuery<StockOpname>(async () => {
+      const result = await supabase
+        .from('stock_opname')
+        .insert({
+          opname_date: today,
+          status: 'draft',
+          created_by: user.id
+        })
+        .select()
+        .single();
+      return { data: result.data, error: result.error as Error | null };
+    });
 
     if (opnameResult.error || !opnameResult.data) {
       return opnameResult;
@@ -164,42 +196,47 @@ export const stockOpnameApi = {
   },
 
   async updateItem(itemId: string, data: Partial<{ physical_stock: number; reason: string; note: string }>) {
-    const { data: item } = await supabase
-      .from('stock_opname_items')
-      .select('system_stock')
-      .eq('id', itemId)
-      .single();
+    const itemResult = await safeQuery<any>(async () => {
+      const result = await supabase
+        .from('stock_opname_items')
+        .select('system_stock')
+        .eq('id', itemId)
+        .single();
+      return { data: result.data, error: result.error as Error | null };
+    });
 
-    if (!item) {
+    if (!itemResult.data) {
       return { data: null, error: new Error('Item not found') };
     }
 
-    const difference = (data.physical_stock ?? item.system_stock) - item.system_stock;
+    const difference = (data.physical_stock ?? itemResult.data.system_stock) - itemResult.data.system_stock;
 
-    return safeQuery<StockOpnameItem>(
-      queryToPromise(
-        supabase
-          .from('stock_opname_items')
-          .update({
-            ...data,
-            difference,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', itemId)
-          .select()
-          .single()
-      )
-    );
+    return safeQuery<StockOpnameItem>(async () => {
+      const result = await supabase
+        .from('stock_opname_items')
+        .update({
+          ...data,
+          difference,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', itemId)
+        .select()
+        .single();
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async submitForApproval(opnameId: string) {
-    const { data: items } = await supabase
-      .from('stock_opname_items')
-      .select('difference, reason')
-      .eq('stock_opname_id', opnameId);
+    const itemsResult = await safeQuery<any[]>(async () => {
+      const result = await supabase
+        .from('stock_opname_items')
+        .select('difference, reason')
+        .eq('stock_opname_id', opnameId);
+      return { data: result.data, error: result.error as Error | null };
+    });
 
-    if (items) {
-      const hasDifferenceWithoutReason = items.some(
+    if (itemsResult.data) {
+      const hasDifferenceWithoutReason = itemsResult.data.some(
         item => item.difference !== 0 && !item.reason
       );
 
@@ -211,19 +248,18 @@ export const stockOpnameApi = {
       }
     }
 
-    return safeQuery<StockOpname>(
-      queryToPromise(
-        supabase
-          .from('stock_opname')
-          .update({
-            status: 'pending',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', opnameId)
-          .select()
-          .single()
-      )
-    );
+    return safeQuery<StockOpname>(async () => {
+      const result = await supabase
+        .from('stock_opname')
+        .update({
+          status: 'pending',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', opnameId)
+        .select()
+        .single();
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async approve(opnameId: string) {
@@ -232,41 +268,32 @@ export const stockOpnameApi = {
       return { data: null, error: new Error('User not authenticated') };
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
+    const profileResult = await safeQuery<any>(async () => {
+      const result = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      return { data: result.data, error: result.error as Error | null };
+    });
 
-    if (!profile || profile.role !== 'admin') {
+    if (!profileResult.data || profileResult.data.role !== 'admin') {
       return { data: null, error: new Error('Hanya admin yang dapat melakukan approval') };
     }
 
-    const { data: opname } = await supabase
-      .from('stock_opname')
-      .select('created_by')
-      .eq('id', opnameId)
-      .single();
-
-    // Admin boleh approve opname yang dibuat sendiri
-    // if (opname && opname.created_by === user.id) {
-    //   return { data: null, error: new Error('Tidak dapat approve opname yang dibuat sendiri') };
-    // }
-
-    return safeQuery<StockOpname>(
-      queryToPromise(
-        supabase
-          .from('stock_opname')
-          .update({
-            status: 'approved',
-            approved_by: user.id,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', opnameId)
-          .select()
-          .single()
-      )
-    );
+    return safeQuery<StockOpname>(async () => {
+      const result = await supabase
+        .from('stock_opname')
+        .update({
+          status: 'approved',
+          approved_by: user.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', opnameId)
+        .select()
+        .single();
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async reject(opnameId: string, note: string) {
@@ -275,90 +302,92 @@ export const stockOpnameApi = {
       return { data: null, error: new Error('User not authenticated') };
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
+    const profileResult = await safeQuery<any>(async () => {
+      const result = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      return { data: result.data, error: result.error as Error | null };
+    });
 
-    if (!profile || profile.role !== 'admin') {
+    if (!profileResult.data || profileResult.data.role !== 'admin') {
       return { data: null, error: new Error('Hanya admin yang dapat melakukan approval') };
     }
 
-    return safeQuery<StockOpname>(
-      queryToPromise(
-        supabase
-          .from('stock_opname')
-          .update({
-            status: 'rejected',
-            approved_by: user.id,
-            note,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', opnameId)
-          .select()
-          .single()
-      )
-    );
+    return safeQuery<StockOpname>(async () => {
+      const result = await supabase
+        .from('stock_opname')
+        .update({
+          status: 'rejected',
+          approved_by: user.id,
+          note,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', opnameId)
+        .select()
+        .single();
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async delete(opnameId: string) {
-    return safeQuery<void>(
-      queryToPromise(
-        supabase
-          .from('stock_opname')
-          .delete()
-          .eq('id', opnameId)
-      )
-    );
+    return safeQuery<void>(async () => {
+      const result = await supabase
+        .from('stock_opname')
+        .delete()
+        .eq('id', opnameId);
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async addItem(opnameId: string, inventoryId: string) {
-    const { data: inventory } = await supabase
-      .from('inventory')
-      .select('id, nama_barang, stok, kode_barcode, unit')
-      .eq('id', inventoryId)
-      .single();
+    const invResult = await safeQuery<any>(async () => {
+      const result = await supabase
+        .from('inventory')
+        .select('id, nama_barang, stok, kode_barcode, unit')
+        .eq('id', inventoryId)
+        .single();
+      return { data: result.data, error: result.error as Error | null };
+    });
 
-    if (!inventory) {
+    if (!invResult.data) {
       return { data: null, error: new Error('Inventory not found') };
     }
 
-    const insertResult = await safeQuery<StockOpnameItem>(
-      queryToPromise(
-        supabase
-          .from('stock_opname_items')
-          .insert({
-            stock_opname_id: opnameId,
-            inventory_id: inventory.id,
-            system_stock: inventory.stok || 0,
-            physical_stock: inventory.stok || 0,
-            difference: 0,
-            adjusted: false
-          })
-          .select()
-          .single()
-      )
-    );
+    const insertResult = await safeQuery<StockOpnameItem>(async () => {
+      const result = await supabase
+        .from('stock_opname_items')
+        .insert({
+          stock_opname_id: opnameId,
+          inventory_id: invResult.data.id,
+          system_stock: invResult.data.stok || 0,
+          physical_stock: invResult.data.stok || 0,
+          difference: 0,
+          adjusted: false
+        })
+        .select()
+        .single();
+      return { data: result.data, error: result.error as Error | null };
+    });
 
     if (insertResult.error || !insertResult.data) {
       return insertResult;
     }
 
     return {
-      data: { ...insertResult.data, inventory },
+      data: { ...insertResult.data, inventory: invResult.data },
       error: null
     };
   },
 
   async deleteItem(itemId: string) {
-    return safeQuery<void>(
-      queryToPromise(
-        supabase
-          .from('stock_opname_items')
-          .delete()
-          .eq('id', itemId)
-      )
-    );
+    return safeQuery<void>(async () => {
+      const result = await supabase
+        .from('stock_opname_items')
+        .delete()
+        .eq('id', itemId);
+      return { data: result.data, error: result.error as Error | null };
+    });
   }
 };

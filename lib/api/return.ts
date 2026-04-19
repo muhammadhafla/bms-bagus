@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { safeQuery, queryToPromise, generateIdempotencyKey } from './utils';
+import { safeQuery, generateIdempotencyKey } from './utils';
 import type { Penjualan } from './penjualan';
 
 export interface ReturnItem {
@@ -62,38 +62,42 @@ export interface ReturnedTransaction {
 export const returnApi = {
   async searchPembelian(query: string) {
     const safeQueryString = query.replace(/%/g, '').toLowerCase();
-    return safeQuery<ReturnedTransaction[]>(
-      queryToPromise(
-        supabase
-          .from('pembelian_transactions')
-          .select('*')
-          .or(`id.ilike.%${safeQueryString}%,supplier_id.ilike.%${safeQueryString}%`)
-          .order('created_at', { ascending: false })
-          .limit(20)
-      )
-    );
+    return safeQuery<ReturnedTransaction[]>(async () => {
+      const result = await supabase
+        .from('pembelian_transactions')
+        .select('*')
+        .or(`id.ilike.%${safeQueryString}%,supplier_id.ilike.%${safeQueryString}%`)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async searchPenjualan(query: string) {
     const safeQueryString = query.replace(/%/g, '').toLowerCase();
-    return safeQuery<Penjualan[]>(
-      queryToPromise(
-        supabase
-          .from('penjualan_transactions')
-          .select('*')
-          .or(`id.ilike.%${safeQueryString}%`)
-          .order('created_at', { ascending: false })
-          .limit(20)
-      )
-    );
+    return safeQuery<Penjualan[]>(async () => {
+      const result = await supabase
+        .from('penjualan_transactions')
+        .select('*')
+        .or(`id.ilike.%${safeQueryString}%`)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async getPembelianItems(transactionId: string) {
-    return safeQuery(queryToPromise(supabase.from('pembelian_items').select('*, inventory:inventory(*)').eq('transaction_id', transactionId)));
+    return safeQuery(async () => {
+      const result = await supabase.from('pembelian_items').select('*, inventory:inventory(*)').eq('transaction_id', transactionId);
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async getPenjualanItems(transactionId: string) {
-    return safeQuery(queryToPromise(supabase.from('penjualan_items').select('*, inventory:inventory(*)').eq('transaction_id', transactionId)));
+    return safeQuery(async () => {
+      const result = await supabase.from('penjualan_items').select('*, inventory:inventory(*)').eq('transaction_id', transactionId);
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async submitPembelianReturn(data: {
@@ -107,14 +111,17 @@ export const returnApi = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: { message: 'User not authenticated' } };
 
-    return safeQuery(queryToPromise(supabase.rpc('pembelian_return_create', {
-      p_pembelian_id: data.original_transaction_id,
-      p_tanggal: data.tanggal,
-      p_created_by: user.id,
-      p_note: data.note ?? null,
-      p_idempotency_key: idempotencyKey,
-      p_items: data.items,
-    })));
+    return safeQuery(async () => {
+      const result = await supabase.rpc('pembelian_return_create', {
+        p_pembelian_id: data.original_transaction_id,
+        p_tanggal: data.tanggal,
+        p_created_by: user.id,
+        p_note: data.note ?? null,
+        p_idempotency_key: idempotencyKey,
+        p_items: data.items,
+      });
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async submitPenjualanReturn(data: {
@@ -128,20 +135,24 @@ export const returnApi = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: { message: 'User not authenticated' } };
 
-    return safeQuery(queryToPromise(supabase.rpc('penjualan_return_create', {
-      p_penjualan_id: data.original_transaction_id,
-      p_tanggal: data.tanggal,
-      p_created_by: user.id,
-      p_note: data.note ?? null,
-      p_idempotency_key: idempotencyKey,
-      p_items: data.items,
-    })));
+    return safeQuery(async () => {
+      const result = await supabase.rpc('penjualan_return_create', {
+        p_penjualan_id: data.original_transaction_id,
+        p_tanggal: data.tanggal,
+        p_created_by: user.id,
+        p_note: data.note ?? null,
+        p_idempotency_key: idempotencyKey,
+        p_items: data.items,
+      });
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async getAvailableItemsBySupplier(supplierId: string) {
-    return safeQuery<AvailableReturnItem[]>(queryToPromise(
-      supabase.rpc('get_available_return_items', { p_supplier_id: supplierId })
-    ));
+    return safeQuery<AvailableReturnItem[]>(async () => {
+      const result = await supabase.rpc('get_available_return_items', { p_supplier_id: supplierId });
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async submitBatchReturn(data: BatchReturnInput) {
@@ -149,22 +160,29 @@ export const returnApi = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: { message: 'User not authenticated' } };
 
-    return safeQuery(queryToPromise(supabase.rpc('proses_return_batch', {
-      p_supplier_id: data.supplier_id,
-      p_supplier_nama: data.supplier_nama,
-      p_tanggal: data.tanggal,
-      p_note: data.note ?? null,
-      p_items: data.items,
-      p_idempotency_key: idempotencyKey,
-      p_created_by: user.id,
-    })));
+    return safeQuery(async () => {
+      const result = await supabase.rpc('proses_return_batch', {
+        p_supplier_id: data.supplier_id,
+        p_supplier_nama: data.supplier_nama,
+        p_tanggal: data.tanggal,
+        p_note: data.note ?? null,
+        p_items: data.items,
+        p_idempotency_key: idempotencyKey,
+        p_created_by: user.id,
+      });
+      return { data: result.data, error: result.error as Error | null };
+    });
   },
 
   async getReturnDetail(returnId: string) {
-    const [headerResult, itemsResult] = await Promise.all([
-      supabase.from('pembelian_return').select('*').eq('id', returnId).single(),
-      supabase.from('pembelian_return_items').select('*').eq('pembelian_return_id', returnId)
-    ]);
+    const headerResult = await safeQuery<any>(async () => {
+      const result = await supabase.from('pembelian_return').select('*').eq('id', returnId).single();
+      return { data: result.data, error: result.error as Error | null };
+    });
+    const itemsResult = await safeQuery<any[]>(async () => {
+      const result = await supabase.from('pembelian_return_items').select('*').eq('pembelian_return_id', returnId);
+      return { data: result.data, error: result.error as Error | null };
+    });
 
     return {
       data: {
@@ -176,12 +194,13 @@ export const returnApi = {
   },
 
   async getReturnList() {
-    return safeQuery(queryToPromise(
-      supabase
+    return safeQuery(async () => {
+      const result = await supabase
         .from('pembelian_return')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(100)
-    ));
+        .limit(100);
+      return { data: result.data, error: result.error as Error | null };
+    });
   }
 };

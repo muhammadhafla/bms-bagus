@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { queryToPromise } from './utils';
+import { safeQuery } from './utils';
 
 export interface DashboardStats {
   totalInventoryValue: number;
@@ -38,10 +38,30 @@ export const dashboardApi = {
     const today = new Date().toISOString().split('T')[0];
 
     const [inventoryResult, salesResult, purchasesResult, lowStockResult] = await Promise.all([
-      supabase.from('inventory').select('stok, harga_beli_terakhir'),
-      supabase.from('penjualan').select('total').eq('tanggal', today),
-      supabase.from('pembelian').select('total_sistem, tanggal').eq('tanggal', today),
-      supabase.from('inventory').select('id, nama_barang, stok, minimum_stock'),
+      safeQuery<{ stok: number; harga_beli_terakhir: number }[]>(
+        async () => {
+          const result = await supabase.from('inventory').select('stok, harga_beli_terakhir');
+          return { data: result.data, error: result.error as Error | null };
+        }
+      ),
+      safeQuery<{ total: number }[]>(
+        async () => {
+          const result = await supabase.from('penjualan').select('total').eq('tanggal', today);
+          return { data: result.data, error: result.error as Error | null };
+        }
+      ),
+      safeQuery<{ total_sistem: number; tanggal: string }[]>(
+        async () => {
+          const result = await supabase.from('pembelian').select('total_sistem, tanggal').eq('tanggal', today);
+          return { data: result.data, error: result.error as Error | null };
+        }
+      ),
+      safeQuery<{ id: string; nama_barang: string; stok: number; minimum_stock: number }[]>(
+        async () => {
+          const result = await supabase.from('inventory').select('id, nama_barang, stok, minimum_stock');
+          return { data: result.data, error: result.error as Error | null };
+        }
+      ),
     ]);
 
     if (inventoryResult.error || salesResult.error || purchasesResult.error || lowStockResult.error) {
@@ -78,12 +98,17 @@ export const dashboardApi = {
   },
 
   async getLowStockItems(): Promise<{ data: LowStockItem[]; error: unknown }> {
-    const result = await supabase
-      .from('inventory')
-      .select('id, nama_barang, stok, minimum_stock')
-      .eq('is_discontinued', false)
-      .order('stok', { ascending: true })
-      .limit(10);
+    const result = await safeQuery<LowStockItem[]>(
+      async () => {
+        const result = await supabase
+          .from('inventory')
+          .select('id, nama_barang, stok, minimum_stock')
+          .eq('is_discontinued', false)
+          .order('stok', { ascending: true })
+          .limit(10);
+        return { data: result.data, error: result.error as Error | null };
+      }
+    );
 
     if (result.error) {
       return { data: [], error: result.error };
@@ -108,8 +133,18 @@ export const dashboardApi = {
     }
 
     const [pembelianResult, penjualanResult] = await Promise.all([
-      supabase.from('pembelian').select('tanggal, total_sistem').gte('tanggal', dates[0]),
-      supabase.from('penjualan').select('tanggal, total').gte('tanggal', dates[0]),
+      safeQuery<{ tanggal: string; total_sistem: number }[]>(
+        async () => {
+          const result = await supabase.from('pembelian').select('tanggal, total_sistem').gte('tanggal', dates[0]);
+          return { data: result.data, error: result.error as Error | null };
+        }
+      ),
+      safeQuery<{ tanggal: string; total: number }[]>(
+        async () => {
+          const result = await supabase.from('penjualan').select('tanggal, total').gte('tanggal', dates[0]);
+          return { data: result.data, error: result.error as Error | null };
+        }
+      ),
     ]);
 
     if (pembelianResult.error || penjualanResult.error) {
@@ -138,17 +173,31 @@ export const dashboardApi = {
 
   async getRecentTransactions(): Promise<{ data: RecentTransaction[]; error: unknown }> {
     const [penjualan, pembelian] = await Promise.all([
-      supabase
-        .from('penjualan')
-        .select('id, total, tanggal, created_at')
-        .order('created_at', { ascending: false })
-        .limit(5),
-      supabase
-        .from('pembelian')
-        .select('id, total_sistem, tanggal, created_at')
-        .order('created_at', { ascending: false })
-        .limit(5),
+      safeQuery<{ id: string; total: number; tanggal: string; created_at: string }[]>(
+        async () => {
+          const result = await supabase
+            .from('penjualan')
+            .select('id, total, tanggal, created_at')
+            .order('created_at', { ascending: false })
+            .limit(5);
+          return { data: result.data, error: result.error as Error | null };
+        }
+      ),
+      safeQuery<{ id: string; total_sistem: number; tanggal: string; created_at: string }[]>(
+        async () => {
+          const result = await supabase
+            .from('pembelian')
+            .select('id, total_sistem, tanggal, created_at')
+            .order('created_at', { ascending: false })
+            .limit(5);
+          return { data: result.data, error: result.error as Error | null };
+        }
+      ),
     ]);
+
+    if (penjualan.error || pembelian.error) {
+      return { data: [], error: penjualan.error || pembelian.error };
+    }
 
     const transactions: RecentTransaction[] = [
       ...(penjualan.data || []).map((t) => ({ ...t, type: 'penjualan' as const })),

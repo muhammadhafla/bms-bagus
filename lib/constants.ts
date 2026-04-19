@@ -26,3 +26,34 @@ export const API_ERROR_MESSAGES = {
   NETWORK_ERROR: 'Error koneksi jaringan',
   UNKNOWN_ERROR: 'Terjadi kesalahan yang tidak diketahui',
 } as const;
+
+export const UI_MESSAGES = {
+  LOADING: 'Memuat...',
+  NO_DATA: 'Tidak ada data',
+  TRY_AGAIN: 'Coba lagi',
+  CONFIRM_DELETE: 'Yakin ingin menghapus?',
+  DELETE_SUCCESS: 'Berhasil dihapus',
+  SAVE_SUCCESS: 'Berhasil disimpan',
+  SUBMIT_SUCCESS: 'Berhasil submitted',
+} as const;
+
+export const INVENTORY_MESSAGES = {
+  NO_ITEMS: 'Belum ada item inventaris',
+  LOW_STOCK: 'Stok di bawah minimum',
+  NOT_FOUND: 'Item tidak ditemukan',
+  BARCODE_NOT_FOUND: 'Barcode tidak terdaftar',
+  CREATE_SUCCESS: 'Item berhasil ditambahkan',
+} as const;
+
+export const STOCK_OPNAME_MESSAGES = {
+  NO_OPNAME: 'Belum ada stock opname',
+  CREATE_HINT: 'Klik tombol di atas untuk membuat opname baru',
+  DELETE_CONFIRM: 'Yakin ingin menghapus stock opname ini? Tindakan ini tidak dapat dibatalkan.',
+  APPROVAL_PENDING: 'Menunggu Approval',
+  APPROVED: 'Disetujui',
+  REJECTED: 'Ditolak',
+  COMPLETED: 'Selesai',
+  DRAFT: 'Draft',
+  REASON_REQUIRED: 'Semua item dengan selisih harus memiliki alasan',
+  ADMIN_ONLY: 'Hanya admin yang dapat melakukan approval',
+} as const;

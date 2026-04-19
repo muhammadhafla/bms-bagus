@@ -1,5 +1,5 @@
 import { LowStockItem } from '@/lib/api/dashboard';
-import { IconAlertTriangle, IconCirclePlus, IconX } from '@tabler/icons-react';
+import { IconAlertTriangle, IconCirclePlus, IconSwitch } from '@tabler/icons-react';
 import Link from 'next/link';
 import { inventoryApi } from '@/lib/api/inventory';
 import { useState } from 'react';
@@ -11,17 +11,19 @@ interface LowStockAlertProps {
 
 function LowStockItemRow({ item }: { item: LowStockItem }) {
   const [isLoading, setIsLoading] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleDiscontinue = async () => {
     setIsLoading(true);
     await inventoryApi.toggleDiscontinued(item.id);
     setIsLoading(false);
+    setShowConfirm(false);
     window.location.reload();
   };
 
   return (
     <div
-      className="flex items-center justify-between p-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20"
+      className="relative flex items-center justify-between p-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20"
     >
       <span className="text-sm font-medium text-neutral-900 dark:text-white truncate max-w-[140px]">
         {item.nama_barang}
@@ -32,23 +34,46 @@ function LowStockItemRow({ item }: { item: LowStockItem }) {
           {item.stok} / {item.minimum_stock}
         </span>
         
-        <button
+        <Link
+          href="/purchasing"
           className="p-1 rounded hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400"
           title="Tambah Stok"
-          onClick={() => alert(`Tambah stok untuk ${item.nama_barang}`)}
         >
           <IconCirclePlus size={18} stroke={2} />
-        </button>
+        </Link>
         
         <button
           className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400"
           title="Tandai Discontinue"
-          onClick={handleDiscontinue}
+          onClick={() => setShowConfirm(true)}
           disabled={isLoading}
         >
-          <IconX size={18} stroke={2.5} />
+          <IconSwitch size={18} />
         </button>
       </div>
+
+      {showConfirm && (
+        <div className="absolute right-0 top-8 z-10 bg-white dark:bg-neutral-800 rounded-lg shadow-elevated border border-neutral-200 dark:border-neutral-700 p-3 w-48">
+          <p className="text-sm text-neutral-900 dark:text-white mb-3">
+            Nonaktifkan <span className="font-medium">{item.nama_barang}</span>?
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowConfirm(false)}
+              className="flex-1 px-3 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-600"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleDiscontinue}
+              disabled={isLoading}
+              className="flex-1 px-3 py-1.5 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50"
+            >
+              Ya
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

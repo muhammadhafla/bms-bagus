@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { createClient, User } from '@supabase/supabase-js';
+import { safeQuery } from '@/lib/api/utils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -20,7 +21,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 interface Profile {
   id: string;
   nama: string;
-  email: string;
+  email?: string;
   role: 'admin' | 'staff';
   created_at: string;
 }
@@ -33,38 +34,50 @@ interface AuthState {
   isRefreshing: boolean;
   sessionExpiryTime: number | null;
   sessionWarningShown: boolean;
-  profileFetchCounter: number;
   supabase: typeof supabase;
-  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signOut: () => Promise<void>;
-  initialize: () => Promise<void>;
-  cleanup: () => void;
+  authSubscription: { unsubscribe: () => void } | null;
   isAdmin: () => boolean;
   isStaff: () => boolean;
-  authSubscription: { unsubscribe: () => void } | null;
-  refreshSession: () => Promise<boolean>;
-  checkAndRefreshSession: () => Promise<boolean>;
   refreshLock: () => void;
   releaseRefreshLock: () => void;
   setSessionExpiry: (expiryTimestamp: number) => void;
+  refreshSession: () => Promise<boolean>;
+  checkAndRefreshSession: () => Promise<boolean>;
+  initialize: () => Promise<void>;
+  cleanup: () => void;
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signOut: () => Promise<void>;
+  _setProfileIfLatest: (fetchId: number, profile: Profile | null, userId: string) => void;
 }
 
-const fetchProfile = async (userId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+// Module-level fetch ID counter to prevent stale profile overwrites
+let profileFetchSeq = 0;
 
-    if (error) {
-      console.error('fetchProfile error for user', userId, error);
+const fetchProfile = async (userId: string): Promise<Profile | null> => {
+  try {
+    console.log('[fetchProfile] Attempting to fetch profile for userId:', userId);
+    
+    const result = await safeQuery<Profile>(async () => {
+      const response = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      return { 
+        data: response.data as Profile | null, 
+        error: response.error as Error | null 
+      };
+    });
+
+    if (result.error) {
+      console.error('[fetchProfile] Error fetching profile:', result.error);
       return null;
     }
 
-    return data as Profile | null;
+    console.log('[fetchProfile] Success:', result.data);
+    return result.data;
   } catch (err) {
-    console.error('fetchProfile exception for user', userId, err);
+    console.error('[fetchProfile] Exception:', err);
     return null;
   }
 };
@@ -95,18 +108,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isRefreshing: false,
   sessionExpiryTime: null,
   sessionWarningShown: false,
-  profileFetchCounter: 0,
   supabase,
   authSubscription: null,
 
   isAdmin: () => {
     const profile = get().profile;
-    return profile?.role === 'admin';
+    return profile?.role?.toLowerCase() === 'admin';
   },
 
   isStaff: () => {
     const profile = get().profile;
-    return profile?.role === 'staff';
+    return profile?.role?.toLowerCase() === 'staff';
   },
 
   refreshLock: () => {
@@ -115,6 +127,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   releaseRefreshLock: () => {
     set({ isRefreshing: false });
+  },
+
+  // Internal: set profile only if this fetch is the latest
+  _setProfileIfLatest: (fetchId: number, profile: Profile | null, userId: string) => {
+    // Check if this fetch is still the latest
+    if (fetchId !== profileFetchSeq) {
+      console.log(`Stale profile fetch ignored (id=${fetchId}, latest=${profileFetchSeq})`);
+      return;
+    }
+    const currentUser = get().user;
+    if (!profile) {
+      console.error('Profile fetch returned null for user', userId);
+      return;
+    }
+    if (!currentUser || currentUser.id !== userId) {
+      console.log('Profile fetch user mismatch', { fetchUserId: userId, currentUserId: currentUser?.id });
+      return;
+    }
+    console.log(`Setting profile (id=${fetchId}):`, profile.role);
+    set({ profile });
   },
 
   setSessionExpiry: (expiryTimestamp: number) => {
@@ -161,24 +193,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return false;
       }
 
+      // Fetch profile with guard
+      const fetchId = ++profileFetchSeq;
       const profile = await fetchProfile(data.session.user.id);
-      if (profile) {
-        set({ 
-          user: data.session.user, 
-          profile, 
-          isRefreshing: false,
-          initialized: true 
-        });
-      } else {
-        console.error('Failed to fetch profile in refreshSession for user', data.session.user.id);
-        set({ 
-          user: data.session.user, 
-          isRefreshing: false,
-          initialized: true 
-        });
-      }
+      get()._setProfileIfLatest(fetchId, profile, data.session.user.id);
 
-      // Update session expiry tracking
+      // Always update user and session expiry
+      set({ 
+        user: data.session.user, 
+        isRefreshing: false,
+        initialized: true 
+      });
+
       if (data.session.expires_at) {
         get().setSessionExpiry(data.session.expires_at * 1000);
       }
@@ -295,14 +321,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               if (session.expires_at) {
                 get().setSessionExpiry(session.expires_at * 1000);
               }
-              // Fetch profile in background, only update if still same user
+              // Fetch profile with guard
+              const fetchId = ++profileFetchSeq;
               fetchProfile(session.user.id).then(profile => {
-                const currentUser = get().user;
-                if (profile && currentUser && currentUser.id === session.user.id) {
-                  set({ profile });
-                } else if (!profile) {
-                  console.error('Failed to fetch profile on TOKEN_REFRESHED for user', session.user.id);
-                }
+                get()._setProfileIfLatest(fetchId, profile, session.user.id);
               }).catch(err => {
                 console.error('Profile fetch error (TOKEN_REFRESHED):', err);
               });
@@ -312,6 +334,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             case 'INITIAL_SESSION':
               if (session?.user) {
                 lastUserId = session.user.id;
+                const userId = session.user.id;
                 // Set user and initialized immediately to unblock UI
                 set({ 
                   user: session.user, 
@@ -322,14 +345,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 if (session.expires_at) {
                   get().setSessionExpiry(session.expires_at * 1000);
                 }
-                // Fetch profile in background
-                fetchProfile(session.user.id).then(profile => {
-                  const currentUser = get().user;
-                  if (profile && currentUser && currentUser.id === session.user.id) {
-                    set({ profile });
-                  } else if (!profile) {
-                    console.error('Failed to fetch profile on SIGNED_IN for user', session.user.id);
-                  }
+                // Fetch profile with guard
+                const fetchId = ++profileFetchSeq;
+                fetchProfile(userId).then(profile => {
+                  get()._setProfileIfLatest(fetchId, profile, userId);
                 }).catch(err => {
                   console.error('Profile fetch error (SIGNED_IN):', err);
                 });
@@ -341,17 +360,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
             case 'USER_UPDATED':
               if (session?.user) {
-                const profile = await fetchProfile(session.user.id);
-                const currentUser = get().user;
-                if (profile && currentUser && currentUser.id === session.user.id) {
-                  set({ user: session.user, profile });
-                } else {
-                  // Keep existing profile, just update user
-                  set({ user: session.user });
-                  if (!profile) {
-                    console.error('Failed to fetch profile on USER_UPDATED for user', session.user.id);
-                  }
-                }
+                const userId = session.user.id;
+                const fetchId = ++profileFetchSeq;
+                const profile = await fetchProfile(userId);
+                get()._setProfileIfLatest(fetchId, profile, userId);
+                // Always update user
+                set({ user: session.user });
                 if (session.expires_at) {
                   get().setSessionExpiry(session.expires_at * 1000);
                 }
@@ -361,16 +375,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             case 'MFA_CHALLENGE_VERIFIED':
               if (session?.user) {
                 lastUserId = session.user.id;
-                const profile = await fetchProfile(session.user.id);
-                const currentUser = get().user;
-                if (profile && currentUser && currentUser.id === session.user.id) {
-                  set({ user: session.user, profile });
-                } else {
-                  set({ user: session.user });
-                  if (!profile) {
-                    console.error('Failed to fetch profile on MFA_CHALLENGE_VERIFIED for user', session.user.id);
-                  }
-                }
+                const userId = session.user.id;
+                const fetchId = ++profileFetchSeq;
+                const profile = await fetchProfile(userId);
+                get()._setProfileIfLatest(fetchId, profile, userId);
+                // Always update user
+                set({ user: session.user });
                 if (session.expires_at) {
                   get().setSessionExpiry(session.expires_at * 1000);
                 }
@@ -401,7 +411,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  signIn: async (email, password) => {
+  signIn: async (email: string, password: string) => {
     const { isRefreshing } = get();
     
     // Prevent concurrent sign-ins
@@ -423,7 +433,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       if (data.user) {
+        // Fetch profile with guard
+        const fetchId = ++profileFetchSeq;
         const profile = await fetchProfile(data.user.id);
+        
         const baseState = { 
           user: data.user, 
           loading: false, 
@@ -437,11 +450,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
         
         if (profile) {
-          set({ ...baseState, profile });
+          get()._setProfileIfLatest(fetchId, profile, data.user.id);
         } else {
           console.error('Failed to fetch profile in signIn for user', data.user.id);
-          set(baseState);
         }
+        
+        // Always set user and other state
+        set(baseState);
       }
 
       return { success: true };

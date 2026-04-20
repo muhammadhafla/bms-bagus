@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -20,12 +20,11 @@ import {
   IconLogout,
   IconSun,
   IconMoon,
-  IconChevronRight,
   IconHistory,
   IconMenu,
-  IconX,
-  IconLayoutSidebarLeftCollapse,
-  IconLayoutSidebarLeftExpand,
+  IconDotsVertical,
+  IconMenu2,
+  IconChevronRight,
 } from '@tabler/icons-react';
 
 // Constants extracted outside component to prevent re-creation
@@ -78,74 +77,6 @@ function setStoredValue<T>(key: string, value: T): void {
   }
 }
 
-interface SidebarGroupProps {
-  title: string;
-  icon: React.ElementType;
-  isActive: boolean;
-  isExpanded: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-  sidebarCollapsed: boolean;
-  groupId: string;
-}
-
-function SidebarGroup({
-  title,
-  icon: Icon,
-  isActive,
-  isExpanded,
-  onToggle,
-  children,
-  sidebarCollapsed,
-  groupId,
-}: SidebarGroupProps) {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onToggle();
-    }
-  }, [onToggle]);
-
-  return (
-    <>
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={onToggle}
-        onKeyDown={handleKeyDown}
-        aria-expanded={isExpanded}
-        aria-controls={`group-${groupId}`}
-        className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all ${
-          isActive
-            ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300 shadow-sm'
-            : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100'
-        }`}
-      >
-        <Icon className="w-4 h-4 flex-shrink-0" />
-        <span className={`flex-1 text-left transition-all ${sidebarCollapsed ? 'lg:hidden' : 'lg:block'}`}>
-          {title}
-        </span>
-        <IconChevronRight
-          className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-        />
-      </button>
-
-      {isExpanded && (
-        <div
-          id={`group-${groupId}`}
-          role="group"
-          aria-label={`${title} submenu`}
-          className="ml-4 pl-4 border-l border-neutral-200 dark:border-neutral-700 space-y-1"
-        >
-          {children}
-        </div>
-      )}
-    </>
-  );
-}
-
 interface SidebarLinkProps {
   href: string;
   title: string;
@@ -173,60 +104,50 @@ function SidebarLink({ href, title, icon: Icon, isActive, sidebarCollapsed }: Si
   );
 }
 
-function CollapsedIconButton({
-  onClick,
-  title,
-  icon: Icon,
-  'aria-label': ariaLabel,
-}: {
-  onClick: () => void;
-  title: string;
-  icon: React.ElementType;
-  'aria-label': string;
-}) {
-  return (
-    <Tooltip content={title}>
-      <button
-        type="button"
-        onClick={onClick}
-        aria-label={ariaLabel}
-        className="hidden lg:flex p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 items-center justify-center"
-      >
-        <Icon className="w-5 h-5" />
-      </button>
-    </Tooltip>
-  );
-}
-
 export default function MainLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, initialized, signOut, isAdmin } = useAuthStore();
+  const { user, profile, initialized, signOut } = useAuthStore();
+  const isAdminUser = useAuthStore(state => state.isAdmin());
   const router = useRouter();
   const pathname = usePathname();
   const { theme, toggleTheme } = useDarkMode();
   const { showToast } = useToast();
 
-  // State with localStorage persistence
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() =>
-    getStoredValue(STORAGE_KEYS.SIDEBAR_COLLAPSED, false)
-  );
-  const [inventoryExpanded, setInventoryExpanded] = useState<boolean>(() =>
-    getStoredValue(STORAGE_KEYS.INVENTORY_EXPANDED, true)
-  );
-  const [purchasingExpanded, setPurchasingExpanded] = useState<boolean>(() =>
-    getStoredValue(STORAGE_KEYS.PURCHASING_EXPANDED, true)
-  );
-  const [transactionsExpanded, setTransactionsExpanded] = useState<boolean>(() =>
-    getStoredValue(STORAGE_KEYS.TRANSACTIONS_EXPANDED, true)
-  );
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+   // State with localStorage persistence
+   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() =>
+     getStoredValue(STORAGE_KEYS.SIDEBAR_COLLAPSED, false)
+   );
+   const [inventoryExpanded, setInventoryExpanded] = useState<boolean>(() =>
+     getStoredValue(STORAGE_KEYS.INVENTORY_EXPANDED, true)
+   );
+   const [purchasingExpanded, setPurchasingExpanded] = useState<boolean>(() =>
+     getStoredValue(STORAGE_KEYS.PURCHASING_EXPANDED, true)
+   );
+   const [transactionsExpanded, setTransactionsExpanded] = useState<boolean>(() =>
+     getStoredValue(STORAGE_KEYS.TRANSACTIONS_EXPANDED, true)
+   );
+   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+   const [isLoggingOut, setIsLoggingOut] = useState(false);
+   const [autoHideEnabled, setAutoHideEnabled] = useState(false);
+   const [sidebarHovered, setSidebarHovered] = useState(false);
+   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  // Persist state changes to localStorage
+   // Computed: sidebar width based on mode
+   // Auto-hide ON: shows collapsed (w-16) by default, expands to w-56 on hover
+   // Auto-hide OFF: always shows full width w-56
+   const isSidebarVisible = autoHideEnabled ? sidebarHovered : true;
+   const sidebarWidth = autoHideEnabled
+     ? (sidebarHovered ? 'lg:w-56' : 'lg:w-16')
+     : 'lg:w-56';
+   const contentMargin = autoHideEnabled
+     ? (sidebarHovered ? 'lg:ml-56' : 'lg:ml-16')
+     : 'lg:ml-56';
+
+   // Persist state changes to localStorage
   useEffect(() => {
     setStoredValue(STORAGE_KEYS.SIDEBAR_COLLAPSED, sidebarCollapsed);
   }, [sidebarCollapsed]);
@@ -256,7 +177,6 @@ export default function MainLayout({
   }, [pathname]);
 
   // Memoize computed values
-  const isAdminUser = useMemo(() => isAdmin(), [isAdmin]);
   const navItems = useMemo(() => {
     const items = [...NAV_ITEMS];
     if (isAdminUser) {
@@ -265,36 +185,32 @@ export default function MainLayout({
     return items;
   }, [isAdminUser]);
 
-  const isInventoryActive = useMemo(() => pathname.startsWith('/inventory'), [pathname]);
-  const isPurchasingActive = useMemo(() => pathname.startsWith('/purchasing'), [pathname]);
-  const isTransactionsActive = useMemo(() => pathname.startsWith('/transactions'), [pathname]);
-
   // Memoized handlers
-  const handleSignOut = useCallback(async () => {
-    setIsLoggingOut(true);
-    setLogoutConfirmOpen(false);
-    await signOut();
-    router.push('/login');
-    router.refresh();
-  }, [signOut, router]);
+   const handleSignOut = useCallback(async () => {
+     setIsLoggingOut(true);
+     setLogoutConfirmOpen(false);
+     await signOut();
+     router.push('/login');
+     router.refresh();
+   }, [signOut, router]);
 
-  const handleToggleSidebar = useCallback(() => {
-    setSidebarCollapsed((prev) => !prev);
-  }, []);
+   const handleToggleInventory = useCallback(() => {
+     setInventoryExpanded((prev) => !prev);
+   }, []);
 
-  const handleToggleInventory = useCallback(() => {
-    setInventoryExpanded((prev) => !prev);
-  }, []);
+   const handleTogglePurchasing = useCallback(() => {
+     setPurchasingExpanded((prev) => !prev);
+   }, []);
 
-  const handleTogglePurchasing = useCallback(() => {
-    setPurchasingExpanded((prev) => !prev);
-  }, []);
+   const handleToggleTransactions = useCallback(() => {
+     setTransactionsExpanded((prev) => !prev);
+   }, []);
 
-  const handleToggleTransactions = useCallback(() => {
-    setTransactionsExpanded((prev) => !prev);
-  }, []);
+   const handleToggleAutoHide = useCallback(() => {
+     setAutoHideEnabled((prev) => !prev);
+   }, []);
 
-  if (!initialized) {
+   if (!initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-950 dark:to-neutral-900">
         <div className="flex flex-col items-center gap-4">
@@ -332,223 +248,250 @@ export default function MainLayout({
         />
       )}
 
+      {/* Mobile Menu Toggle Button (fixed, only visible on mobile) */}
+      <button
+        onClick={() => setMobileMenuOpen(true)}
+        className="lg:hidden fixed top-4 left-4 z-30 p-2 rounded-lg bg-white dark:bg-neutral-800 shadow-md border border-neutral-200 dark:border-neutral-700"
+        aria-label="Open menu"
+      >
+        <IconMenu className="w-5 h-5" />
+      </button>
+
       {/* Sidebar - Responsive */}
       <aside
         className={`
-          fixed lg:static inset-y-0 left-0 z-50 bg-white dark:bg-neutral-950 flex flex-col shadow-sm transform transition-all duration-300 ease-in-out
+          fixed inset-y-0 left-0 z-50 bg-white dark:bg-neutral-950 flex flex-col shadow-sm transform transition-all duration-300 ease-in-out overflow-x-hidden
           ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          ${sidebarCollapsed ? 'lg:w-28' : 'lg:w-64'}
+          ${sidebarWidth}
         `}
         aria-label="Sidebar navigation"
+        onMouseEnter={() => autoHideEnabled && setSidebarHovered(true)}
+        onMouseLeave={() => autoHideEnabled && setSidebarHovered(false)}
       >
-        {/* Header */}
-        <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-4">
-            <div
-              className={`relative rounded-xl flex items-center justify-center shadow-md overflow-hidden transition-all ${sidebarCollapsed ? 'w-8 h-8' : 'w-10 h-10'}`}
-            >
-              <Image src="/images/logo.png" alt="BMS Logo" fill className="object-contain" />
-            </div>
-            <div className={`transition-all ${sidebarCollapsed ? 'lg:hidden' : 'lg:block'}`}>
-              <h1 className="text-lg font-bold text-neutral-900 dark:text-white">BMS</h1>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">Inventory</p>
-            </div>
-          </Link>
-
-          <div className="flex items-center gap-1">
-            <CollapsedIconButton
-              onClick={handleToggleSidebar}
-              title={sidebarCollapsed ? 'Buka Sidebar' : 'Tutup Sidebar'}
-              icon={sidebarCollapsed ? IconLayoutSidebarLeftExpand : IconLayoutSidebarLeftCollapse}
-              aria-label={sidebarCollapsed ? 'Buka Sidebar' : 'Tutup Sidebar'}
-            />
-            <button
-              type="button"
-              className="lg:hidden p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
-              onClick={() => setMobileMenuOpen(false)}
-              aria-label="Tutup menu mobile"
-            >
-              <IconX className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-2 lg:p-4 space-y-1 overflow-y-auto">
-          {/* Main nav items */}
-          {navItems.map((item) => {
-            const isActive = pathname.startsWith(item.href);
-            return (
-              <SidebarLink
-                key={item.href}
-                href={item.href}
-                title={item.title}
-                icon={item.icon}
-                isActive={isActive}
-                sidebarCollapsed={sidebarCollapsed}
-              />
-            );
-          })}
-
-          {/* Inventory Group */}
-          <SidebarGroup
-            title="Inventory"
-            icon={IconPackage}
-            isActive={isInventoryActive}
-            isExpanded={inventoryExpanded}
-            onToggle={handleToggleInventory}
-            sidebarCollapsed={sidebarCollapsed}
-            groupId="inventory"
-          >
-            {INVENTORY_ITEMS.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <SidebarLink
-                  key={item.href}
-                  href={item.href}
-                  title={item.title}
-                  icon={item.icon}
-                  isActive={isActive}
-                  sidebarCollapsed={sidebarCollapsed}
-                />
-              );
-            })}
-          </SidebarGroup>
-
-          {/* Purchasing Group */}
-          <SidebarGroup
-            title="Purchasing"
-            icon={IconShoppingCart}
-            isActive={isPurchasingActive}
-            isExpanded={purchasingExpanded}
-            onToggle={handleTogglePurchasing}
-            sidebarCollapsed={sidebarCollapsed}
-            groupId="purchasing"
-          >
-            {PURCHASING_ITEMS.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <SidebarLink
-                  key={item.href}
-                  href={item.href}
-                  title={item.title}
-                  icon={item.icon}
-                  isActive={isActive}
-                  sidebarCollapsed={sidebarCollapsed}
-                />
-              );
-            })}
-          </SidebarGroup>
-
-          {/* Transactions Group */}
-          <SidebarGroup
-            title="Transactions"
-            icon={IconReceipt}
-            isActive={isTransactionsActive}
-            isExpanded={transactionsExpanded}
-            onToggle={handleToggleTransactions}
-            sidebarCollapsed={sidebarCollapsed}
-            groupId="transactions"
-          >
-            {TRANSACTIONS_ITEMS.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <SidebarLink
-                  key={item.href}
-                  href={item.href}
-                  title={item.title}
-                  icon={item.icon}
-                  isActive={isActive}
-                  sidebarCollapsed={sidebarCollapsed}
-                />
-              );
-            })}
-          </SidebarGroup>
-        </nav>
-
-        {/* User Info & Controls */}
-        <div className={`p-2 lg:p-4 border-t border-neutral-200 dark:border-neutral-800 space-y-2 ${sidebarCollapsed ? 'lg:space-y-1' : ''}`}>
-          {/* User Profile */}
-          <div
-            className={`flex items-center gap-3 px-3 py-3 rounded-xl bg-neutral-50 dark:bg-neutral-900 ${sidebarCollapsed ? 'lg:justify-center lg:px-2' : ''}`}
-          >
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold flex-shrink-0">
-              {user?.email?.charAt(0).toUpperCase() || 'U'}
-            </div>
-            <div className={`flex-1 min-w-0 ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
-              <p className="text-sm font-medium text-neutral-900 dark:text-white truncate">
-                {user?.email || 'User'}
-              </p>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
-                {isAdminUser ? 'Administrator' : 'Staff'}
-              </p>
-            </div>
-          </div>
-
-          {/* Toggle Theme */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100 transition-colors ${sidebarCollapsed ? 'lg:justify-center lg:px-3' : ''}`}
-            aria-label={theme === 'light' ? 'Aktifkan Dark Mode' : 'Aktifkan Light Mode'}
-          >
-            <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
-              {theme === 'light' ? <IconMoon className="w-5 h-5" /> : <IconSun className="w-5 h-5" />}
-            </div>
-            <span className={`flex-1 ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
-              {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
-            </span>
-          </button>
-
-          {/* Logout */}
-          <button
-            type="button"
-            onClick={() => setLogoutConfirmOpen(true)}
-            disabled={isLoggingOut}
-            className="w-full px-4 py-3 text-sm text-neutral-600 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-xl dark:text-neutral-300 dark:bg-neutral-900 dark:hover:text-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Keluar dari sistem"
-          >
-            <div className="w-5 h-5 flex items-center justify-center">
-              {isLoggingOut ? (
-                <div className="w-4 h-4 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <IconLogout className="w-5 h-5" />
+          {/* Sidebar Header: Logo + Collapse Toggle */}
+          <div className={`p-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center ${isSidebarVisible ? 'justify-between' : 'justify-center'}`}>
+            <Link href="/" className={`flex items-center ${isSidebarVisible ? 'gap-3' : 'gap-0'} ${!isSidebarVisible ? 'lg:justify-center' : ''}`}>
+              <div
+                className={`relative rounded-xl flex items-center justify-center shadow-md overflow-hidden transition-all ${!isSidebarVisible && autoHideEnabled ? 'lg:w-6 lg:h-6' : 'w-10 h-10'}`}
+              >
+                <Image src="/images/logo.png" alt="BMS Logo" fill className="object-contain" />
+              </div>
+              {isSidebarVisible && (
+                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-brand-400">
+                  BMS
+                </span>
               )}
+            </Link>
+            {isSidebarVisible && (
+              <button
+                onClick={handleToggleAutoHide}
+                className={`p-2 rounded-lg transition-colors hidden lg:block ${autoHideEnabled ? 'bg-brand-100 dark:bg-brand-900 text-brand-600 dark:text-brand-400' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}
+                aria-label={autoHideEnabled ? 'Disable auto-hide' : 'Enable auto-hide'}
+              >
+                {autoHideEnabled ? (
+                  <IconMenu2 className="w-5 h-5" />
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                )}
+              </button>
+            )}
+          </div>
+
+         {/* Navigation */}
+         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-4 overflow-x-hidden">
+           {/* Main Navigation */}
+           <div className="space-y-1">
+             {navItems.map((item) => (
+               <SidebarLink
+                 key={item.href}
+                 href={item.href}
+                 title={item.title}
+                 icon={item.icon}
+                 isActive={pathname === item.href}
+                 sidebarCollapsed={!isSidebarVisible}
+               />
+             ))}
+           </div>
+
+           {/* Inventory Group */}
+           <div className="space-y-1">
+             {(isSidebarVisible || mobileMenuOpen) && (
+               <button
+                 type="button"
+                 onClick={handleToggleInventory}
+                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                 aria-expanded={inventoryExpanded}
+               >
+                 <span className="flex-1 text-left">Inventory</span>
+                 {isSidebarVisible && (
+                   <IconChevronRight
+                     className={`w-3 h-3 transition-transform ${inventoryExpanded ? 'rotate-90' : ''}`}
+                   />
+                 )}
+               </button>
+             )}
+              {(inventoryExpanded && (isSidebarVisible || mobileMenuOpen)) ? (
+                <div className="space-y-1 pl-2">
+                  {INVENTORY_ITEMS.map((item) => (
+                    <SidebarLink
+                      key={item.href}
+                      href={item.href}
+                      title={item.title}
+                      icon={item.icon}
+                      isActive={pathname === item.href}
+                      sidebarCollapsed={!isSidebarVisible}
+                    />
+                  ))}
+                </div>
+              ) : null}
+           </div>
+
+           {/* Purchasing Group */}
+           <div className="space-y-1">
+             {(isSidebarVisible || mobileMenuOpen) && (
+               <button
+                 type="button"
+                 onClick={handleTogglePurchasing}
+                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                 aria-expanded={purchasingExpanded}
+               >
+                 <span className="flex-1 text-left">Purchasing</span>
+                 {isSidebarVisible && (
+                   <IconChevronRight
+                     className={`w-3 h-3 transition-transform ${purchasingExpanded ? 'rotate-90' : ''}`}
+                   />
+                 )}
+               </button>
+             )}
+              {(purchasingExpanded && (isSidebarVisible || mobileMenuOpen)) ? (
+                <div className="space-y-1 pl-2">
+                  {PURCHASING_ITEMS.map((item) => (
+                    <SidebarLink
+                      key={item.href}
+                      href={item.href}
+                      title={item.title}
+                      icon={item.icon}
+                      isActive={pathname === item.href}
+                      sidebarCollapsed={!isSidebarVisible}
+                    />
+                  ))}
+                </div>
+              ) : null}
+           </div>
+
+            {/* Transactions Group */}
+            <div className="space-y-1">
+              {(isSidebarVisible || mobileMenuOpen) && (
+                <button
+                  type="button"
+                  onClick={handleToggleTransactions}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                  aria-expanded={transactionsExpanded}
+                >
+                  <span className="flex-1 text-left">Transactions</span>
+                  {isSidebarVisible && (
+                    <IconChevronRight
+                      className={`w-3 h-3 transition-transform ${transactionsExpanded ? 'rotate-90' : ''}`}
+                    />
+                  )}
+                </button>
+              )}
+              {(transactionsExpanded && (isSidebarVisible || mobileMenuOpen)) ? (
+                <div className="space-y-1 pl-2">
+                  {TRANSACTIONS_ITEMS.map((item) => (
+                    <SidebarLink
+                      key={item.href}
+                      href={item.href}
+                      title={item.title}
+                      icon={item.icon}
+                      isActive={pathname === item.href}
+                      sidebarCollapsed={!isSidebarVisible}
+                    />
+                  ))}
+                </div>
+              ) : null}
             </div>
-            <span className={`flex-1 ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
-              {isLoggingOut ? 'Keluar...' : 'Logout'}
-            </span>
+         </nav>
+
+        {/* Sidebar Footer: User Dropup Menu */}
+        <div className="p-3 border-t border-neutral-200 dark:border-neutral-800 relative">
+          {/* User Menu Trigger */}
+          <button
+            onClick={() => setUserMenuOpen(!userMenuOpen)}
+            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all relative"
+            aria-label="Open user menu"
+            aria-expanded={userMenuOpen}
+          >
+            {/* Avatar */}
+            <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+              {profile?.nama?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+            {isSidebarVisible && (
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
+                  {profile?.nama || 'User'}
+                </p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                  {user?.email}
+                </p>
+              </div>
+            )}
+            {isSidebarVisible && (
+              <IconDotsVertical className="w-4 h-4 text-neutral-400" />
+            )}
           </button>
+
+          {/* Dropup Menu */}
+          {userMenuOpen && (
+            <div className="absolute bottom-full left-2 right-2 mb-2 bg-white dark:bg-neutral-900 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1 z-50">
+              {/* Account Info Section */}
+              <div className="px-3 py-2 border-b border-neutral-200 dark:border-neutral-700">
+                <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                  {profile?.nama || 'User'}
+                </p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                  {user?.email}
+                </p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 capitalize">
+                  {profile?.role || 'Staff'}
+                </p>
+              </div>
+
+              {/* Theme Toggle */}
+              <button
+                onClick={() => {
+                  toggleTheme();
+                  setUserMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              >
+                {theme === 'dark' ? <IconSun className="w-4 h-4" /> : <IconMoon className="w-4 h-4" />}
+                <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+              </button>
+
+              {/* Logout */}
+              <button
+                onClick={() => {
+                  setUserMenuOpen(false);
+                  setLogoutConfirmOpen(true);
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              >
+                <IconLogout className="w-4 h-4" />
+                <span>Keluar</span>
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 
       {/* Main Content */}
-      <main
-        className={`flex-1 overflow-auto transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-28' : ''}`}
-        aria-label="Konten utama"
-      >
-        {/* Mobile Header */}
-        <header className="lg:hidden flex items-center gap-4 p-4 bg-white dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800 sticky top-0 z-30">
-          <button
-            type="button"
-            className="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
-            onClick={() => setMobileMenuOpen(true)}
-            aria-label="Buka menu"
-            aria-expanded={mobileMenuOpen}
-          >
-            <IconMenu className="w-6 h-6" />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 relative rounded-lg flex items-center justify-center shadow-sm overflow-hidden">
-              <Image src="/images/logo.png" alt="BMS Logo" fill className="object-contain" />
-            </div>
-            <span className="font-bold text-neutral-900 dark:text-white">BMS</span>
-          </div>
-        </header>
-
-        {/* Page Content */}
-        <div className="p-4 md:p-6">{children}</div>
-      </main>
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${contentMargin}`}>
+        {/* Page content */}
+        <main className="flex-1 overflow-auto p-4 lg:p-6 pt-16 lg:pt-4">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

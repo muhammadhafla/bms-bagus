@@ -23,7 +23,7 @@ export const IfCanEdit: React.FC<IfCanEditProps> = ({
     return <>{fallback}</>;
   }
   
-  const isAdmin = profile.role === 'admin';
+  const isAdmin = profile.role?.toLowerCase() === 'admin';
   if (isAdmin) {
     return <>{children}</>;
   }

@@ -13,7 +13,7 @@ interface PembelianStore {
   tanggal: string;
   totalSupplier: number;
   
-  addItem: (item: InventoryItem) => void;
+  addItem: (item: InventoryItem, initialQty?: number) => void;
   updateQty: (index: number, qty: number) => void;
   updateHargaBeli: (index: number, harga: number) => void;
   removeItem: (index: number) => void;
@@ -32,7 +32,7 @@ export const usePembelianStore = create<PembelianStore>((set, get) => ({
   tanggal: new Date().toISOString().split('T')[0],
   totalSupplier: 0,
 
-  addItem: (item) => set((state) => {
+  addItem: (item, initialQty = 1) => set((state) => {
     const existingIndex = state.items.findIndex(
       i => i.id === item.id && 
            i.harga_beli === item.harga_beli && 
@@ -43,7 +43,7 @@ export const usePembelianStore = create<PembelianStore>((set, get) => ({
       return {
         items: state.items.map((item, i) =>
           i === existingIndex
-            ? { ...item, qty: item.qty + 1, subtotal: (item.qty + 1) * item.harga_final }
+            ? { ...item, qty: item.qty + initialQty, subtotal: (item.qty + initialQty) * item.harga_final }
             : item
         )
       };
@@ -52,9 +52,9 @@ export const usePembelianStore = create<PembelianStore>((set, get) => ({
     const harga_final = (item.harga_beli || 0) - item.diskon;
     const newItem: CartItem = {
       ...item,
-      qty: 1,
+      qty: initialQty,
       harga_final,
-      subtotal: harga_final,
+      subtotal: harga_final * initialQty,
     };
 
     return { items: [...state.items, newItem] };

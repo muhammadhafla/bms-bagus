@@ -1,57 +1,94 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { reportApi, StockMutation, InventoryValue, SalesSummary, ProfitSummary } from '@/lib/api';
+import { reportApi, kategoriApi, StockMutation, InventoryValue, SalesSummary, ProfitSummary, TopSellingItem } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
-import { IconReport, IconPackage, IconCash, IconShoppingCart, IconTrendingUp } from '@tabler/icons-react';
+import { IconReport, IconPackage, IconCash, IconShoppingCart, IconTrendingUp, IconDownload, IconChartBar } from '@tabler/icons-react';
 import DateInput from '@/components/ui/DateInput';
-import { Button, Breadcrumb } from '@/components/ui';
+import SelectInput from '@/components/ui/SelectInput';
+import { Button, Breadcrumb, AmbientLayout } from '@/components/ui';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
 
-type ReportType = 'stock' | 'value' | 'sales' | 'profit';
+type ReportType = 'stock' | 'value' | 'sales' | 'profit' | 'top_items';
 
 export default function ReportsPage() {
   const [reportType, setReportType] = useState<ReportType>('stock');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [categories, setCategories] = useState<{id: string, nama: string}[]>([]);
   const [stockMutations, setStockMutations] = useState<StockMutation[]>([]);
   const [inventoryValue, setInventoryValue] = useState<InventoryValue[]>([]);
   const [salesSummary, setSalesSummary] = useState<SalesSummary[]>([]);
   const [profitSummary, setProfitSummary] = useState<ProfitSummary[]>([]);
+  const [topItems, setTopItems] = useState<TopSellingItem[]>([]);
+  const [topItemsSort, setTopItemsSort] = useState<'qty' | 'profit'>('qty');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const ITEMS_PER_PAGE = 50;
 
-  const loadReport = useCallback(async () => {
+  const fetchReport = async (type: ReportType, start: string, end: string, catId: string, currentPage: number) => {
     setLoading(true);
     setError(null);
 
+    const pagination = { page: currentPage, limit: ITEMS_PER_PAGE };
+
     try {
-      if (reportType === 'stock') {
-        const result = await reportApi.getStockMutations(startDate || undefined, endDate || undefined);
+      if (type === 'stock') {
+        const result = await reportApi.getStockMutations(start || undefined, end || undefined, pagination);
         if (result.error) {
           setError('Gagal memuat mutasi stock');
         } else {
           setStockMutations(result.data || []);
+          setTotalPages(Math.ceil((result.total || 0) / ITEMS_PER_PAGE) || 1);
         }
-      } else if (reportType === 'value') {
-        const result = await reportApi.getInventoryValue();
+      } else if (type === 'value') {
+        const result = await reportApi.getInventoryValue(pagination);
         if (result.error) {
           setError('Gagal memuat nilai inventory');
         } else {
           setInventoryValue(result.data || []);
+          setTotalPages(Math.ceil((result.total || 0) / ITEMS_PER_PAGE) || 1);
         }
-      } else if (reportType === 'sales') {
-        const result = await reportApi.getSalesReport(startDate || undefined, endDate || undefined);
+      } else if (type === 'sales') {
+        const result = await reportApi.getSalesReport(start || undefined, end || undefined, catId || undefined, pagination);
         if (result.error) {
           setError('Gagal memuat laporan penjualan');
         } else {
           setSalesSummary(result.data || []);
+          setTotalPages(Math.ceil((result.total || 0) / ITEMS_PER_PAGE) || 1);
         }
-      } else if (reportType === 'profit') {
-        const result = await reportApi.getProfitReport(startDate || undefined, endDate || undefined);
+      } else if (type === 'profit') {
+        const result = await reportApi.getProfitReport(start || undefined, end || undefined, catId || undefined, pagination);
         if (result.error) {
           setError('Gagal memuat laporan profit');
         } else {
           setProfitSummary(result.data || []);
+          setTotalPages(Math.ceil((result.total || 0) / ITEMS_PER_PAGE) || 1);
+        }
+      } else if (type === 'top_items') {
+        const result = await reportApi.getTopSellingItems(start || undefined, end || undefined, catId || undefined, 20);
+        if (result.error) {
+          setError('Gagal memuat barang terlaris');
+        } else {
+          setTopItems(result.data || []);
+          setTotalPages(1);
         }
       }
     } catch (err) {
@@ -60,11 +97,77 @@ export default function ReportsPage() {
     } finally {
       setLoading(false);
     }
-  }, [reportType, startDate, endDate]);
+  };
 
   useEffect(() => {
-    loadReport();
-  }, [loadReport]);
+    const fetchCategories = async () => {
+      const res = await kategoriApi.getAll();
+      if (!res.error && res.data) {
+        setCategories(res.data);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [reportType, startDate, endDate, categoryId]);
+
+  useEffect(() => {
+    fetchReport(reportType, startDate, endDate, categoryId, page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportType, page]);
+
+  const handleRefresh = () => {
+    fetchReport(reportType, startDate, endDate, categoryId, page);
+  };
+
+  const handleExportCSV = () => {
+    let csvData = '';
+    let filename = `report_${reportType}_${new Date().toISOString().split('T')[0]}.csv`;
+    
+    const arrayToCsv = (headers: string[], rows: any[][]) => {
+      return [
+        headers.join(','),
+        ...rows.map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      ].join('\n');
+    };
+
+    if (reportType === 'stock') {
+      csvData = arrayToCsv(
+        ['Tanggal', 'Barcode', 'Nama Barang', 'Tipe', 'Qty', 'Transaksi'],
+        stockMutations.map(m => [new Date(m.created_at).toLocaleDateString('id-ID'), m.barcode || '', m.nama_barang || '', m.tipe, m.qty_mutation, m.transaction_type])
+      );
+    } else if (reportType === 'value') {
+      csvData = arrayToCsv(
+        ['Barcode', 'Nama Barang', 'Kategori', 'Stok', 'Harga Beli', 'Harga Jual', 'Nilai Total'],
+        inventoryValue.map(i => [i.barcode || '', i.nama_barang || '', i.kategori, i.stok, i.harga_beli, i.harga_jual, i.total_value])
+      );
+    } else if (reportType === 'sales') {
+      csvData = arrayToCsv(
+        ['Tanggal', 'Jumlah Transaksi', 'Total Penjualan'],
+        salesSummary.map(s => [s.date, s.transaction_count, s.total_sales])
+      );
+    } else if (reportType === 'profit') {
+      csvData = arrayToCsv(
+        ['Tanggal', 'Total Modal (HPP)', 'Total Penjualan', 'Profit', 'Margin %'],
+        profitSummary.map(s => [s.date, s.total_modal, s.total_penjualan, s.total_profit, s.margin_percentage.toFixed(2) + '%'])
+      );
+    } else if (reportType === 'top_items') {
+      const sorted = [...topItems].sort((a, b) => topItemsSort === 'qty' ? b.total_qty - a.total_qty : b.total_profit - a.total_profit);
+      csvData = arrayToCsv(
+        ['Barang', 'Qty Terjual', 'Total Penjualan', 'Total Profit'],
+        sorted.map(t => [t.nama_barang, t.total_qty, t.total_sales, t.total_profit])
+      );
+    }
+
+    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
 
   const getTotalValue = () => {
     return inventoryValue.reduce((sum, item) => sum + item.total_value, 0);
@@ -79,21 +182,16 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
-      <header className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 py-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
+    <AmbientLayout>
+      <div className="mb-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5 animate-fade-in-up">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-gradient-to-br from-brand-600 to-brand-700 rounded-xl flex items-center justify-center shadow-md">
-              <IconReport className="w-5 h-5 text-white" />
+            <div className="w-12 h-12 bg-gradient-to-br from-brand-600 to-brand-700 rounded-xl flex items-center justify-center shadow-brand">
+              <IconReport className="w-6 h-6 text-white" stroke={1.5} />
             </div>
             <div>
-              <Breadcrumb
-                items={[
-                  { label: 'Inventory', href: '/inventory' },
-                  { label: 'Laporan', isActive: true },
-                ]}
-              />
-              <p className="text-sm text-neutral-500 dark:text-neutral-400">Monitoring & analytics</p>
+              <h1 className="text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Laporan</h1>
+              <p className="text-neutral-500 dark:text-neutral-400 mt-2 text-base font-medium">Monitoring & analytics</p>
             </div>
           </div>
         </div>
@@ -127,10 +225,17 @@ export default function ReportsPage() {
           >
             Profit
           </Button>
+          <Button
+            variant={reportType === 'top_items' ? 'primary' : 'ghost'}
+            size="sm"
+            onClick={() => setReportType('top_items')}
+          >
+            Top Items
+          </Button>
         </div>
 
         {reportType !== 'value' && (
-          <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex flex-wrap gap-3 items-end mb-5">
             <DateInput
               value={startDate}
               onChange={setStartDate}
@@ -143,14 +248,38 @@ export default function ReportsPage() {
               label="Sampai:"
               inputSize="sm"
             />
-            <Button
-              onClick={loadReport}
-              disabled={loading}
-              variant="primary"
-              size="sm"
-            >
-              Refresh
-            </Button>
+            {['sales', 'profit', 'top_items'].includes(reportType) && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Kategori:</label>
+                <SelectInput
+                  value={categoryId}
+                  onChange={setCategoryId}
+                  options={[{ value: '', label: 'Semua Kategori' }, ...categories.map(c => ({ value: c.id, label: c.nama }))]}
+                  placeholder="Semua Kategori"
+                  className="w-40"
+                />
+              </div>
+            )}
+            <div className="flex items-center gap-2 mb-0.5">
+              <Button
+                onClick={handleRefresh}
+                disabled={loading}
+                variant="primary"
+                size="sm"
+              >
+                Refresh
+              </Button>
+              <Button
+                onClick={handleExportCSV}
+                disabled={loading}
+                variant="secondary"
+                size="sm"
+                className="ml-auto"
+              >
+                <IconDownload size={16} />
+                Export CSV
+              </Button>
+            </div>
           </div>
         )}
 
@@ -159,9 +288,9 @@ export default function ReportsPage() {
             <span className="font-medium">{error}</span>
           </div>
         )}
-      </header>
+      </div>
 
-      <main className="flex-1 overflow-auto p-6">
+      <div className="flex-1">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
             <div className="w-12 h-12 border-4 border-neutral-200 dark:border-neutral-700 border-t-brand-600 rounded-full animate-spin mb-4"></div>
@@ -174,10 +303,10 @@ export default function ReportsPage() {
               <p className="text-lg font-medium">Tidak ada data mutasi stock</p>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-lg">
+            <div className="overflow-hidden rounded-3xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl shadow-elevated">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[900px]">
-                  <thead className="bg-gradient-to-r from-neutral-100 to-neutral-50 dark:from-neutral-800 dark:to-neutral-900 border-b border-neutral-200 dark:border-neutral-700">
+                  <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-b border-neutral-200/50 dark:border-neutral-800/50">
                     <tr>
                       <th className="px-4 py-4 text-left text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Tanggal</th>
                       <th className="px-4 py-4 text-left text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Barcode</th>
@@ -189,7 +318,7 @@ export default function ReportsPage() {
                   </thead>
                   <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
                     {stockMutations.map((mutation) => (
-                      <tr key={mutation.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                      <tr key={mutation.id} className="hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors">
                         <td className="px-4 py-3.5 text-sm text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
                           {new Date(mutation.created_at).toLocaleDateString('id-ID')}
                         </td>
@@ -213,6 +342,17 @@ export default function ReportsPage() {
                   </tbody>
                 </table>
               </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-4 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50">
+                  <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                    Halaman <span className="font-bold text-neutral-900 dark:text-white">{page}</span> dari <span className="font-bold text-neutral-900 dark:text-white">{totalPages}</span>
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <Button variant="secondary" size="sm" onClick={() => setPage(p => p - 1)} disabled={page <= 1}>Previous</Button>
+                    <Button variant="secondary" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>Next</Button>
+                  </div>
+                </div>
+              )}
             </div>
           )
         ) : reportType === 'value' ? (
@@ -224,19 +364,19 @@ export default function ReportsPage() {
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-5 text-white shadow-lg">
+                <div className="bg-gradient-to-br from-emerald-500/90 to-emerald-600/90 backdrop-blur-md border border-white/20 rounded-3xl p-5 text-white shadow-elevated">
                   <p className="text-emerald-100 text-sm font-medium">Total Nilai Inventory</p>
                   <p className="text-3xl font-bold mt-1">{formatCurrency(getTotalValue())}</p>
                 </div>
-                <div className="bg-gradient-to-br from-brand-500 to-brand-600 rounded-2xl p-5 text-white shadow-lg">
+                <div className="bg-gradient-to-br from-brand-500/90 to-brand-600/90 backdrop-blur-md border border-white/20 rounded-3xl p-5 text-white shadow-elevated">
                   <p className="text-brand-100 text-sm font-medium">Total Item</p>
                   <p className="text-3xl font-bold mt-1">{inventoryValue.length}</p>
                 </div>
               </div>
-              <div className="overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-lg">
+              <div className="overflow-hidden rounded-3xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl shadow-elevated">
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gradient-to-r from-neutral-100 to-neutral-50 dark:from-neutral-800 dark:to-neutral-900 border-b border-neutral-200 dark:border-neutral-700">
+                    <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-b border-neutral-200/50 dark:border-neutral-800/50">
                       <tr>
                         <th className="px-4 py-4 text-left text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Barcode</th>
                         <th className="px-4 py-4 text-left text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Nama Barang</th>
@@ -249,7 +389,7 @@ export default function ReportsPage() {
                     </thead>
                     <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
                       {inventoryValue.map((item) => (
-                        <tr key={item.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                        <tr key={item.id} className="hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors">
                           <td className="px-4 py-3.5 text-sm font-mono text-neutral-700 dark:text-neutral-300">{item.barcode}</td>
                           <td className="px-4 py-3.5 text-sm text-neutral-900 dark:text-neutral-100 font-medium">{item.nama_barang}</td>
                           <td className="px-4 py-3.5 text-sm text-neutral-600 dark:text-neutral-400">
@@ -267,6 +407,17 @@ export default function ReportsPage() {
                   </table>
                 </div>
               </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-4 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50 mt-4 rounded-3xl">
+                  <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                    Halaman <span className="font-bold text-neutral-900 dark:text-white">{page}</span> dari <span className="font-bold text-neutral-900 dark:text-white">{totalPages}</span>
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <Button variant="secondary" size="sm" onClick={() => setPage(p => p - 1)} disabled={page <= 1}>Previous</Button>
+                    <Button variant="secondary" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>Next</Button>
+                  </div>
+                </div>
+              )}
             </>
           )
         ) : reportType === 'sales' ? (
@@ -277,14 +428,31 @@ export default function ReportsPage() {
             </div>
           ) : (
             <>
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-5 text-white shadow-lg mb-6">
+              <div className="bg-gradient-to-br from-blue-500/90 to-blue-600/90 backdrop-blur-md border border-white/20 rounded-3xl p-5 text-white shadow-elevated mb-6">
                 <p className="text-blue-100 text-sm font-medium">Total Penjualan</p>
                 <p className="text-3xl font-bold mt-1">{formatCurrency(getTotalSales())}</p>
               </div>
-              <div className="overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-lg">
+
+              <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-5 mb-6 shadow-elevated">
+                <h3 className="text-lg font-bold mb-4 text-neutral-800 dark:text-neutral-200">Tren Penjualan</h3>
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={[...salesSummary].reverse()} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                      <XAxis dataKey="date" tick={{fontSize: 12}} />
+                      <YAxis tickFormatter={(val) => `Rp ${val / 1000}k`} tick={{fontSize: 12}} />
+                      <Tooltip formatter={(value: any) => formatCurrency(Number(value))} />
+                      <Legend />
+                      <Line type="monotone" dataKey="total_sales" name="Total Penjualan" stroke="#3b82f6" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-3xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl shadow-elevated">
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gradient-to-r from-neutral-100 to-neutral-50 dark:from-neutral-800 dark:to-neutral-900 border-b border-neutral-200 dark:border-neutral-700">
+                    <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-b border-neutral-200/50 dark:border-neutral-800/50">
                       <tr>
                         <th className="px-4 py-4 text-left text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Tanggal</th>
                         <th className="px-4 py-4 text-right text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Jumlah Transaksi</th>
@@ -293,7 +461,7 @@ export default function ReportsPage() {
                     </thead>
                     <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
                       {salesSummary.map((item) => (
-                        <tr key={item.date} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                        <tr key={item.date} className="hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors">
                           <td className="px-4 py-3.5 text-sm text-neutral-700 dark:text-neutral-300 font-medium">{item.date}</td>
                           <td className="px-4 py-3.5 text-right text-neutral-700 dark:text-neutral-300">{item.transaction_count}</td>
                           <td className="px-4 py-3.5 text-right font-bold text-neutral-900 dark:text-neutral-100">{formatCurrency(item.total_sales)}</td>
@@ -303,9 +471,20 @@ export default function ReportsPage() {
                   </table>
                 </div>
               </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-4 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50 mt-4 rounded-3xl">
+                  <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                    Halaman <span className="font-bold text-neutral-900 dark:text-white">{page}</span> dari <span className="font-bold text-neutral-900 dark:text-white">{totalPages}</span>
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <Button variant="secondary" size="sm" onClick={() => setPage(p => p - 1)} disabled={page <= 1}>Previous</Button>
+                    <Button variant="secondary" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>Next</Button>
+                  </div>
+                </div>
+              )}
             </>
           )
-        ) : (
+        ) : reportType === 'profit' ? (
           profitSummary.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
               <IconTrendingUp className="w-16 h-16 mb-4" />
@@ -313,34 +492,142 @@ export default function ReportsPage() {
             </div>
           ) : (
             <>
-              <div className={`rounded-2xl p-5 shadow-lg mb-6 ${
+              <div className={`rounded-3xl border border-white/20 backdrop-blur-md p-5 shadow-elevated mb-6 ${
                 getTotalProfit() >= 0 
-                  ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white' 
-                  : 'bg-gradient-to-br from-rose-500 to-rose-600 text-white'
+                  ? 'bg-gradient-to-br from-emerald-500/90 to-emerald-600/90 text-white' 
+                  : 'bg-gradient-to-br from-rose-500/90 to-rose-600/90 text-white'
               }`}>
                 <p className="text-sm font-medium opacity-80">Total Profit</p>
                 <p className="text-3xl font-bold mt-1">{formatCurrency(getTotalProfit())}</p>
               </div>
-              <div className="overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-lg">
+
+              <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-5 mb-6 shadow-elevated">
+                <h3 className="text-lg font-bold mb-4 text-neutral-800 dark:text-neutral-200">Tren Profit</h3>
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={[...profitSummary].reverse()} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                      <XAxis dataKey="date" tick={{fontSize: 12}} />
+                      <YAxis tickFormatter={(val) => `Rp ${val / 1000}k`} tick={{fontSize: 12}} />
+                      <Tooltip formatter={(value: any) => formatCurrency(Number(value))} />
+                      <Legend />
+                      <Line type="monotone" dataKey="total_profit" name="Profit" stroke="#10b981" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
+                      <Line type="monotone" dataKey="total_penjualan" name="Penjualan" stroke="#3b82f6" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-3xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl shadow-elevated">
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gradient-to-r from-neutral-100 to-neutral-50 dark:from-neutral-800 dark:to-neutral-900 border-b border-neutral-200 dark:border-neutral-700">
+                    <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-b border-neutral-200/50 dark:border-neutral-800/50">
                       <tr>
                         <th className="px-4 py-4 text-left text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Tanggal</th>
-                        <th className="px-4 py-4 text-right text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Total Pembelian</th>
+                        <th className="px-4 py-4 text-right text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Total Modal (HPP)</th>
                         <th className="px-4 py-4 text-right text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Total Penjualan</th>
                         <th className="px-4 py-4 text-right text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Profit</th>
+                        <th className="px-4 py-4 text-right text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Margin %</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
                       {profitSummary.map((item) => (
-                        <tr key={item.date} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                        <tr key={item.date} className="hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors">
                           <td className="px-4 py-3.5 text-sm text-neutral-700 dark:text-neutral-300 font-medium">{item.date}</td>
-                          <td className="px-4 py-3.5 text-right text-neutral-600 dark:text-neutral-400">{formatCurrency(item.total_pembelian)}</td>
+                          <td className="px-4 py-3.5 text-right text-neutral-600 dark:text-neutral-400">{formatCurrency(item.total_modal)}</td>
                           <td className="px-4 py-3.5 text-right text-neutral-600 dark:text-neutral-400">{formatCurrency(item.total_penjualan)}</td>
                           <td className={`px-4 py-3.5 text-right font-bold ${item.total_profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                             {formatCurrency(item.total_profit)}
                           </td>
+                          <td className={`px-4 py-3.5 text-right font-bold ${item.margin_percentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                            {item.margin_percentage.toFixed(1)}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-4 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50 mt-4 rounded-3xl">
+                  <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                    Halaman <span className="font-bold text-neutral-900 dark:text-white">{page}</span> dari <span className="font-bold text-neutral-900 dark:text-white">{totalPages}</span>
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <Button variant="secondary" size="sm" onClick={() => setPage(p => p - 1)} disabled={page <= 1}>Previous</Button>
+                    <Button variant="secondary" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>Next</Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )
+        ) : reportType === 'top_items' ? (
+          topItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
+              <IconChartBar className="w-16 h-16 mb-4" />
+              <p className="text-lg font-medium">Tidak ada data penjualan barang</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">Urutkan berdasarkan:</span>
+                <Button 
+                  size="sm" 
+                  variant={topItemsSort === 'qty' ? 'primary' : 'secondary'} 
+                  onClick={() => setTopItemsSort('qty')}
+                >
+                  Qty Terjual
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant={topItemsSort === 'profit' ? 'primary' : 'secondary'} 
+                  onClick={() => setTopItemsSort('profit')}
+                >
+                  Total Profit
+                </Button>
+              </div>
+              
+              <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-5 mb-6 shadow-elevated">
+                <h3 className="text-lg font-bold mb-4 text-neutral-800 dark:text-neutral-200">10 Barang Terlaris ({topItemsSort === 'qty' ? 'Kuantitas' : 'Profit'})</h3>
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart 
+                      data={[...topItems].sort((a, b) => topItemsSort === 'qty' ? b.total_qty - a.total_qty : b.total_profit - a.total_profit).slice(0, 10)} 
+                      margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.2} vertical={false} />
+                      <XAxis dataKey="nama_barang" tick={{fontSize: 11}} width={150} tickFormatter={(val) => val.length > 15 ? val.substring(0,15) + '...' : val} />
+                      <YAxis tick={{fontSize: 12}} tickFormatter={(val) => topItemsSort === 'profit' ? `Rp ${val / 1000}k` : val} />
+                      <Tooltip formatter={(value: any) => topItemsSort === 'profit' ? formatCurrency(Number(value)) : value} />
+                      <Bar 
+                        dataKey={topItemsSort === 'qty' ? 'total_qty' : 'total_profit'} 
+                        name={topItemsSort === 'qty' ? 'Qty Terjual' : 'Total Profit'} 
+                        fill="#8b5cf6" 
+                        radius={[4, 4, 0, 0]} 
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-3xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl shadow-elevated">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-b border-neutral-200/50 dark:border-neutral-800/50">
+                      <tr>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Nama Barang</th>
+                        <th className="px-4 py-4 text-right text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Qty Terjual</th>
+                        <th className="px-4 py-4 text-right text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Total Penjualan</th>
+                        <th className="px-4 py-4 text-right text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Total Profit</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                      {[...topItems].sort((a, b) => topItemsSort === 'qty' ? b.total_qty - a.total_qty : b.total_profit - a.total_profit).map((item) => (
+                        <tr key={item.inventory_id} className="hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors">
+                          <td className="px-4 py-3.5 text-sm text-neutral-900 dark:text-neutral-100 font-medium">{item.nama_barang}</td>
+                          <td className="px-4 py-3.5 text-right font-bold text-brand-600 dark:text-brand-400">{item.total_qty}</td>
+                          <td className="px-4 py-3.5 text-right text-neutral-600 dark:text-neutral-400">{formatCurrency(item.total_sales)}</td>
+                          <td className="px-4 py-3.5 text-right font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(item.total_profit)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -349,8 +636,8 @@ export default function ReportsPage() {
               </div>
             </>
           )
-        )}
-      </main>
-    </div>
+        ) : null}
+      </div>
+    </AmbientLayout>
   );
 }

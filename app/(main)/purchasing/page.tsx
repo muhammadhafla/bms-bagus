@@ -5,13 +5,13 @@ import { usePembelianStore } from '@/lib/store';
 import { inventoryApi, PembelianItem, purchaseApi, kategoriApi, supplierApi, Supplier, preloadInventoryCache } from '@/lib/api';
 import { InventoryItem } from '@/types/inventory';
 import { formatCurrency, normalizeBarcode, generateIdempotencyKey, generateAutoBarcode } from '@/lib/utils';
-import { IconShoppingCart, IconCamera, IconPackage, IconX, IconCheck } from '@tabler/icons-react';
+import { IconShoppingCart, IconCamera, IconPackage, IconX, IconCheck, IconDeviceFloppy, IconRefresh } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
 import DateInput from '@/components/ui/DateInput';
 import SelectInput from '@/components/ui/SelectInput';
-import { Button } from '@/components/ui';
-import { Badge } from '@/components/ui';
-import { Banner } from '@/components/ui';
+import { Button, AmbientLayout, Badge, Banner, useToast } from '@/components/ui';
+import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
+import ImportCSVWizard from '@/components/purchasing/ImportCSVWizard';
 
 interface ItemSuggestionDialogProps {
   open: boolean;
@@ -27,22 +27,22 @@ function ItemSuggestionDialog({ open, query, items, onSelect, onCreateNew, onClo
 
   return (
     <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-elevated w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-800 animate-scale-in">
+      <div className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl rounded-2xl shadow-elevated w-full max-w-md p-6 border border-white/40 dark:border-white/10 animate-scale-in">
         <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-1">Apakah maksud anda:</h2>
         <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">Pencarian untuk: <span className="font-medium text-neutral-900 dark:text-neutral-100">{query}</span></p>
         
-        <div className="space-y-2 mb-6 max-h-64 overflow-auto">
+        <div className="space-y-2 mb-6 max-h-64 overflow-auto pr-2 custom-scrollbar">
           {items.map((item) => (
             <button
               key={item.id}
               onClick={() => onSelect(item)}
-              className="w-full text-left p-3 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 transition-all flex justify-between items-center btn-press"
+              className="w-full text-left p-3 rounded-xl bg-white/50 hover:bg-white/80 dark:bg-neutral-800/50 dark:hover:bg-neutral-800/80 border border-white/20 dark:border-white/5 transition-all flex justify-between items-center btn-press shadow-sm"
             >
               <div>
                 <div className="font-medium text-neutral-900 dark:text-neutral-100">{item.nama_barang}</div>
                 <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">{item.kode_barcode || 'Tanpa barcode'}</div>
               </div>
-              <div className="text-xs bg-accent-teal-100 dark:bg-accent-teal-900/40 text-accent-teal-700 dark:text-accent-teal-300 px-2.5 py-1 rounded-full font-medium">
+              <div className="text-xs bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 px-2.5 py-1 rounded-full font-medium">
                 {item.similarity}% cocok
               </div>
             </button>
@@ -50,10 +50,10 @@ function ItemSuggestionDialog({ open, query, items, onSelect, onCreateNew, onClo
         </div>
         
         <div className="flex gap-3">
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose} className="flex-1">
             Batal
           </Button>
-          <Button variant="primary" onClick={onCreateNew}>
+          <Button variant="primary" onClick={onCreateNew} className="flex-1">
             Tambah Baru
           </Button>
         </div>
@@ -158,7 +158,7 @@ function NewItemDialog({ open, initialBarcode, initialName, onClose, onSubmit }:
 
   return (
     <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-elevated w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-800 animate-scale-in">
+      <div className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl rounded-2xl shadow-elevated w-full max-w-md p-6 border border-white/40 dark:border-white/10 animate-scale-in">
         <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-4">Barang Baru</h2>
         
         <form onSubmit={handleSubmit}>
@@ -168,7 +168,7 @@ function NewItemDialog({ open, initialBarcode, initialName, onClose, onSubmit }:
               type="text"
               value={nama_barang}
               onChange={(e) => setNamaBarang(e.target.value)}
-              className="w-full px-4 py-3.5 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-neutral-900 dark:text-neutral-100"
+              className="w-full px-4 py-3.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-neutral-900 dark:text-neutral-100"
               autoFocus
             />
           </div>
@@ -182,10 +182,10 @@ function NewItemDialog({ open, initialBarcode, initialName, onClose, onSubmit }:
               type="text"
               value={barcode}
               onChange={handleBarcodeChange}
-              className="w-full px-4 py-3.5 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all font-mono text-neutral-900 dark:text-neutral-100"
+              className="w-full px-4 py-3.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all font-mono text-neutral-900 dark:text-neutral-100"
             />
             {barcode.startsWith('AUTO-') && (
-              <p className="text-xs text-accent-teal-600 dark:text-accent-teal-400 mt-1.5 flex items-center gap-1">
+              <p className="text-xs text-brand-600 dark:text-brand-400 mt-1.5 flex items-center gap-1">
                 <IconCheck size={14} /> Barcode dihasilkan otomatis oleh sistem
               </p>
             )}
@@ -199,19 +199,19 @@ function NewItemDialog({ open, initialBarcode, initialName, onClose, onSubmit }:
               onChange={handleKategoriChange}
               onFocus={() => kategoriList.length > 0 && setShowKategoriSuggestions(true)}
               onBlur={() => setTimeout(() => setShowKategoriSuggestions(false), 200)}
-              className="w-full px-4 py-3.5 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-neutral-900 dark:text-neutral-100"
+              className="w-full px-4 py-3.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-neutral-900 dark:text-neutral-100"
               placeholder="Masukkan nama kategori"
               autoComplete="off"
             />
             
             {showKategoriSuggestions && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg z-10 overflow-hidden">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-xl shadow-lg z-10 overflow-hidden">
                 {filteredKategori.map((nama) => (
                   <button
                     key={nama}
                     type="button"
                     onClick={() => handleSelectKategori(nama)}
-                    className="w-full text-left px-4 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-800 text-sm text-neutral-900 dark:text-neutral-100 transition-colors"
+                    className="w-full text-left px-4 py-2.5 hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50 text-sm text-neutral-900 dark:text-neutral-100 transition-colors"
                   >
                     {nama}
                   </button>
@@ -226,7 +226,7 @@ function NewItemDialog({ open, initialBarcode, initialName, onClose, onSubmit }:
               <PriceInput
                 value={harga_beli}
                 onChange={setHargaBeli}
-                className="w-full px-3 py-2.5 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:border-brand-500"
+                className="w-full px-3 py-2.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 transition-all"
                 min={0}
               />
             </div>
@@ -235,7 +235,7 @@ function NewItemDialog({ open, initialBarcode, initialName, onClose, onSubmit }:
               <PriceInput
                 value={harga_jual}
                 onChange={setHargaJual}
-                className="w-full px-3 py-2.5 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:border-brand-500"
+                className="w-full px-3 py-2.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 transition-all"
                 min={0}
               />
             </div>
@@ -244,17 +244,17 @@ function NewItemDialog({ open, initialBarcode, initialName, onClose, onSubmit }:
               <PriceInput
                 value={diskon}
                 onChange={setDiskon}
-                className="w-full px-3 py-2.5 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:border-brand-500"
+                className="w-full px-3 py-2.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 transition-all"
                 min={0}
               />
             </div>
           </div>
           
           <div className="flex gap-3">
-            <Button variant="secondary" onClick={onClose}>
+            <Button variant="secondary" onClick={onClose} className="flex-1">
               Batal
             </Button>
-            <Button variant="primary" type="submit">
+            <Button variant="primary" type="submit" className="flex-1">
               Simpan
             </Button>
           </div>
@@ -266,8 +266,10 @@ function NewItemDialog({ open, initialBarcode, initialName, onClose, onSubmit }:
 
 export default function PembelianPage() {
   const { items, addItem, updateQty, updateHargaBeli, removeItem, reset, getTotalSistem, getSelisih, setTotalSupplier, setTanggal, totalSupplier, tanggal } = usePembelianStore();
+  const { showToast } = useToast();
   
   const [barcodeInput, setBarcodeInput] = useState('');
+  const [showImportWizard, setShowImportWizard] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -285,11 +287,74 @@ export default function PembelianPage() {
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
   const [supplierList, setSupplierList] = useState<Supplier[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
-  const editInputRef = useRef<HTMLInputElement>(null);
 
   const focusInput = useCallback(() => {
     setTimeout(() => inputRef.current?.focus(), 0);
   }, []);
+
+  const handleAddResolvedItem = useCallback((item: any) => {
+    addItem({
+      id: item.id,
+      barcode: item.kode_barcode,
+      nama_barang: item.nama_barang,
+      harga_jual: item.harga_jual,
+      harga_beli: item.harga_beli_terakhir || 0,
+      diskon: item.diskon || 0,
+      stok: item.stok,
+      minimum_stock: item.minimum_stock,
+      kategori: item.kategori,
+    });
+    setBarcodeInput('');
+    focusInput();
+    setLoading(false);
+  }, [addItem, focusInput]);
+
+  useKeyboardShortcuts([
+    {
+      key: 'F2',
+      handler: () => {
+        if (items.length > 0) {
+          setSelectedIndex(0);
+          setEditMode('qty');
+          setEditValue(items[0].qty);
+        }
+      },
+      description: 'Edit Qty baris pertama',
+      allowInInput: true,
+    },
+    {
+      key: 'F3',
+      handler: () => {
+        if (items.length > 0) {
+          setSelectedIndex(0);
+          setEditMode('harga');
+          setEditValue(items[0].harga_beli || 0);
+        }
+      },
+      description: 'Edit Harga baris pertama',
+      allowInInput: true,
+    },
+    {
+      key: 'Delete',
+      handler: () => {
+        if (selectedIndex !== null) {
+          removeItem(selectedIndex);
+          setSelectedIndex((prev) => prev === null ? null : Math.max(0, prev - 1));
+        }
+      },
+      description: 'Hapus item terpilih',
+      allowInInput: true,
+    },
+    {
+      key: 'Escape',
+      handler: () => {
+        setEditMode(null);
+        setSelectedIndex(null);
+      },
+      description: 'Batal edit',
+      allowInInput: true,
+    }
+  ]);
 
   useEffect(() => {
     focusInput();
@@ -323,41 +388,6 @@ export default function PembelianPage() {
     }
   }, [success]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F2') {
-        e.preventDefault();
-        if (items.length > 0) {
-          setSelectedIndex(0);
-          setEditMode('qty');
-          setEditValue(items[0].qty);
-          setTimeout(() => editInputRef.current?.focus(), 0);
-        }
-      } else if (e.key === 'F3') {
-        e.preventDefault();
-        if (items.length > 0) {
-          setSelectedIndex(0);
-          setEditMode('harga');
-          setEditValue(items[0].harga_beli || 0);
-          setTimeout(() => editInputRef.current?.focus(), 0);
-        }
-      } else if (e.key === 'Delete' && selectedIndex !== null) {
-        e.preventDefault();
-        removeItem(selectedIndex);
-        setSelectedIndex((prev) => {
-          if (prev === null) return null;
-          return Math.max(0, prev - 1);
-        });
-      } else if (e.key === 'Escape') {
-        setEditMode(null);
-        setSelectedIndex(null);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [items, selectedIndex, removeItem]);
-
   const handleBarcodeSubmit = useCallback(async (input: string) => {
     if (loading || submitting) return;
     
@@ -371,21 +401,7 @@ export default function PembelianPage() {
       const exactResult = await inventoryApi.getByExactBarcode(normalized);
       
       if (exactResult.data) {
-        const item = exactResult.data;
-        addItem({
-          id: item.id,
-          barcode: item.kode_barcode,
-          nama_barang: item.nama_barang,
-          harga_jual: item.harga_jual,
-          harga_beli: item.harga_beli_terakhir || 0,
-          diskon: item.diskon || 0,
-          stok: item.stok,
-          minimum_stock: item.minimum_stock,
-          kategori: item.kategori,
-        });
-        setBarcodeInput('');
-        focusInput();
-        setLoading(false);
+        handleAddResolvedItem(exactResult.data);
         return;
       }
       
@@ -396,39 +412,12 @@ export default function PembelianPage() {
         const exactMatch = fuzzyItems.find(item => item.similarity === 100);
         
         if (exactMatch) {
-          addItem({
-            id: exactMatch.id,
-            barcode: exactMatch.kode_barcode,
-            nama_barang: exactMatch.nama_barang,
-            harga_jual: exactMatch.harga_jual,
-            harga_beli: exactMatch.harga_beli_terakhir || 0,
-            diskon: exactMatch.diskon || 0,
-            stok: exactMatch.stok,
-            minimum_stock: exactMatch.minimum_stock,
-            kategori: exactMatch.kategori,
-          });
-          setBarcodeInput('');
-          focusInput();
-          setLoading(false);
+          handleAddResolvedItem(exactMatch);
           return;
         }
         
         if (fuzzyItems.length === 1 && fuzzyItems[0].similarity >= 80) {
-          const item = fuzzyItems[0];
-          addItem({
-            id: item.id,
-            barcode: item.kode_barcode,
-            nama_barang: item.nama_barang,
-            harga_jual: item.harga_jual,
-            harga_beli: item.harga_beli_terakhir || 0,
-            diskon: item.diskon || 0,
-            stok: item.stok,
-            minimum_stock: item.minimum_stock,
-            kategori: item.kategori,
-          });
-          setBarcodeInput('');
-          focusInput();
-          setLoading(false);
+          handleAddResolvedItem(fuzzyItems[0]);
           return;
         }
         
@@ -448,27 +437,10 @@ export default function PembelianPage() {
       
     } catch (err) {
       console.error('Error:', err);
-      setError('Terjadi kesalahan');
+      setError('Terjadi kesalahan saat memproses barcode');
       setLoading(false);
     }
-  }, [loading, submitting, addItem, focusInput]);
-
-  const handleSelectSuggestedItem = useCallback((item: InventoryItem) => {
-    addItem({
-      id: item.id,
-      barcode: item.kode_barcode,
-      nama_barang: item.nama_barang,
-      harga_jual: item.harga_jual,
-      harga_beli: item.harga_beli_terakhir || 0,
-      diskon: item.diskon || 0,
-      stok: item.stok,
-      minimum_stock: item.minimum_stock,
-      kategori: item.kategori,
-    });
-    setShowSuggestionDialog(false);
-    setBarcodeInput('');
-    focusInput();
-  }, [addItem, focusInput]);
+  }, [loading, submitting, handleAddResolvedItem]);
 
   const handleCreateNewFromSuggestion = useCallback(() => {
     setShowSuggestionDialog(false);
@@ -489,20 +461,11 @@ export default function PembelianPage() {
         diskon: data.diskon
       });
       if (!result.error && result.data) {
-        addItem({
-          id: result.data.id,
-          barcode: result.data.kode_barcode,
-          nama_barang: result.data.nama_barang,
-          harga_jual: result.data.harga_jual,
-          harga_beli: result.data.harga_beli_terakhir || 0,
-          diskon: result.data.diskon || 0,
-          stok: 0,
-          minimum_stock: 0,
-          kategori: result.data.id_kategori ?? { id: '', nama: data.kategori },
+        handleAddResolvedItem({
+          ...result.data,
+          kategori: result.data.id_kategori ?? { id: '', nama: data.kategori }
         });
         setShowNewItemDialog(false);
-        setBarcodeInput('');
-        focusInput();
       } else if (result.error) {
         setError(result.error.message || 'Gagal membuat barang baru');
       }
@@ -510,7 +473,7 @@ export default function PembelianPage() {
       console.error('Error creating item:', err);
       setError('Gagal membuat barang baru');
     }
-  }, [addItem, focusInput]);
+  }, [handleAddResolvedItem]);
 
   const handleSubmit = useCallback(async () => {
     if (items.length === 0) return;
@@ -557,8 +520,10 @@ export default function PembelianPage() {
           || result.error 
           || 'Gagal menyimpan pembelian';
         setError(String(errorMsg));
+        showToast(String(errorMsg), 'error');
       } else {
         setSuccess('Pembelian berhasil disimpan');
+        showToast('Pembelian berhasil disimpan', 'success');
         reset();
         setTotalSupplier(0);
         setSelectedSupplierId(null);
@@ -568,6 +533,7 @@ export default function PembelianPage() {
     } catch (err: any) {
       console.error('Error submitting:', err);
       setError(err.message || 'Terjadi kesalahan');
+      showToast(err.message || 'Terjadi kesalahan', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -599,235 +565,257 @@ export default function PembelianPage() {
   const isValid = selisih === 0;
 
   return (
-    <div className="flex flex-col min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
-      <header className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 py-5 shadow-card">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-brand-400 to-brand-500 rounded-xl flex items-center justify-center shadow-brand">
-              <IconShoppingCart className="w-6 h-6 text-white" stroke={1.5} />
+    <AmbientLayout>
+      <div className="flex flex-col h-[calc(100vh-2rem)]">
+        {/* Header Section */}
+        <div className="mb-6 flex-shrink-0 animate-fade-in-up">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-brand-400 to-brand-600 rounded-xl flex items-center justify-center shadow-brand">
+                <IconShoppingCart className="w-6 h-6 text-white" stroke={1.5} />
+              </div>
+              <div>
+                <h1 className="text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Pembelian</h1>
+                <p className="text-neutral-500 dark:text-neutral-400 mt-2 text-base font-medium">Input data barang masuk</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-h2 font-bold tracking-tight">Pembelian</h1>
-              <p className="text-sm text-neutral-500 dark:text-neutral-400">Input barang masuk</p>
+            
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="secondary" 
+                onClick={() => setShowImportWizard(true)}
+                className="flex items-center gap-2"
+              >
+                <IconPackage size={18} />
+                Import CSV
+              </Button>
+              <DateInput
+                value={tanggal}
+                onChange={setTanggal}
+                label="Tanggal:"
+                inputSize="sm"
+              />
             </div>
           </div>
-          
-          <div className="flex items-center gap-4">
-            <DateInput
-              value={tanggal}
-              onChange={setTanggal}
-              label="Tanggal:"
-              inputSize="sm"
-            />
+
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+            <div className="flex-1 relative animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
+                <IconCamera size={20} />
+              </div>
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder="Scan barcode..."
+                value={barcodeInput}
+                onChange={(e) => setBarcodeInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleBarcodeSubmit(barcodeInput);
+                  }
+                }}
+                disabled={loading}
+                className="w-full pl-12 pr-4 py-3.5 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-lg"
+                autoFocus
+              />
+            </div>
+            
+            <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+              <SelectInput
+                label="Supplier"
+                value={selectedSupplierId || ''}
+                onChange={(id) => {
+                  const s = supplierList.find(x => x.id === id);
+                  setSelectedSupplierId(id || null);
+                  setSupplier(s ? s.nama : '');
+                }}
+                options={supplierList.map(s => ({
+                  value: s.id,
+                  label: s.nama + (s.kontak ? ` (${s.kontak})` : '')
+                }))}
+                placeholder="-- Pilih Supplier --"
+                className="min-w-[18rem]"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2 min-w-[18rem] animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+              <label className="text-sm text-neutral-600 dark:text-neutral-300 font-semibold">Total Supplier:</label>
+              <PriceInput
+                value={totalSupplier || 0}
+                onChange={setTotalSupplier}
+                className="w-full px-4 py-3 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all"
+                placeholder="0"
+                min={0}
+              />
+            </div>
           </div>
+
+          {error && (
+            <div className="mt-4 p-3 bg-red-50/80 dark:bg-red-900/30 backdrop-blur-md text-red-600 dark:text-red-300 rounded-xl text-sm border border-red-200/50 dark:border-red-800/50 animate-fade-in shadow-sm">{error}</div>
+          )}
+          {success && (
+            <div className="mt-4 p-3 bg-brand-50/80 dark:bg-brand-900/30 backdrop-blur-md text-brand-600 dark:text-brand-300 rounded-xl text-sm border border-brand-200/50 dark:border-brand-800/50 animate-fade-in shadow-sm">{success}</div>
+          )}
         </div>
 
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div className="flex-1 relative">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
-              <IconCamera size={20} />
+        {/* Main Table Area */}
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl shadow-elevated mb-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+          {items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-neutral-400 py-20">
+              <div className="w-28 h-28 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border border-white/40 dark:border-white/10 rounded-3xl flex items-center justify-center mb-5 shadow-sm">
+                <IconCamera className="w-14 h-14 text-neutral-400" stroke={1.5} />
+              </div>
+              <p className="text-lg font-bold text-neutral-600 dark:text-neutral-300">Scan barcode untuk menambah barang</p>
+              <p className="text-sm text-neutral-500 mt-2">Atau tekan F2 untuk edit Qty, F3 untuk edit harga</p>
             </div>
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Scan barcode..."
-              value={barcodeInput}
-              onChange={(e) => setBarcodeInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleBarcodeSubmit(barcodeInput);
-                }
-              }}
-              disabled={loading}
-              className="w-full pl-12 pr-4 py-3.5 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-lg"
-              autoFocus
-            />
+          ) : (
+            <div className="overflow-x-auto h-full custom-scrollbar">
+              <table className="w-full min-w-[900px]">
+                <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md sticky top-0 z-10 border-b border-neutral-200/50 dark:border-neutral-800/50">
+                  <tr>
+                    <th className="px-4 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-12">#</th>
+                    <th className="px-4 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Barcode</th>
+                    <th className="px-4 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Nama Barang</th>
+                    <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Qty</th>
+                    <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Beli</th>
+                    <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Diskon</th>
+                    <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Subtotal</th>
+                    <th className="px-4 py-4 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-16">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/50">
+                {items.map((item, index) => (
+                  <tr 
+                    key={`${item.id}-${index}`} 
+                    className={`transition-colors ${selectedIndex === index ? 'bg-brand-50/50 dark:bg-brand-900/30' : 'hover:bg-white/50 dark:hover:bg-neutral-800/50'}`}
+                  >
+                    <td className="px-4 py-3 text-sm text-neutral-600 dark:text-neutral-400">{index + 1}</td>
+                    <td className="px-4 py-3 text-sm font-mono text-neutral-900 dark:text-neutral-100">{item.barcode}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-neutral-900 dark:text-neutral-100">{item.nama_barang}</td>
+                    <td className="px-4 py-3 text-right">
+                      {selectedIndex === index && editMode === 'qty' ? (
+                        <PriceInput
+                          value={editValue}
+                          onChange={setEditValue}
+                          onBlur={handleEditSubmit}
+                          className="w-20 px-3 py-1.5 border-2 border-brand-500 rounded-lg shadow-brand"
+                          min={1}
+                          autoFocus
+                        />
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedIndex(index);
+                            setEditMode('qty');
+                            setEditValue(item.qty);
+                          }}
+                          className="px-3 py-1.5 text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg w-20 block ml-auto transition-colors font-medium"
+                        >
+                          {item.qty}
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {selectedIndex === index && editMode === 'harga' ? (
+                        <PriceInput
+                          value={editValue}
+                          onChange={setEditValue}
+                          onBlur={handleEditSubmit}
+                          className="w-28 px-3 py-1.5 border-2 border-brand-500 rounded-lg shadow-brand"
+                          min={0}
+                          autoFocus
+                        />
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedIndex(index);
+                            setEditMode('harga');
+                            setEditValue(item.harga_beli || 0);
+                          }}
+                          className="px-3 py-1.5 text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg w-28 block ml-auto transition-colors font-medium text-neutral-700 dark:text-neutral-300"
+                        >
+                          {formatCurrency(item.harga_beli || 0)}
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right text-neutral-500 dark:text-neutral-400">
+                      {formatCurrency(item.diskon)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold text-neutral-900 dark:text-neutral-100">
+                      {formatCurrency(item.subtotal)}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => removeItem(index)}
+                        className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 text-lg btn-press p-2 rounded-xl transition-colors"
+                      >
+                        <IconX size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          
-            <SelectInput
-              label="Supplier"
-              value={selectedSupplierId || ''}
-              onChange={(id) => {
-                const s = supplierList.find(x => x.id === id);
-                setSelectedSupplierId(id || null);
-                setSupplier(s ? s.nama : '');
-              }}
-              options={supplierList.map(s => ({
-                value: s.id,
-                label: s.nama + (s.kontak ? ` (${s.kontak})` : '')
-              }))}
-              placeholder="-- Pilih Supplier --"
-              className="min-w-[18rem]"
-            />
-
-          <div className="flex flex-col gap-2 min-w-[18rem]">
-            <label className="text-sm text-neutral-600 dark:text-neutral-300 font-semibold">Total Supplier:</label>
-            <PriceInput
-              value={totalSupplier || 0}
-              onChange={setTotalSupplier}
-              className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all"
-              placeholder="0"
-              min={0}
-            />
-          </div>
+          )}
         </div>
 
-        {error && (
-          <div className="mt-3 p-3 bg-accent-rose-50 dark:bg-accent-rose-950 text-accent-rose-600 dark:text-accent-rose-200 rounded-xl text-sm border border-accent-rose-200 dark:border-accent-rose-800 animate-fade-in">{error}</div>
-        )}
-        {success && (
-          <div className="mt-3 p-3 bg-accent-teal-50 dark:bg-accent-teal-950 text-accent-teal-600 dark:text-accent-teal-200 rounded-xl text-sm border border-accent-teal-200 dark:border-accent-teal-800 animate-fade-in">{success}</div>
-        )}
-      </header>
+        {/* Footer Section */}
+        <div className="flex-shrink-0 animate-fade-in-up" style={{ animationDelay: '250ms' }}>
+          <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-5 shadow-elevated">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/40 dark:border-white/10 shadow-sm">
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400 font-medium">Total Sistem</p>
+                  <p className="text-2xl font-black text-neutral-900 dark:text-white">{formatCurrency(totalSistem)}</p>
+                </div>
+                <div className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/40 dark:border-white/10 shadow-sm">
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400 font-medium">Total Supplier</p>
+                  <p className="text-2xl font-black text-neutral-900 dark:text-white">{formatCurrency(totalSupplier)}</p>
+                </div>
+                <div className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/40 dark:border-white/10 shadow-sm">
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400 font-medium">Selisih</p>
+                  <p className={`text-2xl font-black ${isValid ? 'text-brand-600 dark:text-brand-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {formatCurrency(selisih)}
+                  </p>
+                </div>
+              </div>
 
-      <main className="flex-1 overflow-auto p-6">
-        {items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-neutral-400 py-20">
-            <div className="w-28 h-28 bg-gradient-to-br from-neutral-100 to-neutral-200 dark:from-neutral-800 dark:to-neutral-900 rounded-2xl flex items-center justify-center mb-5 shadow-card">
-              <IconCamera className="w-14 h-14 text-neutral-400" stroke={1} />
-            </div>
-            <p className="text-lg font-semibold text-neutral-600 dark:text-neutral-300">Scan barcode untuk menambah barang</p>
-            <p className="text-sm text-neutral-400 dark:text-neutral-500 mt-1.5">atau tekan F2 untuk edit qty, F3 untuk edit harga</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-card">
-            <table className="w-full min-w-[900px]">
-              <thead className="bg-neutral-50 dark:bg-neutral-950 sticky top-0">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-12">#</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Barcode</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Nama Barang</th>
-                  <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Qty</th>
-                  <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Beli</th>
-                  <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Diskon</th>
-                  <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Subtotal</th>
-                  <th className="px-4 py-3 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-16"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
-              {items.map((item, index) => (
-                <tr 
-                  key={`${item.id}-${index}`} 
-                  className={`transition-colors ${selectedIndex === index ? 'bg-brand-50 dark:bg-brand-900/30' : 'bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800'}`}
+              <div className="flex gap-3 justify-end items-center">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    reset();
+                    setTotalSupplier(0);
+                    focusInput();
+                  }}
+                  className="bg-white/50 dark:bg-neutral-800/50 backdrop-blur-md border-white/40 dark:border-white/10"
+                  leftIcon={<IconRefresh className="w-5 h-5" />}
                 >
-                  <td className="px-4 py-3 text-sm text-neutral-600 dark:text-neutral-400">{index + 1}</td>
-                  <td className="px-4 py-3 text-sm font-mono text-neutral-900 dark:text-neutral-100">{item.barcode}</td>
-                  <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">{item.nama_barang}</td>
-                  <td className="px-4 py-3 text-right">
-                    {selectedIndex === index && editMode === 'qty' ? (
-                      <PriceInput
-                        value={editValue}
-                        onChange={setEditValue}
-                        onBlur={handleEditSubmit}
-                        className="w-20 px-2 py-1 border-2 border-brand-500 rounded-lg"
-                        min={1}
-                        autoFocus
-                      />
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setSelectedIndex(index);
-                          setEditMode('qty');
-                          setEditValue(item.qty);
-                        }}
-                        className="px-2 py-1 text-right hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg w-20 block ml-auto btn-press"
-                      >
-                        {item.qty}
-                      </button>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {selectedIndex === index && editMode === 'harga' ? (
-                      <PriceInput
-                        value={editValue}
-                        onChange={setEditValue}
-                        onBlur={handleEditSubmit}
-                        className="w-24 px-2 py-1 border-2 border-brand-500 rounded-lg"
-                        min={0}
-                        autoFocus
-                      />
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setSelectedIndex(index);
-                          setEditMode('harga');
-                          setEditValue(item.harga_beli || 0);
-                        }}
-                        className="px-2 py-1 text-right hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg w-24 block ml-auto btn-press"
-                      >
-                        {formatCurrency(item.harga_beli || 0)}
-                      </button>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right text-neutral-600 dark:text-neutral-300">
-                    {formatCurrency(item.diskon)}
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold text-neutral-900 dark:text-neutral-100">
-                    {formatCurrency(item.subtotal)}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => removeItem(index)}
-                      className="text-accent-rose-500 hover:text-accent-rose-700 dark:text-accent-rose-400 dark:hover:text-accent-rose-200 text-lg btn-press p-1 rounded-lg transition-colors"
-                    >
-                      <IconX size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        )}
-      </main>
-
-      <footer className="bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 px-6 py-5 shadow-card">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="bg-neutral-50 dark:bg-neutral-950 rounded-2xl px-5 py-4 shadow-card border border-neutral-200 dark:border-neutral-800">
-              <p className="text-sm text-neutral-500 dark:text-neutral-400">Total Sistem</p>
-              <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{formatCurrency(totalSistem)}</p>
-            </div>
-            <div className="bg-neutral-50 dark:bg-neutral-950 rounded-2xl px-5 py-4 shadow-card border border-neutral-200 dark:border-neutral-800">
-              <p className="text-sm text-neutral-500 dark:text-neutral-400">Total Supplier</p>
-              <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{formatCurrency(totalSupplier)}</p>
-            </div>
-            <div className="bg-neutral-50 dark:bg-neutral-950 rounded-2xl px-5 py-4 shadow-card border border-neutral-200 dark:border-neutral-800">
-              <p className="text-sm text-neutral-500 dark:text-neutral-400">Selisih</p>
-              <p className={`text-2xl font-bold ${isValid ? 'text-accent-teal-600 dark:text-accent-teal-300' : 'text-accent-rose-600 dark:text-accent-rose-300'}`}>
-                {formatCurrency(selisih)}
-              </p>
+                  <span className="hidden sm:inline">Reset</span>
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={items.length === 0 || submitting}
+                  variant="primary"
+                  size="lg"
+                  className="shadow-brand px-8"
+                  leftIcon={<IconDeviceFloppy className="w-5 h-5" />}
+                >
+                  <span className="hidden sm:inline">{submitting ? 'Menyimpan...' : 'Simpan Pembelian'}</span>
+                </Button>
+              </div>
             </div>
           </div>
-
-          <div className="flex flex-wrap gap-3 justify-end">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                reset();
-                setTotalSupplier(0);
-                focusInput();
-              }}
-            >
-              Reset
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={items.length === 0 || submitting}
-              variant="primary"
-              size="lg"
-            >
-              {submitting ? 'Menyimpan...' : 'Simpan Pembelian'}
-            </Button>
-          </div>
         </div>
-      </footer>
+
+      </div>
 
       <ItemSuggestionDialog
         open={showSuggestionDialog}
         query={suggestionQuery}
         items={suggestionItems}
-        onSelect={handleSelectSuggestedItem}
+        onSelect={handleAddResolvedItem}
         onCreateNew={handleCreateNewFromSuggestion}
         onClose={() => {
           setShowSuggestionDialog(false);
@@ -847,6 +835,27 @@ export default function PembelianPage() {
         }}
         onSubmit={handleCreateNewItem}
       />
-    </div>
+
+      <ImportCSVWizard
+        open={showImportWizard}
+        onClose={() => {
+          setShowImportWizard(false);
+          focusInput();
+        }}
+        onComplete={(importedItems) => {
+          importedItems.forEach(({ item, qty, harga_beli }) => {
+            addItem({
+              ...item,
+              barcode: item.kode_barcode || item.barcode,
+              harga_beli: harga_beli || item.harga_beli_terakhir || 0,
+              diskon: item.diskon || 0,
+            }, qty);
+          });
+          setShowImportWizard(false);
+          setSuccess(`${importedItems.length} macam barang berhasil diimpor`);
+          focusInput();
+        }}
+      />
+    </AmbientLayout>
   );
 }

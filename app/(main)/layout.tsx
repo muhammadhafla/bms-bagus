@@ -14,7 +14,6 @@ import {
   IconShoppingCart,
   IconArrowBack,
   IconReport,
-  IconReceipt,
   IconClipboardCheck,
   IconUsers,
   IconLogout,
@@ -25,6 +24,7 @@ import {
   IconDotsVertical,
   IconMenu2,
   IconChevronRight,
+  IconTruck,
 } from '@tabler/icons-react';
 
 // Constants extracted outside component to prevent re-creation
@@ -40,11 +40,11 @@ const INVENTORY_ITEMS = [
 
 const PURCHASING_ITEMS = [
   { href: '/purchasing', title: 'Transaksi Baru', icon: IconShoppingCart },
+  { href: '/purchasing/supplier', title: 'Supplier', icon: IconTruck },
   { href: '/purchasing/riwayat', title: 'Riwayat', icon: IconHistory },
 ];
 
 const TRANSACTIONS_ITEMS = [
-  { href: '/transactions/receipt', title: 'Struk', icon: IconReceipt },
   { href: '/transactions/return', title: 'Return', icon: IconArrowBack },
 ];
 
@@ -226,7 +226,7 @@ export default function MainLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100">
+    <div className="flex min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
       <ConfirmDialog
         isOpen={logoutConfirmOpen}
         title="Keluar dari Sistem"
@@ -260,8 +260,8 @@ export default function MainLayout({
       {/* Sidebar - Responsive */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 bg-white dark:bg-neutral-950 flex flex-col shadow-sm transform transition-all duration-300 ease-in-out overflow-x-hidden
-          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          fixed inset-y-0 left-0 z-50 flex flex-col transform transition-all duration-300 ease-in-out overflow-x-hidden
+          ${mobileMenuOpen ? 'translate-x-0 bg-neutral-50 dark:bg-neutral-950 shadow-xl' : '-translate-x-full lg:translate-x-0'}
           ${sidebarWidth}
         `}
         aria-label="Sidebar navigation"
@@ -269,7 +269,7 @@ export default function MainLayout({
         onMouseLeave={() => autoHideEnabled && setSidebarHovered(false)}
       >
           {/* Sidebar Header: Logo + Collapse Toggle */}
-          <div className={`p-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center ${isSidebarVisible ? 'justify-between' : 'justify-center'}`}>
+          <div className={`p-4 flex items-center ${isSidebarVisible ? 'justify-between' : 'justify-center'}`}>
             <Link href="/" className={`flex items-center ${isSidebarVisible ? 'gap-3' : 'gap-0'} ${!isSidebarVisible ? 'lg:justify-center' : ''}`}>
               <div
                 className={`relative rounded-xl flex items-center justify-center shadow-md overflow-hidden transition-all ${!isSidebarVisible && autoHideEnabled ? 'lg:w-6 lg:h-6' : 'w-10 h-10'}`}
@@ -319,10 +319,10 @@ export default function MainLayout({
                <button
                  type="button"
                  onClick={handleToggleInventory}
-                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-colors"
                  aria-expanded={inventoryExpanded}
                >
-                 <span className="flex-1 text-left">Inventory</span>
+                 <span className="flex-1 text-left">Stok</span>
                  {isSidebarVisible && (
                    <IconChevronRight
                      className={`w-3 h-3 transition-transform ${inventoryExpanded ? 'rotate-90' : ''}`}
@@ -352,10 +352,10 @@ export default function MainLayout({
                <button
                  type="button"
                  onClick={handleTogglePurchasing}
-                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-colors"
                  aria-expanded={purchasingExpanded}
                >
-                 <span className="flex-1 text-left">Purchasing</span>
+                 <span className="flex-1 text-left">Pembelian</span>
                  {isSidebarVisible && (
                    <IconChevronRight
                      className={`w-3 h-3 transition-transform ${purchasingExpanded ? 'rotate-90' : ''}`}
@@ -385,10 +385,10 @@ export default function MainLayout({
                 <button
                   type="button"
                   onClick={handleToggleTransactions}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-colors"
                   aria-expanded={transactionsExpanded}
                 >
-                  <span className="flex-1 text-left">Transactions</span>
+                  <span className="flex-1 text-left">Transaksi</span>
                   {isSidebarVisible && (
                     <IconChevronRight
                       className={`w-3 h-3 transition-transform ${transactionsExpanded ? 'rotate-90' : ''}`}
@@ -414,7 +414,7 @@ export default function MainLayout({
          </nav>
 
         {/* Sidebar Footer: User Dropup Menu */}
-        <div className="p-3 border-t border-neutral-200 dark:border-neutral-800 relative">
+        <div className="p-3 relative">
           {/* User Menu Trigger */}
           <button
             onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -486,9 +486,9 @@ export default function MainLayout({
       </aside>
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${contentMargin}`}>
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${contentMargin} p-2 lg:p-3 pt-16 lg:pt-3`}>
         {/* Page content */}
-        <main className="flex-1 overflow-auto p-4 lg:p-6 pt-16 lg:pt-4">
+        <main className="flex-1 overflow-auto bg-white dark:bg-neutral-900 rounded-[1.5rem] lg:rounded-[2rem] shadow-sm border border-neutral-200/50 dark:border-neutral-800/50 p-4 lg:p-6 relative">
           {children}
         </main>
       </div>

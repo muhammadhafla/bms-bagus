@@ -1,22 +1,29 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { IconPackage, IconDotsVertical } from '@tabler/icons-react';
+import { IconPackage, IconDotsVertical, IconDeviceFloppy, IconTrash } from '@tabler/icons-react';
 import { InventoryItem } from '@/types/inventory';
 import { formatCurrency } from '@/lib/utils';
 import { inventoryApi, kategoriApi } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { AdminOnly } from '@/components/role';
-import { SlideOver } from '@/components/ui/SlideOver';
+import { Modal } from '@/components/ui/Modal';
 import TextInput from '@/components/ui/TextInput';
 import SelectInput from '@/components/ui/SelectInput';
 import Button from '@/components/ui/Button';
+
+interface PaginationProps {
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}
 
 interface InventoryTableProps {
   items: InventoryItem[];
   onUpdate: (id: string, data: Partial<InventoryItem>) => void;
   onDelete?: (id: string) => void;
+  pagination?: PaginationProps;
 }
 
 interface EditForm {
@@ -29,7 +36,7 @@ interface EditForm {
   minimum_stock: number;
 }
 
-export function InventoryTable({ items, onUpdate, onDelete }: InventoryTableProps) {
+export function InventoryTable({ items, onUpdate, onDelete, pagination }: InventoryTableProps) {
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
   const [kategoriList, setKategoriList] = useState<string[]>([]);
@@ -133,68 +140,98 @@ export function InventoryTable({ items, onUpdate, onDelete }: InventoryTableProp
   }
 
   return (
-    <div className="overflow-auto rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
-      <table className="w-full min-w-[900px]">
-        <thead className="bg-neutral-50 dark:bg-neutral-950 sticky top-0">
-          <tr>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Barcode</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Nama Barang</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Kategori</th>
-            <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Beli</th>
-            <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Jual</th>
-            <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Diskon</th>
-            <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Stok</th>
-            <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Min Stock</th>
-            <th className="px-4 py-3 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400">Aksi</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
-          {items.map((item) => {
-            const isLowStock = item.stok <= (item.minimum_stock || 0);
+    <>
+      <div className="overflow-auto rounded-3xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl shadow-elevated">
+        <table className="w-full min-w-[900px]">
+          <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md sticky top-0 z-10 border-b border-neutral-200/50 dark:border-neutral-800/50">
+            <tr>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Barcode</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Nama Barang</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Kategori</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Beli</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Jual</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Diskon</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Stok</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Min Stock</th>
+              <th className="px-4 py-3 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
+            {items.map((item) => {
+              const isLowStock = item.stok <= (item.minimum_stock || 0);
 
-            return (
-              <tr 
-                key={item.id} 
-                className={isLowStock ? 'bg-red-50/50 dark:bg-red-900/40 hover:bg-red-50 dark:hover:bg-red-900/50' : 'bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800'}
+              return (
+                <tr 
+                  key={item.id} 
+                  className={isLowStock ? 'bg-red-50/30 dark:bg-red-900/20 hover:bg-red-50/50 dark:hover:bg-red-900/40 transition-colors' : 'hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors'}
+                >
+                  <td className="px-4 py-3 text-sm font-mono text-neutral-900 dark:text-neutral-100">{item.kode_barcode}</td>
+                  <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">{item.nama_barang}</td>
+                  <td className="px-4 py-3">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                      {item.id_kategori?.nama || '-'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right text-neutral-600 dark:text-neutral-300">
+                    {formatCurrency(item.harga_beli_terakhir || 0)}
+                  </td>
+                  <td className="px-4 py-3 text-right font-medium text-neutral-900 dark:text-neutral-100">
+                    {formatCurrency(item.harga_jual)}
+                  </td>
+                  <td className="px-4 py-3 text-right text-neutral-600 dark:text-neutral-300">
+                    {formatCurrency(item.diskon)}
+                  </td>
+                  <td className={`px-4 py-3 text-right font-bold ${isLowStock ? 'text-red-600 dark:text-red-300' : 'text-neutral-900 dark:text-neutral-100'}`}>
+                    {item.stok}
+                  </td>
+                  <td className="px-4 py-3 text-right text-neutral-500 dark:text-neutral-300">
+                    {item.minimum_stock}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => openSlideOver(item)}
+                      className="p-2 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition-colors"
+                      aria-label={`Buka menu untuk ${item.nama_barang}`}
+                    >
+                      <IconDotsVertical size={18} stroke={2} />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50">
+            <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+              Halaman <span className="font-bold text-neutral-900 dark:text-white">{pagination.page}</span> dari <span className="font-bold text-neutral-900 dark:text-white">{pagination.totalPages}</span>
+            </p>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => pagination.onPageChange(pagination.page - 1)}
+                disabled={pagination.page <= 1}
+                className="min-w-[100px]"
               >
-                <td className="px-4 py-3 text-sm font-mono text-neutral-900 dark:text-neutral-100">{item.kode_barcode}</td>
-                <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">{item.nama_barang}</td>
-                <td className="px-4 py-3">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
-                    {item.id_kategori?.nama || '-'}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-right text-neutral-600 dark:text-neutral-300">
-                  {formatCurrency(item.harga_beli_terakhir || 0)}
-                </td>
-                <td className="px-4 py-3 text-right font-medium text-neutral-900 dark:text-neutral-100">
-                  {formatCurrency(item.harga_jual)}
-                </td>
-                <td className="px-4 py-3 text-right text-neutral-600 dark:text-neutral-300">
-                  {formatCurrency(item.diskon)}
-                </td>
-                <td className={`px-4 py-3 text-right font-bold ${isLowStock ? 'text-red-600 dark:text-red-300' : 'text-neutral-900 dark:text-neutral-100'}`}>
-                  {item.stok}
-                </td>
-                <td className="px-4 py-3 text-right text-neutral-500 dark:text-neutral-300">
-                  {item.minimum_stock}
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <button
-                    onClick={() => openSlideOver(item)}
-                    className="p-2 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition-colors"
-                    aria-label={`Buka menu untuk ${item.nama_barang}`}
-                  >
-                    <IconDotsVertical size={18} stroke={2} />
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                Previous
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => pagination.onPageChange(pagination.page + 1)}
+                disabled={pagination.page >= pagination.totalPages}
+                className="min-w-[100px]"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
 
-      <SlideOver
+      <Modal
         isOpen={isSlideOverOpen}
         onClose={closeSlideOver}
         title={selectedItem ? `Edit ${selectedItem.nama_barang}` : ''}
@@ -285,18 +322,20 @@ export function InventoryTable({ items, onUpdate, onDelete }: InventoryTableProp
               variant="primary"
               onClick={() => setSaveConfirm(true)}
               className="flex-1"
+              leftIcon={<IconDeviceFloppy size={18} />}
             >
-              Simpan Perubahan
+              <span className="hidden sm:inline">Simpan Perubahan</span>
             </Button>
             <Button
               variant="danger"
               onClick={() => setDeleteConfirm(true)}
+              leftIcon={<IconTrash size={18} />}
             >
-              Hapus Barang
+              <span className="hidden sm:inline">Hapus Barang</span>
             </Button>
           </div>
         </AdminOnly>
-      </SlideOver>
+      </Modal>
 
       <ConfirmDialog
         isOpen={saveConfirm}
@@ -318,6 +357,6 @@ export function InventoryTable({ items, onUpdate, onDelete }: InventoryTableProp
         onCancel={() => setDeleteConfirm(false)}
         danger
       />
-    </div>
+    </>
   );
 }

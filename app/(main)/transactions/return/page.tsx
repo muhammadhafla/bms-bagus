@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react'
 import { returnApi, AvailableReturnItem } from '@/lib/api/return';
 import { supplierApi } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
-import { IconArrowBack, IconSearch, IconFileExport } from '@tabler/icons-react';
+import { IconArrowBack, IconSearch, IconFileExport, IconX, IconDeviceFloppy } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
 import { Button } from '@/components/ui';
 
@@ -448,19 +448,23 @@ export default function ReturnPage() {
             </div>
 
             <div className="flex flex-wrap gap-3 justify-end">
-              <button
+              <Button
+                variant="secondary"
                 onClick={handleReset}
-                className="px-6 py-3 border-2 border-neutral-200 rounded-xl hover:bg-neutral-50 font-medium text-neutral-700 transition-all"
+                className="px-6 py-3 rounded-xl"
+                leftIcon={<IconArrowBack className="w-5 h-5" />}
               >
-                Kembali
-              </button>
-              <button
+                <span className="hidden sm:inline">Kembali</span>
+              </Button>
+              <Button
+                variant="primary"
                 onClick={handleSubmit}
                 disabled={submitting || totalReturn === 0}
-                className="px-8 py-3 bg-gradient-to-r from-brand-400 to-brand-500 text-white rounded-xl hover:from-brand-500 hover:to-brand-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-md transition-all"
+                className="px-8 py-3 rounded-xl"
+                leftIcon={<IconDeviceFloppy className="w-5 h-5" />}
               >
-                {submitting ? 'Menyimpan...' : 'Simpan Return'}
-              </button>
+                <span className="hidden sm:inline">{submitting ? 'Menyimpan...' : 'Simpan Return'}</span>
+              </Button>
             </div>
           </div>
         </footer>
@@ -510,15 +514,16 @@ export default function ReturnPage() {
             </div>
 
             <div className="flex gap-3 justify-end">
-              <Button variant="secondary" onClick={() => setShowPreview(false)}>
-                Batal
+              <Button variant="secondary" onClick={() => setShowPreview(false)} leftIcon={<IconX className="w-5 h-5" />}>
+                <span className="hidden sm:inline">Batal</span>
               </Button>
               <Button
                 onClick={handleConfirmSubmit}
                 disabled={submitting}
                 variant="primary"
+                leftIcon={<IconDeviceFloppy className="w-5 h-5" />}
               >
-                {submitting ? 'Menyimpan...' : 'Konfirmasi Simpan'}
+                <span className="hidden sm:inline">{submitting ? 'Menyimpan...' : 'Konfirmasi Simpan'}</span>
               </Button>
             </div>
           </div>

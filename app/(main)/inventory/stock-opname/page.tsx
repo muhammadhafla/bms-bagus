@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { StockOpname, stockOpnameApi } from '@/lib/api';
 import { IconPlus, IconEye, IconCheck, IconX, IconTrash } from '@tabler/icons-react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { Breadcrumb, Button, Badge } from '@/components/ui';
+import { Breadcrumb, Button, Badge, AmbientLayout } from '@/components/ui';
 import { API_ERROR_MESSAGES, UI_MESSAGES, STOCK_OPNAME_MESSAGES } from '@/lib/constants';
 
 const statusBadgeVariant: Record<string, 'warning' | 'info' | 'success' | 'danger' | 'default'> = {
@@ -71,7 +71,7 @@ export default function StockOpnameListPage() {
   };
 
 return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 p-4">
+    <AmbientLayout>
       <Breadcrumb
         items={[
           { label: 'Inventory', href: '/inventory' },
@@ -80,8 +80,8 @@ return (
         className="mb-4"
       />
       
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-h2 font-bold">Stock Opname</h1>
+      <div className="flex justify-between items-center mb-6 animate-fade-in-up">
+        <h1 className="text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Stock Opname</h1>
         <Button
           onClick={handleCreate}
           disabled={creating}
@@ -95,30 +95,30 @@ return (
       {loading ? (
         <div className="text-center py-12 text-neutral-500">{UI_MESSAGES.LOADING}</div>
       ) : error ? (
-        <div className="text-center py-12 text-danger-600 bg-danger-50 dark:bg-danger-900/20 rounded-lg">
+        <div className="text-center py-12 text-danger-600 bg-danger-50/50 dark:bg-danger-900/20 backdrop-blur-md rounded-3xl border border-danger-200/50 dark:border-danger-800/50 shadow-elevated">
           <p>{error}</p>
           <button onClick={fetchOpnames} className="text-sm underline mt-2">{UI_MESSAGES.TRY_AGAIN}</button>
         </div>
       ) : opnames.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
+        <div className="text-center py-12 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl rounded-3xl border border-white/40 dark:border-white/10 shadow-elevated">
           <p className="text-neutral-500">{STOCK_OPNAME_MESSAGES.NO_OPNAME}</p>
           <p className="text-sm text-neutral-400 mt-1">{STOCK_OPNAME_MESSAGES.CREATE_HINT}</p>
         </div>
        ) : (
-         <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm overflow-hidden">
+         <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl shadow-elevated overflow-hidden">
            <div className="overflow-x-auto">
              <table className="w-full min-w-[600px]">
                <thead>
-                 <tr className="bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
+                 <tr className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-b border-neutral-200/50 dark:border-neutral-800/50">
                    <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Tanggal</th>
                    <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Status</th>
                    <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Dibuat Oleh</th>
                    <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Aksi</th>
                  </tr>
                </thead>
-               <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+               <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
                  {opnames.map((opname) => (
-                   <tr key={opname.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                   <tr key={opname.id} className="hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors">
                      <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">{new Date(opname.opname_date).toLocaleDateString('id-ID')}</td>
                      <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">
                        <Badge variant={statusBadgeVariant[opname.status]} size="sm">
@@ -154,7 +154,7 @@ return (
 
       <ConfirmDialog
         isOpen={!!deleteId}
-        title={STOCK_OPNAME_MESSAGES.NO_OPNAME.split('')[0] === 'B' ? 'Hapus Stock Opname' : 'Hapus Stock Opname'}
+        title="Hapus Stock Opname"
         message={STOCK_OPNAME_MESSAGES.DELETE_CONFIRM}
         confirmLabel="Hapus"
         cancelLabel="Batal"
@@ -162,6 +162,6 @@ return (
         onConfirm={confirmDelete}
         onCancel={() => setDeleteId(null)}
       />
-    </div>
+    </AmbientLayout>
   );
 }

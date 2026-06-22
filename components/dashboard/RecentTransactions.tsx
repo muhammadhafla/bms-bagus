@@ -10,11 +10,11 @@ interface RecentTransactionsProps {
 export function RecentTransactions({ transactions, isLoading }: RecentTransactionsProps) {
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+      <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl rounded-2xl border border-white/40 dark:border-white/10 p-5 shadow-elevated h-full">
         <div className="animate-pulse space-y-3">
-          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-40 mb-4" />
+          <div className="h-5 bg-neutral-200/50 dark:bg-neutral-700/50 rounded w-40 mb-6" />
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-12 bg-gray-200 dark:bg-gray-700 rounded" />
+            <div key={i} className="h-14 bg-neutral-200/50 dark:bg-neutral-700/50 rounded-xl" />
           ))}
         </div>
       </div>
@@ -29,40 +29,40 @@ export function RecentTransactions({ transactions, isLoading }: RecentTransactio
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-      <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+    <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl rounded-2xl border border-white/40 dark:border-white/10 p-5 shadow-elevated h-full">
+      <h3 className="font-semibold text-neutral-900 dark:text-white mb-6">
         Transaksi Terakhir
       </h3>
 
       {transactions.length === 0 ? (
-        <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+        <p className="text-sm text-neutral-500 dark:text-neutral-400 text-center py-8">
           Belum ada transaksi hari ini
         </p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {transactions.map((tx) => (
             <Link
               key={tx.id}
               href={tx.type === 'penjualan' ? `/transactions/receipt` : `/purchasing`}
-              className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+              className="flex items-center justify-between p-3 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors duration-200 border border-transparent hover:border-neutral-100 dark:hover:border-neutral-800 group"
             >
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${tx.type === 'penjualan'
-                  ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                  : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400'
+              <div className="flex items-center gap-4">
+                <div className={`p-2.5 rounded-xl transition-transform duration-200 group-hover:scale-110 ${tx.type === 'penjualan'
+                  ? 'bg-gradient-to-br from-green-400 to-green-500 shadow-teal text-white'
+                  : 'bg-gradient-to-br from-yellow-400 to-yellow-500 shadow-amber text-white'
                 }`}>
-                  {tx.type === 'penjualan' ? <IconArrowUp size={16} /> : <IconArrowDown size={16} />}
+                  {tx.type === 'penjualan' ? <IconArrowUp size={18} stroke={2.5} /> : <IconArrowDown size={18} stroke={2.5} />}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white capitalize">
+                  <p className="text-sm font-semibold text-neutral-900 dark:text-white capitalize">
                     {tx.type}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
                     {formatTime(tx.created_at)}
                   </p>
                 </div>
               </div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              <p className="text-sm font-bold text-neutral-900 dark:text-white tracking-tight">
                 Rp {new Intl.NumberFormat('id-ID').format(tx.total)}
               </p>
             </Link>

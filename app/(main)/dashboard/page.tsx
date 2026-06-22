@@ -15,6 +15,8 @@ import { LowStockAlert } from '@/components/dashboard/LowStockAlert';
 import { TrendChart } from '@/components/dashboard/TrendChart';
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
 import { dashboardApi, DashboardStats, LowStockItem, TrendData, RecentTransaction } from '@/lib/api';
+import { Card } from '@/components/ui/Card';
+
 
 function HomeContent() {
   const { user, initialized } = useAuthStore();
@@ -156,31 +158,33 @@ function HomeContent() {
           <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
             <RecentTransactions transactions={transactions} isLoading={loading} />
           </div>
-          <div className="lg:col-span-2 bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-5 shadow-card card-hover animate-fade-in-up" style={{ animationDelay: '350ms' }}>
-            <h3 className="font-semibold text-neutral-900 dark:text-white mb-4 text-lg">
-              Ringkasan Inventaris
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              {loading ? (
-                <>
-                  <div className="h-20 bg-neutral-100 dark:bg-neutral-800 rounded-xl animate-pulse" />
-                  <div className="h-20 bg-neutral-100 dark:bg-neutral-800 rounded-xl animate-pulse" />
-                </>
-              ) : (
-                <>
-                  <div className="p-5 rounded-xl bg-gradient-to-br from-brand-50 to-brand-100/50 dark:from-brand-950/30 dark:to-brand-900/20 border border-brand-200 dark:border-brand-800">
-                    <p className="text-sm text-brand-600 dark:text-brand-400 font-medium">Total Item Barang</p>
-                    <p className="text-2xl font-bold text-brand-700 dark:text-brand-300 mt-1">{stats?.totalItems || 0}</p>
-                    <p className="text-xs text-brand-500 dark:text-brand-500">SKU</p>
-                  </div>
-                  <div className="p-5 rounded-xl bg-gradient-to-br from-accent-teal-50 to-accent-teal-100/50 dark:from-accent-teal-950/30 dark:to-accent-teal-900/20 border border-accent-teal-200 dark:border-accent-teal-800">
-                    <p className="text-sm text-accent-teal-600 dark:text-accent-teal-400 font-medium">Transaksi Hari Ini</p>
-                    <p className="text-2xl font-bold text-accent-teal-700 dark:text-accent-teal-300 mt-1">{stats?.todayTransactions || 0}</p>
-                    <p className="text-xs text-accent-teal-500 dark:text-accent-teal-500">transaksi</p>
-                  </div>
-                </>
-              )}
-            </div>
+          <div className="lg:col-span-2 animate-fade-in-up" style={{ animationDelay: '350ms' }}>
+            <Card hover padding="lg" className="shadow-card">
+              <h3 className="font-semibold text-neutral-900 dark:text-white mb-5 text-lg">
+                Ringkasan Inventaris
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                {loading ? (
+                  <>
+                    <div className="h-20 bg-neutral-100 dark:bg-neutral-800 rounded-xl animate-pulse" />
+                    <div className="h-20 bg-neutral-100 dark:bg-neutral-800 rounded-xl animate-pulse" />
+                  </>
+                ) : (
+                  <>
+                    <div className="p-5 rounded-xl bg-gradient-to-br from-brand-50 to-brand-100/50 dark:from-brand-950/30 dark:to-brand-900/20 border border-brand-200 dark:border-brand-800">
+                      <p className="text-sm text-brand-600 dark:text-brand-400 font-medium">Total Item Barang</p>
+                      <p className="text-2xl font-bold text-brand-700 dark:text-brand-300 mt-1">{stats?.totalItems || 0}</p>
+                      <p className="text-xs text-brand-500 dark:text-brand-500">SKU</p>
+                    </div>
+                    <div className="p-5 rounded-xl bg-gradient-to-br from-accent-teal-50 to-accent-teal-100/50 dark:from-accent-teal-950/30 dark:to-accent-teal-900/20 border border-accent-teal-200 dark:border-accent-teal-800">
+                      <p className="text-sm text-accent-teal-600 dark:text-accent-teal-400 font-medium">Transaksi Hari Ini</p>
+                      <p className="text-2xl font-bold text-accent-teal-700 dark:text-accent-teal-300 mt-1">{stats?.todayTransactions || 0}</p>
+                      <p className="text-xs text-accent-teal-500 dark:text-accent-teal-500">transaksi</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </Card>
           </div>
         </div>
       </div>
@@ -188,6 +192,10 @@ function HomeContent() {
   );
 }
 
+
+
+
 export default function Home() {
   return <HomeContent />;
 }
+

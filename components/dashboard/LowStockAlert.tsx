@@ -23,33 +23,38 @@ function LowStockItemRow({ item }: { item: LowStockItem }) {
 
   return (
     <div
-      className="relative flex items-center justify-between p-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20"
+      className="relative flex items-center justify-between p-3 rounded-xl transition-colors duration-200 group hover:bg-neutral-50 dark:hover:bg-neutral-800/50 border border-transparent hover:border-neutral-100 dark:hover:border-neutral-800"
     >
-      <span className="text-sm font-medium text-neutral-900 dark:text-white truncate max-w-[140px]">
-        {item.nama_barang}
-      </span>
+      <div className="flex items-center gap-3 overflow-hidden">
+        <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse-glow flex-shrink-0" />
+        <span className="text-sm font-medium text-neutral-900 dark:text-white truncate">
+          {item.nama_barang}
+        </span>
+      </div>
       
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-bold text-yellow-600 dark:text-yellow-400 mr-2">
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-bold text-yellow-600 dark:text-yellow-400">
           {item.stok} / {item.minimum_stock}
         </span>
         
-        <Link
-          href="/purchasing"
-          className="p-1 rounded hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400"
-          title="Tambah Stok"
-        >
-          <IconCirclePlus size={18} stroke={2} />
-        </Link>
-        
-        <button
-          className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400"
-          title="Tandai Discontinue"
-          onClick={() => setShowConfirm(true)}
-          disabled={isLoading}
-        >
-          <IconSwitch size={18} />
-        </button>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <Link
+            href="/purchasing"
+            className="p-1.5 rounded-md hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 transition-colors"
+            title="Tambah Stok"
+          >
+            <IconCirclePlus size={18} stroke={2} />
+          </Link>
+          
+          <button
+            className="p-1.5 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
+            title="Tandai Discontinue"
+            onClick={() => setShowConfirm(true)}
+            disabled={isLoading}
+          >
+            <IconSwitch size={18} />
+          </button>
+        </div>
       </div>
 
       {showConfirm && (
@@ -81,11 +86,11 @@ function LowStockItemRow({ item }: { item: LowStockItem }) {
 export function LowStockAlert({ items, isLoading }: LowStockAlertProps) {
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-4 shadow-sm">
+      <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl rounded-2xl border border-white/40 dark:border-white/10 p-5 shadow-elevated h-full">
         <div className="animate-pulse space-y-3">
-          <div className="h-5 bg-neutral-200 dark:bg-neutral-700 rounded w-48" />
+          <div className="h-5 bg-neutral-200/50 dark:bg-neutral-700/50 rounded w-48 mb-6" />
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-10 bg-neutral-200 dark:bg-neutral-700 rounded" />
+            <div key={i} className="h-10 bg-neutral-200/50 dark:bg-neutral-700/50 rounded-xl" />
           ))}
         </div>
       </div>
@@ -93,7 +98,7 @@ export function LowStockAlert({ items, isLoading }: LowStockAlertProps) {
   }
 
   return (
-    <div className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-4 shadow-sm">
+    <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl rounded-2xl border border-white/40 dark:border-white/10 p-5 shadow-elevated h-full">
       <h3 className="font-semibold text-neutral-900 dark:text-white flex items-center gap-2 mb-4">
         <IconAlertTriangle size={18} className="text-yellow-500" />
         Peringatan Stok Minimum

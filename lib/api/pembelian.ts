@@ -48,7 +48,7 @@ export const purchasesApi = {
     try {
       let query = supabase
         .from('pembelian')
-        .select('*')
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
 
       if (options?.limit) {
@@ -67,16 +67,16 @@ export const purchasesApi = {
         query = query.lte('tanggal', options.endDate);
       }
 
-      const result = await safeQuery<any[]>(async () => {
-        const result = await query;
-        return { data: result.data, error: result.error as Error | null };
+      const result = await safeQuery<{ data: any[], count: number | null }>(async () => {
+        const res = await query;
+        return { data: { data: res.data as any[], count: res.count }, error: res.error as Error | null };
       });
 
       if (result.error) {
-        return { data: null, error: { message: result.error.message } };
+        return { data: null, total: 0, error: { message: result.error.message } };
       }
 
-      const formatted = (result.data || []).map((item: any) => ({
+      const formatted = (result.data?.data || []).map((item: any) => ({
         id: item.id,
         idempotency_key: item.idempotency_key,
         supplier_id: item.supplier_id,
@@ -92,10 +92,10 @@ export const purchasesApi = {
         created_by_nama: null,
       }));
 
-      return { data: formatted, error: null };
+      return { data: formatted, total: result.data?.count || 0, error: null };
     } catch (err: any) {
       console.error('Error fetching purchases:', err);
-      return { data: null, error: { message: err.message || 'Terjadi kesalahan' } };
+      return { data: null, total: 0, error: { message: err.message || 'Terjadi kesalahan' } };
     }
   },
 

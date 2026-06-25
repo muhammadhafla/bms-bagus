@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import SelectInput from '@/components/ui/SelectInput';
 import TextareaInput from '@/components/ui/TextareaInput';
-import { Button, Breadcrumb, Badge, Card } from '@/components/ui';
+import { Button, Breadcrumb, Badge, Card, AmbientLayout } from '@/components/ui';
 
 const reasonOptions = [
   { value: 'salah_input', label: 'Kesalahan Input' },
@@ -213,15 +213,15 @@ export default function StockOpnameDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
+      <AmbientLayout>
         <div className="text-center py-12 text-neutral-500">Loading...</div>
-      </div>
+      </AmbientLayout>
     );
   }
 
   if (!opname) {
     return (
-      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 p-4">
+      <AmbientLayout>
         <div className="bg-danger-50 dark:bg-danger-900/20 border border-danger-200 dark:border-danger-800 rounded-lg p-4 mb-4">
             <p className="text-danger-700 dark:text-danger-300">Gagal memuat data stock opname. Pastikan Anda memiliki akses yang tepat.</p>
           </div>
@@ -232,7 +232,7 @@ export default function StockOpnameDetailPage() {
             <IconArrowLeft size={18} />
             Kembali ke Daftar
           </button>
-      </div>
+      </AmbientLayout>
     );
   }
 
@@ -253,7 +253,7 @@ export default function StockOpnameDetailPage() {
    const invalidItemCount = items.filter(item => item.difference !== 0 && !item.reason).length;
 
 return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 p-4">
+    <AmbientLayout>
       <Breadcrumb
         items={[
           { label: 'Inventory', href: '/inventory' },
@@ -262,6 +262,18 @@ return (
         ]}
         className="mb-4"
       />
+      
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5 animate-fade-in-up">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-brand-600 to-brand-700 rounded-xl flex items-center justify-center shadow-brand">
+            <IconSearch className="w-6 h-6 text-white" stroke={1.5} />
+          </div>
+          <div>
+            <h1 className="text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Detail Stock Opname</h1>
+            <p className="text-neutral-500 dark:text-neutral-400 mt-2 text-base font-medium">Pengelolaan stok fisik</p>
+          </div>
+        </div>
+      </div>
       
       <div className="flex justify-between items-center mb-6">
           <Button variant="ghost" onClick={() => router.push('/inventory/stock-opname')}>
@@ -275,13 +287,13 @@ return (
                 {hasChanges && (
                   <Button variant="ghost" onClick={() => setShowConfirmDiscard(true)} disabled={saving}>
                     <IconRefresh size={18} />
-                    Batal
+                    <span className="hidden sm:inline">Batal</span>
                   </Button>
                 )}
                 {hasChanges && (
                   <Button onClick={saveChanges} disabled={saving || hasInvalidItems}>
                     {saving ? <IconLoader2 size={18} className="animate-spin" /> : <IconDeviceFloppy size={18} />}
-                    {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                    <span className="hidden sm:inline">{saving ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
                   </Button>
                 )}
                 <Button
@@ -290,7 +302,7 @@ return (
                   className={hasInvalidItems ? 'opacity-50 cursor-not-allowed' : ''}
                 >
                   <IconSend size={18} />
-                  {saving ? 'Mengirim...' : 'Submit untuk Approval'}
+                  <span className="hidden sm:inline">{saving ? 'Mengirim...' : 'Submit untuk Approval'}</span>
                 </Button>
               </>
             )}
@@ -298,11 +310,11 @@ return (
               <>
                 <Button variant="danger" onClick={() => setShowRejectModal(true)} disabled={saving}>
                   <IconX size={18} />
-                  Tolak
+                  <span className="hidden sm:inline">Tolak</span>
                 </Button>
                 <Button variant="primary" onClick={handleApprove} disabled={saving || processing}>
                   {processing ? <IconLoader2 size={18} className="animate-spin" /> : <IconCheck size={18} />}
-                  {processing ? 'Memproses...' : 'Approve'}
+                  <span className="hidden sm:inline">{processing ? 'Memproses...' : 'Setujui'}</span>
                 </Button>
               </>
             )}
@@ -517,6 +529,6 @@ return (
            </div>
          </div>
        )}
-    </div>
+    </AmbientLayout>
   );
 }

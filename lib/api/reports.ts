@@ -35,9 +35,18 @@ export interface SalesSummary {
 
 export interface ProfitSummary {
   date: string;
-  total_pembelian: number;
+  total_modal: number;
   total_penjualan: number;
   total_profit: number;
+  margin_percentage: number;
+}
+
+export interface TopSellingItem {
+  inventory_id: string;
+  nama_barang: string;
+  total_qty: number;
+  total_profit: number;
+  total_sales: number;
 }
 
 export interface PaginatedResult<T> {
@@ -71,33 +80,37 @@ export const reportApi = {
     const { page, limit } = calculatePagination(pagination?.page, pagination?.limit);
     const offset = (page - 1) * limit;
 
-    const countResult = await safeQuery<any[]>(async () => {
-      const result = await supabase
-        .from('stock_movements')
-        .select('*', { count: 'exact', head: true });
-      return { data: result.data, error: result.error as Error | null };
-    });
+    let countQuery = supabase.from('stock_movements').select('*', { count: 'exact', head: true });
+    if (startDate) countQuery = countQuery.gte('created_at', startDate);
+    if (endDate) countQuery = countQuery.lte('created_at', endDate);
 
-    if (countResult.error) {
-      return { data: [], error: { message: countResult.error.message }, total: 0, page: 1, limit: 50, hasMore: false };
+    const { count, error: countError } = await countQuery;
+
+    if (countError) {
+      return { data: [], error: { message: countError.message }, total: 0, page: 1, limit: 50, hasMore: false };
     }
 
-    const count = countResult.data?.length || 0;
+    const totalCount = count || 0;
+
+    let dataQuery = supabase
+      .from('stock_movements')
+      .select(`
+        *,
+        inventory:inventory_id (
+          id,
+          nama_barang,
+          kode_barcode
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (startDate) dataQuery = dataQuery.gte('created_at', startDate);
+    if (endDate) dataQuery = dataQuery.lte('created_at', endDate);
 
     const result = await safeQuery<any[]>(async () => {
-      const result = await supabase
-        .from('stock_movements')
-        .select(`
-          *,
-          inventory:inventory_id (
-            id,
-            nama_barang,
-            kode_barcode
-          )
-        `)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
-      return { data: result.data, error: result.error as Error | null };
+      const res = await dataQuery;
+      return { data: res.data, error: res.error as Error | null };
     });
 
     if (result.error) {
@@ -128,10 +141,10 @@ export const reportApi = {
     return { 
       data: mapped, 
       error: null,
-      total: count,
+      total: totalCount,
       page,
       limit,
-      hasMore: offset + mapped.length < count
+      hasMore: offset + mapped.length < totalCount
     };
   },
 
@@ -139,18 +152,15 @@ export const reportApi = {
     const { page, limit } = calculatePagination(pagination?.page, pagination?.limit);
     const offset = (page - 1) * limit;
 
-    const countResult = await safeQuery<any[]>(async () => {
-      const result = await supabase
-        .from('inventory')
-        .select('*', { count: 'exact', head: true });
-      return { data: result.data, error: result.error as Error | null };
-    });
+    const { count, error: countError } = await supabase
+      .from('inventory')
+      .select('*', { count: 'exact', head: true });
 
-    if (countResult.error) {
-      return { data: null, error: { message: countResult.error.message } };
+    if (countError) {
+      return { data: null, error: { message: countError.message } };
     }
 
-    const count = countResult.data?.length || 0;
+    const totalCount = count || 0;
 
     const result = await safeQuery<any[]>(async () => {
       const result = await supabase
@@ -177,154 +187,206 @@ export const reportApi = {
     return { 
       data: values, 
       error: null,
-      total: count,
+      total: totalCount,
       page,
       limit,
-      hasMore: offset + values.length < count
+      hasMore: offset + values.length < totalCount
     };
   },
 
   async getSalesReport(
     startDate?: string,
     endDate?: string,
+    categoryId?: string,
     pagination?: PaginationOptions
   ) {
     const { page, limit } = calculatePagination(pagination?.page, pagination?.limit);
-    const offset = (page - 1) * limit;
+    // Note: Pagination on aggregated data is tricky. We'll fetch all matching items within date range, group them, then paginate the resulting array.
 
-    const countResult = await safeQuery<any[]>(async () => {
-      const result = await supabase
-        .from('penjualan_transactions')
-        .select('*', { count: 'exact', head: true });
-      return { data: result.data, error: result.error as Error | null };
-    });
-
-    if (countResult.error) {
-      return { data: null, error: { message: countResult.error.message } };
-    }
-
-    const count = countResult.data?.length || 0;
+    let query = supabase
+      .from('penjualan_items')
+      .select(`
+        qty,
+        harga_final,
+        penjualan!inner(tanggal),
+        inventory!inner(id_kategori)
+      `);
+      
+    if (startDate) query = query.gte('penjualan.tanggal', startDate);
+    if (endDate) query = query.lte('penjualan.tanggal', endDate);
+    if (categoryId) query = query.eq('inventory.id_kategori', categoryId);
 
     const result = await safeQuery<any[]>(async () => {
-      const result = await supabase
-        .from('penjualan_transactions')
-        .select('*')
-        .order('tanggal', { ascending: false })
-        .range(offset, offset + limit - 1);
-      return { data: result.data, error: result.error as Error | null };
+      const res = await query;
+      return { data: res.data, error: res.error as Error | null };
     });
 
     if (result.error) return { data: null, error: { message: result.error.message } };
 
-    const summary: SalesSummary[] = [];
-    interface GroupedData { total: number; items: number; count: number; }
-    const grouped: Record<string, GroupedData> = {};
+    const grouped: Record<string, { total: number; items: number; count: Set<string> }> = {};
 
-    (result.data || []).forEach(t => {
-      if (!grouped[t.tanggal]) {
-        grouped[t.tanggal] = { total: 0, items: 0, count: 0 };
+    (result.data || []).forEach((item: any) => {
+      const date = item.penjualan?.tanggal;
+      if (!date) return;
+      
+      if (!grouped[date]) {
+        grouped[date] = { total: 0, items: 0, count: new Set() };
       }
-      grouped[t.tanggal].total += t.total;
-      grouped[t.tanggal].count += 1;
+      
+      grouped[date].total += (item.harga_final || 0) * (item.qty || 0);
+      grouped[date].items += (item.qty || 0);
+      grouped[date].count.add(item.penjualan_id || Math.random().toString()); // approximate transaction count
     });
 
-    Object.entries(grouped).forEach(([date, data]) => {
-      summary.push({
-        date,
-        total_sales: data.total,
-        total_items: data.items,
-        transaction_count: data.count,
-      });
-    });
+    const summary: SalesSummary[] = Object.entries(grouped).map(([date, data]) => ({
+      date,
+      total_sales: data.total,
+      total_items: data.items,
+      transaction_count: data.count.size,
+    }));
+
+    summary.sort((a, b) => b.date.localeCompare(a.date));
+    
+    const count = summary.length;
+    const offset = (page - 1) * limit;
+    const paginatedSummary = summary.slice(offset, offset + limit);
 
     return { 
-      data: summary, 
+      data: paginatedSummary, 
       error: null,
       total: count,
       page,
       limit,
-      hasMore: offset + summary.length < count
+      hasMore: offset + paginatedSummary.length < count
     };
   },
 
   async getProfitReport(
     startDate?: string,
     endDate?: string,
+    categoryId?: string,
     pagination?: PaginationOptions
   ) {
     const { page, limit } = calculatePagination(pagination?.page, pagination?.limit);
+
+    let query = supabase
+      .from('penjualan_items')
+      .select(`
+        qty,
+        harga_final,
+        cost_at_sale,
+        penjualan!inner(tanggal),
+        inventory!inner(id_kategori)
+      `);
+      
+    if (startDate) query = query.gte('penjualan.tanggal', startDate);
+    if (endDate) query = query.lte('penjualan.tanggal', endDate);
+    if (categoryId) query = query.eq('inventory.id_kategori', categoryId);
+
+    const result = await safeQuery<any[]>(async () => {
+      const res = await query;
+      return { data: res.data, error: res.error as Error | null };
+    });
+
+    if (result.error) return { data: null, error: { message: result.error.message } };
+
+    const summaryMap: Record<string, ProfitSummary> = {};
+
+    (result.data || []).forEach((item: any) => {
+      const date = item.penjualan?.tanggal;
+      if (!date) return;
+      
+      if (!summaryMap[date]) {
+        summaryMap[date] = {
+          date,
+          total_modal: 0,
+          total_penjualan: 0,
+          total_profit: 0,
+          margin_percentage: 0
+        };
+      }
+      
+      const modal = (item.cost_at_sale || 0) * (item.qty || 0);
+      const penjualan = (item.harga_final || 0) * (item.qty || 0);
+      
+      summaryMap[date].total_modal += modal;
+      summaryMap[date].total_penjualan += penjualan;
+      summaryMap[date].total_profit += (penjualan - modal);
+    });
+
+    const summary = Object.values(summaryMap).map(s => {
+      s.margin_percentage = s.total_penjualan > 0 ? (s.total_profit / s.total_penjualan) * 100 : 0;
+      return s;
+    }).sort((a, b) => b.date.localeCompare(a.date));
+
+    const count = summary.length;
     const offset = (page - 1) * limit;
-
-    const countResult = await safeQuery<any[]>(async () => {
-      const result = await supabase
-        .from('pembelian_transactions')
-        .select('*', { count: 'exact', head: true });
-      return { data: result.data, error: result.error as Error | null };
-    });
-
-    if (countResult.error) {
-      return { data: null, error: { message: countResult.error.message } };
-    }
-
-    const count = countResult.data?.length || 0;
-
-    const [pembelianResult, penjualanResult] = await Promise.all([
-      safeQuery<any[]>(async () => {
-        const result = await supabase
-          .from('pembelian_transactions')
-          .select('tanggal, total')
-          .order('tanggal', { ascending: false })
-          .range(offset, offset + limit - 1);
-        return { data: result.data, error: result.error as Error | null };
-      }),
-      safeQuery<any[]>(async () => {
-        const result = await supabase
-          .from('penjualan_transactions')
-          .select('tanggal, total')
-          .order('tanggal', { ascending: false })
-          .range(offset, offset + limit - 1);
-        return { data: result.data, error: result.error as Error | null };
-      }),
-    ]);
-
-    if (pembelianResult.error || penjualanResult.error) {
-      return { data: null, error: { message: (pembelianResult.error || penjualanResult.error)!.message } };
-    }
-
-    const pembelians = pembelianResult.data || [];
-    const penjalanans = penjualanResult.data || [];
-
-    const allDates = new Set([
-      ...pembelians.map((p) => p.tanggal),
-      ...penjalanans.map((p) => p.tanggal),
-    ]);
-
-    const summary: ProfitSummary[] = [];
-    allDates.forEach(date => {
-      const totalPembelian = pembelians
-        .filter((p) => p.tanggal === date)
-        .reduce((sum, p) => sum + (p.total || 0), 0);
-      const totalPenjualan = penjalanans
-        .filter((p) => p.tanggal === date)
-        .reduce((sum, p) => sum + (p.total || 0), 0);
-
-      summary.push({
-        date,
-        total_pembelian: totalPembelian,
-        total_penjualan: totalPenjualan,
-        total_profit: totalPenjualan - totalPembelian,
-      });
-    });
-
-    summary.sort((a, b) => b.date.localeCompare(a.date));
+    const paginatedSummary = summary.slice(offset, offset + limit);
 
     return { 
-      data: summary, 
+      data: paginatedSummary, 
       error: null,
       total: count,
       page,
       limit,
-      hasMore: offset + summary.length < count
+      hasMore: offset + paginatedSummary.length < count
     };
+  },
+  
+  async getTopSellingItems(
+    startDate?: string,
+    endDate?: string,
+    categoryId?: string,
+    limitItems: number = 10
+  ) {
+    let query = supabase
+      .from('penjualan_items')
+      .select(`
+        qty,
+        harga_final,
+        cost_at_sale,
+        inventory_id,
+        nama_barang,
+        penjualan!inner(tanggal),
+        inventory!inner(id_kategori)
+      `);
+      
+    if (startDate) query = query.gte('penjualan.tanggal', startDate);
+    if (endDate) query = query.lte('penjualan.tanggal', endDate);
+    if (categoryId) query = query.eq('inventory.id_kategori', categoryId);
+    
+    const result = await safeQuery<any[]>(async () => {
+      const res = await query;
+      return { data: res.data, error: res.error as Error | null };
+    });
+    
+    if (result.error) return { data: [], error: { message: result.error.message } };
+    
+    const itemsMap: Record<string, TopSellingItem> = {};
+    (result.data || []).forEach((item: any) => {
+      const id = item.inventory_id;
+      if (!itemsMap[id]) {
+        itemsMap[id] = {
+          inventory_id: id,
+          nama_barang: item.nama_barang,
+          total_qty: 0,
+          total_profit: 0,
+          total_sales: 0
+        };
+      }
+      
+      const qty = item.qty || 0;
+      const sales = (item.harga_final || 0) * qty;
+      const cost = (item.cost_at_sale || 0) * qty;
+      const profit = sales - cost;
+      
+      itemsMap[id].total_qty += qty;
+      itemsMap[id].total_sales += sales;
+      itemsMap[id].total_profit += profit;
+    });
+    
+    const topItems = Object.values(itemsMap).sort((a, b) => b.total_qty - a.total_qty).slice(0, limitItems);
+    
+    return { data: topItems, error: null };
   },
 };

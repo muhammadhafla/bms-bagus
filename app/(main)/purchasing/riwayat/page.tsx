@@ -118,17 +118,15 @@ export default function RiwayatPembelianPage() {
 
   return (
     <AmbientLayout>
-      <div className="flex flex-col h-[calc(100vh-2rem)]">
+      <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)] lg:min-h-0">
         {/* Header Section */}
-        <div className="mb-6 flex-shrink-0 animate-fade-in-up">
+        <div className="mb-4 lg:mb-6 flex-shrink-0 animate-fade-in-up">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-brand-400 to-brand-600 rounded-xl flex items-center justify-center shadow-brand">
-                <IconFileSpreadsheet className="w-6 h-6 text-white" stroke={1.5} />
-              </div>
+            <div className="flex items-center gap-4 pl-12 lg:pl-0">
+              <IconFileSpreadsheet className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
               <div>
-                <h1 className="text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Riwayat Pembelian</h1>
-                <p className="text-neutral-500 dark:text-neutral-400 mt-2 text-base font-medium">Lihat record pembelian yang telah dilakukan</p>
+                <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Riwayat Pembelian</h1>
+                <p className="text-xs lg:text-base text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 font-medium">Lihat record pembelian yang telah dilakukan</p>
               </div>
             </div>
           </div>
@@ -156,7 +154,61 @@ export default function RiwayatPembelianPage() {
 
         {/* Main Table Area */}
         <div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl shadow-elevated mb-6 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-          <div className="overflow-x-auto h-full custom-scrollbar">
+          
+          {/* Mobile View */}
+          <div className="block lg:hidden space-y-4 p-4 overflow-y-auto">
+            {loading ? (
+              <div className="flex justify-center items-center h-32">
+                <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : records.length === 0 ? (
+              <div className="py-8 text-center text-neutral-500 flex flex-col items-center">
+                <div className="w-16 h-16 bg-white/50 dark:bg-neutral-950/50 rounded-2xl flex items-center justify-center mb-4">
+                  <IconSearch className="w-8 h-8 text-neutral-400" />
+                </div>
+                <p className="text-lg font-medium text-neutral-600 dark:text-neutral-300">Tidak ada data</p>
+                <p className="text-sm mt-1">Coba gunakan kata kunci pencarian yang lain.</p>
+              </div>
+            ) : (
+              records.map((record) => (
+                <div
+                  key={record.id}
+                  className="bg-white dark:bg-neutral-900 rounded-2xl p-4 shadow-sm border border-neutral-100 dark:border-neutral-800"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <p className="text-xs text-neutral-500 mb-1">{formatDate(record.tanggal)}</p>
+                      <p className="font-mono font-medium text-neutral-900 dark:text-white">
+                        {record.nomor_nota || '-'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleViewDetail(record.id)}
+                      className="p-2 text-brand-600 hover:text-brand-700 bg-brand-50 dark:bg-brand-900/30 rounded-xl"
+                    >
+                      <IconEye className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="flex justify-between items-end mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800">
+                    <div>
+                      <p className="text-xs text-neutral-500">Supplier</p>
+                      <p className="font-medium text-neutral-800 dark:text-neutral-200">
+                        {record.supplier_nama || '-'}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-neutral-500">Total</p>
+                      <p className="font-bold text-neutral-900 dark:text-white">
+                        {formatCurrency(record.total)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="overflow-x-auto h-full custom-scrollbar hidden lg:block">
             <table className="w-full min-w-[900px]">
               <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md sticky top-0 z-10 border-b border-neutral-200/50 dark:border-neutral-800/50">
                 <tr>
@@ -223,8 +275,8 @@ export default function RiwayatPembelianPage() {
           </div>
           
           {totalPages > 0 && (
-            <div className="flex-shrink-0 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50 p-4 flex items-center justify-between">
-              <p className="text-sm text-neutral-500 dark:text-neutral-400 font-medium">
+            <div className="flex-shrink-0 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50 p-4 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0">
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 font-medium text-center sm:text-left">
                 Halaman {page} dari {totalPages} <span className="mx-2">|</span> Total: {total} data
               </p>
               <div className="flex gap-2">

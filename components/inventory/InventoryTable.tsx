@@ -141,7 +141,7 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination }: Invent
 
   return (
     <>
-      <div className="overflow-auto rounded-3xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl shadow-elevated">
+      <div className="hidden lg:block overflow-auto rounded-3xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl shadow-elevated">
         <table className="w-full min-w-[900px]">
           <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md sticky top-0 z-10 border-b border-neutral-200/50 dark:border-neutral-800/50">
             <tr>
@@ -230,6 +230,93 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination }: Invent
           </div>
         )}
       </div>
+
+      {/* Mobile Card Layout */}
+      <div className="block lg:hidden space-y-4">
+        {items.map((item) => {
+          const isLowStock = item.stok <= (item.minimum_stock || 0);
+          return (
+            <div 
+              key={item.id} 
+              className={`p-4 rounded-2xl border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm flex flex-col gap-3 ${isLowStock ? 'bg-red-50/30 dark:bg-red-900/20' : 'bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl'}`}
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-semibold text-neutral-900 dark:text-white text-base">{item.nama_barang}</h3>
+                  <p className="text-sm font-mono text-neutral-500 dark:text-neutral-400">{item.kode_barcode}</p>
+                </div>
+                <button
+                  onClick={() => openSlideOver(item)}
+                  className="p-2 -mr-2 -mt-2 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  <IconDotsVertical size={18} stroke={2} />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                  {item.id_kategori?.nama || '-'}
+                </span>
+                {isLowStock && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400">
+                    Low Stock
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-sm mt-1">
+                <div>
+                  <p className="text-neutral-500 dark:text-neutral-400 text-xs">Harga Beli</p>
+                  <p className="font-medium text-neutral-900 dark:text-neutral-100">{formatCurrency(item.harga_beli_terakhir || 0)}</p>
+                </div>
+                <div>
+                  <p className="text-neutral-500 dark:text-neutral-400 text-xs">Harga Jual</p>
+                  <p className="font-medium text-neutral-900 dark:text-neutral-100">{formatCurrency(item.harga_jual)}</p>
+                </div>
+                <div>
+                  <p className="text-neutral-500 dark:text-neutral-400 text-xs">Diskon</p>
+                  <p className="font-medium text-neutral-900 dark:text-neutral-100">{formatCurrency(item.diskon)}</p>
+                </div>
+                <div>
+                  <p className="text-neutral-500 dark:text-neutral-400 text-xs">Stok</p>
+                  <p className={`font-bold ${isLowStock ? 'text-red-600 dark:text-red-300' : 'text-neutral-900 dark:text-neutral-100'}`}>
+                    {item.stok} <span className="text-xs font-normal text-neutral-500">(Min: {item.minimum_stock})</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Mobile Pagination */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="block lg:hidden sticky bottom-0 z-20 mt-4 -mx-4 px-4 py-4 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl border-t border-neutral-200/50 dark:border-neutral-800/50 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)]">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+              Hal <span className="font-bold text-neutral-900 dark:text-white">{pagination.page}</span> / <span className="font-bold text-neutral-900 dark:text-white">{pagination.totalPages}</span>
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => pagination.onPageChange(pagination.page - 1)}
+                disabled={pagination.page <= 1}
+              >
+                Prev
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => pagination.onPageChange(pagination.page + 1)}
+                disabled={pagination.page >= pagination.totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Modal
         isOpen={isSlideOverOpen}

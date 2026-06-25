@@ -35,8 +35,7 @@ export const usePembelianStore = create<PembelianStore>((set, get) => ({
   addItem: (item, initialQty = 1) => set((state) => {
     const existingIndex = state.items.findIndex(
       i => i.id === item.id && 
-           i.harga_beli === item.harga_beli && 
-           i.diskon === item.diskon
+           i.harga_beli === item.harga_beli
     );
 
     if (existingIndex >= 0) {
@@ -49,10 +48,11 @@ export const usePembelianStore = create<PembelianStore>((set, get) => ({
       };
     }
 
-    const harga_final = (item.harga_beli || 0) - item.diskon;
+    const harga_final = item.harga_beli || 0;
     const newItem: CartItem = {
       ...item,
       qty: initialQty,
+      diskon: 0, // Set diskon to 0 for pembelian since we use netto price
       harga_final,
       subtotal: harga_final * initialQty,
     };
@@ -75,7 +75,7 @@ export const usePembelianStore = create<PembelianStore>((set, get) => ({
     return {
       items: state.items.map((item, i) => {
         if (i !== index) return item;
-        const harga_final = harga - item.diskon;
+        const harga_final = harga;
         return { ...item, harga_beli: harga, harga_final, subtotal: item.qty * harga_final };
       })
     };

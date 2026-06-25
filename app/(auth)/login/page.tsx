@@ -23,7 +23,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user) {
-      router.push('/');
+      router.push('/dashboard');
     }
   }, [user, router]);
 
@@ -65,7 +65,7 @@ export default function LoginPage() {
 
     const result = await signIn(email, password);
     if (result.success) {
-      router.push('/');
+      router.push('/dashboard');
     } else {
       setError(result.error || 'Login gagal');
     }
@@ -91,11 +91,9 @@ export default function LoginPage() {
       <div className="relative w-full max-w-md px-4">
         <div className="bg-white dark:bg-neutral-900 rounded-3xl shadow-elevated border border-neutral-200 dark:border-neutral-800 p-8 animate-scale-in">
           <div className="text-center mb-8">
-            <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl shadow-brand mb-5 overflow-hidden bg-gradient-to-br from-brand-400 to-brand-600">
-              <Image src="/images/logo.png" alt="BMS Logo" fill className="object-contain p-3" />
+            <div className="relative inline-flex items-center justify-center w-24 h-24 mb-3 dark:bg-white dark:rounded-3xl dark:shadow-md transition-all">
+              <Image src="/images/logo.png" alt="BMS Logo" fill className="object-contain dark:p-3" />
             </div>
-            <h1 className="text-h1 font-bold text-neutral-900 dark:text-white tracking-tight">BMS</h1>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1.5 font-medium">Bagus Management System</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">

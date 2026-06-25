@@ -312,19 +312,17 @@ export default function SupplierPage() {
 
   return (
     <AmbientLayout>
-      <div className="flex flex-col h-[calc(100vh-2rem)]">
+      <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)] lg:min-h-0">
         {/* Header Section */}
-        <div className="mb-6 flex-shrink-0 animate-fade-in-up">
+        <div className="mb-4 lg:mb-6 flex-shrink-0 animate-fade-in-up">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-brand-400 to-brand-600 rounded-xl flex items-center justify-center shadow-brand">
-                <IconTruck className="w-6 h-6 text-white" stroke={1.5} />
-              </div>
+            <div className="flex items-center gap-4 pl-12 lg:pl-0">
+              <IconTruck className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
               <div>
-                <h1 className="text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
+                <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
                   Supplier
                 </h1>
-                <p className="text-neutral-500 dark:text-neutral-400 mt-2 text-base font-medium">
+                <p className="text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 text-xs lg:text-base font-medium">
                   Kelola data supplier untuk transaksi pembelian.
                 </p>
               </div>
@@ -400,6 +398,38 @@ export default function SupplierPage() {
                 sortDirection={sortDirection}
                 onSort={handleSort}
                 className="rounded-3xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl shadow-elevated overflow-auto"
+                mobileRender={(item: Supplier) => (
+                  <div className="p-4 flex flex-col gap-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-semibold text-neutral-900 dark:text-neutral-100">{item.nama}</div>
+                        <div className="text-sm text-neutral-500">{item.kontak || '-'}</div>
+                      </div>
+                      {showAdminActions && (
+                        <div className="flex gap-1">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleEditClick(item); }}
+                            className="p-2 rounded-lg text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800 transition-colors"
+                          >
+                            <IconEdit size={18} stroke={2} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteClick(item); }}
+                            className="p-2 rounded-lg text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30 transition-colors"
+                          >
+                            <IconTrash size={18} stroke={2} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-sm text-neutral-700 dark:text-neutral-300">
+                      {item.alamat || <span className="text-neutral-400 dark:text-neutral-600">-</span>}
+                    </div>
+                    <div className="text-xs text-neutral-500">
+                      {formatDate(item.created_at)}
+                    </div>
+                  </div>
+                )}
               />
               
               <Pagination

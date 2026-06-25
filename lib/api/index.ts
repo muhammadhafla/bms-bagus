@@ -8,7 +8,7 @@ export { supplierApi, type Supplier } from './supplier';
 export { reportApi, type StockMutation, type InventoryValue, type SalesSummary, type ProfitSummary, type PaginationOptions, type PaginatedResult, type TopSellingItem } from './reports';
 export { receiptApi, type ReceiptTemplate, type ReceiptLogo } from './receipt';
 export { kategoriApi, type Kategori } from './kategori';
-export { stockOpnameApi, type StockOpname, type StockOpnameItem } from './stockOpname';
+export { stockOpnameApi, type StockOpname, type StockOpnameItem, type StockOpnameWithProfile } from './stockOpname';
 export { stockAdjustmentApi, type StockAdjustment } from './stockAdjustment';
 export { dashboardApi, type DashboardStats, type LowStockItem, type TrendData, type RecentTransaction } from './dashboard';
 

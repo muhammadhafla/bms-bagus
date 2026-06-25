@@ -175,15 +175,13 @@ export default function InventoryPage() {
         </div>
       )}
       
-      <div className="mb-6">
+      <div className="mb-4 lg:mb-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
-          <div className="flex items-center gap-4 animate-fade-in-up">
-            <div className="w-12 h-12 bg-gradient-to-br from-brand-400 to-brand-600 rounded-xl flex items-center justify-center shadow-brand">
-              <IconPackage className="w-6 h-6 text-white" stroke={1.5} />
-            </div>
+          <div className="flex items-center gap-4 animate-fade-in-up pl-12 lg:pl-0">
+            <IconPackage className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
             <div>
-              <h1 className="text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Stok</h1>
-              <p className="text-neutral-500 dark:text-neutral-400 mt-2 text-base font-medium">Kelola data dan stok barang.</p>
+              <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Stok</h1>
+              <p className="text-xs lg:text-base text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 font-medium">Kelola data dan stok barang.</p>
             </div>
           </div>
           {lowStockCount > 0 && (
@@ -194,8 +192,8 @@ export default function InventoryPage() {
           )}
         </div>
         
-        <div className="flex flex-col gap-4 sm:flex-row">
-          <div className="relative flex-1 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
+          <div className="relative flex-1 min-w-[200px] animate-fade-in-up" style={{ animationDelay: '50ms' }}>
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
               <IconSearch size={20} />
             </div>

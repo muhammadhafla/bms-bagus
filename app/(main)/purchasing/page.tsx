@@ -305,6 +305,7 @@ export default function PembelianPage() {
       kategori: item.kategori,
     });
     setBarcodeInput('');
+    setShowSuggestionDialog(false);
     focusInput();
     setLoading(false);
   }, [addItem, focusInput]);
@@ -537,7 +538,7 @@ export default function PembelianPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [items, tanggal, totalSupplier, submitting, reset, setTotalSupplier, focusInput, selectedSupplierId, supplier]);
+  }, [items, tanggal, totalSupplier, submitting, reset, setTotalSupplier, focusInput, selectedSupplierId, supplier, showToast]);
 
   const handleEditSubmit = useCallback(() => {
     if (selectedIndex === null || !editMode) return;
@@ -566,35 +567,36 @@ export default function PembelianPage() {
 
   return (
     <AmbientLayout>
-      <div className="flex flex-col h-[calc(100vh-2rem)]">
+      <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)]">
         {/* Header Section */}
-        <div className="mb-6 flex-shrink-0 animate-fade-in-up">
+        <div className="mb-4 lg:mb-6 flex-shrink-0 animate-fade-in-up">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-brand-400 to-brand-600 rounded-xl flex items-center justify-center shadow-brand">
-                <IconShoppingCart className="w-6 h-6 text-white" stroke={1.5} />
-              </div>
+            <div className="flex items-center gap-4 pl-12 lg:pl-0">
+              <IconShoppingCart className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
               <div>
-                <h1 className="text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Pembelian</h1>
-                <p className="text-neutral-500 dark:text-neutral-400 mt-2 text-base font-medium">Input data barang masuk</p>
+                <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Pembelian</h1>
+                <p className="text-xs lg:text-base text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 font-medium">Input data barang masuk</p>
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-end gap-3 lg:gap-4">
               <Button 
                 variant="secondary" 
                 onClick={() => setShowImportWizard(true)}
-                className="flex items-center gap-2"
+                className="flex items-center justify-center gap-2 !p-3 lg:!px-4 lg:!py-3 h-[50px] lg:h-auto"
+                title="Import CSV"
               >
-                <IconPackage size={18} />
-                Import CSV
+                <IconPackage size={22} className="shrink-0" />
+                <span className="hidden lg:inline font-medium">Import CSV</span>
               </Button>
-              <DateInput
-                value={tanggal}
-                onChange={setTanggal}
-                label="Tanggal:"
-                inputSize="sm"
-              />
+              <div className="flex-1 min-w-[140px] max-w-[200px]">
+                <DateInput
+                  value={tanggal}
+                  onChange={setTanggal}
+                  label="Tanggal:"
+                  inputSize="md"
+                />
+              </div>
             </div>
           </div>
 
@@ -615,7 +617,7 @@ export default function PembelianPage() {
                   }
                 }}
                 disabled={loading}
-                className="w-full pl-12 pr-4 py-3.5 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-lg"
+                className="w-full pl-12 pr-4 py-3.5 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-base lg:text-lg"
                 autoFocus
               />
             </div>
@@ -659,7 +661,7 @@ export default function PembelianPage() {
         </div>
 
         {/* Main Table Area */}
-        <div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl shadow-elevated mb-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+        <div className="flex-1 overflow-hidden flex flex-col min-h-[400px] lg:min-h-0 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl shadow-elevated mb-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-neutral-400 py-20">
               <div className="w-28 h-28 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border border-white/40 dark:border-white/10 rounded-3xl flex items-center justify-center mb-5 shadow-sm">
@@ -669,8 +671,8 @@ export default function PembelianPage() {
               <p className="text-sm text-neutral-500 mt-2">Atau tekan F2 untuk edit Qty, F3 untuk edit harga</p>
             </div>
           ) : (
-            <div className="overflow-x-auto h-full custom-scrollbar">
-              <table className="w-full min-w-[900px]">
+            <div className="overflow-x-auto overflow-y-auto h-full custom-scrollbar">
+              <table className="w-full min-w-[900px] hidden lg:table">
                 <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md sticky top-0 z-10 border-b border-neutral-200/50 dark:border-neutral-800/50">
                   <tr>
                     <th className="px-4 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-12">#</th>
@@ -678,7 +680,6 @@ export default function PembelianPage() {
                     <th className="px-4 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Nama Barang</th>
                     <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Qty</th>
                     <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Beli</th>
-                    <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Diskon</th>
                     <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Subtotal</th>
                     <th className="px-4 py-4 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-16">Aksi</th>
                   </tr>
@@ -738,9 +739,6 @@ export default function PembelianPage() {
                         </button>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right text-neutral-500 dark:text-neutral-400">
-                      {formatCurrency(item.diskon)}
-                    </td>
                     <td className="px-4 py-3 text-right font-bold text-neutral-900 dark:text-neutral-100">
                       {formatCurrency(item.subtotal)}
                     </td>
@@ -756,26 +754,102 @@ export default function PembelianPage() {
                 ))}
               </tbody>
             </table>
+            
+            {/* Mobile Cards Layout */}
+            <div className="block lg:hidden space-y-3 p-4">
+              {items.map((item, index) => (
+                <div key={`${item.id}-${index}-mobile`} className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl p-4 border border-neutral-200/50 dark:border-neutral-800/50 shadow-sm relative transition-all">
+                  <button 
+                    onClick={() => removeItem(index)}
+                    className="absolute top-3 right-3 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded-xl transition-colors btn-press"
+                  >
+                    <IconX size={18} />
+                  </button>
+                  <div className="pr-10 mb-3">
+                    <div className="font-bold text-neutral-900 dark:text-white text-base leading-tight mb-1">{item.nama_barang}</div>
+                    <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">{item.barcode}</div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="text-xs text-neutral-500 dark:text-neutral-400 font-medium block mb-1.5">Qty</label>
+                      {selectedIndex === index && editMode === 'qty' ? (
+                        <PriceInput
+                          value={editValue}
+                          onChange={setEditValue}
+                          onBlur={handleEditSubmit}
+                          className="w-full px-3 py-2.5 border-2 border-brand-500 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
+                          min={1}
+                          autoFocus
+                        />
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedIndex(index);
+                            setEditMode('qty');
+                            setEditValue(item.qty);
+                          }}
+                          className="w-full px-3 py-2.5 text-left bg-white/70 dark:bg-neutral-900/70 border border-neutral-200/50 dark:border-neutral-700/50 rounded-xl font-medium text-neutral-900 dark:text-white shadow-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                        >
+                          {item.qty}
+                        </button>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-xs text-neutral-500 dark:text-neutral-400 font-medium block mb-1.5">Harga Beli</label>
+                      {selectedIndex === index && editMode === 'harga' ? (
+                        <PriceInput
+                          value={editValue}
+                          onChange={setEditValue}
+                          onBlur={handleEditSubmit}
+                          className="w-full px-3 py-2.5 border-2 border-brand-500 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
+                          min={0}
+                          autoFocus
+                        />
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedIndex(index);
+                            setEditMode('harga');
+                            setEditValue(item.harga_beli || 0);
+                          }}
+                          className="w-full px-3 py-2.5 text-left bg-white/70 dark:bg-neutral-900/70 border border-neutral-200/50 dark:border-neutral-700/50 rounded-xl font-medium text-neutral-700 dark:text-neutral-300 shadow-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                        >
+                          {formatCurrency(item.harga_beli || 0)}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end items-end pt-3 border-t border-neutral-100 dark:border-neutral-800/50">
+                    <div className="text-right">
+                      <div className="text-xs text-neutral-500 dark:text-neutral-400 font-medium mb-0.5">Subtotal</div>
+                      <div className="font-black text-brand-600 dark:text-brand-400 text-lg leading-none">{formatCurrency(item.subtotal)}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
           )}
         </div>
 
         {/* Footer Section */}
-        <div className="flex-shrink-0 animate-fade-in-up" style={{ animationDelay: '250ms' }}>
-          <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-5 shadow-elevated">
-            <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/40 dark:border-white/10 shadow-sm">
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400 font-medium">Total Sistem</p>
-                  <p className="text-2xl font-black text-neutral-900 dark:text-white">{formatCurrency(totalSistem)}</p>
+        <div className="flex-shrink-0 animate-fade-in-up sticky bottom-4 z-20 lg:relative lg:bottom-0" style={{ animationDelay: '250ms' }}>
+          <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-4 lg:p-5 shadow-elevated">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <div className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-xl lg:rounded-2xl px-3 py-2.5 lg:px-5 lg:py-4 border border-white/40 dark:border-white/10 shadow-sm text-center lg:text-left">
+                  <p className="text-[10px] sm:text-xs lg:text-sm text-neutral-500 dark:text-neutral-400 font-medium whitespace-nowrap">Total Sistem</p>
+                  <p className="text-sm sm:text-xl lg:text-2xl font-black text-neutral-900 dark:text-white mt-0.5">{formatCurrency(totalSistem)}</p>
                 </div>
-                <div className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/40 dark:border-white/10 shadow-sm">
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400 font-medium">Total Supplier</p>
-                  <p className="text-2xl font-black text-neutral-900 dark:text-white">{formatCurrency(totalSupplier)}</p>
+                <div className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-xl lg:rounded-2xl px-3 py-2.5 lg:px-5 lg:py-4 border border-white/40 dark:border-white/10 shadow-sm text-center lg:text-left">
+                  <p className="text-[10px] sm:text-xs lg:text-sm text-neutral-500 dark:text-neutral-400 font-medium whitespace-nowrap">Total Supplier</p>
+                  <p className="text-sm sm:text-xl lg:text-2xl font-black text-neutral-900 dark:text-white mt-0.5">{formatCurrency(totalSupplier)}</p>
                 </div>
-                <div className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/40 dark:border-white/10 shadow-sm">
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400 font-medium">Selisih</p>
-                  <p className={`text-2xl font-black ${isValid ? 'text-brand-600 dark:text-brand-400' : 'text-red-600 dark:text-red-400'}`}>
+                <div className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-xl lg:rounded-2xl px-3 py-2.5 lg:px-5 lg:py-4 border border-white/40 dark:border-white/10 shadow-sm text-center lg:text-left">
+                  <p className="text-[10px] sm:text-xs lg:text-sm text-neutral-500 dark:text-neutral-400 font-medium whitespace-nowrap">Selisih</p>
+                  <p className={`text-sm sm:text-xl lg:text-2xl font-black mt-0.5 ${isValid ? 'text-brand-600 dark:text-brand-400' : 'text-red-600 dark:text-red-400'}`}>
                     {formatCurrency(selisih)}
                   </p>
                 </div>

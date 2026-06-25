@@ -70,7 +70,7 @@ export function StatCard({ title, value, icon, prefix = '', suffix = '', variant
       {/* Soft background glow */}
       <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 ${iconBgClasses[variant]}`} />
       
-      <Card padding="lg" variant="flat" className={`relative h-full bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border ${borderColors[variant]} transition-all duration-300`}>
+      <Card padding="none" variant="flat" className={`relative h-full bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border ${borderColors[variant]} transition-all duration-300 p-4 lg:p-6`}>
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">{title}</p>
@@ -91,7 +91,7 @@ export function StatCard({ title, value, icon, prefix = '', suffix = '', variant
 
 export function StatCardSkeleton() {
   return (
-    <Card padding="lg" variant="flat" className="bg-white/50 dark:bg-neutral-900/40 backdrop-blur border border-white/20 dark:border-white/5 animate-pulse rounded-2xl">
+    <Card padding="none" variant="flat" className="bg-white/50 dark:bg-neutral-900/40 backdrop-blur border border-white/20 dark:border-white/5 animate-pulse rounded-2xl p-4 lg:p-6">
       <div className="flex items-start justify-between">
         <div className="w-full">
           <div className="h-4 bg-neutral-200 dark:bg-neutral-700 rounded w-28 mb-3" />

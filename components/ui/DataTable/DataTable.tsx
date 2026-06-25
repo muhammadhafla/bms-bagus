@@ -25,6 +25,7 @@ export interface DataTableProps<T> {
   loading?: boolean;
   emptyState?: React.ReactNode;
   className?: string;
+  mobileRender?: (item: T) => React.ReactNode;
 }
 
 export function DataTable<T>({
@@ -38,6 +39,7 @@ export function DataTable<T>({
   loading,
   emptyState,
   className = '',
+  mobileRender,
 }: DataTableProps<T>) {
   const handleSort = (key: string) => {
     if (onSort) {
@@ -69,8 +71,25 @@ export function DataTable<T>({
   }
 
   return (
-    <div className={`overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 ${className}`}>
-      <table className="w-full min-w-[600px]">
+    <div className={`flex flex-col rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 ${className}`}>
+      {/* Mobile View */}
+      {mobileRender && data.length > 0 && (
+        <div className="block lg:hidden divide-y divide-neutral-100 dark:divide-neutral-800">
+          {data.map((item) => (
+            <div 
+              key={String(item[keyField])}
+              className={`${onRowClick ? 'cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors' : ''}`}
+              onClick={() => onRowClick?.(item)}
+            >
+              {mobileRender(item)}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Desktop/Default View */}
+      <div className={`overflow-x-auto rounded-xl ${mobileRender && data.length > 0 ? 'hidden lg:block' : ''}`}>
+        <table className="w-full min-w-[600px]">
         <thead className="bg-neutral-50 dark:bg-neutral-950 sticky top-0">
           <tr>
             {columns.map((col) => (
@@ -125,6 +144,7 @@ export function DataTable<T>({
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

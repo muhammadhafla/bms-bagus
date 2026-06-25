@@ -6,7 +6,7 @@ import { supplierApi } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { IconArrowBack, IconSearch, IconFileExport, IconX, IconDeviceFloppy } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
-import { Button } from '@/components/ui';
+import { Button, AmbientLayout } from '@/components/ui';
 
 const downloadPdf = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
@@ -19,11 +19,9 @@ const downloadPdf = (blob: Blob, filename: string) => {
   URL.revokeObjectURL(url);
 };
 
-type ReturnType = 'pembelian' | 'penjualan';
 type Mode = 'single' | 'batch';
 
 export default function ReturnPage() {
-  const [returnType, setReturnType] = useState<ReturnType>('pembelian');
   const [mode, setMode] = useState<Mode>('batch');
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
@@ -135,10 +133,6 @@ export default function ReturnPage() {
     setLastReturnId(null);
   }, []);
 
-  const handleTypeChange = useCallback((type: ReturnType) => {
-    setReturnType(type);
-    handleReset();
-  }, [handleReset]);
 
   const selectedItems = items.filter(item => item.selected && (item.return_qty || 0) > 0);
   
@@ -257,35 +251,20 @@ export default function ReturnPage() {
   }, [lastReturnId, selectedSupplier]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
-      <header className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 py-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-gradient-to-br from-brand-300 to-brand-400 rounded-xl flex items-center justify-center shadow-md">
-              <IconArrowBack className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Retur Barang</h1>
-              <p className="text-sm text-neutral-500 dark:text-neutral-400">Kelola retur barang ke supplier</p>
+    <AmbientLayout>
+      <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)] lg:min-h-0">
+        <div className="mb-4 lg:mb-6 flex-shrink-0 animate-fade-in-up">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
+            <div className="flex items-center gap-4 pl-12 lg:pl-0">
+              <IconArrowBack className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
+              <div>
+                <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Retur Barang</h1>
+                <p className="text-xs lg:text-base text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 font-medium">Kelola retur barang ke supplier</p>
+              </div>
             </div>
           </div>
-        </div>
 
         <div className="flex gap-2 mb-5 flex-wrap">
-          <Button
-            variant={returnType === 'pembelian' ? 'primary' : 'ghost'}
-            size="sm"
-            onClick={() => handleTypeChange('pembelian')}
-          >
-            Retur Pembelian
-          </Button>
-          <Button
-            variant={returnType === 'penjualan' ? 'primary' : 'ghost'}
-            size="sm"
-            onClick={() => handleTypeChange('penjualan')}
-          >
-            Retur Penjualan
-          </Button>
           <div className="flex-1" />
           <Button
             variant={mode === 'single' ? 'secondary' : 'ghost'}
@@ -321,16 +300,17 @@ export default function ReturnPage() {
             )}
           </div>
         )}
-      </header>
+        </div>
 
-      <main className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl shadow-elevated mb-6 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+          <div className="flex-1 overflow-auto p-6">
         {step === 1 ? (
           <div>
-            <h2 className="text-lg font-semibold mb-4">Pilih Supplier</h2>
+            <h2 className="text-base lg:text-lg font-semibold mb-4">Pilih Supplier</h2>
             {suppliers.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
-                <IconSearch className="w-16 h-16 mb-4" />
-                <p className="text-lg font-medium">Tidak ada supplier terdaftar</p>
+                <IconSearch className="w-12 h-12 lg:w-16 lg:h-16 mb-4" />
+                <p className="text-base lg:text-lg font-medium">Tidak ada supplier terdaftar</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -340,8 +320,8 @@ export default function ReturnPage() {
                     onClick={() => handleSelectSupplier(supplier)}
                     className="p-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl hover:border-brand-400 hover:shadow-md transition-all text-left"
                   >
-                    <p className="font-semibold text-lg">{supplier.nama}</p>
-                    <p className="text-sm text-neutral-500">{supplier.kontak}</p>
+                    <p className="font-semibold text-base lg:text-lg">{supplier.nama}</p>
+                    <p className="text-xs lg:text-sm text-neutral-500">{supplier.kontak}</p>
                     <p className="text-sm text-neutral-400 mt-1">{supplier.alamat}</p>
                   </button>
                 ))}
@@ -352,8 +332,8 @@ export default function ReturnPage() {
           <div>
             {selectedSupplier && (
               <div className="mb-4 p-4 bg-neutral-50 dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800">
-                <p className="text-lg font-semibold">{selectedSupplier.nama}</p>
-                <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                <p className="text-base lg:text-lg font-semibold">{selectedSupplier.nama}</p>
+                <p className="text-xs lg:text-sm text-neutral-600 dark:text-neutral-400">
                   {selectedSupplier.alamat} | {selectedSupplier.kontak}
                 </p>
               </div>
@@ -378,73 +358,127 @@ export default function ReturnPage() {
               </div>
             ) : (
               <div className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-neutral-50 dark:bg-neutral-800 sticky top-0">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-300 w-12"></th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-300">Nama Barang</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-300">No. PO</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-300">Tanggal</th>
-                      <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-300">Harga</th>
-                      <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-300">Sisa</th>
-                      <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-300">Return</th>
-                      <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-300">Subtotal</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
-                    {items.map((item, index) => {
-                      const harga = item.harga_beli - (item.diskon || 0);
-                      const returnSubtotal = (item.return_qty || 0) * harga;
+                <div className="overflow-x-auto">
+                  <table className="w-full hidden lg:table">
+                    <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md sticky top-0 z-10 border-b border-neutral-200/50 dark:border-neutral-800/50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-300 w-12"></th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-300">Nama Barang</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-300">No. PO</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-300">Tanggal</th>
+                        <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-300">Harga</th>
+                        <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-300">Sisa</th>
+                        <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-300">Return</th>
+                        <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-300">Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                      {items.map((item, index) => {
+                        const harga = item.harga_beli - (item.diskon || 0);
+                        const returnSubtotal = (item.return_qty || 0) * harga;
 
-                      return (
-                        <tr 
-                          key={item.pembelian_item_id} 
-                          className={`${item.selected ? 'bg-brand-50 dark:bg-brand-900/20' : ''} hover:bg-neutral-50 dark:hover:bg-neutral-800`}
-                        >
-                          <td className="px-4 py-3">
-                            <input
-                              type="checkbox"
-                              checked={item.selected}
-                              onChange={() => handleToggleItem(index)}
-                              className="w-5 h-5 rounded border-neutral-300 text-brand-500 focus:ring-brand-400"
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-sm font-medium">{item.nama_barang}</td>
-                          <td className="px-4 py-3 text-sm text-neutral-600 font-mono">{item.nomor_nota || item.pembelian_id.slice(0, 8)}</td>
-                          <td className="px-4 py-3 text-sm text-neutral-600">{item.tanggal_pembelian}</td>
-                          <td className="px-4 py-3 text-right text-sm">{formatCurrency(harga)}</td>
-                          <td className="px-4 py-3 text-right text-sm font-medium">{item.qty_remaining}</td>
-                          <td className="px-4 py-3 text-right">
-                            <PriceInput
-                              value={item.return_qty || 0}
-                              onChange={(val) => handleReturnQtyChange(index, val)}
-                              disabled={!item.selected}
-                              className="w-20 px-2 py-1 border border-neutral-200 dark:border-neutral-700 rounded-lg disabled:opacity-50"
-                              min={0}
-                              max={item.qty_remaining}
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-right text-sm font-medium">
-                            {formatCurrency(returnSubtotal)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                        return (
+                          <tr 
+                            key={item.pembelian_item_id} 
+                            className={`${item.selected ? 'bg-brand-50 dark:bg-brand-900/20' : ''} hover:bg-neutral-50 dark:hover:bg-neutral-800`}
+                          >
+                            <td className="px-4 py-3">
+                              <input
+                                type="checkbox"
+                                checked={item.selected}
+                                onChange={() => handleToggleItem(index)}
+                                className="w-5 h-5 rounded border-neutral-300 text-brand-500 focus:ring-brand-400"
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-sm font-medium">{item.nama_barang}</td>
+                            <td className="px-4 py-3 text-sm text-neutral-600 font-mono">{item.nomor_nota || item.pembelian_id.slice(0, 8)}</td>
+                            <td className="px-4 py-3 text-sm text-neutral-600">{item.tanggal_pembelian}</td>
+                            <td className="px-4 py-3 text-right text-sm">{formatCurrency(harga)}</td>
+                            <td className="px-4 py-3 text-right text-sm font-medium">{item.qty_remaining}</td>
+                            <td className="px-4 py-3 text-right">
+                              <PriceInput
+                                value={item.return_qty || 0}
+                                onChange={(val) => handleReturnQtyChange(index, val)}
+                                disabled={!item.selected}
+                                className="w-20 px-2 py-1 border border-neutral-200 dark:border-neutral-700 rounded-lg disabled:opacity-50"
+                                min={0}
+                                max={item.qty_remaining}
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-right text-sm font-medium">
+                              {formatCurrency(returnSubtotal)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="block lg:hidden space-y-4 p-4">
+                  {items.map((item, index) => {
+                    const harga = item.harga_beli - (item.diskon || 0);
+                    const returnSubtotal = (item.return_qty || 0) * harga;
+
+                    return (
+                      <div key={item.pembelian_item_id} className={`bg-white/50 dark:bg-neutral-950/50 rounded-2xl p-4 shadow-sm border border-neutral-200/50 dark:border-neutral-800/50 transition-colors ${item.selected ? 'ring-2 ring-brand-400 bg-brand-50/50 dark:bg-brand-900/20' : ''}`}>
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={item.selected}
+                            onChange={() => handleToggleItem(index)}
+                            className="mt-1 w-5 h-5 rounded border-neutral-300 text-brand-500 focus:ring-brand-400"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-sm text-neutral-900 dark:text-neutral-100 mb-1">{item.nama_barang}</h3>
+                            <div className="text-xs text-neutral-500 mb-2 font-mono">
+                              {item.nomor_nota || item.pembelian_id.slice(0, 8)} • {item.tanggal_pembelian}
+                            </div>
+                            <div className="flex justify-between items-center text-sm mb-2">
+                              <span className="text-neutral-500">Harga</span>
+                              <span className="font-medium">{formatCurrency(harga)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm mb-3">
+                              <span className="text-neutral-500">Sisa Qty</span>
+                              <span className="font-medium">{item.qty_remaining}</span>
+                            </div>
+                            <div className="flex justify-between items-center pt-3 border-t border-neutral-200/50 dark:border-neutral-800/50">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Retur:</span>
+                                <PriceInput
+                                  value={item.return_qty || 0}
+                                  onChange={(val) => handleReturnQtyChange(index, val)}
+                                  disabled={!item.selected}
+                                  className="w-16 px-2 py-1 border border-neutral-200 dark:border-neutral-700 rounded-lg disabled:opacity-50 text-sm"
+                                  min={0}
+                                  max={item.qty_remaining}
+                                />
+                              </div>
+                              <div className="text-right">
+                                <div className="text-xs text-neutral-500">Subtotal</div>
+                                <div className="font-medium text-sm text-brand-600 dark:text-brand-400">{formatCurrency(returnSubtotal)}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
         )}
-      </main>
+          </div>
+        </div>
 
       {step === 2 && items.length > 0 && (
-        <footer className="bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 px-6 py-5 shadow-sm">
+        <footer className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-4 lg:p-6 shadow-elevated mt-auto animate-fade-in-up" style={{ animationDelay: '200ms' }}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="bg-neutral-50 dark:bg-neutral-950 rounded-xl px-5 py-3 border border-neutral-200 dark:border-neutral-800">
-              <p className="text-sm text-neutral-500 dark:text-neutral-400">Item dipilih: {selectedItems.length}</p>
-              <p className="text-sm text-neutral-500 dark:text-neutral-400">Total Return</p>
-              <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{formatCurrency(totalReturn)}</p>
+            <div className="bg-neutral-50 dark:bg-neutral-950 rounded-xl px-4 lg:px-5 py-3 border border-neutral-200 dark:border-neutral-800">
+              <p className="text-xs lg:text-sm text-neutral-500 dark:text-neutral-400">Item dipilih: {selectedItems.length}</p>
+              <p className="text-xs lg:text-sm text-neutral-500 dark:text-neutral-400">Total Return</p>
+              <p className="text-xl lg:text-2xl font-bold text-neutral-900 dark:text-neutral-100">{formatCurrency(totalReturn)}</p>
             </div>
 
             <div className="flex flex-wrap gap-3 justify-end">
@@ -483,7 +517,7 @@ export default function ReturnPage() {
             </div>
 
             <div className="overflow-auto mb-4">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm hidden sm:table">
                 <thead className="bg-neutral-100 dark:bg-neutral-800">
                   <tr>
                     <th className="px-3 py-2 text-left">Nama Barang</th>
@@ -511,6 +545,27 @@ export default function ReturnPage() {
                   </tr>
                 </tfoot>
               </table>
+
+              <div className="block sm:hidden space-y-3">
+                {previewData.items.map((item, idx) => (
+                  <div key={idx} className="bg-neutral-50/50 dark:bg-neutral-800/50 rounded-xl p-3 border border-neutral-200/50 dark:border-neutral-700/50">
+                    <div className="font-medium text-sm mb-1 text-neutral-900 dark:text-neutral-100">{item.nama_barang}</div>
+                    <div className="text-xs text-neutral-500 font-mono mb-2">PO: {item.nomor_nota}</div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-neutral-500">Harga (x{item.return_qty})</span>
+                      <span className="font-medium">{formatCurrency(item.harga_beli - (item.diskon || 0))}</span>
+                    </div>
+                    <div className="flex justify-between font-medium text-sm text-brand-600 dark:text-brand-400 mt-2 pt-2 border-t border-neutral-200/50 dark:border-neutral-700/50">
+                      <span>Subtotal</span>
+                      <span>{formatCurrency(item.harga_final)}</span>
+                    </div>
+                  </div>
+                ))}
+                <div className="pt-4 mt-2 border-t-2 border-neutral-200 dark:border-neutral-700 font-bold flex justify-between text-lg text-neutral-900 dark:text-neutral-100">
+                  <span>TOTAL:</span>
+                  <span>{formatCurrency(previewData.total)}</span>
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-3 justify-end">
@@ -529,6 +584,7 @@ export default function ReturnPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </AmbientLayout>
   );
 }

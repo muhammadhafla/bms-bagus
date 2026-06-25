@@ -271,16 +271,10 @@ export default function MainLayout({
           {/* Sidebar Header: Logo + Collapse Toggle */}
           <div className={`p-4 flex items-center ${isSidebarVisible ? 'justify-between' : 'justify-center'}`}>
             <Link href="/" className={`flex items-center ${isSidebarVisible ? 'gap-3' : 'gap-0'} ${!isSidebarVisible ? 'lg:justify-center' : ''}`}>
-              <div
-                className={`relative rounded-xl flex items-center justify-center shadow-md overflow-hidden transition-all ${!isSidebarVisible && autoHideEnabled ? 'lg:w-6 lg:h-6' : 'w-10 h-10'}`}
-              >
-                <Image src="/images/logo.png" alt="BMS Logo" fill className="object-contain" />
+              <div className={`relative flex items-center justify-center transition-all ${!isSidebarVisible && autoHideEnabled ? 'lg:w-6 lg:h-6' : 'w-10 h-10'} dark:bg-white dark:rounded-xl`}>
+                <Image src="/images/logo.png" alt="BMS Logo" fill className="object-contain dark:p-1.5" />
               </div>
-              {isSidebarVisible && (
-                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-brand-400">
-                  BMS
-                </span>
-              )}
+
             </Link>
             {isSidebarVisible && (
               <button

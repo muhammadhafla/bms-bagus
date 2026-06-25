@@ -83,17 +83,17 @@ function HomeContent() {
     <div className="relative flex flex-col h-full w-full">
       <div className="relative z-10">
         {/* Header */}
-        <div className="mb-8 animate-fade-in-up">
-          <h1 className="text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
+        <div className="mb-5 lg:mb-8 animate-fade-in-up">
+          <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
             Dashboard
           </h1>
-          <p className="text-neutral-500 dark:text-neutral-400 mt-2 text-base font-medium">
+          <p className="text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 text-sm lg:text-base font-medium">
             Ringkasan performa dan stok barang.
           </p>
         </div>
 
         {/* Bento Grid Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-6 mb-6">
           {loading ? (
             <>
               <StatCardSkeleton />
@@ -144,7 +144,7 @@ function HomeContent() {
         </div>
 
         {/* Baris 2 & 3: Bento Layout */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mb-6">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 lg:gap-6 mb-6">
           {/* Main Chart Section (Spans 8 columns) */}
           <div className="xl:col-span-8 animate-fade-in-up flex flex-col" style={{ animationDelay: '200ms' }}>
             <TrendChart data={trend} isLoading={loading} />

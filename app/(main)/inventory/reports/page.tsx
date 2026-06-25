@@ -183,15 +183,13 @@ export default function ReportsPage() {
 
   return (
     <AmbientLayout>
-      <div className="mb-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5 animate-fade-in-up">
+      <div className="mb-4 lg:mb-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5 animate-fade-in-up pl-12 lg:pl-0">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-brand-600 to-brand-700 rounded-xl flex items-center justify-center shadow-brand">
-              <IconReport className="w-6 h-6 text-white" stroke={1.5} />
-            </div>
+            <IconReport className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
             <div>
-              <h1 className="text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Laporan</h1>
-              <p className="text-neutral-500 dark:text-neutral-400 mt-2 text-base font-medium">Monitoring & analytics</p>
+              <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Laporan</h1>
+              <p className="text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 text-xs lg:text-base font-medium">Monitoring & analytics</p>
             </div>
           </div>
         </div>
@@ -235,37 +233,40 @@ export default function ReportsPage() {
         </div>
 
         {reportType !== 'value' && (
-          <div className="flex flex-wrap gap-3 items-end mb-5">
-            <DateInput
-              value={startDate}
-              onChange={setStartDate}
-              label="Dari:"
-              inputSize="sm"
-            />
-            <DateInput
-              value={endDate}
-              onChange={setEndDate}
-              label="Sampai:"
-              inputSize="sm"
-            />
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:items-end mb-5">
+            <div className="grid grid-cols-2 gap-3 sm:flex sm:gap-3 w-full sm:w-auto">
+              <DateInput
+                value={startDate}
+                onChange={setStartDate}
+                label="Dari:"
+                inputSize="sm"
+              />
+              <DateInput
+                value={endDate}
+                onChange={setEndDate}
+                label="Sampai:"
+                inputSize="sm"
+              />
+            </div>
             {['sales', 'profit', 'top_items'].includes(reportType) && (
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 w-full sm:w-auto mt-2 sm:mt-0">
                 <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Kategori:</label>
                 <SelectInput
                   value={categoryId}
                   onChange={setCategoryId}
                   options={[{ value: '', label: 'Semua Kategori' }, ...categories.map(c => ({ value: c.id, label: c.nama }))]}
                   placeholder="Semua Kategori"
-                  className="w-40"
+                  className="w-full sm:w-40"
                 />
               </div>
             )}
-            <div className="flex items-center gap-2 mb-0.5">
+            <div className="flex items-center gap-2 mb-0.5 w-full sm:w-auto mt-2 sm:mt-0">
               <Button
                 onClick={handleRefresh}
                 disabled={loading}
                 variant="primary"
                 size="sm"
+                className="flex-1 sm:flex-none justify-center"
               >
                 Refresh
               </Button>
@@ -274,10 +275,11 @@ export default function ReportsPage() {
                 disabled={loading}
                 variant="secondary"
                 size="sm"
-                className="ml-auto"
+                className="flex-1 sm:flex-none justify-center sm:ml-auto"
               >
                 <IconDownload size={16} />
-                Export CSV
+                <span className="hidden sm:inline">Export CSV</span>
+                <span className="inline sm:hidden">Export</span>
               </Button>
             </div>
           </div>
@@ -304,7 +306,7 @@ export default function ReportsPage() {
             </div>
           ) : (
             <div className="overflow-hidden rounded-3xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl shadow-elevated">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto hidden lg:block">
                 <table className="w-full min-w-[900px]">
                   <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-b border-neutral-200/50 dark:border-neutral-800/50">
                     <tr>
@@ -342,14 +344,43 @@ export default function ReportsPage() {
                   </tbody>
                 </table>
               </div>
+
+              <div className="block lg:hidden divide-y divide-neutral-100 dark:divide-neutral-800">
+                {stockMutations.map((mutation) => (
+                  <div key={mutation.id} className="p-4 flex flex-col gap-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-medium text-neutral-900 dark:text-neutral-100">{mutation.nama_barang}</div>
+                        <div className="text-xs text-neutral-500 font-mono mt-0.5">{mutation.barcode}</div>
+                      </div>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold ${
+                        mutation.type === 'in' 
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' 
+                          : 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400'
+                      }`}>
+                        {mutation.type === 'in' ? 'IN' : 'OUT'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-end mt-2">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs text-neutral-500">{new Date(mutation.created_at).toLocaleDateString('id-ID')}</span>
+                        <span className="text-xs text-neutral-600 dark:text-neutral-400">{mutation.transaction_type}</span>
+                      </div>
+                      <div className="font-semibold text-neutral-900 dark:text-neutral-100 text-lg">
+                        {mutation.qty_mutation > 0 ? `+${mutation.qty_mutation}` : mutation.qty_mutation}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
               {totalPages > 1 && (
-                <div className="flex items-center justify-between px-6 py-4 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50">
+                <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50 gap-4">
                   <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
                     Halaman <span className="font-bold text-neutral-900 dark:text-white">{page}</span> dari <span className="font-bold text-neutral-900 dark:text-white">{totalPages}</span>
                   </p>
-                  <div className="flex items-center gap-3">
-                    <Button variant="secondary" size="sm" onClick={() => setPage(p => p - 1)} disabled={page <= 1}>Previous</Button>
-                    <Button variant="secondary" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>Next</Button>
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <Button variant="secondary" size="sm" className="flex-1 sm:flex-none justify-center" onClick={() => setPage(p => p - 1)} disabled={page <= 1}>Previous</Button>
+                    <Button variant="secondary" size="sm" className="flex-1 sm:flex-none justify-center" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>Next</Button>
                   </div>
                 </div>
               )}
@@ -374,7 +405,7 @@ export default function ReportsPage() {
                 </div>
               </div>
               <div className="overflow-hidden rounded-3xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl shadow-elevated">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto hidden lg:block">
                   <table className="w-full">
                     <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-b border-neutral-200/50 dark:border-neutral-800/50">
                       <tr>
@@ -406,15 +437,50 @@ export default function ReportsPage() {
                     </tbody>
                   </table>
                 </div>
+
+                <div className="block lg:hidden divide-y divide-neutral-100 dark:divide-neutral-800">
+                  {inventoryValue.map((item) => (
+                    <div key={item.id} className="p-4 flex flex-col gap-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium text-neutral-900 dark:text-neutral-100">{item.nama_barang}</div>
+                          <div className="text-xs text-neutral-500 font-mono mt-0.5">{item.barcode}</div>
+                        </div>
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 text-xs font-medium">
+                          {item.kategori}
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-sm mt-1">
+                        <div>
+                          <span className="text-neutral-500 text-xs">Stok</span>
+                          <div className="font-semibold">{item.stok}</div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-neutral-500 text-xs">Nilai Total</span>
+                          <div className="font-bold text-brand-600 dark:text-brand-400">{formatCurrency(item.total_value)}</div>
+                        </div>
+                        <div>
+                          <span className="text-neutral-500 text-xs">Hrg Beli</span>
+                          <div className="text-neutral-700 dark:text-neutral-300">{formatCurrency(item.harga_beli)}</div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-neutral-500 text-xs">Hrg Jual</span>
+                          <div className="text-neutral-700 dark:text-neutral-300">{formatCurrency(item.harga_jual)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
               {totalPages > 1 && (
-                <div className="flex items-center justify-between px-6 py-4 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50 mt-4 rounded-3xl">
+                <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50 mt-4 rounded-3xl gap-4">
                   <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
                     Halaman <span className="font-bold text-neutral-900 dark:text-white">{page}</span> dari <span className="font-bold text-neutral-900 dark:text-white">{totalPages}</span>
                   </p>
-                  <div className="flex items-center gap-3">
-                    <Button variant="secondary" size="sm" onClick={() => setPage(p => p - 1)} disabled={page <= 1}>Previous</Button>
-                    <Button variant="secondary" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>Next</Button>
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <Button variant="secondary" size="sm" className="flex-1 sm:flex-none justify-center" onClick={() => setPage(p => p - 1)} disabled={page <= 1}>Previous</Button>
+                    <Button variant="secondary" size="sm" className="flex-1 sm:flex-none justify-center" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>Next</Button>
                   </div>
                 </div>
               )}
@@ -450,7 +516,7 @@ export default function ReportsPage() {
               </div>
 
               <div className="overflow-hidden rounded-3xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl shadow-elevated">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto hidden lg:block">
                   <table className="w-full">
                     <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-b border-neutral-200/50 dark:border-neutral-800/50">
                       <tr>
@@ -470,15 +536,29 @@ export default function ReportsPage() {
                     </tbody>
                   </table>
                 </div>
+
+                <div className="block lg:hidden divide-y divide-neutral-100 dark:divide-neutral-800">
+                  {salesSummary.map((item) => (
+                    <div key={item.date} className="p-4 flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-neutral-900 dark:text-neutral-100">{item.date}</div>
+                        <div className="text-sm text-neutral-500">{item.transaction_count} Transaksi</div>
+                      </div>
+                      <div className="font-bold text-brand-600 dark:text-brand-400">
+                        {formatCurrency(item.total_sales)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
               {totalPages > 1 && (
-                <div className="flex items-center justify-between px-6 py-4 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50 mt-4 rounded-3xl">
+                <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50 mt-4 rounded-3xl gap-4">
                   <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
                     Halaman <span className="font-bold text-neutral-900 dark:text-white">{page}</span> dari <span className="font-bold text-neutral-900 dark:text-white">{totalPages}</span>
                   </p>
-                  <div className="flex items-center gap-3">
-                    <Button variant="secondary" size="sm" onClick={() => setPage(p => p - 1)} disabled={page <= 1}>Previous</Button>
-                    <Button variant="secondary" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>Next</Button>
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <Button variant="secondary" size="sm" className="flex-1 sm:flex-none justify-center" onClick={() => setPage(p => p - 1)} disabled={page <= 1}>Previous</Button>
+                    <Button variant="secondary" size="sm" className="flex-1 sm:flex-none justify-center" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>Next</Button>
                   </div>
                 </div>
               )}
@@ -519,7 +599,7 @@ export default function ReportsPage() {
               </div>
 
               <div className="overflow-hidden rounded-3xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl shadow-elevated">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto hidden lg:block">
                   <table className="w-full">
                     <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-b border-neutral-200/50 dark:border-neutral-800/50">
                       <tr>
@@ -547,15 +627,44 @@ export default function ReportsPage() {
                     </tbody>
                   </table>
                 </div>
+
+                <div className="block lg:hidden divide-y divide-neutral-100 dark:divide-neutral-800">
+                  {profitSummary.map((item) => (
+                    <div key={item.date} className="p-4 flex flex-col gap-2">
+                      <div className="flex justify-between items-center">
+                        <div className="font-medium text-neutral-900 dark:text-neutral-100">{item.date}</div>
+                        <div className={`font-bold ${item.margin_percentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                          Margin: {item.margin_percentage.toFixed(1)}%
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm mt-1">
+                        <div>
+                          <span className="text-neutral-500 text-xs">Penjualan</span>
+                          <div className="font-medium">{formatCurrency(item.total_penjualan)}</div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-neutral-500 text-xs">Profit</span>
+                          <div className={`font-bold ${item.total_profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                            {formatCurrency(item.total_profit)}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-neutral-500 text-xs">Modal (HPP)</span>
+                          <div className="text-neutral-600 dark:text-neutral-400">{formatCurrency(item.total_modal)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
               {totalPages > 1 && (
-                <div className="flex items-center justify-between px-6 py-4 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50 mt-4 rounded-3xl">
+                <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50 mt-4 rounded-3xl gap-4">
                   <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
                     Halaman <span className="font-bold text-neutral-900 dark:text-white">{page}</span> dari <span className="font-bold text-neutral-900 dark:text-white">{totalPages}</span>
                   </p>
-                  <div className="flex items-center gap-3">
-                    <Button variant="secondary" size="sm" onClick={() => setPage(p => p - 1)} disabled={page <= 1}>Previous</Button>
-                    <Button variant="secondary" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>Next</Button>
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <Button variant="secondary" size="sm" className="flex-1 sm:flex-none justify-center" onClick={() => setPage(p => p - 1)} disabled={page <= 1}>Previous</Button>
+                    <Button variant="secondary" size="sm" className="flex-1 sm:flex-none justify-center" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>Next</Button>
                   </div>
                 </div>
               )}
@@ -611,7 +720,7 @@ export default function ReportsPage() {
               </div>
 
               <div className="overflow-hidden rounded-3xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl shadow-elevated">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto hidden lg:block">
                   <table className="w-full">
                     <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-b border-neutral-200/50 dark:border-neutral-800/50">
                       <tr>
@@ -632,6 +741,29 @@ export default function ReportsPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+
+                <div className="block lg:hidden divide-y divide-neutral-100 dark:divide-neutral-800">
+                  {[...topItems].sort((a, b) => topItemsSort === 'qty' ? b.total_qty - a.total_qty : b.total_profit - a.total_profit).map((item, index) => (
+                    <div key={item.inventory_id} className="p-4 flex gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center font-bold text-sm text-neutral-500">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">{item.nama_barang}</div>
+                        <div className="flex justify-between text-sm">
+                          <div>
+                            <span className="text-neutral-500 text-xs block">Terjual</span>
+                            <span className="font-bold text-brand-600 dark:text-brand-400">{item.total_qty}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-neutral-500 text-xs block">Total Profit</span>
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(item.total_profit)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </>

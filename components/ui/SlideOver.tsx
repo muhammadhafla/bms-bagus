@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { IconX } from '@tabler/icons-react';
 
 interface SlideOverProps {
@@ -12,6 +13,12 @@ interface SlideOverProps {
 }
 
 export function SlideOver({ isOpen, onClose, title, children, size = 'md' }: SlideOverProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handleEscape = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       onClose();
@@ -29,7 +36,7 @@ export function SlideOver({ isOpen, onClose, title, children, size = 'md' }: Sli
     };
   }, [isOpen, handleEscape]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const sizeClasses = {
     sm: 'max-w-sm',
@@ -38,8 +45,8 @@ export function SlideOver({ isOpen, onClose, title, children, size = 'md' }: Sli
     xl: 'max-w-2xl',
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex justify-end">
       <div 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
@@ -58,6 +65,7 @@ export function SlideOver({ isOpen, onClose, title, children, size = 'md' }: Sli
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

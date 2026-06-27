@@ -48,7 +48,7 @@ export function SlideOver({ isOpen, onClose, title, children, size = 'md' }: Sli
   return createPortal(
     <div className="fixed inset-0 z-[100] flex justify-end">
       <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50"
         onClick={onClose}
       />
       <div className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-neutral-950 shadow-xl flex flex-col h-full animate-slide-in`}>

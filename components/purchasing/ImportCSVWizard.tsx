@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Papa from 'papaparse';
 import { IconUpload, IconArrowRight, IconCheck, IconX, IconAlertCircle } from '@tabler/icons-react';
 import { Button } from '@/components/ui';
+import { Portal } from '@/components/ui/Portal';
 import { formatCurrency } from '@/lib/utils';
 import { inventoryApi, kategoriApi } from '@/lib/api';
 import { InventoryItem } from '@/types/inventory';
@@ -234,8 +235,9 @@ export default function ImportCSVWizard({ open, onClose, onComplete }: ImportCSV
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in p-4">
-      <div className="bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[90vh] overflow-hidden border border-neutral-200 dark:border-neutral-800">
+    <Portal>
+      <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4">
+        <div className="bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[90vh] overflow-hidden border border-neutral-200 dark:border-neutral-800">
         
         {/* Header */}
         <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-neutral-50/50 dark:bg-neutral-900/50">
@@ -481,7 +483,8 @@ export default function ImportCSVWizard({ open, onClose, onComplete }: ImportCSV
           </div>
         </div>
 
+        </div>
       </div>
-    </div>
+    </Portal>
   );
 }

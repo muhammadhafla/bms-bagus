@@ -4,12 +4,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/lib/auth';
-import { IconUsers, IconEdit, IconTrash, IconRefresh, IconDotsVertical } from '@tabler/icons-react';
+import { IconUsers, IconEdit, IconTrash, IconRefresh, IconDotsVertical, IconUserPlus } from '@tabler/icons-react';
 import { AdminOnly } from '@/components/role';
 import { useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { AmbientLayout, DropdownMenu } from '@/components/ui';
 import { useRouter } from 'next/navigation';
+import CreateUserModal from './CreateUserModal';
 
 interface Profile {
   id: string;
@@ -24,6 +25,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; userId: string | null }>({
     isOpen: false,
     userId: null,
@@ -118,13 +120,22 @@ export default function UsersPage() {
               </div>
             </div>
             
-            <button
-              onClick={fetchUsers}
-              className="flex items-center gap-2 px-4 py-2 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm rounded-xl hover:bg-white/80 dark:hover:bg-neutral-800/80 transition-colors"
-            >
-              <IconRefresh className="w-4 h-4" />
-              Refresh
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={fetchUsers}
+                className="flex items-center gap-2 px-4 py-2 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm rounded-xl hover:bg-white/80 dark:hover:bg-neutral-800/80 transition-colors text-neutral-700 dark:text-neutral-300 font-medium text-sm"
+              >
+                <IconRefresh className="w-4 h-4" />
+                Refresh
+              </button>
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-brand-500 text-white shadow-sm rounded-xl hover:bg-brand-600 transition-colors font-medium text-sm"
+              >
+                <IconUserPlus className="w-4 h-4" />
+                Tambah Akun
+              </button>
+            </div>
           </div>
         </div>
 
@@ -298,6 +309,12 @@ export default function UsersPage() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteConfirm({ isOpen: false, userId: null })}
         danger
+      />
+
+      <CreateUserModal 
+        isOpen={isCreateModalOpen} 
+        onClose={() => setIsCreateModalOpen(false)} 
+        onSuccess={fetchUsers} 
       />
     </AmbientLayout>
   );

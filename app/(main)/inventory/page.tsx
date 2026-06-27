@@ -5,12 +5,13 @@ import { InventoryItem } from '@/types/inventory';
 import { inventoryApi, kategoriApi } from '@/lib/api';
 import { debounce } from '@/lib/utils';
 import { InventoryTable } from '@/components/inventory/InventoryTable';
-import { AmbientLayout } from '@/components/ui';
-import { IconPackage, IconSearch, IconFilter } from '@tabler/icons-react';
+import { Button, DataTable, Badge, SelectInput, Tooltip, AmbientLayout } from '@/components/ui';
+import { Portal } from '@/components/ui/Portal';
+import { IconPackage, IconSearch, IconFilter, IconUpload } from '@tabler/icons-react';
 import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
-import SelectInput from '@/components/ui/SelectInput';
 import CheckboxInput from '@/components/ui/CheckboxInput';
 import { API_ERROR_MESSAGES, UI_MESSAGES, INVENTORY_MESSAGES } from '@/lib/constants';
+import ImportInventoryCSVWizard from '@/components/inventory/ImportInventoryCSVWizard';
 
 interface Shortcut {
   key: string;
@@ -33,6 +34,7 @@ export default function InventoryPage() {
   const ITEMS_PER_PAGE = 20;
   const [kategoriList, setKategoriList] = useState<string[]>([]);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   
   const abortControllerRef = useRef<AbortController | null>(null);
   const debouncedFetchRef = useRef<ReturnType<typeof debounce> | null>(null);
@@ -157,22 +159,24 @@ export default function InventoryPage() {
   return (
     <AmbientLayout>
       {showShortcutsHelp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowShortcutsHelp(false)}>
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-elevated max-w-md w-full p-6 border border-neutral-200 dark:border-neutral-800 animate-scale-in" onClick={e => e.stopPropagation()}>
-            <h2 className="text-xl font-bold text-neutral-900 dark:text-white mb-4">Keyboard Shortcuts</h2>
-            <ul className="space-y-3">
-              {shortcuts.map((s, i) => (
-                <li key={i} className="flex items-center justify-between py-2 border-b border-neutral-100 dark:border-neutral-800 last:border-0">
-                  <span className="text-neutral-600 dark:text-neutral-400">{s.description}</span>
-                  <kbd className="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-sm font-mono text-neutral-700 dark:text-neutral-300 font-medium">
-                    {s.ctrl ? 'Ctrl+' : ''}{s.key}
-                  </kbd>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-4 text-sm text-neutral-500 dark:text-neutral-400">Tekan Esc untuk menutup</p>
+        <Portal>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-neutral-900/60 animate-fade-in" onClick={() => setShowShortcutsHelp(false)}>
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-elevated max-w-md w-full p-6 border border-neutral-200 dark:border-neutral-800 animate-scale-in" onClick={e => e.stopPropagation()}>
+              <h2 className="text-xl font-bold text-neutral-900 dark:text-white mb-4">Keyboard Shortcuts</h2>
+              <ul className="space-y-3">
+                {shortcuts.map((s, i) => (
+                  <li key={i} className="flex items-center justify-between py-2 border-b border-neutral-100 dark:border-neutral-800 last:border-0">
+                    <span className="text-neutral-600 dark:text-neutral-400">{s.description}</span>
+                    <kbd className="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-sm font-mono text-neutral-700 dark:text-neutral-300 font-medium">
+                      {s.ctrl ? 'Ctrl+' : ''}{s.key}
+                    </kbd>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-4 text-sm text-neutral-500 dark:text-neutral-400">Tekan Esc untuk menutup</p>
+            </div>
           </div>
-        </div>
+        </Portal>
       )}
       
       <div className="mb-4 lg:mb-6">
@@ -184,12 +188,22 @@ export default function InventoryPage() {
               <p className="text-xs lg:text-base text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 font-medium">Kelola data dan stok barang.</p>
             </div>
           </div>
-          {lowStockCount > 0 && (
-            <span className="bg-accent-rose-50 dark:bg-accent-rose-950/40 text-accent-rose-600 dark:text-accent-rose-300 px-4 py-2 rounded-xl text-sm font-semibold border border-accent-rose-200 dark:border-accent-rose-800 flex items-center gap-2 animate-fade-in-up">
-              <span className="w-2 h-2 bg-accent-rose-500 rounded-full animate-pulse"></span>
-              {lowStockCount} barang low stock
-            </span>
-          )}
+          <div className="flex items-center gap-3 animate-fade-in-up flex-wrap lg:flex-nowrap">
+            {lowStockCount > 0 && (
+              <span className="bg-accent-rose-50 dark:bg-accent-rose-950/40 text-accent-rose-600 dark:text-accent-rose-300 px-4 py-2 rounded-xl text-sm font-semibold border border-accent-rose-200 dark:border-accent-rose-800 flex items-center gap-2">
+                <span className="w-2 h-2 bg-accent-rose-500 rounded-full animate-pulse"></span>
+                {lowStockCount} barang low stock
+              </span>
+            )}
+            <Button
+              variant="secondary"
+              onClick={() => setShowImportModal(true)}
+              className="flex items-center gap-2 rounded-xl shadow-sm hover:shadow-md transition-shadow"
+            >
+              <IconUpload size={20} />
+              <span className="hidden sm:inline font-medium">Import CSV</span>
+            </Button>
+          </div>
         </div>
         
         <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
@@ -293,6 +307,15 @@ export default function InventoryPage() {
           />
         )}
       </div>
+
+      <ImportInventoryCSVWizard
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onComplete={() => {
+          setShowImportModal(false);
+          fetchItems(search, kategori, lowStockOnly, page);
+        }}
+      />
     </AmbientLayout>
   );
 }

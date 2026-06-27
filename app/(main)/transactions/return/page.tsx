@@ -7,6 +7,7 @@ import { formatCurrency } from '@/lib/utils';
 import { IconArrowBack, IconSearch, IconFileExport, IconX, IconDeviceFloppy } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
 import { Button, AmbientLayout } from '@/components/ui';
+import { Portal } from '@/components/ui/Portal';
 
 const downloadPdf = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
@@ -505,60 +506,61 @@ export default function ReturnPage() {
       )}
 
       {showPreview && previewData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setShowPreview(false)} />
-          <div className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-auto">
-            <h2 className="text-xl font-bold mb-4">Preview Retur Barang</h2>
-            
-            <div className="mb-4 p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-              <p><span className="font-medium">Supplier:</span> {previewData.supplier_nama}</p>
-              <p><span className="font-medium">Tanggal:</span> {previewData.tanggal}</p>
-              {previewData.note && <p><span className="font-medium">Catatan:</span> {previewData.note}</p>}
-            </div>
+        <Portal>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/50" onClick={() => setShowPreview(false)} />
+            <div className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-auto">
+              <h2 className="text-xl font-bold mb-4">Preview Retur Barang</h2>
+              
+              <div className="mb-4 p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                <p><span className="font-medium">Supplier:</span> {previewData.supplier_nama}</p>
+                <p><span className="font-medium">Tanggal:</span> {previewData.tanggal}</p>
+                {previewData.note && <p><span className="font-medium">Catatan:</span> {previewData.note}</p>}
+              </div>
 
-            <div className="overflow-auto mb-4">
-              <table className="w-full text-sm hidden sm:table">
-                <thead className="bg-neutral-100 dark:bg-neutral-800">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Nama Barang</th>
-                    <th className="px-3 py-2 text-left">No. PO</th>
-                    <th className="px-3 py-2 text-right">Qty</th>
-                    <th className="px-3 py-2 text-right">Harga</th>
-                    <th className="px-3 py-2 text-right">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {previewData.items.map((item, idx) => (
-                    <tr key={idx} className="border-t border-neutral-200 dark:border-neutral-700">
-                      <td className="px-3 py-2">{item.nama_barang}</td>
-                      <td className="px-3 py-2">{item.nomor_nota}</td>
-                      <td className="px-3 py-2 text-right">{item.return_qty}</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(item.harga_beli - (item.diskon || 0))}</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(item.harga_final)}</td>
+              <div className="overflow-auto mb-4">
+                <table className="w-full text-sm hidden sm:table">
+                  <thead className="bg-neutral-100 dark:bg-neutral-800">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Nama Barang</th>
+                      <th className="px-3 py-2 text-left">No. PO</th>
+                      <th className="px-3 py-2 text-right">Qty</th>
+                      <th className="px-3 py-2 text-right">Harga</th>
+                      <th className="px-3 py-2 text-right">Subtotal</th>
                     </tr>
-                  ))}
-                </tbody>
-                <tfoot className="font-bold">
-                  <tr className="border-t-2 border-neutral-300">
-                    <td colSpan={4} className="px-3 py-2 text-right">TOTAL:</td>
-                    <td className="px-3 py-2 text-right">{formatCurrency(previewData.total)}</td>
-                  </tr>
-                </tfoot>
-              </table>
+                  </thead>
+                  <tbody>
+                    {previewData.items.map((item, idx) => (
+                      <tr key={idx} className="border-t border-neutral-200 dark:border-neutral-700">
+                        <td className="px-3 py-2">{item.nama_barang}</td>
+                        <td className="px-3 py-2">{item.nomor_nota}</td>
+                        <td className="px-3 py-2 text-right">{item.return_qty}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(item.harga_beli - (item.diskon || 0))}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(item.harga_final)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="font-bold">
+                    <tr className="border-t-2 border-neutral-300">
+                      <td colSpan={4} className="px-3 py-2 text-right">TOTAL:</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(previewData.total)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
 
-              <div className="block sm:hidden space-y-3">
-                {previewData.items.map((item, idx) => (
-                  <div key={idx} className="bg-neutral-50/50 dark:bg-neutral-800/50 rounded-xl p-3 border border-neutral-200/50 dark:border-neutral-700/50">
-                    <div className="font-medium text-sm mb-1 text-neutral-900 dark:text-neutral-100">{item.nama_barang}</div>
-                    <div className="text-xs text-neutral-500 font-mono mb-2">PO: {item.nomor_nota}</div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-neutral-500">Harga (x{item.return_qty})</span>
-                      <span className="font-medium">{formatCurrency(item.harga_beli - (item.diskon || 0))}</span>
-                    </div>
-                    <div className="flex justify-between font-medium text-sm text-brand-600 dark:text-brand-400 mt-2 pt-2 border-t border-neutral-200/50 dark:border-neutral-700/50">
-                      <span>Subtotal</span>
-                      <span>{formatCurrency(item.harga_final)}</span>
-                    </div>
+                <div className="block sm:hidden space-y-3">
+                  {previewData.items.map((item, idx) => (
+                    <div key={idx} className="bg-neutral-50/50 dark:bg-neutral-800/50 rounded-xl p-3 border border-neutral-200/50 dark:border-neutral-700/50">
+                      <div className="font-medium text-sm mb-1 text-neutral-900 dark:text-neutral-100">{item.nama_barang}</div>
+                      <div className="text-xs text-neutral-500 font-mono mb-2">PO: {item.nomor_nota}</div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-neutral-500">Harga (x{item.return_qty})</span>
+                        <span className="font-medium">{formatCurrency(item.harga_beli - (item.diskon || 0))}</span>
+                      </div>
+                      <div className="flex justify-between font-medium text-sm text-brand-600 dark:text-brand-400 mt-2 pt-2 border-t border-neutral-200/50 dark:border-neutral-700/50">
+                        <span>Subtotal</span>
+                        <span>{formatCurrency(item.harga_final)}</span>
+                      </div>
                   </div>
                 ))}
                 <div className="pt-4 mt-2 border-t-2 border-neutral-200 dark:border-neutral-700 font-bold flex justify-between text-lg text-neutral-900 dark:text-neutral-100">
@@ -582,7 +584,8 @@ export default function ReturnPage() {
               </Button>
             </div>
           </div>
-        </div>
+          </div>
+        </Portal>
       )}
       </div>
     </AmbientLayout>

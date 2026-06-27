@@ -180,7 +180,7 @@ export const inventoryApi = {
   },
 
   async update(id: string, data: Record<string, unknown>) {
-    const query = supabase.from('inventory').update(data).eq('id', id).select().single();
+    const query = supabase.from('inventory').update(data).eq('id', id).select('*, id_kategori:id_kategori(*)').single();
     return safeQuery<InventoryItem>(async () => {
       const result = await query;
       return { data: result.data, error: result.error as Error | null };
@@ -307,6 +307,51 @@ export const inventoryApi = {
       const result = await supabase
         .from('inventory')
         .insert(payload)
+        .select('*, id_kategori:id_kategori(*)');
+        
+      if (!result.error) {
+        clearInventoryCache();
+      }
+        
+      return { data: result.data, error: result.error as Error | null };
+    });
+  },
+
+  async upsertBatch(items: { 
+    nama_barang: string; 
+    kode_barcode?: string; 
+    id_kategori?: string; 
+    harga_jual: number; 
+    harga_beli: number;
+    stok?: number;
+    diskon?: number;
+  }[]) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { data: null, error: new Error('User not authenticated') };
+    }
+    
+    return safeQuery<InventoryItem[]>(async () => {
+      const payload = items.map((item, index) => {
+        return {
+          nama_barang: item.nama_barang.trim(),
+          kode_barcode: item.kode_barcode || null,
+          id_kategori: item.id_kategori || null,
+          created_by: user.id,
+          updated_by: user.id,
+          updated_at: new Date().toISOString(),
+          harga_beli_terakhir: item.harga_beli || 0,
+          harga_jual: item.harga_jual || 0,
+          diskon: item.diskon || 0,
+          stok: item.stok || 0,
+          minimum_stock: 0,
+          unit: 'pcs'
+        };
+      });
+
+      const result = await supabase
+        .from('inventory')
+        .upsert(payload, { onConflict: 'nama_barang', ignoreDuplicates: false })
         .select('*, id_kategori:id_kategori(*)');
         
       if (!result.error) {

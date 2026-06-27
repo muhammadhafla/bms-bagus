@@ -9,6 +9,9 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY,
   nama TEXT,
+  email TEXT,
+  username TEXT UNIQUE,
+  avatar_url TEXT,
   role TEXT DEFAULT 'staff',
   created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
 );
@@ -714,3 +717,52 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION tambah_pembelian_batch(jsonb, uuid, date, uuid, uuid) TO authenticated;
+
+-- ========== RESOLVE USERNAME RPC ==========
+CREATE OR REPLACE FUNCTION resolve_username(p_username TEXT)
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_email TEXT;
+BEGIN
+  SELECT email INTO v_email FROM public.profiles WHERE username = p_username LIMIT 1;
+  RETURN v_email;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION resolve_username(TEXT) TO anon, authenticated;
+
+-- ========== STORAGE POLICIES ==========
+INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true) ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
+CREATE POLICY "Auth Insert" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'avatars');
+CREATE POLICY "Auth Update" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'avatars');
+
+-- ========== AUTHENTICATION TRIGGERS ==========
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, nama, role)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    coalesce(NEW.raw_user_meta_data->>'nama', split_part(NEW.email, '@', 1), 'user'),
+    'staff'
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+-- Note: The following trigger is created in the auth schema automatically by Supabase
+-- or needs to be executed via Supabase SQL editor:
+-- CREATE TRIGGER on_auth_user_created
+--   AFTER INSERT ON auth.users
+--   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

@@ -3,22 +3,22 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth';
-import { IconLock, IconMail, IconMoon, IconSun, IconEye, IconEyeOff } from '@tabler/icons-react';
+import { IconLock, IconMail, IconMoon, IconSun, IconEye, IconEyeOff, IconUser } from '@tabler/icons-react';
 import { useDarkMode } from '@/components/DarkModeProvider';
 import Image from 'next/image';
 import TextInput from '@/components/ui/TextInput';
 import { Button } from '@/components/ui';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [emailError, setEmailError] = useState('');
+  const [identifierError, setIdentifierError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const { signIn, loading, user } = useAuthStore();
+  const { signIn, loading, user, supabase } = useAuthStore();
   const router = useRouter();
-  const emailInputRef = useRef<HTMLInputElement>(null);
+  const identifierInputRef = useRef<HTMLInputElement>(null);
   const { theme, toggleTheme } = useDarkMode();
 
   useEffect(() => {
@@ -28,19 +28,19 @@ export default function LoginPage() {
   }, [user, router]);
 
   useEffect(() => {
-    emailInputRef.current?.focus();
+    identifierInputRef.current?.focus();
   }, []);
 
   const validateForm = () => {
     let isValid = true;
-    setEmailError('');
+    setIdentifierError('');
     setPasswordError('');
 
-    if (!email) {
-      setEmailError('Email wajib diisi');
+    if (!identifier) {
+      setIdentifierError('Email atau Username wajib diisi');
       isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      setEmailError('Format email tidak valid');
+    } else if (identifier.includes('@') && !/\S+@\S+\.\S+/.test(identifier)) {
+      setIdentifierError('Format email tidak valid');
       isValid = false;
     }
 
@@ -63,7 +63,22 @@ export default function LoginPage() {
       return;
     }
 
-    const result = await signIn(email, password);
+    let loginEmail = identifier;
+
+    // Resolve username to email if it's not an email
+    if (!identifier.includes('@')) {
+      const { data, error: resolveError } = await supabase.rpc('resolve_username', {
+        p_username: identifier.toLowerCase()
+      });
+
+      if (resolveError || !data) {
+        setError('Username tidak ditemukan');
+        return;
+      }
+      loginEmail = data;
+    }
+
+    const result = await signIn(loginEmail, password);
     if (result.success) {
       router.push('/dashboard');
     } else {
@@ -104,33 +119,33 @@ export default function LoginPage() {
             )}
 
             <div className="space-y-2">
-              <label htmlFor="email" className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                Email
+              <label htmlFor="identifier" className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                Email atau Username
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
-                  <IconMail size={18} />
+                  <IconUser size={18} />
                 </div>
                 <input
-                  ref={emailInputRef}
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  ref={identifierInputRef}
+                  id="identifier"
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   className={`w-full pl-11 pr-4 py-3.5 rounded-xl border-2 outline-none transition-all btn-press ${
-                    emailError 
+                    identifierError 
                       ? 'border-accent-rose-400 focus:border-accent-rose-500 focus:shadow-[0_0_0_4px_rgba(244,63,94,0.15)]' 
                       : 'border-neutral-200 dark:border-neutral-700 focus:border-brand-500 focus:shadow-brand'
                   } bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400`}
-                  placeholder="admin@example.com"
+                  placeholder="email atau username"
                   required
                   autoComplete="username"
-                  aria-invalid={!!emailError}
-                  aria-describedby={emailError ? 'email-error' : undefined}
+                  aria-invalid={!!identifierError}
+                  aria-describedby={identifierError ? 'identifier-error' : undefined}
                 />
               </div>
-              {emailError && (
-                <p id="email-error" className="text-sm text-accent-rose-600 dark:text-accent-rose-400">{emailError}</p>
+              {identifierError && (
+                <p id="identifier-error" className="text-sm text-accent-rose-600 dark:text-accent-rose-400">{identifierError}</p>
               )}
             </div>
 

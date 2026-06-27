@@ -10,6 +10,7 @@ import { PriceInput } from '@/components/ui/PriceInput';
 import DateInput from '@/components/ui/DateInput';
 import SelectInput from '@/components/ui/SelectInput';
 import { Button, AmbientLayout, Badge, Banner, useToast } from '@/components/ui';
+import { Portal } from '@/components/ui/Portal';
 import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
 import ImportCSVWizard from '@/components/purchasing/ImportCSVWizard';
 
@@ -23,11 +24,21 @@ interface ItemSuggestionDialogProps {
 }
 
 function ItemSuggestionDialog({ open, query, items, onSelect, onCreateNew, onClose }: ItemSuggestionDialogProps) {
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (open) document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-      <div className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl rounded-2xl shadow-elevated w-full max-w-md p-6 border border-white/40 dark:border-white/10 animate-scale-in">
+    <Portal>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-neutral-900/60" onClick={onClose} />
+        <div className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-elevated w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-800">
         <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-1">Apakah maksud anda:</h2>
         <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">Pencarian untuk: <span className="font-medium text-neutral-900 dark:text-neutral-100">{query}</span></p>
         
@@ -57,8 +68,9 @@ function ItemSuggestionDialog({ open, query, items, onSelect, onCreateNew, onClo
             Tambah Baru
           </Button>
         </div>
+        </div>
       </div>
-    </div>
+    </Portal>
   );
 }
 
@@ -154,11 +166,21 @@ function NewItemDialog({ open, initialBarcode, initialName, onClose, onSubmit }:
     }
   };
 
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (open) document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-      <div className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl rounded-2xl shadow-elevated w-full max-w-md p-6 border border-white/40 dark:border-white/10 animate-scale-in">
+    <Portal>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-neutral-900/60" onClick={onClose} />
+        <div className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-elevated w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-800">
         <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-4">Barang Baru</h2>
         
         <form onSubmit={handleSubmit}>
@@ -260,7 +282,8 @@ function NewItemDialog({ open, initialBarcode, initialName, onClose, onSubmit }:
           </div>
         </form>
       </div>
-    </div>
+      </div>
+    </Portal>
   );
 }
 
@@ -569,7 +592,7 @@ export default function PembelianPage() {
     <AmbientLayout>
       <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)]">
         {/* Header Section */}
-        <div className="mb-4 lg:mb-6 flex-shrink-0 animate-fade-in-up">
+        <div className="mb-4 lg:mb-6 flex-shrink-0">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
             <div className="flex items-center gap-4 pl-12 lg:pl-0">
               <IconShoppingCart className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
@@ -601,7 +624,7 @@ export default function PembelianPage() {
           </div>
 
           <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div className="flex-1 relative animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+            <div className="flex-1 relative">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
                 <IconCamera size={20} />
               </div>
@@ -622,7 +645,7 @@ export default function PembelianPage() {
               />
             </div>
             
-            <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+            <div className="animate-fade-in-up">
               <SelectInput
                 label="Supplier"
                 value={selectedSupplierId || ''}
@@ -640,7 +663,7 @@ export default function PembelianPage() {
               />
             </div>
 
-            <div className="flex flex-col gap-2 min-w-[18rem] animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+            <div className="flex flex-col gap-2 min-w-[18rem]">
               <label className="text-sm text-neutral-600 dark:text-neutral-300 font-semibold">Total Supplier:</label>
               <PriceInput
                 value={totalSupplier || 0}
@@ -653,15 +676,15 @@ export default function PembelianPage() {
           </div>
 
           {error && (
-            <div className="mt-4 p-3 bg-red-50/80 dark:bg-red-900/30 backdrop-blur-md text-red-600 dark:text-red-300 rounded-xl text-sm border border-red-200/50 dark:border-red-800/50 animate-fade-in shadow-sm">{error}</div>
+            <div className="mt-4 p-3 bg-red-50/80 dark:bg-red-900/30 backdrop-blur-md text-red-600 dark:text-red-300 rounded-xl text-sm border border-red-200/50 dark:border-red-800/50 shadow-sm">{error}</div>
           )}
           {success && (
-            <div className="mt-4 p-3 bg-brand-50/80 dark:bg-brand-900/30 backdrop-blur-md text-brand-600 dark:text-brand-300 rounded-xl text-sm border border-brand-200/50 dark:border-brand-800/50 animate-fade-in shadow-sm">{success}</div>
+            <div className="mt-4 p-3 bg-brand-50/80 dark:bg-brand-900/30 backdrop-blur-md text-brand-600 dark:text-brand-300 rounded-xl text-sm border border-brand-200/50 dark:border-brand-800/50 shadow-sm">{success}</div>
           )}
         </div>
 
         {/* Main Table Area */}
-        <div className="flex-1 overflow-hidden flex flex-col min-h-[400px] lg:min-h-0 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl shadow-elevated mb-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+        <div className="flex-1 overflow-hidden flex flex-col min-h-[400px] lg:min-h-0 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl shadow-elevated mb-6">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-neutral-400 py-20">
               <div className="w-28 h-28 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border border-white/40 dark:border-white/10 rounded-3xl flex items-center justify-center mb-5 shadow-sm">
@@ -695,14 +718,17 @@ export default function PembelianPage() {
                     <td className="px-4 py-3 text-sm font-medium text-neutral-900 dark:text-neutral-100">{item.nama_barang}</td>
                     <td className="px-4 py-3 text-right">
                       {selectedIndex === index && editMode === 'qty' ? (
-                        <PriceInput
-                          value={editValue}
-                          onChange={setEditValue}
-                          onBlur={handleEditSubmit}
-                          className="w-20 px-3 py-1.5 border-2 border-brand-500 rounded-lg shadow-brand"
-                          min={1}
-                          autoFocus
-                        />
+                        <div className="w-24 ml-auto">
+                          <PriceInput
+                            value={editValue}
+                            onChange={setEditValue}
+                            onBlur={handleEditSubmit}
+                            className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900"
+                            min={1}
+                            autoFocus
+                            prefix=""
+                          />
+                        </div>
                       ) : (
                         <button
                           onClick={() => {
@@ -718,14 +744,16 @@ export default function PembelianPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       {selectedIndex === index && editMode === 'harga' ? (
-                        <PriceInput
-                          value={editValue}
-                          onChange={setEditValue}
-                          onBlur={handleEditSubmit}
-                          className="w-28 px-3 py-1.5 border-2 border-brand-500 rounded-lg shadow-brand"
-                          min={0}
-                          autoFocus
-                        />
+                        <div className="w-32 ml-auto">
+                          <PriceInput
+                            value={editValue}
+                            onChange={setEditValue}
+                            onBlur={handleEditSubmit}
+                            className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900"
+                            min={0}
+                            autoFocus
+                          />
+                        </div>
                       ) : (
                         <button
                           onClick={() => {
@@ -778,9 +806,10 @@ export default function PembelianPage() {
                           value={editValue}
                           onChange={setEditValue}
                           onBlur={handleEditSubmit}
-                          className="w-full px-3 py-2.5 border-2 border-brand-500 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
+                          className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
                           min={1}
                           autoFocus
+                          prefix=""
                         />
                       ) : (
                         <button
@@ -802,7 +831,7 @@ export default function PembelianPage() {
                           value={editValue}
                           onChange={setEditValue}
                           onBlur={handleEditSubmit}
-                          className="w-full px-3 py-2.5 border-2 border-brand-500 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
+                          className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
                           min={0}
                           autoFocus
                         />
@@ -835,7 +864,7 @@ export default function PembelianPage() {
         </div>
 
         {/* Footer Section */}
-        <div className="flex-shrink-0 animate-fade-in-up sticky bottom-4 z-20 lg:relative lg:bottom-0" style={{ animationDelay: '250ms' }}>
+        <div className="flex-shrink-0 sticky bottom-4 z-20 lg:relative lg:bottom-0">
           <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-4 lg:p-5 shadow-elevated">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="grid grid-cols-3 gap-2 sm:gap-4">

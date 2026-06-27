@@ -23,3 +23,4 @@ export { default as Footer } from './Footer';
 export { SlideOver } from './SlideOver';
 export { Modal } from './Modal';
 export { default as AmbientLayout } from './AmbientLayout';
+export { Portal } from './Portal';

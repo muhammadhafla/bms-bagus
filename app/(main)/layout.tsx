@@ -25,6 +25,7 @@ import {
   IconMenu2,
   IconChevronRight,
   IconTruck,
+  IconTags,
 } from '@tabler/icons-react';
 
 // Constants extracted outside component to prevent re-creation
@@ -34,6 +35,7 @@ const NAV_ITEMS = [
 
 const INVENTORY_ITEMS = [
   { href: '/inventory', title: 'Stock', icon: IconPackage },
+  { href: '/inventory/kategori', title: 'Kategori', icon: IconTags },
   { href: '/inventory/stock-opname', title: 'Stock Opname', icon: IconClipboardCheck },
   { href: '/inventory/reports', title: 'Laporan', icon: IconReport },
 ];
@@ -186,13 +188,11 @@ export default function MainLayout({
   }, [isAdminUser]);
 
   // Memoized handlers
-   const handleSignOut = useCallback(async () => {
+   const handleSignOut = useCallback(() => {
      setIsLoggingOut(true);
      setLogoutConfirmOpen(false);
-     await signOut();
-     router.push('/login');
-     router.refresh();
-   }, [signOut, router]);
+     signOut(); // The state is cleared optimistically, which triggers the redirect in useEffect
+   }, [signOut]);
 
    const handleToggleInventory = useCallback(() => {
      setInventoryExpanded((prev) => !prev);
@@ -417,9 +417,15 @@ export default function MainLayout({
             aria-expanded={userMenuOpen}
           >
             {/* Avatar */}
-            <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-              {profile?.nama?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
-            </div>
+            {profile?.avatar_url ? (
+              <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-neutral-200 dark:border-neutral-700">
+                <Image src={profile.avatar_url} alt="Avatar" fill className="object-cover" sizes="32px" />
+              </div>
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                {profile?.nama?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+            )}
             {isSidebarVisible && (
               <div className="flex-1 min-w-0 text-left">
                 <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
@@ -450,6 +456,16 @@ export default function MainLayout({
                   {profile?.role || 'Staff'}
                 </p>
               </div>
+
+              {/* Profile Link */}
+              <Link
+                href="/profile"
+                onClick={() => setUserMenuOpen(false)}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              >
+                <IconUsers className="w-4 h-4" />
+                <span>Edit Profil</span>
+              </Link>
 
               {/* Theme Toggle */}
               <button

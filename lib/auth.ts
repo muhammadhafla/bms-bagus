@@ -22,6 +22,8 @@ interface Profile {
   id: string;
   nama: string;
   email?: string;
+  username?: string;
+  avatar_url?: string;
   role: 'admin' | 'staff';
   created_at: string;
 }
@@ -473,8 +475,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Unsubscribe first to prevent auth state updates during signout
     if (authSubscription) {
       authSubscription.unsubscribe();
-      set({ authSubscription: null, isRefreshing: true });
     }
+
+    // Optimistically clear state to allow immediate redirect
+    set({
+      user: null,
+      profile: null,
+      loading: false,
+      initialized: true,
+      authSubscription: null,
+      isRefreshing: false,
+      sessionExpiryTime: null,
+      sessionWarningShown: false
+    });
 
     const logout = async () => {
       const { error } = await supabase.auth.signOut();
@@ -483,18 +496,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       await retryWithBackoff(logout);
-
-      // Clear state only on successful signout
-      set({
-        user: null,
-        profile: null,
-        loading: false,
-        initialized: true,
-        authSubscription: null,
-        isRefreshing: false,
-        sessionExpiryTime: null,
-        sessionWarningShown: false
-      });
     } catch (error) {
       console.warn('Sign out failed, forcing local logout:', error);
 
@@ -519,17 +520,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       } catch (e) {
         console.error('Failed to clear auth storage:', e);
       }
-
-      set({
-        user: null,
-        profile: null,
-        loading: false,
-        initialized: true,
-        authSubscription: null,
-        isRefreshing: false,
-        sessionExpiryTime: null,
-        sessionWarningShown: false
-      });
     }
   },
 }));

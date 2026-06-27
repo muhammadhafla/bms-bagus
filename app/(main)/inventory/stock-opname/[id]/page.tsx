@@ -8,6 +8,7 @@ import { inventoryApi } from '@/lib/api';
 import { IconArrowLeft, IconCheck, IconX, IconSend, IconLoader2, IconDeviceFloppy, IconRefresh, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react';
 import { useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Portal } from '@/components/ui/Portal';
 import SelectInput from '@/components/ui/SelectInput';
 import TextareaInput from '@/components/ui/TextareaInput';
 import { Button, Breadcrumb, Badge, Card, AmbientLayout } from '@/components/ui';
@@ -588,34 +589,36 @@ return (
          onCancel={() => setShowConfirmDiscard(false)}
        />
 
-       {showRejectModal && (
-         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-           <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 w-full max-w-md">
-             <h3 className="text-lg font-bold mb-4">Tolak Stock Opname</h3>
-             <textarea
-               value={rejectNote}
-               onChange={(e) => setRejectNote(e.target.value)}
-               className="w-full border border-neutral-200 dark:border-neutral-700 rounded-lg p-3 mb-4 h-24 resize-none"
-               placeholder="Masukkan alasan penolakan..."
-             />
-             <div className="flex justify-end gap-2">
-               <button
-                 onClick={() => setShowRejectModal(false)}
-                 className="px-4 py-2 text-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg"
-               >
-                 Batal
-               </button>
-               <button
-                 onClick={handleReject}
-                 disabled={saving}
-                 className="px-4 py-2 bg-danger-600 text-white rounded-lg hover:bg-danger-700 disabled:opacity-50"
-               >
-                 Konfirmasi Tolak
-               </button>
-             </div>
-           </div>
-         </div>
-       )}
+        {showRejectModal && (
+          <Portal>
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
+              <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 w-full max-w-md">
+                <h3 className="text-lg font-bold mb-4">Tolak Stock Opname</h3>
+                <textarea
+                  value={rejectNote}
+                  onChange={(e) => setRejectNote(e.target.value)}
+                  className="w-full border border-neutral-200 dark:border-neutral-700 rounded-lg p-3 mb-4 h-24 resize-none"
+                  placeholder="Masukkan alasan penolakan..."
+                />
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setShowRejectModal(false)}
+                    className="px-4 py-2 text-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleReject}
+                    disabled={!rejectNote.trim() || saving}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                  >
+                    Tolak
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Portal>
+        )}
     </AmbientLayout>
   );
 }

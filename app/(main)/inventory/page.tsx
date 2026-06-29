@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { InventoryItem } from '@/types/inventory';
 import { inventoryApi, kategoriApi } from '@/lib/api';
 import { debounce } from '@/lib/utils';
@@ -12,6 +12,7 @@ import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
 import CheckboxInput from '@/components/ui/CheckboxInput';
 import { API_ERROR_MESSAGES, UI_MESSAGES, INVENTORY_MESSAGES } from '@/lib/constants';
 import ImportInventoryCSVWizard from '@/components/inventory/ImportInventoryCSVWizard';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface Shortcut {
   key: string;
@@ -23,119 +24,74 @@ interface Shortcut {
 }
 
 export default function InventoryPage() {
-  const [items, setItems] = useState<InventoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [kategori, setKategori] = useState('');
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const ITEMS_PER_PAGE = 20;
-  const [kategoriList, setKategoriList] = useState<string[]>([]);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const debouncedFetchRef = useRef<ReturnType<typeof debounce> | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
-  const fetchItems = useCallback(async (
-    currentSearch: string,
-    currentKategori: string,
-    currentLowStockOnly: boolean,
-    currentPage: number,
-    signal?: AbortSignal
-  ) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await inventoryApi.getPaginated({
-        page: currentPage,
-        limit: ITEMS_PER_PAGE,
-        search: currentSearch,
-        categoryName: currentKategori,
-        lowStockOnly: currentLowStockOnly,
-      });
+  // Debounce search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
 
-      if (signal?.aborted) return;
-      
-      if (result.error) {
-        setError(result.error.message || API_ERROR_MESSAGES.FETCH_FAILED);
-      } else {
-        setItems(result.data || []);
-        setTotalPages(Math.ceil((result.total || 0) / ITEMS_PER_PAGE) || 1);
-      }
-    } catch (error) {
-      if ((error as Error).name !== 'AbortError') {
-        setError(API_ERROR_MESSAGES.UNKNOWN_ERROR);
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  }, []);
-
+  // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [search, kategori, lowStockOnly]);
+  }, [debouncedSearch, kategori, lowStockOnly]);
 
-  useEffect(() => {
-    if (debouncedFetchRef.current) {
-      debouncedFetchRef.current.cancel();
-    }
-    
-    debouncedFetchRef.current = debounce(() => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      abortControllerRef.current = new AbortController();
-      fetchItems(search, kategori, lowStockOnly, page, abortControllerRef.current.signal);
-    }, 300);
+  const { data: inventoryData, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['inventory', { page, search: debouncedSearch, categoryName: kategori, lowStockOnly }],
+    queryFn: () => inventoryApi.getPaginated({
+      page,
+      limit: ITEMS_PER_PAGE,
+      search: debouncedSearch,
+      categoryName: kategori,
+      lowStockOnly,
+    }),
+  });
 
-    debouncedFetchRef.current();
+  const { data: kategoriResponse } = useQuery({
+    queryKey: ['kategoris'],
+    queryFn: () => kategoriApi.getAll(),
+  });
 
-    return () => {
-      if (debouncedFetchRef.current) {
-        debouncedFetchRef.current.cancel();
-      }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, [search, kategori, lowStockOnly, page, fetchItems]);
-
-  useEffect(() => {
-    const fetchKategoris = async () => {
-      const result = await kategoriApi.getAll();
-      if (!result.error && result.data) {
-        setKategoriList(result.data.map(k => k.nama));
-      }
-    };
-    fetchKategoris();
-  }, []);
+  const items = inventoryData?.data || [];
+  const totalPages = Math.ceil((inventoryData?.total || 0) / ITEMS_PER_PAGE) || 1;
+  const error = queryError ? queryError.message : (inventoryData?.error?.message || null);
+  const kategoriList = (kategoriResponse?.data || []).map(k => k.nama);
 
   const handleUpdate = useCallback(async (id: string, data: Partial<InventoryItem>) => {
-    setItems(prev => 
-      prev.map(item => item.id === id ? { ...item, ...data } : item)
-    );
-  }, []);
+    queryClient.invalidateQueries({ queryKey: ['inventory'] });
+  }, [queryClient]);
 
   const handleDelete = useCallback(async (id: string) => {
     const result = await inventoryApi.delete(id);
     if (!result.error) {
-      setItems(prev => prev.filter(item => item.id !== id));
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
     }
-  }, []);
+  }, [queryClient]);
 
   const lowStockCount = items.filter(item => item.minimum_stock != null && item.stok <= item.minimum_stock).length;
 
-  const shortcuts: Shortcut[] = [
+  const handleFocusSearch = useCallback(() => {
+    searchInputRef.current?.focus();
+  }, []);
+
+  const shortcuts: Shortcut[] = useMemo(() => [
     {
       key: 'f',
       ctrl: true,
-      handler: () => searchInputRef.current?.focus(),
+      handler: handleFocusSearch,
       description: 'Fokus ke pencarian',
     },
     {
@@ -152,7 +108,7 @@ export default function InventoryPage() {
       },
       description: 'Reset filter',
     },
-  ];
+  ], [handleFocusSearch]);
 
   useKeyboardShortcuts(shortcuts);
 
@@ -164,6 +120,7 @@ export default function InventoryPage() {
             <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-elevated max-w-md w-full p-6 border border-neutral-200 dark:border-neutral-800 animate-scale-in" onClick={e => e.stopPropagation()}>
               <h2 className="text-xl font-bold text-neutral-900 dark:text-white mb-4">Keyboard Shortcuts</h2>
               <ul className="space-y-3">
+                {/* eslint-disable-next-line react-hooks/refs */}
                 {shortcuts.map((s, i) => (
                   <li key={i} className="flex items-center justify-between py-2 border-b border-neutral-100 dark:border-neutral-800 last:border-0">
                     <span className="text-neutral-600 dark:text-neutral-400">{s.description}</span>
@@ -283,7 +240,7 @@ export default function InventoryPage() {
           <div>
             <div className="text-center py-12 bg-danger-50/50 dark:bg-danger-900/20 backdrop-blur-md rounded-3xl border border-danger-200/50 dark:border-danger-800/50 shadow-elevated">
               <p className="text-danger-600 dark:text-danger-400 font-medium">{error}</p>
-              <button onClick={() => fetchItems(search, kategori, lowStockOnly, page)} className="mt-4 text-sm text-brand-600 dark:text-brand-400 hover:underline font-semibold">
+              <button onClick={() => refetch()} className="mt-4 text-sm text-brand-600 dark:text-brand-400 hover:underline font-semibold">
                 {UI_MESSAGES.TRY_AGAIN}
               </button>
             </div>
@@ -299,6 +256,7 @@ export default function InventoryPage() {
             items={items} 
             onUpdate={handleUpdate} 
             onDelete={handleDelete} 
+            kategoriList={kategoriList}
             pagination={{
               page,
               totalPages,
@@ -313,7 +271,7 @@ export default function InventoryPage() {
         onClose={() => setShowImportModal(false)}
         onComplete={() => {
           setShowImportModal(false);
-          fetchItems(search, kategori, lowStockOnly, page);
+          refetch();
         }}
       />
     </AmbientLayout>

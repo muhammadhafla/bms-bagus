@@ -9,7 +9,9 @@ import {
   IconArrowUpCircle,
   IconCurrencyDollar,
   IconAlertTriangle,
+  IconRefresh,
 } from '@tabler/icons-react';
+import { useQuery } from '@tanstack/react-query';
 import { StatCard, StatCardSkeleton } from '@/components/dashboard/StatCard';
 import { LowStockAlert } from '@/components/dashboard/LowStockAlert';
 import { TrendChart } from '@/components/dashboard/TrendChart';
@@ -22,47 +24,44 @@ function HomeContent() {
   const { user, initialized } = useAuthStore();
   const router = useRouter();
 
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [lowStock, setLowStock] = useState<LowStockItem[]>([]);
-  const [trend, setTrend] = useState<TrendData[]>([]);
-  const [transactions, setTransactions] = useState<RecentTransaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: stats, isLoading: statsLoading, isFetching: statsFetching, refetch: refetchStats } = useQuery({
+    queryKey: ['dashboard', 'stats'],
+    queryFn: () => dashboardApi.getStats().then(res => res.data),
+    refetchInterval: 300000,
+  });
+
+  const { data: lowStock, isLoading: lowStockLoading, isFetching: lowStockFetching, refetch: refetchLowStock } = useQuery({
+    queryKey: ['dashboard', 'lowStock'],
+    queryFn: () => dashboardApi.getLowStockItems().then(res => res.data),
+    refetchInterval: 300000,
+  });
+
+  const { data: trend, isLoading: trendLoading, isFetching: trendFetching, refetch: refetchTrend } = useQuery({
+    queryKey: ['dashboard', 'trend'],
+    queryFn: () => dashboardApi.get7DayTrend().then(res => res.data),
+    refetchInterval: 300000,
+  });
+
+  const { data: transactions, isLoading: transactionsLoading, isFetching: transactionsFetching, refetch: refetchTransactions } = useQuery({
+    queryKey: ['dashboard', 'transactions'],
+    queryFn: () => dashboardApi.getRecentTransactions().then(res => res.data),
+    refetchInterval: 300000,
+  });
+
+  const isRefreshing = statsFetching || lowStockFetching || trendFetching || transactionsFetching;
+  
+  const handleManualRefresh = () => {
+    refetchStats();
+    refetchLowStock();
+    refetchTrend();
+    refetchTransactions();
+  };
 
   useEffect(() => {
     if (initialized && !user) {
       router.push('/login');
     }
   }, [user, initialized, router]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const loadDashboard = async () => {
-      setLoading(true);
-      try {
-        const [statsRes, lowStockRes, trendRes, transactionsRes] = await Promise.all([
-          dashboardApi.getStats(),
-          dashboardApi.getLowStockItems(),
-          dashboardApi.get7DayTrend(),
-          dashboardApi.getRecentTransactions(),
-        ]);
-
-        if (statsRes.data) setStats(statsRes.data);
-        if (lowStockRes.data) setLowStock(lowStockRes.data);
-        if (trendRes.data) setTrend(trendRes.data);
-        if (transactionsRes.data) setTransactions(transactionsRes.data);
-      } catch (error) {
-        console.error('Failed to load dashboard:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadDashboard();
-
-    const interval = setInterval(loadDashboard, 300000);
-    return () => clearInterval(interval);
-  }, [user]);
 
   if (!initialized) {
     return (
@@ -83,18 +82,32 @@ function HomeContent() {
     <div className="relative flex flex-col h-full w-full">
       <div className="relative z-10">
         {/* Header */}
-        <div className="mb-5 lg:mb-8 animate-fade-in-up">
-          <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
-            Dashboard
-          </h1>
-          <p className="text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 text-sm lg:text-base font-medium">
-            Ringkasan performa dan stok barang.
-          </p>
+        <div className="mb-5 lg:mb-8 animate-fade-in-up flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
+              Dashboard
+            </h1>
+            <p className="text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 text-sm lg:text-base font-medium">
+              Ringkasan performa dan stok barang.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-neutral-500 dark:text-neutral-400">
+              {isRefreshing ? 'Memperbarui...' : 'Otomatis diperbarui'}
+            </span>
+            <button
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
+              className={`p-2 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-all ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <IconRefresh size={20} className={isRefreshing ? 'animate-spin' : ''} />
+            </button>
+          </div>
         </div>
 
         {/* Bento Grid Layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-6 mb-6">
-          {loading ? (
+          {statsLoading ? (
             <>
               <StatCardSkeleton />
               <StatCardSkeleton />
@@ -147,16 +160,16 @@ function HomeContent() {
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 lg:gap-6 mb-6">
           {/* Main Chart Section (Spans 8 columns) */}
           <div className="xl:col-span-8 animate-fade-in-up flex flex-col" style={{ animationDelay: '200ms' }}>
-            <TrendChart data={trend} isLoading={loading} />
+            <TrendChart data={trend || []} isLoading={trendLoading} />
           </div>
 
           {/* Right Column (Spans 4 columns) */}
           <div className="xl:col-span-4 flex flex-col gap-6">
             <div className="animate-fade-in-up flex-1" style={{ animationDelay: '250ms' }}>
-              <LowStockAlert items={lowStock} isLoading={loading} />
+              <LowStockAlert items={lowStock || []} isLoading={lowStockLoading} />
             </div>
             <div className="animate-fade-in-up flex-1" style={{ animationDelay: '300ms' }}>
-              <RecentTransactions transactions={transactions} isLoading={loading} />
+              <RecentTransactions transactions={transactions || []} isLoading={transactionsLoading} />
             </div>
           </div>
         </div>
@@ -169,7 +182,7 @@ function HomeContent() {
                 Ringkasan Stok
               </h3>
               <div className="grid grid-cols-2 gap-4">
-                {loading ? (
+                {statsLoading ? (
                   <>
                     <div className="h-20 bg-neutral-100 dark:bg-neutral-800 rounded-xl animate-pulse" />
                     <div className="h-20 bg-neutral-100 dark:bg-neutral-800 rounded-xl animate-pulse" />

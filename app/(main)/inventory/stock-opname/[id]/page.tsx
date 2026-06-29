@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { debounce } from '@/lib/utils';
 import { StockOpname, StockOpnameItem, stockOpnameApi } from '@/lib/api/stockOpname';
 import { stockAdjustmentApi } from '@/lib/api/stockAdjustment';
 import { inventoryApi } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
 import { IconArrowLeft, IconCheck, IconX, IconSend, IconLoader2, IconDeviceFloppy, IconRefresh, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react';
 import { useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -33,6 +35,7 @@ export default function StockOpnameDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [saveProgress, setSaveProgress] = useState({ current: 0, total: 0 });
   const [rejectNote, setRejectNote] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -41,6 +44,14 @@ export default function StockOpnameDetailPage() {
   const [inventorySearchResults, setInventorySearchResults] = useState<any[]>([]);
   const [showAddDropdown, setShowAddDropdown] = useState(false);
   const [showConfirmDiscard, setShowConfirmDiscard] = useState(false);
+
+  const { data: inventoryData } = useQuery({
+    queryKey: ['inventory', 'all'],
+    queryFn: async () => {
+      const res = await inventoryApi.getAll();
+      return res.data || [];
+    },
+  });
   const { toasts, showToast, removeToast } = useToast();
 
   const addToast = ({ type, message }: { type: 'success' | 'error' | 'info', message: string }) => {
@@ -100,13 +111,24 @@ export default function StockOpnameDetailPage() {
       return JSON.stringify(item) !== JSON.stringify(originalItems[index]);
     });
 
+    if (changedItems.length === 0) {
+      setSaving(false);
+      return;
+    }
+
+    setSaveProgress({ current: 0, total: changedItems.length });
+
     try {
+      let current = 0;
       for (const item of changedItems) {
-      await stockOpnameApi.updateItem(item.id, {
-        physical_stock: item.physical_stock,
-        reason: item.reason || undefined,
-        note: item.note || undefined
-      });
+        await stockOpnameApi.updateItem(item.id, {
+          physical_stock: item.physical_stock,
+          system_stock: item.system_stock,
+          reason: item.reason || undefined,
+          note: item.note || undefined
+        });
+        current++;
+        setSaveProgress({ current, total: changedItems.length });
       }
 
       setOriginalItems(JSON.parse(JSON.stringify(items)));
@@ -117,6 +139,7 @@ export default function StockOpnameDetailPage() {
     }
     
     setSaving(false);
+    setTimeout(() => setSaveProgress({ current: 0, total: 0 }), 500);
   };
 
   const discardChanges = () => {
@@ -126,7 +149,7 @@ export default function StockOpnameDetailPage() {
     addToast({ type: 'info', message: 'Perubahan dibatalkan' });
   };
 
-  const searchInventory = useCallback(async (query: string) => {
+  const handleSearchInventory = async (query: string, currentItems: any[], allInventory: any[]) => {
     if (query.length < 2) {
       setInventorySearchResults([]);
       setShowAddDropdown(false);
@@ -134,14 +157,19 @@ export default function StockOpnameDetailPage() {
     }
 
     // Gunakan fuzzy search sama seperti di halaman pembelian
-    const result = await inventoryApi.fuzzySearch(query);
+    const result = await inventoryApi.fuzzySearch(query, allInventory);
     if (!result.error && result.data) {
-      const existingIds = items.map(i => i.inventory_id);
+      const existingIds = currentItems.map(i => i.inventory_id);
       const filtered = result.data.filter((i: any) => !existingIds.includes(i.id));
       setInventorySearchResults(filtered);
       setShowAddDropdown(filtered.length > 0);
     }
-  }, [items]);
+  };
+
+  const debouncedSearch = useMemo(
+    () => debounce((query: string, currentItems: any[], allInventory: any[]) => handleSearchInventory(query, currentItems, allInventory), 300),
+    []
+  );
 
   const addItemToOpname = async (inventory: any) => {
     // Segera tutup dropdown dan reset input untuk mencegah race condition
@@ -302,7 +330,13 @@ return (
                 {hasChanges && (
                   <Button onClick={saveChanges} disabled={saving || hasInvalidItems}>
                     {saving ? <IconLoader2 size={18} className="animate-spin" /> : <IconDeviceFloppy size={18} />}
-                    <span className="hidden sm:inline">{saving ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
+                    <span className="hidden sm:inline">
+                      {saving && saveProgress.total > 0 
+                        ? `Menyimpan (${saveProgress.current}/${saveProgress.total})...` 
+                        : saving 
+                          ? 'Menyimpan...' 
+                          : 'Simpan Perubahan'}
+                    </span>
                   </Button>
                 )}
                 <Button
@@ -343,9 +377,9 @@ return (
                 value={searchAdd}
                 onChange={(e) => {
                   setSearchAdd(e.target.value);
-                  searchInventory(e.target.value);
+                  debouncedSearch(e.target.value, items, inventoryData || []);
                 }}
-                onFocus={() => searchAdd.length >= 2 && searchInventory(searchAdd)}
+                onFocus={() => searchAdd.length >= 2 && debouncedSearch(searchAdd, items, inventoryData || [])}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && inventorySearchResults.length > 0) {
                     e.preventDefault();

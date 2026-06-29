@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useAuthStore } from '@/lib/auth';
+import { useAuthStore, supabase } from '@/lib/auth';
 import { AmbientLayout } from '@/components/ui';
 import { useToast } from '@/components/ui/Toast';
 import { IconUser, IconCamera, IconDeviceFloppy } from '@tabler/icons-react';
 import Image from 'next/image';
 
 export default function ProfilePage() {
-  const { user, profile, supabase, refreshSession } = useAuthStore();
+  const { user, profile, refreshSession } = useAuthStore();
   const { showToast } = useToast();
   
   const [nama, setNama] = useState('');

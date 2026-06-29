@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { StockOpname, StockOpnameWithProfile, stockOpnameApi } from '@/lib/api';
 import { IconPlus, IconEye, IconCheck, IconX, IconTrash, IconClipboardCheck, IconSearch } from '@tabler/icons-react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Breadcrumb, Button, Badge, AmbientLayout } from '@/components/ui';
+import { useToast } from '@/components/ui/Toast';
 import { API_ERROR_MESSAGES, UI_MESSAGES, STOCK_OPNAME_MESSAGES } from '@/lib/constants';
 
 const statusBadgeVariant: Record<string, 'warning' | 'info' | 'success' | 'danger' | 'default'> = {
@@ -25,6 +27,8 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function StockOpnameListPage() {
+  const router = useRouter();
+  const { showToast } = useToast();
   const [opnames, setOpnames] = useState<StockOpnameWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -51,9 +55,9 @@ export default function StockOpnameListPage() {
     setCreating(true);
     const result = await stockOpnameApi.create();
     if (!result.error && result.data && 'id' in result.data) {
-      window.location.href = `/inventory/stock-opname/${result.data.id}`;
+      router.push(`/inventory/stock-opname/${result.data.id}`);
     } else if (result.error) {
-      alert(result.error.message || API_ERROR_MESSAGES.SAVE_FAILED);
+      showToast(result.error.message || API_ERROR_MESSAGES.SAVE_FAILED, 'error');
     }
     setCreating(false);
   };

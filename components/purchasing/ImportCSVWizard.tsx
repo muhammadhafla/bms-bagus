@@ -129,7 +129,8 @@ export default function ImportCSVWizard({ open, onClose, onComplete }: ImportCSV
     setError(null);
     try {
       const names = mappedData.map(d => d.nama_barang);
-      const res = await inventoryApi.checkBatchExistence(names);
+      const allInventory = await inventoryApi.getAll();
+      const res = await inventoryApi.checkBatchExistence(names, allInventory.data || []);
       
       if (res.error) {
         throw new Error(res.error.message);

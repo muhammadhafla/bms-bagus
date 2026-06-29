@@ -3,44 +3,7 @@ import { safeQuery } from './utils';
 import { stringSimilarity } from '@/lib/utils';
 import { InventoryItem } from '@/types/inventory';
 
-let inventoryCache: InventoryItem[] | null = null;
-let cacheTimestamp: number = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-async function getInventoryWithCache() {
-  const now = Date.now();
-  
-  if (inventoryCache && (now - cacheTimestamp) < CACHE_DURATION) {
-    return { data: inventoryCache, error: null };
-  }
-  
-  const result = await safeQuery<InventoryItem[]>(
-      async () => {
-        const result = await supabase
-          .from('inventory')
-          .select('*, id_kategori:id_kategori(*)')
-          .order('nama_barang')
-          .limit(200);
-        return { data: result.data, error: result.error as Error | null };
-      }
-    );
-  
-  if (!result.error && result.data) {
-    inventoryCache = result.data;
-    cacheTimestamp = now;
-  }
-  
-  return result;
-}
-
-export function clearInventoryCache() {
-  inventoryCache = null;
-  cacheTimestamp = 0;
-}
-
-export async function preloadInventoryCache() {
-  await getInventoryWithCache();
-}
 
 export const inventoryApi = {
   async getAll() {
@@ -55,26 +18,23 @@ export const inventoryApi = {
     const limit = Math.min(100, Math.max(1, options.limit || 20));
     const offset = (page - 1) * limit;
 
-    // If lowStockOnly is true, we fallback to client-side filtering because Supabase REST 
-    // doesn't natively support comparing two columns (stok <= minimum_stock) without RPC.
+    let countQuery;
+    let dataQuery;
+
     if (options.lowStockOnly) {
-      const query = supabase.from('inventory').select('*, id_kategori:id_kategori(*)').order('nama_barang');
+      const p_search = options.search ? options.search.replace(/%/g, '').toLowerCase() : null;
+      countQuery = supabase.rpc('get_low_stock_items', { p_search }, { count: 'exact', head: true });
+      dataQuery = supabase.rpc('get_low_stock_items', { p_search }).select('*, id_kategori:id_kategori(*)').range(offset, offset + limit - 1);
+    } else {
+      countQuery = supabase.from('inventory').select('*', { count: 'exact', head: true });
+      dataQuery = supabase.from('inventory').select('*, id_kategori:id_kategori(*)').order('nama_barang').range(offset, offset + limit - 1);
+
       if (options.search) {
         const safeQueryString = options.search.replace(/%/g, '').toLowerCase();
-        query.or(`nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`);
+        const orCondition = `nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`;
+        countQuery = countQuery.or(orCondition);
+        dataQuery = dataQuery.or(orCondition);
       }
-      const result = await query;
-      if (result.error) return { data: [], total: 0, page, limit, hasMore: false, error: result.error as Error };
-      
-      let filtered = result.data as InventoryItem[];
-      filtered = filtered.filter(item => item.minimum_stock != null && item.stok <= item.minimum_stock);
-      if (options.categoryName) {
-        filtered = filtered.filter(item => item.id_kategori?.nama === options.categoryName);
-      }
-      
-      const total = filtered.length;
-      const paginatedData = filtered.slice(offset, offset + limit);
-      return { data: paginatedData, total, page, limit, hasMore: offset + paginatedData.length < total, error: null };
     }
 
     let categoryId = null;
@@ -82,22 +42,9 @@ export const inventoryApi = {
       const catResult = await supabase.from('kategori').select('id').eq('nama', options.categoryName).single();
       if (catResult.data) {
         categoryId = catResult.data.id;
+        countQuery = countQuery.eq('id_kategori', categoryId);
+        dataQuery = dataQuery.eq('id_kategori', categoryId);
       }
-    }
-
-    const countQuery = supabase.from('inventory').select('*', { count: 'exact', head: true });
-    let dataQuery = supabase.from('inventory').select('*, id_kategori:id_kategori(*)').order('nama_barang').range(offset, offset + limit - 1);
-
-    if (options.search) {
-      const safeQueryString = options.search.replace(/%/g, '').toLowerCase();
-      const orCondition = `nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`;
-      countQuery.or(orCondition);
-      dataQuery.or(orCondition);
-    }
-
-    if (categoryId) {
-      countQuery.eq('id_kategori', categoryId);
-      dataQuery.eq('id_kategori', categoryId);
     }
 
     const [countResult, dataResult] = await Promise.all([countQuery, dataQuery]);
@@ -144,14 +91,13 @@ export const inventoryApi = {
     });
   },
 
-  async fuzzySearch(query: string, limit = 20) {
+  async fuzzySearch(query: string, inventoryList: InventoryItem[], limit = 20) {
     const queryLower = query.toLowerCase().trim();
     if (queryLower.length < 2) return { data: [], error: null };
 
-    const result = await getInventoryWithCache();
-    if (result.error || !result.data) return { data: [], error: result.error };
+    if (!inventoryList || inventoryList.length === 0) return { data: [], error: null };
     
-    const scoredItems: Array<InventoryItem & { similarity: number }> = result.data
+    const scoredItems: Array<InventoryItem & { similarity: number }> = inventoryList
       .map((item: InventoryItem) => ({
         ...item,
         similarity: Math.max(
@@ -254,20 +200,15 @@ export const inventoryApi = {
     });
   },
 
-  async checkBatchExistence(names: string[]) {
-    if (!names || names.length === 0) return { existing: [], missing: [] };
-    
-    const result = await getInventoryWithCache();
-
-    if (result.error || !result.data) {
-      return { existing: [], missing: names, error: result.error };
-    }
+  async checkBatchExistence(names: string[], inventoryList: InventoryItem[]): Promise<{ existing: InventoryItem[], missing: string[], error: Error | null }> {
+    if (!names || names.length === 0) return { existing: [], missing: [], error: null };
+    if (!inventoryList || inventoryList.length === 0) return { existing: [], missing: names, error: null };
 
     const existing: InventoryItem[] = [];
     const missing: string[] = [];
 
     const inventoryMap = new Map();
-    result.data.forEach(item => {
+    inventoryList.forEach(item => {
       inventoryMap.set(item.nama_barang.toLowerCase().trim(), item);
     });
 
@@ -309,10 +250,6 @@ export const inventoryApi = {
         .insert(payload)
         .select('*, id_kategori:id_kategori(*)');
         
-      if (!result.error) {
-        clearInventoryCache();
-      }
-        
       return { data: result.data, error: result.error as Error | null };
     });
   },
@@ -353,10 +290,6 @@ export const inventoryApi = {
         .from('inventory')
         .upsert(payload, { onConflict: 'nama_barang', ignoreDuplicates: false })
         .select('*, id_kategori:id_kategori(*)');
-        
-      if (!result.error) {
-        clearInventoryCache();
-      }
         
       return { data: result.data, error: result.error as Error | null };
     });

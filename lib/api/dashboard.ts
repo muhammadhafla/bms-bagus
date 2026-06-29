@@ -37,11 +37,11 @@ export const dashboardApi = {
   async getStats(): Promise<{ data: DashboardStats | null; error: unknown }> {
     const today = new Date().toISOString().split('T')[0];
 
-    const [inventoryResult, salesResult, purchasesResult, lowStockResult] = await Promise.all([
-      safeQuery<{ stok: number; harga_beli_terakhir: number }[]>(
+    const [statsResult, salesResult, purchasesResult] = await Promise.all([
+      safeQuery<{ total_inventory_value: number; total_items: number; low_stock_items: number }>(
         async () => {
-          const result = await supabase.from('inventory').select('stok, harga_beli_terakhir');
-          return { data: result.data, error: result.error as Error | null };
+          const result = await supabase.rpc('get_dashboard_stats').single();
+          return { data: result.data as { total_inventory_value: number; total_items: number; low_stock_items: number } | null, error: result.error as Error | null };
         }
       ),
       safeQuery<{ total: number }[]>(
@@ -55,42 +55,27 @@ export const dashboardApi = {
           const result = await supabase.from('pembelian').select('total_sistem, tanggal').eq('tanggal', today);
           return { data: result.data, error: result.error as Error | null };
         }
-      ),
-      safeQuery<{ id: string; nama_barang: string; stok: number; minimum_stock: number }[]>(
-        async () => {
-          const result = await supabase.from('inventory').select('id, nama_barang, stok, minimum_stock');
-          return { data: result.data, error: result.error as Error | null };
-        }
-      ),
+      )
     ]);
 
-    if (inventoryResult.error || salesResult.error || purchasesResult.error || lowStockResult.error) {
+    if (statsResult.error || salesResult.error || purchasesResult.error) {
       return {
         data: null,
-        error: inventoryResult.error || salesResult.error || purchasesResult.error || lowStockResult.error,
+        error: statsResult.error || salesResult.error || purchasesResult.error,
       };
     }
-
-    const totalInventoryValue = (inventoryResult.data || []).reduce(
-      (sum, item) => sum + (item.stok * (item.harga_beli_terakhir || 0)),
-      0
-    );
 
     const todaySales = (salesResult.data || []).reduce((sum, t) => sum + (t.total || 0), 0);
     const todayPurchases = (purchasesResult.data || []).reduce((sum, t) => sum + (t.total_sistem || 0), 0);
 
-    const lowStockCount = (lowStockResult.data || []).filter(
-      item => item.minimum_stock != null && item.stok < item.minimum_stock && !(item as any).is_discontinued
-    ).length;
-
     return {
       data: {
-        totalInventoryValue,
-        totalItems: inventoryResult.data?.length || 0,
+        totalInventoryValue: statsResult.data?.total_inventory_value || 0,
+        totalItems: statsResult.data?.total_items || 0,
         todaySales,
         todayPurchases,
         todayProfit: todaySales - todayPurchases,
-        lowStockItems: lowStockCount,
+        lowStockItems: statsResult.data?.low_stock_items || 0,
         todayTransactions: (salesResult.data?.length || 0) + (purchasesResult.data?.length || 0),
       },
       error: null,
@@ -101,9 +86,8 @@ export const dashboardApi = {
     const result = await safeQuery<LowStockItem[]>(
       async () => {
         const result = await supabase
-          .from('inventory')
+          .rpc('get_low_stock_items', { p_search: null })
           .select('id, nama_barang, stok, minimum_stock')
-          .eq('is_discontinued', false)
           .order('stok', { ascending: true })
           .limit(10);
         return { data: result.data, error: result.error as Error | null };
@@ -114,12 +98,8 @@ export const dashboardApi = {
       return { data: [], error: result.error };
     }
 
-    const filtered = (result.data || []).filter(
-      item => item.minimum_stock != null && item.stok < item.minimum_stock
-    ) as LowStockItem[];
-
     return {
-      data: filtered,
+      data: result.data || [],
       error: null,
     };
   },

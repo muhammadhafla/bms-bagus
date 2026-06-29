@@ -2,7 +2,8 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { usePembelianStore } from '@/lib/store';
-import { inventoryApi, PembelianItem, purchaseApi, kategoriApi, supplierApi, Supplier, preloadInventoryCache } from '@/lib/api';
+import { inventoryApi, PembelianItem, purchaseApi, kategoriApi, supplierApi, Supplier } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
 import { InventoryItem } from '@/types/inventory';
 import { formatCurrency, normalizeBarcode, generateIdempotencyKey, generateAutoBarcode } from '@/lib/utils';
 import { IconShoppingCart, IconCamera, IconPackage, IconX, IconCheck, IconDeviceFloppy, IconRefresh } from '@tabler/icons-react';
@@ -12,284 +13,22 @@ import SelectInput from '@/components/ui/SelectInput';
 import { Button, AmbientLayout, Badge, Banner, useToast } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
 import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
+import { ItemSuggestionDialog } from './ItemSuggestionDialog';
+import { NewItemDialog } from './NewItemDialog';
+import { ItemCart } from './ItemCart';
 import ImportCSVWizard from '@/components/purchasing/ImportCSVWizard';
-
-interface ItemSuggestionDialogProps {
-  open: boolean;
-  query: string;
-  items: Array<InventoryItem & { similarity: number }>;
-  onSelect: (item: InventoryItem) => void;
-  onCreateNew: () => void;
-  onClose: () => void;
-}
-
-function ItemSuggestionDialog({ open, query, items, onSelect, onCreateNew, onClose }: ItemSuggestionDialogProps) {
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    if (open) document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  return (
-    <Portal>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-neutral-900/60" onClick={onClose} />
-        <div className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-elevated w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-800">
-        <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-1">Apakah maksud anda:</h2>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">Pencarian untuk: <span className="font-medium text-neutral-900 dark:text-neutral-100">{query}</span></p>
-        
-        <div className="space-y-2 mb-6 max-h-64 overflow-auto pr-2 custom-scrollbar">
-          {items.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => onSelect(item)}
-              className="w-full text-left p-3 rounded-xl bg-white/50 hover:bg-white/80 dark:bg-neutral-800/50 dark:hover:bg-neutral-800/80 border border-white/20 dark:border-white/5 transition-all flex justify-between items-center btn-press shadow-sm"
-            >
-              <div>
-                <div className="font-medium text-neutral-900 dark:text-neutral-100">{item.nama_barang}</div>
-                <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">{item.kode_barcode || 'Tanpa barcode'}</div>
-              </div>
-              <div className="text-xs bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 px-2.5 py-1 rounded-full font-medium">
-                {item.similarity}% cocok
-              </div>
-            </button>
-          ))}
-        </div>
-        
-        <div className="flex gap-3">
-          <Button variant="secondary" onClick={onClose} className="flex-1">
-            Batal
-          </Button>
-          <Button variant="primary" onClick={onCreateNew} className="flex-1">
-            Tambah Baru
-          </Button>
-        </div>
-        </div>
-      </div>
-    </Portal>
-  );
-}
-
-interface NewItemDialogProps {
-  open: boolean;
-  initialBarcode?: string;
-  initialName?: string;
-  onClose: () => void;
-  onSubmit: (data: { nama_barang: string; barcode: string; kategori: string; id_kategori?: string; harga_beli: number; harga_jual: number; diskon: number }) => void;
-}
-
-function NewItemDialog({ open, initialBarcode, initialName, onClose, onSubmit }: NewItemDialogProps) {
-  const [nama_barang, setNamaBarang] = useState('');
-  const [kategori, setKategori] = useState('Umum');
-  const [barcode, setBarcode] = useState('');
-  const [harga_beli, setHargaBeli] = useState(0);
-  const [harga_jual, setHargaJual] = useState(0);
-  const [diskon, setDiskon] = useState(0);
-  const [kategoriList, setKategoriList] = useState<string[]>([]);
-  const [showKategoriSuggestions, setShowKategoriSuggestions] = useState(false);
-  const [filteredKategori, setFilteredKategori] = useState<string[]>([]);
-
-  useEffect(() => {
-    const loadKategori = async () => {
-      const result = await kategoriApi.getAll();
-      if (result.data) {
-        setKategoriList(result.data.map(k => k.nama));
-      }
-    };
-    loadKategori();
-  }, []);
-
-  useEffect(() => {
-    if (open) {
-      setNamaBarang(initialName || '');
-      setKategori('Umum');
-      setHargaBeli(0);
-      setHargaJual(0);
-      setDiskon(0);
-      
-      if (initialBarcode && initialBarcode.trim()) {
-        setBarcode(initialBarcode);
-      } else {
-        setBarcode(generateAutoBarcode());
-      }
-    }
-  }, [open, initialBarcode, initialName]);
-
-  const handleBarcodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (value.trim() === '') {
-      setBarcode(generateAutoBarcode());
-    } else {
-      setBarcode(value);
-    }
-  };
-
-  const handleKategoriChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setKategori(value);
-    
-    if (value.trim().length > 0) {
-      const filtered = kategoriList.filter(k => 
-        k.toLowerCase().includes(value.toLowerCase())
-      ).slice(0, 5);
-      setFilteredKategori(filtered);
-      setShowKategoriSuggestions(filtered.length > 0);
-    } else {
-      setShowKategoriSuggestions(false);
-    }
-  };
-
-  const handleSelectKategori = (nama: string) => {
-    setKategori(nama);
-    setShowKategoriSuggestions(false);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (nama_barang.trim()) {
-      const kategoriResult = await kategoriApi.getOrCreate(kategori.trim());
-      const id_kategori = kategoriResult.data?.id;
-      
-      onSubmit({ 
-        nama_barang: nama_barang.trim(), 
-        barcode, 
-        kategori,
-        id_kategori,
-        harga_beli,
-        harga_jual,
-        diskon
-      });
-    }
-  };
-
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    if (open) document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  return (
-    <Portal>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-neutral-900/60" onClick={onClose} />
-        <div className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-elevated w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-800">
-        <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-4">Barang Baru</h2>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Nama Barang</label>
-            <input
-              type="text"
-              value={nama_barang}
-              onChange={(e) => setNamaBarang(e.target.value)}
-              className="w-full px-4 py-3.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-neutral-900 dark:text-neutral-100"
-              autoFocus
-            />
-          </div>
-          
-          <div className="mb-4">
-            <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
-              Barcode 
-              <span className="text-xs text-neutral-400 dark:text-neutral-500 ml-2">(kosongkan untuk auto generate)</span>
-            </label>
-            <input
-              type="text"
-              value={barcode}
-              onChange={handleBarcodeChange}
-              className="w-full px-4 py-3.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all font-mono text-neutral-900 dark:text-neutral-100"
-            />
-            {barcode.startsWith('AUTO-') && (
-              <p className="text-xs text-brand-600 dark:text-brand-400 mt-1.5 flex items-center gap-1">
-                <IconCheck size={14} /> Barcode dihasilkan otomatis oleh sistem
-              </p>
-            )}
-          </div>
-          
-          <div className="mb-5 relative">
-            <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Kategori</label>
-            <input
-              type="text"
-              value={kategori}
-              onChange={handleKategoriChange}
-              onFocus={() => kategoriList.length > 0 && setShowKategoriSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowKategoriSuggestions(false), 200)}
-              className="w-full px-4 py-3.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-neutral-900 dark:text-neutral-100"
-              placeholder="Masukkan nama kategori"
-              autoComplete="off"
-            />
-            
-            {showKategoriSuggestions && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-xl shadow-lg z-10 overflow-hidden">
-                {filteredKategori.map((nama) => (
-                  <button
-                    key={nama}
-                    type="button"
-                    onClick={() => handleSelectKategori(nama)}
-                    className="w-full text-left px-4 py-2.5 hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50 text-sm text-neutral-900 dark:text-neutral-100 transition-colors"
-                  >
-                    {nama}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 mb-5">
-            <div>
-              <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Harga Beli</label>
-              <PriceInput
-                value={harga_beli}
-                onChange={setHargaBeli}
-                className="w-full px-3 py-2.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 transition-all"
-                min={0}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Harga Jual</label>
-              <PriceInput
-                value={harga_jual}
-                onChange={setHargaJual}
-                className="w-full px-3 py-2.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 transition-all"
-                min={0}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Diskon (Rp)</label>
-              <PriceInput
-                value={diskon}
-                onChange={setDiskon}
-                className="w-full px-3 py-2.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 transition-all"
-                min={0}
-              />
-            </div>
-          </div>
-          
-          <div className="flex gap-3">
-            <Button variant="secondary" onClick={onClose} className="flex-1">
-              Batal
-            </Button>
-            <Button variant="primary" type="submit" className="flex-1">
-              Simpan
-            </Button>
-          </div>
-        </form>
-      </div>
-      </div>
-    </Portal>
-  );
-}
 
 export default function PembelianPage() {
   const { items, addItem, updateQty, updateHargaBeli, removeItem, reset, getTotalSistem, getSelisih, setTotalSupplier, setTanggal, totalSupplier, tanggal } = usePembelianStore();
   const { showToast } = useToast();
+
+  const { data: inventoryData } = useQuery({
+    queryKey: ['inventory', 'all'],
+    queryFn: async () => {
+      const res = await inventoryApi.getAll();
+      return res.data || [];
+    },
+  });
   
   const [barcodeInput, setBarcodeInput] = useState('');
   const [showImportWizard, setShowImportWizard] = useState(false);
@@ -394,9 +133,6 @@ export default function PembelianPage() {
     loadSuppliers();
   }, []);
 
-  useEffect(() => {
-    preloadInventoryCache();
-  }, []);
 
   useEffect(() => {
     if (error) {
@@ -429,7 +165,7 @@ export default function PembelianPage() {
         return;
       }
       
-      const fuzzyResult = await inventoryApi.fuzzySearch(normalized);
+      const fuzzyResult = await inventoryApi.fuzzySearch(normalized, inventoryData || []);
       
       if (fuzzyResult.data && fuzzyResult.data.length > 0) {
         const fuzzyItems = fuzzyResult.data as Array<InventoryItem & { similarity: number }>;
@@ -464,7 +200,7 @@ export default function PembelianPage() {
       setError('Terjadi kesalahan saat memproses barcode');
       setLoading(false);
     }
-  }, [loading, submitting, handleAddResolvedItem]);
+  }, [loading, submitting, handleAddResolvedItem, inventoryData]);
 
   const handleCreateNewFromSuggestion = useCallback(() => {
     setShowSuggestionDialog(false);
@@ -685,182 +421,17 @@ export default function PembelianPage() {
 
         {/* Main Table Area */}
         <div className="flex-1 overflow-hidden flex flex-col min-h-[400px] lg:min-h-0 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl shadow-elevated mb-6">
-          {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-neutral-400 py-20">
-              <div className="w-28 h-28 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border border-white/40 dark:border-white/10 rounded-3xl flex items-center justify-center mb-5 shadow-sm">
-                <IconCamera className="w-14 h-14 text-neutral-400" stroke={1.5} />
-              </div>
-              <p className="text-lg font-bold text-neutral-600 dark:text-neutral-300">Scan barcode untuk menambah barang</p>
-              <p className="text-sm text-neutral-500 mt-2">Atau tekan F2 untuk edit Qty, F3 untuk edit harga</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto overflow-y-auto h-full custom-scrollbar">
-              <table className="w-full min-w-[900px] hidden lg:table">
-                <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md sticky top-0 z-10 border-b border-neutral-200/50 dark:border-neutral-800/50">
-                  <tr>
-                    <th className="px-4 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-12">#</th>
-                    <th className="px-4 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Barcode</th>
-                    <th className="px-4 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Nama Barang</th>
-                    <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Qty</th>
-                    <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Beli</th>
-                    <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Subtotal</th>
-                    <th className="px-4 py-4 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-16">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/50">
-                {items.map((item, index) => (
-                  <tr 
-                    key={`${item.id}-${index}`} 
-                    className={`transition-colors ${selectedIndex === index ? 'bg-brand-50/50 dark:bg-brand-900/30' : 'hover:bg-white/50 dark:hover:bg-neutral-800/50'}`}
-                  >
-                    <td className="px-4 py-3 text-sm text-neutral-600 dark:text-neutral-400">{index + 1}</td>
-                    <td className="px-4 py-3 text-sm font-mono text-neutral-900 dark:text-neutral-100">{item.barcode}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-neutral-900 dark:text-neutral-100">{item.nama_barang}</td>
-                    <td className="px-4 py-3 text-right">
-                      {selectedIndex === index && editMode === 'qty' ? (
-                        <div className="w-24 ml-auto">
-                          <PriceInput
-                            value={editValue}
-                            onChange={setEditValue}
-                            onBlur={handleEditSubmit}
-                            className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900"
-                            min={1}
-                            autoFocus
-                            prefix=""
-                          />
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setSelectedIndex(index);
-                            setEditMode('qty');
-                            setEditValue(item.qty);
-                          }}
-                          className="px-3 py-1.5 text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg w-20 block ml-auto transition-colors font-medium"
-                        >
-                          {item.qty}
-                        </button>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {selectedIndex === index && editMode === 'harga' ? (
-                        <div className="w-32 ml-auto">
-                          <PriceInput
-                            value={editValue}
-                            onChange={setEditValue}
-                            onBlur={handleEditSubmit}
-                            className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900"
-                            min={0}
-                            autoFocus
-                          />
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setSelectedIndex(index);
-                            setEditMode('harga');
-                            setEditValue(item.harga_beli || 0);
-                          }}
-                          className="px-3 py-1.5 text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg w-28 block ml-auto transition-colors font-medium text-neutral-700 dark:text-neutral-300"
-                        >
-                          {formatCurrency(item.harga_beli || 0)}
-                        </button>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right font-bold text-neutral-900 dark:text-neutral-100">
-                      {formatCurrency(item.subtotal)}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => removeItem(index)}
-                        className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 text-lg btn-press p-2 rounded-xl transition-colors"
-                      >
-                        <IconX size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            
-            {/* Mobile Cards Layout */}
-            <div className="block lg:hidden space-y-3 p-4">
-              {items.map((item, index) => (
-                <div key={`${item.id}-${index}-mobile`} className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl p-4 border border-neutral-200/50 dark:border-neutral-800/50 shadow-sm relative transition-all">
-                  <button 
-                    onClick={() => removeItem(index)}
-                    className="absolute top-3 right-3 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded-xl transition-colors btn-press"
-                  >
-                    <IconX size={18} />
-                  </button>
-                  <div className="pr-10 mb-3">
-                    <div className="font-bold text-neutral-900 dark:text-white text-base leading-tight mb-1">{item.nama_barang}</div>
-                    <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">{item.barcode}</div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div>
-                      <label className="text-xs text-neutral-500 dark:text-neutral-400 font-medium block mb-1.5">Qty</label>
-                      {selectedIndex === index && editMode === 'qty' ? (
-                        <PriceInput
-                          value={editValue}
-                          onChange={setEditValue}
-                          onBlur={handleEditSubmit}
-                          className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
-                          min={1}
-                          autoFocus
-                          prefix=""
-                        />
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setSelectedIndex(index);
-                            setEditMode('qty');
-                            setEditValue(item.qty);
-                          }}
-                          className="w-full px-3 py-2.5 text-left bg-white/70 dark:bg-neutral-900/70 border border-neutral-200/50 dark:border-neutral-700/50 rounded-xl font-medium text-neutral-900 dark:text-white shadow-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
-                        >
-                          {item.qty}
-                        </button>
-                      )}
-                    </div>
-                    <div>
-                      <label className="text-xs text-neutral-500 dark:text-neutral-400 font-medium block mb-1.5">Harga Beli</label>
-                      {selectedIndex === index && editMode === 'harga' ? (
-                        <PriceInput
-                          value={editValue}
-                          onChange={setEditValue}
-                          onBlur={handleEditSubmit}
-                          className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
-                          min={0}
-                          autoFocus
-                        />
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setSelectedIndex(index);
-                            setEditMode('harga');
-                            setEditValue(item.harga_beli || 0);
-                          }}
-                          className="w-full px-3 py-2.5 text-left bg-white/70 dark:bg-neutral-900/70 border border-neutral-200/50 dark:border-neutral-700/50 rounded-xl font-medium text-neutral-700 dark:text-neutral-300 shadow-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
-                        >
-                          {formatCurrency(item.harga_beli || 0)}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-end items-end pt-3 border-t border-neutral-100 dark:border-neutral-800/50">
-                    <div className="text-right">
-                      <div className="text-xs text-neutral-500 dark:text-neutral-400 font-medium mb-0.5">Subtotal</div>
-                      <div className="font-black text-brand-600 dark:text-brand-400 text-lg leading-none">{formatCurrency(item.subtotal)}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          )}
+          <ItemCart
+            items={items}
+            selectedIndex={selectedIndex}
+            editMode={editMode}
+            editValue={editValue}
+            setSelectedIndex={setSelectedIndex}
+            setEditMode={setEditMode}
+            setEditValue={setEditValue}
+            handleEditSubmit={handleEditSubmit}
+            removeItem={removeItem}
+          />
         </div>
 
         {/* Footer Section */}
@@ -945,7 +516,7 @@ export default function PembelianPage() {
           setShowImportWizard(false);
           focusInput();
         }}
-        onComplete={(importedItems) => {
+        onComplete={(importedItems: { item: any; qty: number; harga_beli: number }[]) => {
           importedItems.forEach(({ item, qty, harga_beli }) => {
             addItem({
               ...item,

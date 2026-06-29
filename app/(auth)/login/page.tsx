@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/lib/auth';
+import { useAuthStore, supabase } from '@/lib/auth';
 import { IconLock, IconMail, IconMoon, IconSun, IconEye, IconEyeOff, IconUser } from '@tabler/icons-react';
 import { useDarkMode } from '@/components/DarkModeProvider';
 import Image from 'next/image';
@@ -16,7 +16,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [identifierError, setIdentifierError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const { signIn, loading, user, supabase } = useAuthStore();
+  const { signIn, loading, user } = useAuthStore();
   const router = useRouter();
   const identifierInputRef = useRef<HTMLInputElement>(null);
   const { theme, toggleTheme } = useDarkMode();

@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuthStore } from '@/lib/auth';
+import { usePresenceStore } from '@/lib/presence';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useDarkMode } from '@/components/DarkModeProvider';
 import { useToast } from '@/components/ui/Toast';
@@ -112,7 +113,7 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   const { user, profile, initialized, signOut } = useAuthStore();
-  const isAdminUser = useAuthStore(state => state.isAdmin());
+  const isAdminUser = useAuthStore(state => state.profile?.role === 'admin');
   const router = useRouter();
   const pathname = usePathname();
   const { theme, toggleTheme } = useDarkMode();
@@ -172,6 +173,18 @@ export default function MainLayout({
       router.push('/login');
     }
   }, [user, initialized, router]);
+
+  // Presence tracker
+  const { initializePresence, cleanupPresence } = usePresenceStore();
+  
+  useEffect(() => {
+    if (user?.id) {
+      initializePresence(user.id);
+    }
+    return () => {
+      cleanupPresence();
+    };
+  }, [user?.id, initializePresence, cleanupPresence]);
 
   // Close mobile menu on route change
   useEffect(() => {

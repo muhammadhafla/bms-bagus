@@ -1,16 +1,14 @@
 'use client';
 
-'use client';
-
 import { useState, useEffect, useCallback } from 'react';
-import { useAuthStore } from '@/lib/auth';
-import { IconUsers, IconEdit, IconTrash, IconRefresh, IconDotsVertical, IconUserPlus } from '@tabler/icons-react';
-import { AdminOnly } from '@/components/role';
+import { useAuthStore, supabase } from '@/lib/auth';
+import { IconUsers, IconEdit, IconRefresh, IconDotsVertical, IconUserPlus, IconTrash } from '@tabler/icons-react';
+import { usePresenceStore } from '@/lib/presence';
 import { useToast } from '@/components/ui/Toast';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { AmbientLayout, DropdownMenu } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 import CreateUserModal from './CreateUserModal';
+import EditUserModal from './EditUserModal';
 
 interface Profile {
   id: string;
@@ -24,15 +22,18 @@ interface Profile {
 export default function UsersPage() {
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; userId: string | null }>({
+  const [editUserModal, setEditUserModal] = useState<{ isOpen: boolean; userId: string; userName: string; userRole: 'admin' | 'staff' }>({
     isOpen: false,
-    userId: null,
+    userId: '',
+    userName: '',
+    userRole: 'staff',
   });
   const { showToast } = useToast();
-  const { isAdmin, initialized, supabase } = useAuthStore();
+  const { isAdmin, initialized } = useAuthStore();
   const router = useRouter();
+  const { onlineUsers } = usePresenceStore();
 
   useEffect(() => {
     if (initialized && !isAdmin()) {
@@ -53,7 +54,7 @@ export default function UsersPage() {
       setUsers(data || []);
     }
     setLoading(false);
-  }, [supabase, showToast]);
+  }, [showToast]);
 
   useEffect(() => {
     if (initialized && isAdmin()) {
@@ -73,39 +74,7 @@ export default function UsersPage() {
     return null;
   }
 
-  const handleRoleChange = async (userId: string, newRole: 'admin' | 'staff') => {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role: newRole })
-      .eq('id', userId);
 
-    if (error) {
-      showToast('Gagal mengubah role user', 'error');
-    } else {
-      showToast('Role user berhasil diubah', 'success');
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-    }
-    setEditingUserId(null);
-  };
-
-  const handleDelete = async () => {
-    if (!deleteConfirm.userId) return;
-
-    // Note: User deletion should be handled via backend API/RPC
-    // Frontend can only update profile status
-    const { error } = await supabase
-      .from('profiles')
-      .update({ disabled: true })
-      .eq('id', deleteConfirm.userId);
-
-    if (error) {
-      showToast('Gagal menonaktifkan user', 'error');
-    } else {
-      showToast('User berhasil dinonaktifkan', 'success');
-      setUsers(prev => prev.filter(u => u.id !== deleteConfirm.userId));
-    }
-    setDeleteConfirm({ isOpen: false, userId: null });
-  };
 
   return (
     <AmbientLayout>
@@ -170,37 +139,25 @@ export default function UsersPage() {
                           </div>
                         }
                         items={[
-                          { label: 'Ubah Role', value: 'edit', icon: <IconEdit size={16} /> },
-                          ...(isAdmin() ? [{ label: 'Hapus User', value: 'delete', icon: <IconTrash size={16} className="text-red-500" /> }] : [])
+                          ...(isAdmin() ? [
+                            { label: 'Edit User', value: 'edit', icon: <IconEdit size={16} /> }
+                          ] : [])
                         ]}
                         onSelect={(value) => {
-                          if (value === 'edit') setEditingUserId(editingUserId === user.id ? null : user.id);
-                          if (value === 'delete') setDeleteConfirm({ isOpen: true, userId: user.id });
+                          if (value === 'edit') setEditUserModal({ isOpen: true, userId: user.id, userName: user.nama, userRole: user.role });
                         }}
                       />
                     </div>
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-neutral-200/50 dark:border-neutral-800/50">
                     <div>
-                      {editingUserId === user.id ? (
-                        <select
-                          value={user.role}
-                          onChange={(e) => handleRoleChange(user.id, e.target.value as 'admin' | 'staff')}
-                          className="px-3 py-1.5 text-sm rounded-lg border-2 border-brand-500 bg-white dark:bg-neutral-800 focus:outline-none focus:shadow-brand"
-                          autoFocus
-                        >
-                          <option value="admin">Admin</option>
-                          <option value="staff">Staff</option>
-                        </select>
-                      ) : (
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
-                          user.role === 'admin' 
-                            ? 'bg-brand-100 text-brand-800 dark:bg-brand-900/30 dark:text-brand-300' 
-                            : 'bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300'
-                        }`}>
-                          {user.role === 'admin' ? 'Admin' : 'Staff'}
-                        </span>
-                      )}
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
+                        user.role === 'admin' 
+                          ? 'bg-brand-100 text-brand-800 dark:bg-brand-900/30 dark:text-brand-300' 
+                          : 'bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300'
+                      }`}>
+                        {user.role === 'admin' ? 'Admin' : 'Staff'}
+                      </span>
                     </div>
                     <div className="text-xs text-neutral-500">
                       {user.last_sign_in_at 
@@ -243,30 +200,33 @@ export default function UsersPage() {
                   </td>
                 </tr>
               ) : (
-                users.map(user => (
+                users.map(user => {
+                  const isOnline = onlineUsers.includes(user.id);
+                  return (
                   <tr key={user.id} className="hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors">
-                    <td className="px-5 py-4 font-medium text-neutral-900 dark:text-neutral-100">{user.nama}</td>
+                    <td className="px-5 py-4 font-medium text-neutral-900 dark:text-neutral-100">
+                      <div className="flex items-center gap-2">
+                        {user.nama}
+                        {isOnline && (
+                          <span 
+                            className="relative flex h-2.5 w-2.5" 
+                            title="Online"
+                          >
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-5 py-4 text-neutral-600 dark:text-neutral-400 font-mono text-sm">{user.email}</td>
                     <td className="px-5 py-4">
-                      {editingUserId === user.id ? (
-                        <select
-                          value={user.role}
-                          onChange={(e) => handleRoleChange(user.id, e.target.value as 'admin' | 'staff')}
-                          className="px-3 py-1.5 rounded-lg border-2 border-brand-500 bg-white dark:bg-neutral-800 focus:outline-none focus:shadow-brand text-sm"
-                          autoFocus
-                        >
-                          <option value="admin">Admin</option>
-                          <option value="staff">Staff</option>
-                        </select>
-                      ) : (
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
-                          user.role === 'admin' 
-                            ? 'bg-brand-100 text-brand-800 dark:bg-brand-900/30 dark:text-brand-300' 
-                            : 'bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300'
-                        }`}>
-                          {user.role === 'admin' ? 'Admin' : 'Staff'}
-                        </span>
-                      )}
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
+                        user.role === 'admin' 
+                          ? 'bg-brand-100 text-brand-800 dark:bg-brand-900/30 dark:text-brand-300' 
+                          : 'bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300'
+                      }`}>
+                        {user.role === 'admin' ? 'Admin' : 'Staff'}
+                      </span>
                     </td>
                     <td className="px-5 py-4 text-sm text-neutral-500">
                       {user.last_sign_in_at 
@@ -275,24 +235,19 @@ export default function UsersPage() {
                     </td>
                     <td className="px-5 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => setEditingUserId(editingUserId === user.id ? null : user.id)}
-                          className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800/50 text-neutral-600 dark:text-neutral-400 btn-press transition-colors"
-                        >
-                          <IconEdit className="w-5 h-5" />
-                        </button>
                         <AdminOnly>
                           <button
-                            onClick={() => setDeleteConfirm({ isOpen: true, userId: user.id })}
-                            className="p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 btn-press transition-colors"
+                            onClick={() => setEditUserModal({ isOpen: true, userId: user.id, userName: user.nama, userRole: user.role })}
+                            className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800/50 text-neutral-600 dark:text-neutral-400 btn-press transition-colors"
+                            title="Edit User"
                           >
-                            <IconTrash className="w-5 h-5" />
+                            <IconEdit className="w-5 h-5" />
                           </button>
                         </AdminOnly>
                       </div>
                     </td>
                   </tr>
-                ))
+                )})
               )}
             </tbody>
           </table>
@@ -300,21 +255,22 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <ConfirmDialog
-        isOpen={deleteConfirm.isOpen}
-        title="Hapus User"
-        message="Apakah Anda yakin ingin menghapus user ini? Tindakan ini tidak dapat dibatalkan."
-        confirmLabel="Hapus"
-        cancelLabel="Batal"
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteConfirm({ isOpen: false, userId: null })}
-        danger
-      />
-
       <CreateUserModal 
         isOpen={isCreateModalOpen} 
         onClose={() => setIsCreateModalOpen(false)} 
         onSuccess={fetchUsers} 
+      />
+
+      <EditUserModal
+        isOpen={editUserModal.isOpen}
+        onClose={() => setEditUserModal({ ...editUserModal, isOpen: false })}
+        onSuccess={() => {
+          setEditUserModal({ ...editUserModal, isOpen: false });
+          fetchUsers();
+        }}
+        userId={editUserModal.userId}
+        initialName={editUserModal.userName}
+        initialRole={editUserModal.userRole}
       />
     </AmbientLayout>
   );

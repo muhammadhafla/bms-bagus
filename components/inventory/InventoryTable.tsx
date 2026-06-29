@@ -24,6 +24,7 @@ interface InventoryTableProps {
   onUpdate: (id: string, data: Partial<InventoryItem>) => void;
   onDelete?: (id: string) => void;
   pagination?: PaginationProps;
+  kategoriList: string[];
 }
 
 interface EditForm {
@@ -36,10 +37,9 @@ interface EditForm {
   minimum_stock: number;
 }
 
-export function InventoryTable({ items, onUpdate, onDelete, pagination }: InventoryTableProps) {
+export function InventoryTable({ items, onUpdate, onDelete, pagination, kategoriList }: InventoryTableProps) {
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
-  const [kategoriList, setKategoriList] = useState<string[]>([]);
   const [editForm, setEditForm] = useState<EditForm>({
     nama_barang: '',
     kode_barcode: '',
@@ -52,16 +52,6 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination }: Invent
   const [saveConfirm, setSaveConfirm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const { showToast } = useToast();
-
-  useEffect(() => {
-    const fetchKategoris = async () => {
-      const result = await kategoriApi.getAll();
-      if (!result.error && result.data) {
-        setKategoriList(result.data.map(k => k.nama));
-      }
-    };
-    fetchKategoris();
-  }, []);
 
   const openSlideOver = useCallback((item: InventoryItem) => {
     setSelectedItem(item);
@@ -374,7 +364,7 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination }: Invent
               label="Kategori"
               value={editForm.id_kategori}
               onChange={(value) => setEditForm(prev => ({ ...prev, id_kategori: value }))}
-              options={kategoriList.map(k => ({ value: k, label: k }))}
+              options={[...kategoriList].sort().map(k => ({ value: k, label: k }))}
               placeholder="Pilih kategori"
             />
             <TextInput

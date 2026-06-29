@@ -9,6 +9,17 @@ export function createError(message: string, details?: string): ApiError {
   return { message, details: details || message };
 }
 
+let refreshPromise: Promise<boolean> | null = null;
+async function ensureSession(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise;
+  
+  const { useAuthStore } = await import('@/lib/auth');
+  refreshPromise = useAuthStore.getState().refreshSession()
+    .finally(() => { refreshPromise = null; });
+  
+  return refreshPromise;
+}
+
 export async function safeQuery<T>(operation: () => Promise<{ data: T | null; error: Error | null }>): Promise<{ data: T | null; error: ApiError | null }> {
   let result: { data: T | null; error: Error | null };
   
@@ -22,11 +33,9 @@ export async function safeQuery<T>(operation: () => Promise<{ data: T | null; er
 
   // Check if operation returned an error (e.g., auth error, 400, etc.)
   if (result.error) {
-    // If it's an auth error, try to refresh session and retry once
     if (isAuthError(result.error)) {
-      const { useAuthStore } = await import('@/lib/auth');
       try {
-        const refreshed = await useAuthStore.getState().checkAndRefreshSession();
+        const refreshed = await ensureSession();
         if (refreshed) {
           const retryResult = await operation();
           if (retryResult.error) {
@@ -34,16 +43,8 @@ export async function safeQuery<T>(operation: () => Promise<{ data: T | null; er
           }
           return { data: retryResult.data as T, error: null };
         }
-      } catch { /* ignored */ }
-      
-      // If check didn't refresh, try explicit refresh
-      const refreshed2 = await useAuthStore.getState().refreshSession();
-      if (refreshed2) {
-        const retryResult = await operation();
-        if (retryResult.error) {
-          return { data: null, error: createError(retryResult.error.message, retryResult.error.name) };
-        }
-        return { data: retryResult.data as T, error: null };
+      } catch (e) {
+        console.error('Failed to ensure session:', e);
       }
     }
     

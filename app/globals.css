@@ -175,6 +175,10 @@
   }
 }
 
+html {
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
 body {
   font-family: var(--font-poppins), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;

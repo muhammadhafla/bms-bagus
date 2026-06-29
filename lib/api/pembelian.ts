@@ -109,13 +109,13 @@ export const purchasesApi = {
           .from('pembelian')
           .select('*')
           .eq('id', id)
+          .abortSignal(controller.signal)
           .single();
         return { data: result.data, error: result.error as Error | null };
       });
 
-      clearTimeout(timeoutId);
-
       if (purchaseResult.error) {
+        clearTimeout(timeoutId);
         return { data: null, error: { message: purchaseResult.error.message } };
       }
 
@@ -123,9 +123,12 @@ export const purchasesApi = {
         const result = await supabase
           .from('pembelian_items')
           .select('*')
-          .eq('pembelian_id', id);
+          .eq('pembelian_id', id)
+          .abortSignal(controller.signal);
         return { data: result.data, error: result.error as Error | null };
       });
+
+      clearTimeout(timeoutId);
 
       if (itemsResult.error) {
         console.error('Items fetch error:', itemsResult.error);

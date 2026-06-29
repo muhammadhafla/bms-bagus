@@ -1,6 +1,6 @@
 export { supabase } from './client';
 
-export { inventoryApi, preloadInventoryCache } from './inventory';
+export { inventoryApi } from './inventory';
 export { purchasesApi, purchaseApi, type PembelianItem, type Pembelian } from './pembelian';
 export { penjualanApi, type PenjualanItem, type Penjualan } from './penjualan';
 export { returnApi, type ReturnItem, type ReturnedTransaction } from './return';

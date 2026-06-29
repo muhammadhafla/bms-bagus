@@ -36,7 +36,6 @@ interface AuthState {
   isRefreshing: boolean;
   sessionExpiryTime: number | null;
   sessionWarningShown: boolean;
-  supabase: typeof supabase;
   authSubscription: { unsubscribe: () => void } | null;
   isAdmin: () => boolean;
   isStaff: () => boolean;
@@ -110,7 +109,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isRefreshing: false,
   sessionExpiryTime: null,
   sessionWarningShown: false,
-  supabase,
   authSubscription: null,
 
   isAdmin: () => {

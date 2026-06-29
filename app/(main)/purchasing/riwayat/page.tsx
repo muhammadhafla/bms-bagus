@@ -28,6 +28,8 @@ export default function RiwayatPembelianPage() {
   const [records, setRecords] = useState<PembelianRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -41,13 +43,19 @@ export default function RiwayatPembelianPage() {
   const fetchRecords = useCallback(async () => {
     setLoading(true);
     const offset = (page - 1) * limit;
-    const result = await purchasesApi.getAll({ limit, offset, search: search || undefined });
+    const result = await purchasesApi.getAll({ 
+      limit, 
+      offset, 
+      search: search || undefined,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined
+    });
     if (!result.error && result.data) {
       setRecords(result.data as PembelianRecord[]);
       setTotal(result.total || 0);
     }
     setLoading(false);
-  }, [page, search]);
+  }, [page, search, startDate, endDate]);
 
   useEffect(() => {
     fetchRecords();
@@ -140,6 +148,21 @@ export default function RiwayatPembelianPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-neutral-900 dark:text-white"
+              />
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="px-4 py-3 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 transition-all text-neutral-900 dark:text-white text-sm"
+              />
+              <span className="self-center text-neutral-500">-</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="px-4 py-3 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 transition-all text-neutral-900 dark:text-white text-sm"
               />
             </div>
             <Button
@@ -277,7 +300,7 @@ export default function RiwayatPembelianPage() {
           {totalPages > 0 && (
             <div className="flex-shrink-0 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50 p-4 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0">
               <p className="text-sm text-neutral-500 dark:text-neutral-400 font-medium text-center sm:text-left">
-                Halaman {page} dari {totalPages} <span className="mx-2">|</span> Total: {total} data
+                Menampilkan {total > 0 ? (page - 1) * limit + 1 : 0}-{Math.min(page * limit, total)} dari {total} data <span className="mx-2">|</span> Halaman {page} / {totalPages}
               </p>
               <div className="flex gap-2">
                 <button

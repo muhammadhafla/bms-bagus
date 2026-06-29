@@ -1,5 +1,6 @@
 import { supabase } from './client';
 import { safeQuery } from './utils';
+import { useAuthStore } from '@/lib/auth';
 
 export interface StockOpname {
   id: string;
@@ -95,76 +96,39 @@ export const stockOpnameApi = {
   },
 
   async getById(id: string) {
-    const result = await safeQuery<StockOpname>(async () => {
+    const result = await safeQuery<StockOpnameWithProfile>(async () => {
       const result = await supabase
         .from('stock_opname')
-        .select('*')
+        .select(`
+          *,
+          profiles:created_by (nama)
+        `)
         .eq('id', id)
         .single();
-      return { data: result.data, error: result.error as Error | null };
+      return { data: result.data as any, error: result.error as Error | null };
     });
 
-    if (result.error || !result.data) {
-      return { data: null, error: result.error };
-    }
-
-    if (result.data.created_by) {
-      const profileResult = await safeQuery<{ nama: string }>(async () => {
-        const profileRes = await supabase
-          .from('profiles')
-          .select('nama')
-          .eq('id', result.data!.created_by)
-          .single();
-        return { data: profileRes.data, error: profileRes.error as Error | null };
-      });
-      return { data: { ...result.data, profiles: profileResult.data }, error: null };
-    }
-
-    return { data: result.data, error: null };
+    return result;
   },
 
   async getItems(opnameId: string) {
-    const result = await safeQuery<StockOpnameItem[]>(async () => {
+    return await safeQuery<StockOpnameItemWithInventory[]>(async () => {
       const result = await supabase
         .from('stock_opname_items')
-        .select('*')
+        .select(`
+          *,
+          inventory:inventory_id (
+            id,
+            nama_barang,
+            kode_barcode,
+            unit
+          )
+        `)
         .eq('stock_opname_id', opnameId)
         .order('created_at');
-      return { data: result.data, error: result.error as Error | null };
+        
+      return { data: result.data as any, error: result.error as Error | null };
     });
-
-    if (result.error) {
-      return { data: null, error: result.error };
-    }
-
-    if (!result.data || result.data.length === 0) {
-      return { data: [], error: null };
-    }
-
-    const uniqueInventoryIds = [...new Set(result.data.map(i => i.inventory_id).filter(Boolean))];
-    
-    let inventoryMap: Record<string, InventoryBasic> = {};
-    if (uniqueInventoryIds.length > 0) {
-      const invResult = await safeQuery<InventoryBasic[]>(async () => {
-        const result = await supabase
-          .from('inventory')
-          .select('id, nama_barang, kode_barcode, unit')
-          .in('id', uniqueInventoryIds);
-        return { data: result.data, error: result.error as Error | null };
-      });
-      if (invResult.data) {
-        invResult.data.forEach(inv => {
-          inventoryMap[inv.id] = { id: inv.id, nama_barang: inv.nama_barang, kode_barcode: inv.kode_barcode, unit: inv.unit };
-        });
-      }
-    }
-
-    const itemsWithInventory: StockOpnameItemWithInventory[] = result.data.map(item => ({
-      ...item,
-      inventory: item.inventory_id ? inventoryMap[item.inventory_id] : null
-    }));
-
-    return { data: itemsWithInventory, error: null };
   },
 
   async create() {
@@ -195,27 +159,16 @@ export const stockOpnameApi = {
     return opnameResult;
   },
 
-  async updateItem(itemId: string, data: Partial<{ physical_stock: number; reason: string; note: string }>) {
-    const itemResult = await safeQuery<any>(async () => {
-      const result = await supabase
-        .from('stock_opname_items')
-        .select('system_stock')
-        .eq('id', itemId)
-        .single();
-      return { data: result.data, error: result.error as Error | null };
-    });
-
-    if (!itemResult.data) {
-      return { data: null, error: new Error('Item not found') };
-    }
-
-    const difference = (data.physical_stock ?? itemResult.data.system_stock) - itemResult.data.system_stock;
+  async updateItem(itemId: string, data: Partial<{ physical_stock: number; system_stock: number; reason: string; note: string }>) {
+    const difference = (data.physical_stock ?? 0) - (data.system_stock ?? 0);
 
     return safeQuery<StockOpnameItem>(async () => {
       const result = await supabase
         .from('stock_opname_items')
         .update({
-          ...data,
+          physical_stock: data.physical_stock,
+          reason: data.reason,
+          note: data.note,
           difference,
           updated_at: new Date().toISOString()
         })
@@ -268,16 +221,7 @@ export const stockOpnameApi = {
       return { data: null, error: new Error('User not authenticated') };
     }
 
-    const profileResult = await safeQuery<any>(async () => {
-      const result = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      return { data: result.data, error: result.error as Error | null };
-    });
-
-    if (!profileResult.data || profileResult.data.role !== 'admin') {
+    if (!useAuthStore.getState().isAdmin()) {
       return { data: null, error: new Error('Hanya admin yang dapat melakukan approval') };
     }
 
@@ -302,16 +246,7 @@ export const stockOpnameApi = {
       return { data: null, error: new Error('User not authenticated') };
     }
 
-    const profileResult = await safeQuery<any>(async () => {
-      const result = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      return { data: result.data, error: result.error as Error | null };
-    });
-
-    if (!profileResult.data || profileResult.data.role !== 'admin') {
+    if (!useAuthStore.getState().isAdmin()) {
       return { data: null, error: new Error('Hanya admin yang dapat melakukan approval') };
     }
 

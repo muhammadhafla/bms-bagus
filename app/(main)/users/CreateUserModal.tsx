@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Modal } from '@/components/ui';
-import { useAuthStore } from '@/lib/auth';
+import { useAuthStore, supabase } from '@/lib/auth';
 import { useToast } from '@/components/ui/Toast';
 import { IconUserPlus, IconLoader2 } from '@tabler/icons-react';
 
@@ -12,7 +12,6 @@ interface CreateUserModalProps {
 
 export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
   const { showToast } = useToast();
-  const { supabase } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',

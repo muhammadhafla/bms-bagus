@@ -113,7 +113,7 @@ export default function StockOpnameDetailPage() {
 
     if (changedItems.length === 0) {
       setSaving(false);
-      return;
+      return true;
     }
 
     setSaveProgress({ current: 0, total: changedItems.length });
@@ -134,12 +134,15 @@ export default function StockOpnameDetailPage() {
       setOriginalItems(JSON.parse(JSON.stringify(items)));
       setHasChanges(false);
       addToast({ type: 'success', message: 'Perubahan berhasil disimpan' });
+      setSaving(false);
+      setTimeout(() => setSaveProgress({ current: 0, total: 0 }), 500);
+      return true;
     } catch (error) {
       addToast({ type: 'error', message: 'Gagal menyimpan perubahan' });
+      setSaving(false);
+      setTimeout(() => setSaveProgress({ current: 0, total: 0 }), 500);
+      return false;
     }
-    
-    setSaving(false);
-    setTimeout(() => setSaveProgress({ current: 0, total: 0 }), 500);
   };
 
   const discardChanges = () => {
@@ -207,6 +210,11 @@ export default function StockOpnameDetailPage() {
   };
 
   const handleSubmit = async () => {
+    if (hasChanges) {
+      const saved = await saveChanges();
+      if (!saved) return;
+    }
+
     setSaving(true);
     const result = await stockOpnameApi.submitForApproval(opnameId);
     if (result.error) {

@@ -27,6 +27,7 @@ import {
   IconChevronRight,
   IconTruck,
   IconTags,
+  IconPrinter,
 } from '@tabler/icons-react';
 
 // Constants extracted outside component to prevent re-creation
@@ -51,12 +52,19 @@ const TRANSACTIONS_ITEMS = [
   { href: '/transactions/return', title: 'Return', icon: IconArrowBack },
 ];
 
+const PRINTING_ITEMS = [
+  { href: '/bulk-print', title: 'Cetak Massal', icon: IconPrinter },
+  { href: '/print-history', title: 'Riwayat Cetak', icon: IconHistory },
+  { href: '/master/label-templates', title: 'Template Label', icon: IconTags },
+];
+
 // Storage keys
 const STORAGE_KEYS = {
   SIDEBAR_COLLAPSED: 'bms-sidebar-collapsed',
   INVENTORY_EXPANDED: 'bms-inventory-expanded',
   PURCHASING_EXPANDED: 'bms-purchasing-expanded',
   TRANSACTIONS_EXPANDED: 'bms-transactions-expanded',
+  PRINTING_EXPANDED: 'bms-printing-expanded',
 } as const;
 
 // Helper to read from localStorage safely
@@ -132,6 +140,9 @@ export default function MainLayout({
    const [transactionsExpanded, setTransactionsExpanded] = useState<boolean>(() =>
      getStoredValue(STORAGE_KEYS.TRANSACTIONS_EXPANDED, true)
    );
+   const [printingExpanded, setPrintingExpanded] = useState<boolean>(() =>
+     getStoredValue(STORAGE_KEYS.PRINTING_EXPANDED, true)
+   );
    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
    const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
    const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -166,6 +177,10 @@ export default function MainLayout({
   useEffect(() => {
     setStoredValue(STORAGE_KEYS.TRANSACTIONS_EXPANDED, transactionsExpanded);
   }, [transactionsExpanded]);
+
+  useEffect(() => {
+    setStoredValue(STORAGE_KEYS.PRINTING_EXPANDED, printingExpanded);
+  }, [printingExpanded]);
 
   // Auth redirect
   useEffect(() => {
@@ -217,6 +232,10 @@ export default function MainLayout({
 
    const handleToggleTransactions = useCallback(() => {
      setTransactionsExpanded((prev) => !prev);
+   }, []);
+
+   const handleTogglePrinting = useCallback(() => {
+     setPrintingExpanded((prev) => !prev);
    }, []);
 
    const handleToggleAutoHide = useCallback(() => {
@@ -406,6 +425,39 @@ export default function MainLayout({
               {(transactionsExpanded && (isSidebarVisible || mobileMenuOpen)) ? (
                 <div className="space-y-1 pl-2">
                   {TRANSACTIONS_ITEMS.map((item) => (
+                    <SidebarLink
+                      key={item.href}
+                      href={item.href}
+                      title={item.title}
+                      icon={item.icon}
+                      isActive={pathname === item.href}
+                      sidebarCollapsed={!isSidebarVisible}
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            {/* Printing Group */}
+            <div className="space-y-1">
+              {(isSidebarVisible || mobileMenuOpen) && (
+                <button
+                  type="button"
+                  onClick={handleTogglePrinting}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-colors"
+                  aria-expanded={printingExpanded}
+                >
+                  <span className="flex-1 text-left">Pencetakan Label</span>
+                  {isSidebarVisible && (
+                    <IconChevronRight
+                      className={`w-3 h-3 transition-transform ${printingExpanded ? 'rotate-90' : ''}`}
+                    />
+                  )}
+                </button>
+              )}
+              {(printingExpanded && (isSidebarVisible || mobileMenuOpen)) ? (
+                <div className="space-y-1 pl-2">
+                  {PRINTING_ITEMS.map((item) => (
                     <SidebarLink
                       key={item.href}
                       href={item.href}

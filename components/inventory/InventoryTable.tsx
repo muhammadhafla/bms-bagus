@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { IconPackage, IconDotsVertical, IconDeviceFloppy, IconTrash } from '@tabler/icons-react';
+import { IconPackage, IconDotsVertical, IconDeviceFloppy, IconTrash, IconPrinter } from '@tabler/icons-react';
 import { InventoryItem } from '@/types/inventory';
 import { formatCurrency } from '@/lib/utils';
 import { inventoryApi, kategoriApi } from '@/lib/api';
@@ -51,6 +51,10 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
   });
   const [saveConfirm, setSaveConfirm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [printForm, setPrintForm] = useState({ template_id: '', qty: 1 });
+  const [isPrinting, setIsPrinting] = useState(false);
   const { showToast } = useToast();
 
   const openSlideOver = useCallback((item: InventoryItem) => {
@@ -118,6 +122,62 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
     setDeleteConfirm(false);
     closeSlideOver();
   }, [selectedItem, onDelete, showToast, closeSlideOver]);
+
+  const openPrintModal = async () => {
+    if (!selectedItem) return;
+    setPrintModalOpen(true);
+    setPrintForm({ template_id: '', qty: 1 });
+    try {
+      const res = await fetch('/api/templates');
+      const data = await res.json();
+      if (data.templates) {
+        setTemplates(data.templates);
+        if (data.templates.length > 0) {
+          setPrintForm(prev => ({ ...prev, template_id: data.templates[0].id }));
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching templates', err);
+    }
+  };
+
+  const handlePrintSubmit = async () => {
+    if (!selectedItem || !printForm.template_id) return;
+    setIsPrinting(true);
+    try {
+      // Harga akhir setelah diskon
+      const finalPrice = (selectedItem.harga_jual || 0) - (selectedItem.diskon || 0);
+      
+      const itemData = {
+        name: selectedItem.nama_barang,
+        price: formatCurrency(finalPrice),
+        barcode: selectedItem.kode_barcode
+      };
+      const payload_json = Array(printForm.qty).fill(itemData);
+
+      const res = await fetch('/api/print', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          template_id: printForm.template_id,
+          payload_json
+        })
+      });
+
+      if (res.ok) {
+        showToast('Antrean cetak berhasil dibuat', 'success');
+        setPrintModalOpen(false);
+      } else {
+        const errorData = await res.json();
+        showToast(errorData.error || 'Gagal membuat antrean cetak', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Terjadi kesalahan sistem', 'error');
+    } finally {
+      setIsPrinting(false);
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -394,21 +454,31 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
           </div>
         </AdminOnly>
         <AdminOnly>
-          <div className="flex gap-3 mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+          <div className="flex flex-col gap-3 mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+            <div className="flex gap-3">
+              <Button
+                variant="primary"
+                onClick={() => setSaveConfirm(true)}
+                className="flex-1"
+                leftIcon={<IconDeviceFloppy size={18} />}
+              >
+                <span className="hidden sm:inline">Simpan Perubahan</span>
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => setDeleteConfirm(true)}
+                leftIcon={<IconTrash size={18} />}
+              >
+                <span className="hidden sm:inline">Hapus Barang</span>
+              </Button>
+            </div>
             <Button
-              variant="primary"
-              onClick={() => setSaveConfirm(true)}
-              className="flex-1"
-              leftIcon={<IconDeviceFloppy size={18} />}
+              variant="secondary"
+              onClick={openPrintModal}
+              className="w-full"
+              leftIcon={<IconPrinter size={18} />}
             >
-              <span className="hidden sm:inline">Simpan Perubahan</span>
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => setDeleteConfirm(true)}
-              leftIcon={<IconTrash size={18} />}
-            >
-              <span className="hidden sm:inline">Hapus Barang</span>
+              Cetak Label
             </Button>
           </div>
         </AdminOnly>
@@ -434,6 +504,54 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
         onCancel={() => setDeleteConfirm(false)}
         danger
       />
+
+      <Modal
+        isOpen={printModalOpen}
+        onClose={() => setPrintModalOpen(false)}
+        title="Cetak Label"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            Cetak label untuk <strong>{selectedItem?.nama_barang}</strong>
+          </p>
+          
+          <SelectInput
+            label="Template Label"
+            value={printForm.template_id}
+            onChange={(val) => setPrintForm(prev => ({...prev, template_id: val}))}
+            options={templates.map(t => ({ value: t.id, label: t.name }))}
+            placeholder="Pilih template"
+          />
+          
+          <TextInput
+            label="Jumlah (Qty)"
+            type="number"
+            value={printForm.qty}
+            onChange={(e) => setPrintForm(prev => ({...prev, qty: parseInt(e.target.value) || 1}))}
+            required
+          />
+          
+          <div className="flex gap-3 mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+            <Button
+              variant="secondary"
+              onClick={() => setPrintModalOpen(false)}
+              className="flex-1"
+            >
+              Batal
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handlePrintSubmit}
+              disabled={isPrinting || !printForm.template_id}
+              className="flex-1"
+              leftIcon={<IconPrinter size={18} />}
+            >
+              {isPrinting ? 'Memproses...' : 'Cetak'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }

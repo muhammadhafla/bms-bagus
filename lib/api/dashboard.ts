@@ -90,7 +90,7 @@ export const dashboardApi = {
           .select('id, nama_barang, stok, minimum_stock')
           .order('stok', { ascending: true })
           .limit(10);
-        return { data: result.data, error: result.error as Error | null };
+        return { data: result.data as LowStockItem[] | null, error: result.error as Error | null };
       }
     );
 

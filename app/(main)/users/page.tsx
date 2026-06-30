@@ -7,6 +7,7 @@ import { usePresenceStore } from '@/lib/presence';
 import { useToast } from '@/components/ui/Toast';
 import { AmbientLayout, DropdownMenu } from '@/components/ui';
 import { useRouter } from 'next/navigation';
+import { AdminOnly } from '@/components/role';
 import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
 

@@ -23,28 +23,45 @@ function getSupabaseClient(request: Request) {
 export async function GET(request: Request) {
   try {
     const supabase = getSupabaseClient(request);
-    
-    // Default limit
     const { searchParams } = new URL(request.url);
+    
     const limit = parseInt(searchParams.get('limit') || '50');
+    const page = parseInt(searchParams.get('page') || '1');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
-    // Join with label_templates to get the template name
-    const { data, error } = await supabase
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    let query = supabase
       .from('print_jobs')
-      .select(`
-        *,
-        label_templates (
-          name
-        )
-      `)
-      .order('created_at', { ascending: false })
-      .limit(limit);
+      .select(`*, label_templates (name)`, { count: 'exact' });
+
+    if (startDate) {
+      query = query.gte('created_at', `${startDate}T00:00:00.000Z`);
+    }
+    
+    if (endDate) {
+      query = query.lte('created_at', `${endDate}T23:59:59.999Z`);
+    }
+
+    query = query.order('created_at', { ascending: false }).range(from, to);
+
+    const { data, error, count } = await query;
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ history: data });
+    return NextResponse.json({ 
+      history: data,
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
+    });
   } catch (err: any) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

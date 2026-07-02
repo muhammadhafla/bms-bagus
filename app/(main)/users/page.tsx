@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore, supabase } from '@/lib/auth';
-import { IconUsers, IconEdit, IconRefresh, IconDotsVertical, IconUserPlus, IconTrash } from '@tabler/icons-react';
+import { IconUsers, IconEdit, IconDotsVertical, IconUserPlus, IconTrash } from '@tabler/icons-react';
 import { usePresenceStore } from '@/lib/presence';
 import { useToast } from '@/components/ui/Toast';
 import { AmbientLayout, DropdownMenu } from '@/components/ui';
@@ -91,13 +91,6 @@ export default function UsersPage() {
             </div>
             
             <div className="flex items-center gap-3">
-              <button
-                onClick={fetchUsers}
-                className="flex items-center gap-2 px-4 py-2 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm rounded-xl hover:bg-white/80 dark:hover:bg-neutral-800/80 transition-colors text-neutral-700 dark:text-neutral-300 font-medium text-sm"
-              >
-                <IconRefresh className="w-4 h-4" />
-                Refresh
-              </button>
               <button
                 onClick={() => setIsCreateModalOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-brand-500 text-white shadow-sm rounded-xl hover:bg-brand-600 transition-colors font-medium text-sm"

@@ -1,16 +1,84 @@
-import { TopSellingItem } from '@/lib/api';
+import { useState, useEffect } from 'react';
+import { reportApi, TopSellingItem } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui';
-import { IconChartBar } from '@tabler/icons-react';
+import { IconChartBar, IconDownload } from '@tabler/icons-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface TopItemsReportTabProps {
-  topItems: TopSellingItem[];
+  startDate: string;
+  endDate: string;
+  categoryId: string;
+  filterButton?: React.ReactNode;
+  filterBadges?: React.ReactNode;
   topItemsSort: 'qty' | 'profit';
-  setTopItemsSort: React.Dispatch<React.SetStateAction<'qty' | 'profit'>>;
 }
 
-export function TopItemsReportTab({ topItems, topItemsSort, setTopItemsSort }: TopItemsReportTabProps) {
+export function TopItemsReportTab({ startDate, endDate, categoryId, filterButton, filterBadges, topItemsSort }: TopItemsReportTabProps) {
+  const [topItems, setTopItems] = useState<TopSellingItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await reportApi.getTopSellingItems(startDate || undefined, endDate || undefined, categoryId || undefined, 20);
+        if (result.error) {
+          setError('Gagal memuat barang terlaris');
+        } else {
+          setTopItems(result.data || []);
+        }
+      } catch (err) {
+        setError('Terjadi kesalahan');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [startDate, endDate, categoryId]);
+
+  const handleExportCSV = () => {
+    const sorted = [...topItems].sort((a, b) => topItemsSort === 'qty' ? b.total_qty - a.total_qty : b.total_profit - a.total_profit);
+    
+    const arrayToCsv = (headers: string[], rows: any[][]) => {
+      return [
+        headers.join(','),
+        ...rows.map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      ].join('\n');
+    };
+
+    const csvData = arrayToCsv(
+      ['Barang', 'Qty Terjual', 'Total Penjualan', 'Total Profit'],
+      sorted.map(t => [t.nama_barang, t.total_qty, t.total_sales, t.total_profit])
+    );
+
+    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `report_top_items_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  if (loading && topItems.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
+        <div className="w-12 h-12 border-4 border-neutral-200 dark:border-neutral-700 border-t-brand-600 rounded-full animate-spin mb-4"></div>
+        <p>Memuat data...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mt-3 p-4 bg-danger-50 text-danger-600 rounded-xl text-sm border border-danger-100 flex items-center gap-2">
+        <span className="font-medium">{error}</span>
+      </div>
+    );
+  }
+
   if (topItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
@@ -21,26 +89,21 @@ export function TopItemsReportTab({ topItems, topItemsSort, setTopItemsSort }: T
   }
 
   return (
-    <>
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">Urutkan berdasarkan:</span>
-        <Button 
-          size="sm" 
-          variant={topItemsSort === 'qty' ? 'primary' : 'secondary'} 
-          onClick={() => setTopItemsSort('qty')}
-        >
-          Qty Terjual
-        </Button>
-        <Button 
-          size="sm" 
-          variant={topItemsSort === 'profit' ? 'primary' : 'secondary'} 
-          onClick={() => setTopItemsSort('profit')}
-        >
-          Total Profit
+    <div className="space-y-4">
+      <div className="flex items-center justify-between w-full gap-2 mb-4">
+        {filterButton}
+        
+        <div className="flex-1 min-w-0">
+          {filterBadges}
+        </div>
+
+        <Button onClick={handleExportCSV} variant="secondary" size="sm" className="shrink-0 h-[40px]">
+          <IconDownload size={18} />
+          <span className="hidden sm:inline">Export CSV Semua Data</span>
         </Button>
       </div>
       
-      <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-5 mb-6 shadow-elevated">
+      <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-4 mb-4 shadow-elevated">
         <h3 className="text-lg font-bold mb-4 text-neutral-800 dark:text-neutral-200">10 Barang Terlaris ({topItemsSort === 'qty' ? 'Kuantitas' : 'Profit'})</h3>
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -68,10 +131,10 @@ export function TopItemsReportTab({ topItems, topItemsSort, setTopItemsSort }: T
           <table className="w-full">
             <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-b border-neutral-200/50 dark:border-neutral-800/50">
               <tr>
-                <th className="px-4 py-4 text-left text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Nama Barang</th>
-                <th className="px-4 py-4 text-right text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Qty Terjual</th>
-                <th className="px-4 py-4 text-right text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Total Penjualan</th>
-                <th className="px-4 py-4 text-right text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Total Profit</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Nama Barang</th>
+                <th className="px-4 py-3 text-right text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Qty Terjual</th>
+                <th className="px-4 py-3 text-right text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Total Penjualan</th>
+                <th className="px-4 py-3 text-right text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Total Profit</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
@@ -109,6 +172,6 @@ export function TopItemsReportTab({ topItems, topItemsSort, setTopItemsSort }: T
             ))}
         </div>
       </div>
-    </>
+    </div>
   );
 }

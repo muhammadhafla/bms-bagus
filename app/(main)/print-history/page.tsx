@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { AmbientLayout, Button } from '@/components/ui';
+import { AmbientLayout, Button, SlideOver } from '@/components/ui';
 import DateInput from '@/components/ui/DateInput';
-import { IconHistory, IconRefresh, IconPrinter, IconChevronLeft, IconChevronRight, IconFilter } from '@tabler/icons-react';
+import { IconHistory, IconRefresh, IconPrinter, IconChevronLeft, IconChevronRight, IconFilter, IconX } from '@tabler/icons-react';
 
 interface PrintJob {
   id: string;
@@ -21,10 +21,11 @@ export default function PrintHistoryPage() {
   const [loading, setLoading] = useState(true);
   
   // Pagination & Filters
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   
   const limit = 20;
 
@@ -97,29 +98,93 @@ export default function PrintHistoryPage() {
             <span className="hidden sm:inline font-medium">Refresh</span>
           </Button>
 
-          <div className="flex flex-1 items-center gap-2 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-neutral-800/60 p-2 sm:p-3 rounded-2xl shadow-sm overflow-x-auto">
-            <div className="px-1 sm:px-2 text-neutral-500 dark:text-neutral-400 flex items-center gap-2 sm:border-r border-neutral-200 dark:border-neutral-800 sm:mr-2 shrink-0">
-              <IconFilter size={20} />
-              <span className="text-sm font-medium hidden sm:inline">Filter:</span>
-            </div>
-            <DateInput
-              value={startDate}
-              onChange={(val) => { setStartDate(val); handleDateChange(); }}
-              placeholder="Dari"
-              className="min-w-[130px] text-sm shrink-0"
-              showClearButton
-            />
-            <span className="text-neutral-400 shrink-0">-</span>
-            <DateInput
-              value={endDate}
-              onChange={(val) => { setEndDate(val); handleDateChange(); }}
-              placeholder="Sampai"
-              className="min-w-[130px] text-sm shrink-0"
-              showClearButton
-            />
-          </div>
+          {(() => {
+            const activeFilters = [];
+            if (startDate || endDate) {
+              const label = `${startDate ? startDate : 'Awal'} - ${endDate ? endDate : 'Sekarang'}`;
+              activeFilters.push({ 
+                id: 'date', 
+                label, 
+                onRemove: () => { 
+                  setStartDate(''); 
+                  setEndDate(''); 
+                  handleDateChange(); 
+                } 
+              });
+            }
+
+            return (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
+                <Button variant="secondary" size="sm" onClick={() => setIsFilterOpen(true)} className="shrink-0 h-[40px] rounded-xl w-full sm:w-auto justify-center">
+                  <IconFilter size={18} />
+                  <span className="hidden sm:inline">Filter</span>
+                  {activeFilters.length > 0 && (
+                    <span className="ml-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
+                      {activeFilters.length}
+                    </span>
+                  )}
+                </Button>
+                
+                <div className="flex overflow-x-auto whitespace-nowrap gap-2 items-center py-1 w-full no-scrollbar">
+                  {activeFilters.length === 0 && (
+                    <span className="text-sm text-neutral-500 dark:text-neutral-400 italic">Semua data</span>
+                  )}
+                  {activeFilters.map(badge => (
+                    <div key={badge.id} className="inline-flex items-center gap-1.5 rounded-full bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-neutral-800/60 px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 shadow-sm">
+                      {badge.label}
+                      <button onClick={badge.onRemove} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
+                        <IconX size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
+
+      <SlideOver isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filter Riwayat">
+        <div className="space-y-6">
+          <div className="flex flex-col gap-3">
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Periode Tanggal:</label>
+            <div className="flex items-center gap-2">
+              <DateInput
+                value={startDate}
+                onChange={(val) => { setStartDate(val); handleDateChange(); }}
+                placeholder="Dari"
+                className="w-full text-sm"
+                showClearButton
+              />
+              <span className="text-neutral-400">-</span>
+              <DateInput
+                value={endDate}
+                onChange={(val) => { setEndDate(val); handleDateChange(); }}
+                placeholder="Sampai"
+                className="w-full text-sm"
+                showClearButton
+              />
+            </div>
+          </div>
+
+          <div className="pt-4 mt-6 border-t border-neutral-200 dark:border-neutral-800 flex gap-3">
+            <Button 
+              variant="secondary" 
+              className="w-1/2" 
+              onClick={() => {
+                setStartDate('');
+                setEndDate('');
+                handleDateChange();
+              }}
+            >
+              Reset Filter
+            </Button>
+            <Button variant="primary" className="w-1/2" onClick={() => setIsFilterOpen(false)}>
+              Terapkan
+            </Button>
+          </div>
+        </div>
+      </SlideOver>
 
       <div className="flex-1 animate-fade-in-up flex flex-col" style={{ animationDelay: '100ms' }}>
         <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-neutral-800/60 rounded-3xl shadow-elevated overflow-hidden min-h-[400px] flex flex-col flex-1">

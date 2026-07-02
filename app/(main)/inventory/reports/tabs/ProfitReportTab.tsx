@@ -1,18 +1,112 @@
-import { ProfitSummary } from '@/lib/api';
+import { useState, useEffect, useMemo } from 'react';
+import { reportApi, ProfitSummary } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui';
-import { IconTrendingUp } from '@tabler/icons-react';
+import { IconTrendingUp, IconDownload } from '@tabler/icons-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 interface ProfitReportTabProps {
-  profitSummary: ProfitSummary[];
-  page: number;
-  totalPages: number;
-  setPage: React.Dispatch<React.SetStateAction<number>>;
-  getTotalProfit: () => number;
+  startDate: string;
+  endDate: string;
+  categoryId: string;
+  filterButton?: React.ReactNode;
+  filterBadges?: React.ReactNode;
 }
 
-export function ProfitReportTab({ profitSummary, page, totalPages, setPage, getTotalProfit }: ProfitReportTabProps) {
+export function ProfitReportTab({ startDate, endDate, categoryId, filterButton, filterBadges }: ProfitReportTabProps) {
+  const [profitSummary, setProfitSummary] = useState<ProfitSummary[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const ITEMS_PER_PAGE = 50;
+
+  useEffect(() => {
+    setPage(1);
+  }, [startDate, endDate, categoryId]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await reportApi.getProfitReport(startDate || undefined, endDate || undefined, categoryId || undefined, { page, limit: ITEMS_PER_PAGE });
+        if (result.error) {
+          setError('Gagal memuat laporan profit');
+        } else {
+          setProfitSummary(result.data || []);
+          setTotalPages(Math.ceil((result.total || 0) / ITEMS_PER_PAGE) || 1);
+        }
+      } catch (err) {
+        setError('Terjadi kesalahan');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [startDate, endDate, categoryId, page]);
+
+  const handleExportCSV = async () => {
+    setExporting(true);
+    try {
+      const result = await reportApi.exportProfitReport(startDate || undefined, endDate || undefined, categoryId || undefined);
+      if (result.error || !result.data) {
+        alert('Gagal mengekspor data');
+        return;
+      }
+      
+      const arrayToCsv = (headers: string[], rows: any[][]) => {
+        return [
+          headers.join(','),
+          ...rows.map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+        ].join('\n');
+      };
+
+      const csvData = arrayToCsv(
+        ['Tanggal', 'Total Modal (HPP)', 'Total Penjualan', 'Profit', 'Margin %'],
+        result.data.map((s: ProfitSummary) => [
+          s.date, 
+          s.total_modal, 
+          s.total_penjualan, 
+          s.total_profit, 
+          s.margin_percentage.toFixed(2) + '%'
+        ])
+      );
+
+      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `report_profit_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } catch (err) {
+      alert('Terjadi kesalahan saat mengekspor');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const chartData = useMemo(() => [...profitSummary].reverse(), [profitSummary]);
+  const totalProfit = useMemo(() => profitSummary.reduce((sum, item) => sum + item.total_profit, 0), [profitSummary]);
+
+  if (loading && profitSummary.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
+        <div className="w-12 h-12 border-4 border-neutral-200 dark:border-neutral-700 border-t-brand-600 rounded-full animate-spin mb-4"></div>
+        <p>Memuat data...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mt-3 p-4 bg-danger-50 text-danger-600 rounded-xl text-sm border border-danger-100 flex items-center gap-2">
+        <span className="font-medium">{error}</span>
+      </div>
+    );
+  }
+
   if (profitSummary.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
@@ -23,24 +117,35 @@ export function ProfitReportTab({ profitSummary, page, totalPages, setPage, getT
   }
 
   return (
-    <>
-      <div className={`rounded-3xl border border-white/20 backdrop-blur-md p-5 shadow-elevated mb-6 ${
-        getTotalProfit() >= 0 
-          ? 'bg-gradient-to-br from-emerald-500/90 to-emerald-600/90 text-white' 
-          : 'bg-gradient-to-br from-rose-500/90 to-rose-600/90 text-white'
-      }`}>
-        <p className="text-sm font-medium opacity-80">Total Profit</p>
-        <p className="text-3xl font-bold mt-1">{formatCurrency(getTotalProfit())}</p>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between w-full gap-2 mb-4">
+        {filterButton}
+        
+        <div className="flex-1 min-w-0">
+          {filterBadges}
+        </div>
+
+        <Button onClick={handleExportCSV} disabled={exporting} variant="secondary" size="sm" className="shrink-0 h-[40px]">
+          <IconDownload size={18} />
+          <span className="hidden sm:inline">{exporting ? 'Mengekspor...' : 'Export CSV Semua Data'}</span>
+        </Button>
+      </div>
+
+      <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-5 md:p-6 shadow-elevated mb-6">
+        <p className="text-neutral-500 dark:text-neutral-400 text-sm font-medium">Total Profit</p>
+        <p className={`text-3xl md:text-4xl font-extrabold mt-1 tracking-tight ${totalProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+          {formatCurrency(totalProfit)}
+        </p>
       </div>
 
       <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-5 mb-6 shadow-elevated">
         <h3 className="text-lg font-bold mb-4 text-neutral-800 dark:text-neutral-200">Tren Profit</h3>
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={[...profitSummary].reverse()} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+            <LineChart data={chartData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
               <XAxis dataKey="date" tick={{fontSize: 12}} />
-              <YAxis tickFormatter={(val) => `Rp ${val / 1000}k`} tick={{fontSize: 12}} />
+              <YAxis tickFormatter={(val) => `Rp ${val / 1000}k`} tick={{fontSize: 12}} width={80} />
               <Tooltip formatter={(value: any) => formatCurrency(Number(value))} />
               <Legend />
               <Line type="monotone" dataKey="total_profit" name="Profit" stroke="#10b981" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
@@ -120,6 +225,6 @@ export function ProfitReportTab({ profitSummary, page, totalPages, setPage, getT
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

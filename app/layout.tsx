@@ -18,6 +18,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: "#ffffff",
 };
 
 export const metadata: Metadata = {
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
   description: "Admin aplikasi manajemen inventory",
   icons: {
     icon: "/favicon.ico",
-    apple: "/favicon.ico",
+    apple: "/icon-192x192.png",
   },
 };
 

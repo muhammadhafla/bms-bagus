@@ -58,11 +58,11 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
   };
 
   return (
-    <Card padding="lg" variant="flat" className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 h-full">
-      <CardTitle className="mb-6">Trend 7 Hari Terakhir</CardTitle>
+    <Card padding="lg" variant="flat" className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 h-full flex flex-col">
+      <CardTitle className="mb-6 shrink-0">Trend 7 Hari Terakhir</CardTitle>
 
-      <div style={{ height: 260, width: '100%', minWidth: 300 }}>
-        <ResponsiveContainer width="100%" height={260}>
+      <div className="flex-1 w-full min-w-[300px]" style={{ minHeight: 260 }}>
+        <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorPenjualan" x1="0" y1="0" x2="0" y2="1">

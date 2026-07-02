@@ -14,6 +14,8 @@ export { SelectInput } from './SelectInput';
 export { CheckboxInput } from './CheckboxInput';
 export { PriceInput } from './PriceInput';
 export { DateInput } from './DateInput';
+export { DateRangePicker } from './DateRangePicker';
+export { Tabs } from './Tabs';
 export { TextareaInput } from './TextareaInput';
 export { ToastProvider, useToast } from './Toast';
 export { ConfirmDialog } from './ConfirmDialog';

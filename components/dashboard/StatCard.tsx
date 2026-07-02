@@ -70,18 +70,18 @@ export function StatCard({ title, value, icon, prefix = '', suffix = '', variant
       {/* Soft background glow */}
       <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 ${iconBgClasses[variant]}`} />
       
-      <Card padding="none" variant="flat" className={`relative h-full bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border ${borderColors[variant]} transition-all duration-300 p-4 lg:p-6`}>
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">{title}</p>
-            <p className="mt-1.5 text-3xl font-bold text-neutral-900 dark:text-white tracking-tight">
+      <Card padding="none" variant="flat" className={`relative h-full bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border ${borderColors[variant]} transition-all duration-300 p-3 sm:p-4 lg:p-6`}>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-0">
+          <div className="flex-1 order-2 sm:order-1">
+            <p className="text-xs sm:text-sm font-medium text-neutral-500 dark:text-neutral-400">{title}</p>
+            <p className="mt-0.5 sm:mt-1.5 text-lg sm:text-2xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
               {prefix}{formatNumber(animatedValue)}{suffix}
             </p>
-        </div>
-        <div className={`p-3 rounded-xl ${iconBgClasses[variant]} ${iconShadowClasses[variant]}`}>
-          <div className="text-white">
-            {icon}
           </div>
+          <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl order-1 sm:order-2 w-fit ${iconBgClasses[variant]} ${iconShadowClasses[variant]}`}>
+            <div className="text-white [&>svg]:w-5 [&>svg]:h-5 sm:[&>svg]:w-6 sm:[&>svg]:h-6">
+              {icon}
+            </div>
           </div>
         </div>
       </Card>
@@ -91,13 +91,13 @@ export function StatCard({ title, value, icon, prefix = '', suffix = '', variant
 
 export function StatCardSkeleton() {
   return (
-    <Card padding="none" variant="flat" className="bg-white/50 dark:bg-neutral-900/40 backdrop-blur border border-white/20 dark:border-white/5 animate-pulse rounded-2xl p-4 lg:p-6">
-      <div className="flex items-start justify-between">
-        <div className="w-full">
-          <div className="h-4 bg-neutral-200 dark:bg-neutral-700 rounded w-28 mb-3" />
-          <div className="h-8 bg-neutral-200 dark:bg-neutral-700 rounded w-40" />
+    <Card padding="none" variant="flat" className="bg-white/50 dark:bg-neutral-900/40 backdrop-blur border border-white/20 dark:border-white/5 animate-pulse rounded-2xl p-3 sm:p-4 lg:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-0">
+        <div className="w-full order-2 sm:order-1">
+          <div className="h-3 sm:h-4 bg-neutral-200 dark:bg-neutral-700 rounded w-20 sm:w-28 mb-2 sm:mb-3" />
+          <div className="h-6 sm:h-8 bg-neutral-200 dark:bg-neutral-700 rounded w-24 sm:w-40" />
         </div>
-        <div className="w-12 h-12 bg-neutral-200 dark:bg-neutral-700 rounded-xl" />
+        <div className="w-9 h-9 sm:w-12 sm:h-12 bg-neutral-200 dark:bg-neutral-700 rounded-lg sm:rounded-xl order-1 sm:order-2" />
       </div>
     </Card>
   );

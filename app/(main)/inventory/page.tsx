@@ -7,7 +7,8 @@ import { debounce } from '@/lib/utils';
 import { InventoryTable } from '@/components/inventory/InventoryTable';
 import { Button, DataTable, Badge, SelectInput, Tooltip, AmbientLayout } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
-import { IconPackage, IconSearch, IconFilter, IconUpload } from '@tabler/icons-react';
+import { IconPackage, IconSearch, IconFilter, IconUpload, IconX } from '@tabler/icons-react';
+import { SlideOver } from '@/components/ui';
 import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
 import CheckboxInput from '@/components/ui/CheckboxInput';
 import { API_ERROR_MESSAGES, UI_MESSAGES, INVENTORY_MESSAGES } from '@/lib/constants';
@@ -32,6 +33,7 @@ export default function InventoryPage() {
   const ITEMS_PER_PAGE = 20;
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   
   const searchInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -163,8 +165,8 @@ export default function InventoryPage() {
           </div>
         </div>
         
-        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
-          <div className="relative flex-1 min-w-[200px] animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="relative flex-1 w-full animate-fade-in-up" style={{ animationDelay: '50ms' }}>
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
               <IconSearch size={20} />
             </div>
@@ -174,30 +176,83 @@ export default function InventoryPage() {
               placeholder="Cari nama atau barcode"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-neutral-900 border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all"
             />
           </div>
           
-          <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+            <Button variant="secondary" size="sm" onClick={() => setIsFilterOpen(true)} className="shrink-0 h-[40px] w-full sm:w-auto justify-center">
+              <IconFilter size={18} />
+              <span className="hidden sm:inline">Filter</span>
+              {(kategori || lowStockOnly) && (
+                <span className="ml-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
+                  {(kategori ? 1 : 0) + (lowStockOnly ? 1 : 0)}
+                </span>
+              )}
+            </Button>
+            
+            <div className="flex overflow-x-auto whitespace-nowrap gap-2 items-center py-1 w-full sm:w-auto no-scrollbar">
+              {kategori && (
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                  {kategori}
+                  <button onClick={() => setKategori('')} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
+                    <IconX size={14} />
+                  </button>
+                </div>
+              )}
+              {lowStockOnly && (
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                  Low Stock
+                  <button onClick={() => setLowStockOnly(false)} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
+                    <IconX size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <SlideOver isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filter Inventory">
+        <div className="space-y-6">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Kategori:</label>
             <SelectInput
               value={kategori}
               onChange={setKategori}
               options={kategoriList.map(k => ({ value: k, label: k }))}
               placeholder="Semua Kategori"
-              className="min-w-[180px]"
+              className="w-full"
             />
           </div>
           
-          <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Status Stok:</label>
             <CheckboxInput
               checked={lowStockOnly}
               onChange={setLowStockOnly}
               label="Hanya Stok Minimum"
-              labelClassName="px-5 py-3.5 bg-white dark:bg-neutral-900 border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all flex items-center gap-2"
+              labelClassName="px-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all flex items-center gap-2"
             />
           </div>
+
+          <div className="pt-4 mt-6 border-t border-neutral-200 dark:border-neutral-800 flex gap-3">
+            <Button 
+              variant="secondary" 
+              className="w-1/2" 
+              onClick={() => {
+                setKategori('');
+                setLowStockOnly(false);
+              }}
+            >
+              Reset Filter
+            </Button>
+            <Button variant="primary" className="w-1/2" onClick={() => setIsFilterOpen(false)}>
+              Terapkan
+            </Button>
+          </div>
         </div>
-      </div>
+      </SlideOver>
 
       <div className="flex-1">
         {loading ? (

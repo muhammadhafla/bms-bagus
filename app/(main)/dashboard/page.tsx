@@ -9,7 +9,6 @@ import {
   IconArrowUpCircle,
   IconCurrencyDollar,
   IconAlertTriangle,
-  IconRefresh,
 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { StatCard, StatCardSkeleton } from '@/components/dashboard/StatCard';
@@ -24,38 +23,29 @@ function HomeContent() {
   const { user, initialized } = useAuthStore();
   const router = useRouter();
 
-  const { data: stats, isLoading: statsLoading, isFetching: statsFetching, refetch: refetchStats } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard', 'stats'],
     queryFn: () => dashboardApi.getStats().then(res => res.data),
     refetchInterval: 300000,
   });
 
-  const { data: lowStock, isLoading: lowStockLoading, isFetching: lowStockFetching, refetch: refetchLowStock } = useQuery({
+  const { data: lowStock, isLoading: lowStockLoading } = useQuery({
     queryKey: ['dashboard', 'lowStock'],
     queryFn: () => dashboardApi.getLowStockItems().then(res => res.data),
     refetchInterval: 300000,
   });
 
-  const { data: trend, isLoading: trendLoading, isFetching: trendFetching, refetch: refetchTrend } = useQuery({
+  const { data: trend, isLoading: trendLoading } = useQuery({
     queryKey: ['dashboard', 'trend'],
     queryFn: () => dashboardApi.get7DayTrend().then(res => res.data),
     refetchInterval: 300000,
   });
 
-  const { data: transactions, isLoading: transactionsLoading, isFetching: transactionsFetching, refetch: refetchTransactions } = useQuery({
+  const { data: transactions, isLoading: transactionsLoading } = useQuery({
     queryKey: ['dashboard', 'transactions'],
     queryFn: () => dashboardApi.getRecentTransactions().then(res => res.data),
     refetchInterval: 300000,
   });
-
-  const isRefreshing = statsFetching || lowStockFetching || trendFetching || transactionsFetching;
-  
-  const handleManualRefresh = () => {
-    refetchStats();
-    refetchLowStock();
-    refetchTrend();
-    refetchTransactions();
-  };
 
   useEffect(() => {
     if (initialized && !user) {
@@ -91,22 +81,10 @@ function HomeContent() {
               Ringkasan performa dan stok barang.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-neutral-500 dark:text-neutral-400">
-              {isRefreshing ? 'Memperbarui...' : 'Otomatis diperbarui'}
-            </span>
-            <button
-              onClick={handleManualRefresh}
-              disabled={isRefreshing}
-              className={`p-2 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-all ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <IconRefresh size={20} className={isRefreshing ? 'animate-spin' : ''} />
-            </button>
-          </div>
         </div>
 
         {/* Bento Grid Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-6 mb-6">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-6 mb-6">
           {statsLoading ? (
             <>
               <StatCardSkeleton />
@@ -164,7 +142,7 @@ function HomeContent() {
           </div>
 
           {/* Right Column (Spans 4 columns) */}
-          <div className="xl:col-span-4 flex flex-col gap-6">
+          <div className="xl:col-span-4 flex flex-col gap-4 lg:gap-6">
             <div className="animate-fade-in-up flex-1" style={{ animationDelay: '250ms' }}>
               <LowStockAlert items={lowStock || []} isLoading={lowStockLoading} />
             </div>
@@ -177,29 +155,27 @@ function HomeContent() {
         {/* Baris 4: Summary */}
         <div className="grid grid-cols-1 gap-6">
           <div className="animate-fade-in-up" style={{ animationDelay: '350ms' }}>
-            <Card variant="flat" padding="lg" className="bg-white dark:bg-neutral-900 border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm rounded-2xl">
-              <h3 className="font-semibold text-neutral-900 dark:text-white mb-5 text-lg">
+            <Card variant="flat" padding="lg" className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-sm rounded-3xl p-4 lg:p-6">
+              <h3 className="font-bold text-neutral-900 dark:text-white mb-4 lg:mb-5 text-base lg:text-lg">
                 Ringkasan Stok
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 lg:gap-4">
                 {statsLoading ? (
                   <>
-                    <div className="h-20 bg-neutral-100 dark:bg-neutral-800 rounded-xl animate-pulse" />
-                    <div className="h-20 bg-neutral-100 dark:bg-neutral-800 rounded-xl animate-pulse" />
+                    <div className="h-20 bg-neutral-100 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                    <div className="h-20 bg-neutral-100 dark:bg-neutral-800 rounded-2xl animate-pulse" />
                   </>
                 ) : (
                   <>
-                    <div className="p-6 rounded-2xl bg-gradient-to-br from-brand-50/80 to-brand-100/50 dark:from-brand-900/30 dark:to-brand-800/10 border border-brand-200/50 dark:border-brand-500/20 shadow-sm relative overflow-hidden group">
-                      <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl group-hover:bg-brand-500/20 transition-colors" />
-                      <p className="text-sm text-brand-600 dark:text-brand-400 font-medium tracking-wide uppercase">Total Item Barang</p>
-                      <p className="text-3xl font-extrabold text-brand-700 dark:text-brand-300 mt-2 tracking-tight">{stats?.totalItems || 0}</p>
-                      <p className="text-xs text-brand-500/80 dark:text-brand-400/80 mt-1 font-medium">SKU Tersedia</p>
+                    <div className="p-4 sm:p-6 rounded-2xl bg-white dark:bg-neutral-950 border border-neutral-100 dark:border-neutral-800/80 shadow-sm relative overflow-hidden">
+                      <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 font-medium tracking-wide uppercase">Total Item Barang</p>
+                      <p className="text-2xl sm:text-3xl font-extrabold text-neutral-900 dark:text-white mt-1 sm:mt-2 tracking-tight">{stats?.totalItems || 0}</p>
+                      <p className="text-[10px] sm:text-xs text-brand-600 dark:text-brand-400 mt-0.5 sm:mt-1 font-medium">SKU Tersedia</p>
                     </div>
-                    <div className="p-6 rounded-2xl bg-gradient-to-br from-accent-teal-50/80 to-accent-teal-100/50 dark:from-accent-teal-900/30 dark:to-accent-teal-800/10 border border-accent-teal-200/50 dark:border-accent-teal-500/20 shadow-sm relative overflow-hidden group">
-                      <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-accent-teal-500/10 rounded-full blur-2xl group-hover:bg-accent-teal-500/20 transition-colors" />
-                      <p className="text-sm text-accent-teal-600 dark:text-accent-teal-400 font-medium tracking-wide uppercase">Transaksi Hari Ini</p>
-                      <p className="text-3xl font-extrabold text-accent-teal-700 dark:text-accent-teal-300 mt-2 tracking-tight">{stats?.todayTransactions || 0}</p>
-                      <p className="text-xs text-accent-teal-500/80 dark:text-accent-teal-400/80 mt-1 font-medium">Total Transaksi</p>
+                    <div className="p-4 sm:p-6 rounded-2xl bg-white dark:bg-neutral-950 border border-neutral-100 dark:border-neutral-800/80 shadow-sm relative overflow-hidden">
+                      <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 font-medium tracking-wide uppercase">Transaksi Hari Ini</p>
+                      <p className="text-2xl sm:text-3xl font-extrabold text-neutral-900 dark:text-white mt-1 sm:mt-2 tracking-tight">{stats?.todayTransactions || 0}</p>
+                      <p className="text-[10px] sm:text-xs text-accent-teal-600 dark:text-accent-teal-400 mt-0.5 sm:mt-1 font-medium">Total Transaksi</p>
                     </div>
                   </>
                 )}

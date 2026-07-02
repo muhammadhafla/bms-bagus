@@ -67,7 +67,7 @@ export const inventoryApi = {
 
   async getByBarcode(barcode: string) {
     return safeQuery<InventoryItem>(async () => {
-      const result = await supabase.from('inventory').select('*').eq('kode_barcode', barcode).single();
+      const result = await supabase.from('inventory').select('*').eq('kode_barcode', barcode).maybeSingle();
       return { data: result.data, error: result.error as Error | null };
     });
   },
@@ -120,7 +120,7 @@ export const inventoryApi = {
         .from('inventory')
         .select('*, id_kategori:id_kategori(*)')
         .eq('kode_barcode', normalizedBarcode)
-        .single();
+        .maybeSingle();
       return { data: result.data, error: result.error as Error | null };
     });
   },

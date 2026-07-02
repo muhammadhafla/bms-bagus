@@ -296,7 +296,10 @@ export default function BulkPrintPage() {
           </div>
 
           <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div className="flex-1 relative">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleBarcodeSubmit(barcodeInput);
+            }} className="flex-1 relative max-w-2xl">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
                 <IconCamera size={20} />
               </div>
@@ -306,16 +309,11 @@ export default function BulkPrintPage() {
                 placeholder="Scan barcode barang..."
                 value={barcodeInput}
                 onChange={(e) => setBarcodeInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleBarcodeSubmit(barcodeInput);
-                  }
-                }}
                 disabled={loading}
                 className="w-full pl-12 pr-4 py-3.5 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-base lg:text-lg"
                 autoFocus
               />
-            </div>
+            </form>
           </div>
 
           {error && (

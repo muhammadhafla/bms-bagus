@@ -42,7 +42,7 @@ export function TopItemsReportTab({ startDate, endDate, categoryId, filterButton
   const handleExportCSV = () => {
     const sorted = [...topItems].sort((a, b) => topItemsSort === 'qty' ? b.total_qty - a.total_qty : b.total_profit - a.total_profit);
     
-    const arrayToCsv = (headers: string[], rows: any[][]) => {
+    const arrayToCsv = (headers: string[], rows: (string | number)[][]) => {
       return [
         headers.join(','),
         ...rows.map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
@@ -79,30 +79,35 @@ export function TopItemsReportTab({ startDate, endDate, categoryId, filterButton
     );
   }
 
-  if (topItems.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
-        <IconChartBar className="w-16 h-16 mb-4" />
-        <p className="text-lg font-medium">Tidak ada data penjualan barang</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between w-full gap-2 mb-4">
-        {filterButton}
-        
-        <div className="flex-1 min-w-0">
-          {filterBadges}
+  const renderContent = () => {
+    if (loading && topItems.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
+          <div className="w-12 h-12 border-4 border-neutral-200 dark:border-neutral-700 border-t-brand-600 rounded-full animate-spin mb-4"></div>
+          <p>Memuat data...</p>
         </div>
+      );
+    }
 
-        <Button onClick={handleExportCSV} variant="secondary" size="sm" className="shrink-0 h-[40px]">
-          <IconDownload size={18} />
-          <span className="hidden sm:inline">Export CSV Semua Data</span>
-        </Button>
-      </div>
-      
+    if (error) {
+      return (
+        <div className="mt-3 p-4 bg-danger-50 text-danger-600 rounded-xl text-sm border border-danger-100 flex items-center gap-2">
+          <span className="font-medium">{error}</span>
+        </div>
+      );
+    }
+
+    if (topItems.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
+          <IconChartBar className="w-16 h-16 mb-4" />
+          <p className="text-lg font-medium">Tidak ada data penjualan barang</p>
+        </div>
+      );
+    }
+
+    return (
+      <>
       <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-4 mb-4 shadow-elevated">
         <h3 className="text-lg font-bold mb-4 text-neutral-800 dark:text-neutral-200">10 Barang Terlaris ({topItemsSort === 'qty' ? 'Kuantitas' : 'Profit'})</h3>
         <div className="h-[300px] w-full">
@@ -172,6 +177,26 @@ export function TopItemsReportTab({ startDate, endDate, categoryId, filterButton
             ))}
         </div>
       </div>
+      </>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between w-full gap-2 mb-4">
+        {filterButton}
+        
+        <div className="flex-1 min-w-0">
+          {filterBadges}
+        </div>
+
+        <Button onClick={handleExportCSV} disabled={topItems.length === 0 && !loading} variant="secondary" size="sm" className="shrink-0 h-[40px]">
+          <IconDownload size={18} />
+          <span className="hidden sm:inline">Export CSV Semua Data</span>
+        </Button>
+      </div>
+
+      {renderContent()}
     </div>
   );
 }

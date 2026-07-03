@@ -13,6 +13,14 @@ export const inventoryApi = {
     });
   },
 
+  async getByIds(ids: string[]) {
+    if (!ids || ids.length === 0) return { data: [], error: null };
+    return safeQuery<InventoryItem[]>(async () => {
+      const result = await supabase.from('inventory').select('*, id_kategori:id_kategori(*)').in('id', ids);
+      return { data: result.data, error: result.error as Error | null };
+    });
+  },
+
   async getPaginated(options: { page?: number; limit?: number; search?: string; categoryName?: string; lowStockOnly?: boolean }) {
     const page = Math.max(1, options.page || 1);
     const limit = Math.min(100, Math.max(1, options.limit || 20));
@@ -98,13 +106,30 @@ export const inventoryApi = {
     if (!inventoryList || inventoryList.length === 0) return { data: [], error: null };
     
     const scoredItems: Array<InventoryItem & { similarity: number }> = inventoryList
-      .map((item: InventoryItem) => ({
-        ...item,
-        similarity: Math.max(
-          stringSimilarity(queryLower, item.nama_barang.toLowerCase()),
-          stringSimilarity(queryLower, (item.kode_barcode || '').toLowerCase())
-        )
-      }))
+      .map((item: InventoryItem) => {
+        const nameLower = item.nama_barang.toLowerCase();
+        const barcodeLower = (item.kode_barcode || '').toLowerCase();
+        
+        let similarity = Math.max(
+          stringSimilarity(queryLower, nameLower),
+          stringSimilarity(queryLower, barcodeLower)
+        );
+        
+        // Bonus for substring matches to fix "1 word no result" issue
+        if (nameLower.includes(queryLower) || barcodeLower.includes(queryLower)) {
+          similarity = Math.max(similarity, 85);
+        }
+        
+        // Bonus for exact startsWith
+        if (nameLower.startsWith(queryLower) || barcodeLower.startsWith(queryLower)) {
+          similarity = Math.max(similarity, 95);
+        }
+        
+        return {
+          ...item,
+          similarity
+        };
+      })
       .filter((item: InventoryItem & { similarity: number }) => item.similarity >= 50)
       .sort((a, b) => b.similarity - a.similarity);
     

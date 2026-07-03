@@ -4,7 +4,7 @@ import { formatCurrency } from '@/lib/utils';
 import { PriceInput } from '@/components/ui/PriceInput';
 
 interface ItemCartProps {
-  items: any[];
+  items: import('@/lib/store').CartItem[];
   selectedIndex: number | null;
   editMode: 'qty' | 'harga' | null;
   editValue: number;
@@ -68,23 +68,25 @@ export function ItemCart({
                       value={editValue}
                       onChange={setEditValue}
                       onBlur={handleEditSubmit}
-                      className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900"
+                      className="!px-3 !py-1.5 !rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm"
                       min={1}
                       autoFocus
                       prefix=""
                     />
                   </div>
                 ) : (
-                  <button
-                    onClick={() => {
-                      setSelectedIndex(index);
-                      setEditMode('qty');
-                      setEditValue(item.qty);
-                    }}
-                    className="px-3 py-1.5 text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg w-20 block ml-auto transition-colors font-medium"
-                  >
-                    {item.qty}
-                  </button>
+                  <div className="w-24 ml-auto">
+                    <button
+                      onClick={() => {
+                        setSelectedIndex(index);
+                        setEditMode('qty');
+                        setEditValue(item.qty);
+                      }}
+                      className="px-3 py-1.5 w-full text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 border border-transparent rounded-lg transition-colors font-medium"
+                    >
+                      {item.qty}
+                    </button>
+                  </div>
                 )}
               </td>
               <td className="px-4 py-3 text-right">
@@ -94,22 +96,24 @@ export function ItemCart({
                       value={editValue}
                       onChange={setEditValue}
                       onBlur={handleEditSubmit}
-                      className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900"
+                      className="!px-3 !py-1.5 !rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm"
                       min={0}
                       autoFocus
                     />
                   </div>
                 ) : (
-                  <button
-                    onClick={() => {
-                      setSelectedIndex(index);
-                      setEditMode('harga');
-                      setEditValue(item.harga_beli || 0);
-                    }}
-                    className="px-3 py-1.5 text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg w-28 block ml-auto transition-colors font-medium text-neutral-700 dark:text-neutral-300"
-                  >
-                    {formatCurrency(item.harga_beli || 0)}
-                  </button>
+                  <div className="w-32 ml-auto">
+                    <button
+                      onClick={() => {
+                        setSelectedIndex(index);
+                        setEditMode('harga');
+                        setEditValue(item.harga_beli || 0);
+                      }}
+                      className="px-3 py-1.5 w-full text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 border border-transparent rounded-lg transition-colors font-medium text-neutral-700 dark:text-neutral-300"
+                    >
+                      {formatCurrency(item.harga_beli || 0)}
+                    </button>
+                  </div>
                 )}
               </td>
               <td className="px-4 py-3 text-right font-bold text-neutral-900 dark:text-neutral-100">
@@ -151,7 +155,7 @@ export function ItemCart({
                     value={editValue}
                     onChange={setEditValue}
                     onBlur={handleEditSubmit}
-                    className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
+                    className="w-full !px-3 !py-2.5 !rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
                     min={1}
                     autoFocus
                     prefix=""
@@ -176,7 +180,7 @@ export function ItemCart({
                     value={editValue}
                     onChange={setEditValue}
                     onBlur={handleEditSubmit}
-                    className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
+                    className="w-full !px-3 !py-2.5 !rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
                     min={0}
                     autoFocus
                   />

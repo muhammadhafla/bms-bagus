@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { IconPlus, IconEdit, IconTrash, IconTemplate, IconX } from '@tabler/icons-react';
 import { AmbientLayout, Button } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
+import { supabase } from '@/lib/auth';
+import { formatDateWIB } from '@/lib/utils';
 
 interface LabelTemplate {
   id: string;
@@ -34,7 +36,11 @@ export default function LabelTemplatesPage() {
 
   const fetchTemplates = async () => {
     try {
-      const res = await fetch('/api/templates');
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch('/api/templates', {
+        headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+      });
       const data = await res.json();
       if (data.templates) {
         setTemplates(data.templates);
@@ -62,9 +68,14 @@ export default function LabelTemplatesPage() {
       const url = editingId ? `/api/templates/${editingId}` : '/api/templates';
       const method = editingId ? 'PUT' : 'POST';
 
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           name: formData.name,
           language: formData.language,
@@ -107,8 +118,11 @@ export default function LabelTemplatesPage() {
     }
     
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       const res = await fetch(`/api/templates/${id}`, {
         method: 'DELETE',
+        headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
       });
       
       if (res.ok) {
@@ -200,7 +214,7 @@ export default function LabelTemplatesPage() {
                           {t.active ? 'Aktif' : 'Tidak Aktif'}
                         </span>
                       </td>
-                      <td className="p-4 text-neutral-600 dark:text-neutral-400">{new Date(t.created_at).toLocaleDateString('id-ID')}</td>
+                      <td className="p-4 text-neutral-600 dark:text-neutral-400">{formatDateWIB(t.created_at)}</td>
                       <td className="p-4">
                         <div className="flex gap-2">
                           <button 

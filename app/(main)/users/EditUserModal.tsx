@@ -68,8 +68,8 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, userId, init
       showToast('User berhasil diperbarui', 'success');
       onSuccess();
       onClose();
-    } catch (error: any) {
-      showToast(error.message || 'Terjadi kesalahan sistem', 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Terjadi kesalahan sistem', 'error');
     } finally {
       setLoading(false);
     }
@@ -105,8 +105,8 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, userId, init
       showToast('User berhasil dihapus', 'success');
       onSuccess();
       onClose();
-    } catch (error: any) {
-      showToast(error.message || 'Terjadi kesalahan sistem saat menghapus user', 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Terjadi kesalahan sistem saat menghapus user', 'error');
     } finally {
       setIsDeleting(false);
     }

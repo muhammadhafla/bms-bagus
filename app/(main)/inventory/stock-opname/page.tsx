@@ -9,6 +9,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Breadcrumb, Button, Badge, AmbientLayout } from '@/components/ui';
 import { useToast } from '@/components/ui/Toast';
 import { API_ERROR_MESSAGES, UI_MESSAGES, STOCK_OPNAME_MESSAGES } from '@/lib/constants';
+import { formatDateWIB } from '@/lib/utils';
 
 const statusBadgeVariant: Record<string, 'warning' | 'info' | 'success' | 'danger' | 'default'> = {
   draft: 'warning',
@@ -130,7 +131,7 @@ return (
                   <div key={opname.id} className="bg-white/50 dark:bg-neutral-950/50 rounded-2xl p-4 shadow-sm border border-neutral-200/50 dark:border-neutral-800/50 transition-colors">
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <p className="text-xs text-neutral-500 mb-1">{new Date(opname.opname_date).toLocaleDateString('id-ID')}</p>
+                        <p className="text-xs text-neutral-500 mb-1">{formatDateWIB(opname.opname_date)}</p>
                         <p className="font-medium text-neutral-900 dark:text-white">
                           Oleh: {opname.profiles?.nama || opname.created_by || '-'}
                         </p>
@@ -175,7 +176,7 @@ return (
                     {opnames.map((opname, index) => (
                       <tr key={opname.id} className="hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors">
                         <td className="px-5 py-4 text-sm text-neutral-600 dark:text-neutral-400">{index + 1}</td>
-                        <td className="px-5 py-4 text-sm text-neutral-900 dark:text-neutral-100 font-medium">{new Date(opname.opname_date).toLocaleDateString('id-ID')}</td>
+                        <td className="px-5 py-4 text-sm text-neutral-900 dark:text-neutral-100 font-medium">{formatDateWIB(opname.opname_date)}</td>
                         <td className="px-5 py-4">
                           <Badge variant={statusBadgeVariant[opname.status]} size="sm">
                             {statusLabels[opname.status]}

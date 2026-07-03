@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true, user: newUser.user });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Create user error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

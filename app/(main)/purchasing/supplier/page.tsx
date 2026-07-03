@@ -104,8 +104,8 @@ export default function SupplierPage() {
 
     if (sortKey) {
       result.sort((a, b) => {
-        const valA = String((a as any)[sortKey] || '').toLowerCase();
-        const valB = String((b as any)[sortKey] || '').toLowerCase();
+        const valA = String((a as import('@/types').Supplier)[sortKey as keyof import('@/types').Supplier] || '').toLowerCase();
+        const valB = String((b as import('@/types').Supplier)[sortKey as keyof import('@/types').Supplier] || '').toLowerCase();
         
         if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
         if (valA > valB) return sortDirection === 'asc' ? 1 : -1;

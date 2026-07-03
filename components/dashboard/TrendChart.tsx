@@ -39,7 +39,7 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
       <Card padding="lg" variant="flat" className="bg-white/50 dark:bg-neutral-900/40 backdrop-blur border border-white/20 dark:border-white/5">
         <div className="animate-pulse">
           <div className="h-6 bg-neutral-200/50 dark:bg-neutral-700/50 rounded w-40 mb-4" />
-          <div className="h-64 bg-neutral-200/50 dark:bg-neutral-700/50 rounded-xl" />
+          <div className="h-52 bg-neutral-200/50 dark:bg-neutral-700/50 rounded-xl" />
         </div>
       </Card>
     );
@@ -58,10 +58,10 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
   };
 
   return (
-    <Card padding="lg" variant="flat" className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 h-full flex flex-col">
-      <CardTitle className="mb-6 shrink-0">Trend 7 Hari Terakhir</CardTitle>
+    <Card padding="md" variant="flat" className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 h-full flex flex-col">
+      <CardTitle className="mb-4 shrink-0">Trend 7 Hari Terakhir</CardTitle>
 
-      <div className="flex-1 w-full min-w-[300px]" style={{ minHeight: 260 }}>
+      <div className="flex-1 w-full min-w-[300px]" style={{ minHeight: 220 }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>

@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useBulkPrintStore } from '@/lib/store';
 import { inventoryApi } from '@/lib/api';
+import { supabase } from '@/lib/auth';
 import { useQuery } from '@tanstack/react-query';
 import { InventoryItem } from '@/types/inventory';
-import { formatCurrency, normalizeBarcode } from '@/lib/utils';
-import { IconPrinter, IconCamera, IconDeviceFloppy, IconRefresh } from '@tabler/icons-react';
+import { Template } from '@/types';
+import { formatCurrency, normalizeBarcode, debounce } from '@/lib/utils';
+import { IconPrinter, IconCamera, IconDeviceFloppy, IconRefresh, IconSearch } from '@tabler/icons-react';
 import SelectInput from '@/components/ui/SelectInput';
 import { Button, AmbientLayout, useToast } from '@/components/ui';
 import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
-import { ItemSuggestionDialog } from '../purchasing/ItemSuggestionDialog';
 import { ItemCart } from './ItemCart';
 
 export default function BulkPrintPage() {
@@ -25,7 +26,7 @@ export default function BulkPrintPage() {
     },
   });
 
-  const [templates, setTemplates] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
   
   const [barcodeInput, setBarcodeInput] = useState('');
@@ -36,9 +37,26 @@ export default function BulkPrintPage() {
   const [editMode, setEditMode] = useState<'qty' | null>(null);
   const [editValue, setEditValue] = useState<number>(0);
   
-  const [showSuggestionDialog, setShowSuggestionDialog] = useState(false);
-  const [suggestionQuery, setSuggestionQuery] = useState('');
-  const [suggestionItems, setSuggestionItems] = useState<any[]>([]);
+  const [inventorySearchResults, setInventorySearchResults] = useState<(InventoryItem & { similarity: number })[]>([]);
+  const [showAddDropdown, setShowAddDropdown] = useState(false);
+
+  const handleSearchInventory = async (query: string, allInventory: InventoryItem[]) => {
+    if (query.length < 2) {
+      setInventorySearchResults([]);
+      setShowAddDropdown(false);
+      return;
+    }
+    const result = await inventoryApi.fuzzySearch(query, allInventory);
+    if (!result.error && result.data) {
+      setInventorySearchResults(result.data as (InventoryItem & { similarity: number })[]);
+      setShowAddDropdown(result.data.length > 0);
+    }
+  };
+
+  const debouncedSearch = useMemo(
+    () => debounce((query: string, allInventory: InventoryItem[]) => handleSearchInventory(query, allInventory), 300),
+    []
+  );
   
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -50,7 +68,11 @@ export default function BulkPrintPage() {
 
   const fetchTemplates = async () => {
     try {
-      const res = await fetch('/api/templates');
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch('/api/templates', {
+        headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+      });
       const data = await res.json();
       if (data.templates) {
         setTemplates(data.templates);
@@ -67,7 +89,7 @@ export default function BulkPrintPage() {
     setTimeout(() => inputRef.current?.focus(), 0);
   }, []);
 
-  const handleAddResolvedItem = useCallback((item: any) => {
+  const handleAddResolvedItem = useCallback((item: InventoryItem & { barcode?: string }) => {
     addItem({
       id: item.id,
       kode_barcode: item.kode_barcode || item.barcode,
@@ -80,7 +102,8 @@ export default function BulkPrintPage() {
       kategori: item.kategori,
     }, 1); // default qty is 1
     setBarcodeInput('');
-    setShowSuggestionDialog(false);
+    setShowAddDropdown(false);
+    setInventorySearchResults([]);
     focusInput();
     setLoading(false);
   }, [addItem, focusInput]);
@@ -155,6 +178,11 @@ export default function BulkPrintPage() {
         return;
       }
       
+      if (inventorySearchResults.length > 0) {
+        handleAddResolvedItem(inventorySearchResults[0]);
+        return;
+      }
+      
       const fuzzyResult = await inventoryApi.fuzzySearch(normalized, inventoryData || []);
       
       if (fuzzyResult.data && fuzzyResult.data.length > 0) {
@@ -166,16 +194,10 @@ export default function BulkPrintPage() {
           return;
         }
         
-        if (fuzzyItems.length === 1 && fuzzyItems[0].similarity >= 80) {
+        if (fuzzyItems[0].similarity >= 80) {
           handleAddResolvedItem(fuzzyItems[0]);
           return;
         }
-        
-        setSuggestionQuery(normalized);
-        setSuggestionItems(fuzzyResult.data);
-        setShowSuggestionDialog(true);
-        setLoading(false);
-        return;
       }
       
       setError('Barang tidak ditemukan di database.');
@@ -186,7 +208,7 @@ export default function BulkPrintPage() {
       setError('Terjadi kesalahan saat memproses barcode');
       setLoading(false);
     }
-  }, [loading, submitting, handleAddResolvedItem, inventoryData]);
+  }, [loading, submitting, handleAddResolvedItem, inventoryData, inventorySearchResults]);
 
   const handleSubmit = useCallback(async () => {
     if (items.length === 0) return;
@@ -208,22 +230,27 @@ export default function BulkPrintPage() {
     setSuccess(null);
 
     try {
-      const payload_json: any[] = [];
+      const payload_json: { name: string; price: string; barcode: string }[] = [];
       items.forEach(item => {
         const finalPrice = (item.harga_jual || 0) - (item.diskon || 0);
         const itemData = {
           name: item.nama_barang,
           price: formatCurrency(finalPrice),
-          barcode: item.kode_barcode || item.barcode
+          barcode: item.kode_barcode || item.barcode || ''
         };
         for (let i = 0; i < item.qty; i++) {
           payload_json.push(itemData);
         }
       });
 
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       const res = await fetch('/api/print', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           template_id: selectedTemplate,
           payload_json
@@ -240,9 +267,9 @@ export default function BulkPrintPage() {
         setError(errorData.error || 'Gagal membuat antrean cetak massal');
         showToast(errorData.error || 'Gagal membuat antrean cetak', 'error');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error submitting:', err);
-      setError(err.message || 'Terjadi kesalahan sistem');
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan sistem');
       showToast('Terjadi kesalahan sistem', 'error');
     } finally {
       setSubmitting(false);
@@ -295,24 +322,53 @@ export default function BulkPrintPage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between relative z-10">
             <form onSubmit={(e) => {
               e.preventDefault();
               handleBarcodeSubmit(barcodeInput);
             }} className="flex-1 relative max-w-2xl">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
-                <IconCamera size={20} />
+                <IconSearch size={20} />
               </div>
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="Scan barcode barang..."
+                placeholder="Cari atau scan barcode barang..."
                 value={barcodeInput}
-                onChange={(e) => setBarcodeInput(e.target.value)}
+                onChange={(e) => {
+                  setBarcodeInput(e.target.value);
+                  debouncedSearch(e.target.value, inventoryData || []);
+                }}
+                onFocus={() => {
+                  if (inventorySearchResults.length > 0) setShowAddDropdown(true);
+                }}
+                onBlur={() => {
+                  setTimeout(() => setShowAddDropdown(false), 200);
+                }}
                 disabled={loading}
-                className="w-full pl-12 pr-4 py-3.5 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-base lg:text-lg"
+                className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-neutral-900 backdrop-blur-md border border-neutral-200 dark:border-neutral-700 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all text-base lg:text-lg"
                 autoFocus
               />
+              {showAddDropdown && inventorySearchResults.length > 0 && (
+                <div className="absolute z-20 w-full mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl max-h-[40vh] md:max-h-64 overflow-auto">
+                  {inventorySearchResults.map((inventory) => (
+                    <button
+                      key={inventory.id}
+                      type="button"
+                      onClick={() => handleAddResolvedItem(inventory)}
+                      className="w-full px-4 py-3 text-left hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex justify-between items-center border-b border-neutral-100 dark:border-neutral-800 last:border-0"
+                    >
+                      <div>
+                        <div className="font-medium text-neutral-900 dark:text-neutral-100">{inventory.nama_barang}</div>
+                        <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono mt-0.5">{inventory.kode_barcode || 'Tanpa barcode'} | Stok: {inventory.stok}</div>
+                      </div>
+                      <div className="text-xs bg-success-100 dark:bg-success-900/40 text-success-700 dark:text-success-300 px-2 py-1 rounded-full whitespace-nowrap ml-2">
+                        {inventory.similarity}% cocok
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </form>
           </div>
 
@@ -377,19 +433,6 @@ export default function BulkPrintPage() {
         </div>
 
       </div>
-
-      <ItemSuggestionDialog
-        open={showSuggestionDialog}
-        query={suggestionQuery}
-        items={suggestionItems}
-        onSelect={handleAddResolvedItem}
-        onCreateNew={() => setShowSuggestionDialog(false)}
-        onClose={() => {
-          setShowSuggestionDialog(false);
-          setBarcodeInput('');
-          focusInput();
-        }}
-      />
 
     </AmbientLayout>
   );

@@ -184,3 +184,58 @@ export const generateAutoBarcode = (): string => {
   const random = Math.floor(100000 + Math.random() * 900000);
   return `AUTO-${random}`;
 };
+
+/**
+ * Safely parse a date string from Supabase (which might lack 'Z') as UTC
+ * and return a Date object.
+ */
+export const parseUTCDate = (dateString: string | Date | null | undefined): Date => {
+  if (!dateString) return new Date();
+  if (dateString instanceof Date) return dateString;
+  
+  // If the date string doesn't end with Z and doesn't contain a timezone offset, append Z
+  if (typeof dateString === 'string' && !dateString.endsWith('Z') && !dateString.match(/[+-]\d{2}:\d{2}$/)) {
+    // Check if it's just a YYYY-MM-DD date without time, in that case we might not want to append Z
+    // but for timestamps like 2026-07-02T02:57:36.465398 it's needed
+    if (dateString.includes('T')) {
+      return new Date(dateString + 'Z');
+    }
+  }
+  return new Date(dateString);
+};
+
+/**
+ * Format a date to UTC+7 (Asia/Jakarta) locale string
+ */
+export const formatDateWIB = (date: Date | string | null | undefined, options?: Intl.DateTimeFormatOptions): string => {
+  if (!date) return '-';
+  const d = parseUTCDate(date);
+  return d.toLocaleDateString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    ...options
+  });
+};
+
+/**
+ * Format a time to UTC+7 (Asia/Jakarta) locale string
+ */
+export const formatTimeWIB = (date: Date | string | null | undefined, options?: Intl.DateTimeFormatOptions): string => {
+  if (!date) return '-';
+  const d = parseUTCDate(date);
+  return d.toLocaleTimeString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    ...options
+  });
+};
+
+/**
+ * Format a date and time to UTC+7 (Asia/Jakarta) locale string
+ */
+export const formatDateTimeWIB = (date: Date | string | null | undefined, options?: Intl.DateTimeFormatOptions): string => {
+  if (!date) return '-';
+  const d = parseUTCDate(date);
+  return d.toLocaleString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    ...options
+  });
+};

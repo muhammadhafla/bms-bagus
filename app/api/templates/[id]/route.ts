@@ -1,31 +1,15 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-
-function getSupabaseClient(request: Request) {
-  const authHeader = request.headers.get('Authorization');
-  let token = '';
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    token = authHeader.split(' ')[1];
-  }
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-  const client = createClient(supabaseUrl, supabaseKey, {
-    global: {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    },
-  });
-
-  return client;
-}
+import { verifyAuth, createAdminClient } from '@/lib/api/auth-guard';
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = getSupabaseClient(request);
+    const { user, error: authError } = await verifyAuth(request);
+    if (authError) return authError;
+
+    const supabase = createAdminClient();
     const resolvedParams = await params;
     const id = resolvedParams.id;
     const body = await request.json();
@@ -52,7 +36,7 @@ export async function PUT(
     }
 
     return NextResponse.json({ template: data });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -62,7 +46,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = getSupabaseClient(request);
+    const { user, error: authError } = await verifyAuth(request);
+    if (authError) return authError;
+
+    const supabase = createAdminClient();
     const resolvedParams = await params;
     const id = resolvedParams.id;
 
@@ -90,7 +77,7 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

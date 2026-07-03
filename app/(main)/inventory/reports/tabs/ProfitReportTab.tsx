@@ -56,7 +56,7 @@ export function ProfitReportTab({ startDate, endDate, categoryId, filterButton, 
         return;
       }
       
-      const arrayToCsv = (headers: string[], rows: any[][]) => {
+      const arrayToCsv = (headers: string[], rows: (string | number)[][]) => {
         return [
           headers.join(','),
           ...rows.map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
@@ -90,47 +90,35 @@ export function ProfitReportTab({ startDate, endDate, categoryId, filterButton, 
   const chartData = useMemo(() => [...profitSummary].reverse(), [profitSummary]);
   const totalProfit = useMemo(() => profitSummary.reduce((sum, item) => sum + item.total_profit, 0), [profitSummary]);
 
-  if (loading && profitSummary.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
-        <div className="w-12 h-12 border-4 border-neutral-200 dark:border-neutral-700 border-t-brand-600 rounded-full animate-spin mb-4"></div>
-        <p>Memuat data...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="mt-3 p-4 bg-danger-50 text-danger-600 rounded-xl text-sm border border-danger-100 flex items-center gap-2">
-        <span className="font-medium">{error}</span>
-      </div>
-    );
-  }
-
-  if (profitSummary.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
-        <IconTrendingUp className="w-16 h-16 mb-4" />
-        <p className="text-lg font-medium">Tidak ada data profit</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between w-full gap-2 mb-4">
-        {filterButton}
-        
-        <div className="flex-1 min-w-0">
-          {filterBadges}
+  const renderContent = () => {
+    if (loading && profitSummary.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
+          <div className="w-12 h-12 border-4 border-neutral-200 dark:border-neutral-700 border-t-brand-600 rounded-full animate-spin mb-4"></div>
+          <p>Memuat data...</p>
         </div>
+      );
+    }
 
-        <Button onClick={handleExportCSV} disabled={exporting} variant="secondary" size="sm" className="shrink-0 h-[40px]">
-          <IconDownload size={18} />
-          <span className="hidden sm:inline">{exporting ? 'Mengekspor...' : 'Export CSV Semua Data'}</span>
-        </Button>
-      </div>
+    if (error) {
+      return (
+        <div className="mt-3 p-4 bg-danger-50 text-danger-600 rounded-xl text-sm border border-danger-100 flex items-center gap-2">
+          <span className="font-medium">{error}</span>
+        </div>
+      );
+    }
 
+    if (profitSummary.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
+          <IconTrendingUp className="w-16 h-16 mb-4" />
+          <p className="text-lg font-medium">Tidak ada data profit</p>
+        </div>
+      );
+    }
+
+    return (
+      <>
       <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-5 md:p-6 shadow-elevated mb-6">
         <p className="text-neutral-500 dark:text-neutral-400 text-sm font-medium">Total Profit</p>
         <p className={`text-3xl md:text-4xl font-extrabold mt-1 tracking-tight ${totalProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
@@ -225,6 +213,26 @@ export function ProfitReportTab({ startDate, endDate, categoryId, filterButton, 
           </div>
         </div>
       )}
+      </>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between w-full gap-2 mb-4">
+        {filterButton}
+        
+        <div className="flex-1 min-w-0">
+          {filterBadges}
+        </div>
+
+        <Button onClick={handleExportCSV} disabled={exporting || (profitSummary.length === 0 && !loading)} variant="secondary" size="sm" className="shrink-0 h-[40px]">
+          <IconDownload size={18} />
+          <span className="hidden sm:inline">{exporting ? 'Mengekspor...' : 'Export CSV Semua Data'}</span>
+        </Button>
+      </div>
+
+      {renderContent()}
     </div>
   );
 }

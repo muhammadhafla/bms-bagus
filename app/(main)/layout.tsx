@@ -45,10 +45,10 @@ const INVENTORY_ITEMS = [
 const PURCHASING_ITEMS = [
   { href: '/purchasing', title: 'Transaksi Baru', icon: IconShoppingCart },
   { href: '/purchasing/supplier', title: 'Supplier', icon: IconTruck },
-  { href: '/purchasing/riwayat', title: 'Riwayat', icon: IconHistory },
 ];
 
 const TRANSACTIONS_ITEMS = [
+  { href: '/transactions/history', title: 'Riwayat Transaksi', icon: IconHistory },
   { href: '/transactions/return', title: 'Return', icon: IconArrowBack },
 ];
 

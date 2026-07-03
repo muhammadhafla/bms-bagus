@@ -84,7 +84,7 @@ export const reportApi = {
 
     let countQuery = supabase.from('stock_movements').select('*', { count: 'exact', head: true });
     if (startDate) countQuery = countQuery.gte('created_at', startDate);
-    if (endDate) countQuery = countQuery.lte('created_at', endDate);
+    if (endDate) countQuery = countQuery.lte('created_at', `${endDate} 23:59:59`);
 
     const { count, error: countError } = await countQuery;
 
@@ -108,7 +108,7 @@ export const reportApi = {
       .range(offset, offset + limit - 1);
 
     if (startDate) dataQuery = dataQuery.gte('created_at', startDate);
-    if (endDate) dataQuery = dataQuery.lte('created_at', endDate);
+    if (endDate) dataQuery = dataQuery.lte('created_at', `${endDate} 23:59:59`);
 
     const result = await safeQuery<any[]>(async () => {
       const res = await dataQuery;
@@ -412,7 +412,7 @@ export const reportApi = {
       .order('created_at', { ascending: false });
 
     if (startDate) dataQuery = dataQuery.gte('created_at', startDate);
-    if (endDate) dataQuery = dataQuery.lte('created_at', endDate);
+    if (endDate) dataQuery = dataQuery.lte('created_at', `${endDate} 23:59:59`);
 
     const result = await safeQuery<any[]>(async () => {
       const res = await dataQuery;

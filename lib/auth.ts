@@ -4,6 +4,11 @@ import { safeQuery } from '@/lib/api/utils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  throw new Error('[Auth] NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY wajib diisi');
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
@@ -56,8 +61,6 @@ let profileFetchSeq = 0;
 
 const fetchProfile = async (userId: string): Promise<Profile | null> => {
   try {
-    console.log('[fetchProfile] Attempting to fetch profile for userId:', userId);
-    
     const result = await safeQuery<Profile>(async () => {
       const response = await supabase
         .from('profiles')
@@ -75,7 +78,6 @@ const fetchProfile = async (userId: string): Promise<Profile | null> => {
       return null;
     }
 
-    console.log('[fetchProfile] Success:', result.data);
     return result.data;
   } catch (err) {
     console.error('[fetchProfile] Exception:', err);
@@ -133,7 +135,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   _setProfileIfLatest: (fetchId: number, profile: Profile | null, userId: string) => {
     // Check if this fetch is still the latest
     if (fetchId !== profileFetchSeq) {
-      console.log(`Stale profile fetch ignored (id=${fetchId}, latest=${profileFetchSeq})`);
       return;
     }
     const currentUser = get().user;
@@ -142,10 +143,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return;
     }
     if (!currentUser || currentUser.id !== userId) {
-      console.log('Profile fetch user mismatch', { fetchUserId: userId, currentUserId: currentUser?.id });
       return;
     }
-    console.log(`Setting profile (id=${fetchId}):`, profile.role);
     set({ profile });
   },
 
@@ -252,7 +251,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // If session expires within 1 minute, proactively refresh
         const timeLeft = expiresAt - Date.now();
         if (timeLeft < 60 * 1000) {
-          console.log('Session expiring soon, refreshing...', { timeLeft: Math.round(timeLeft/1000) + 's' });
           return await get().refreshSession();
         }
       }
@@ -295,12 +293,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Set up auth state change listener - fires immediately with current session
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         async (event, session) => {
-          console.log('Auth event:', event, session?.user?.id);
           const eventUserId = session?.user?.id || null;
 
           // Prevent stale events from previous user
           if (eventUserId && lastUserId && eventUserId !== lastUserId) {
-            console.log('Ignoring stale event for previous user:', lastUserId);
             return;
           }
 
@@ -389,8 +385,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
             default:
               console.warn('Unhandled auth event:', event);
-              lastUserId = null;
-              set({ user: null, profile: null, initialized: true, isRefreshing: false });
+              // Jangan mengubah auth state untuk event yang tidak dikenal
+              if (!get().initialized) {
+                set({ initialized: true });
+              }
+              break;
           }
         }
       );

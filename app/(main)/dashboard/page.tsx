@@ -72,21 +72,23 @@ function HomeContent() {
     <div className="relative flex flex-col h-full w-full">
       <div className="relative z-10">
         {/* Header */}
-        <div className="mb-5 lg:mb-8 animate-fade-in-up flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="mb-3 lg:mb-4 animate-fade-in-up flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
               Dashboard
             </h1>
-            <p className="text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 text-sm lg:text-base font-medium">
+            <p className="text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-1 text-sm lg:text-base font-medium">
               Ringkasan performa dan stok barang.
             </p>
           </div>
         </div>
 
         {/* Bento Grid Layout */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-6 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 lg:gap-4 mb-4">
           {statsLoading ? (
             <>
+              <StatCardSkeleton />
+              <StatCardSkeleton />
               <StatCardSkeleton />
               <StatCardSkeleton />
               <StatCardSkeleton />
@@ -94,7 +96,7 @@ function HomeContent() {
             </>
           ) : (
             <>
-              <div className="animate-fade-in-up" style={{ animationDelay: '0ms' }}>
+              <div className="animate-fade-in-up [animation-delay:0ms]">
                 <StatCard
                   title="Total Nilai Inventory"
                   value={stats?.totalInventoryValue || 0}
@@ -103,7 +105,7 @@ function HomeContent() {
                   variant="default"
                 />
               </div>
-              <div className="animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+              <div className="animate-fade-in-up [animation-delay:50ms]">
                 <StatCard
                   title="Penjualan Hari Ini"
                   value={stats?.todaySales || 0}
@@ -112,7 +114,7 @@ function HomeContent() {
                   variant="success"
                 />
               </div>
-              <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+              <div className="animate-fade-in-up [animation-delay:100ms]">
                 <StatCard
                   title="Pembelian Hari Ini"
                   value={stats?.todayPurchases || 0}
@@ -121,7 +123,7 @@ function HomeContent() {
                   variant="warning"
                 />
               </div>
-              <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+              <div className="animate-fade-in-up [animation-delay:150ms]">
                 <StatCard
                   title="Stok Minimum"
                   value={stats?.lowStockItems || 0}
@@ -130,57 +132,39 @@ function HomeContent() {
                   variant={stats && stats.lowStockItems > 0 ? 'danger' : 'default'}
                 />
               </div>
+              <div className="animate-fade-in-up [animation-delay:200ms]">
+                <StatCard
+                  title="Total Item Barang"
+                  value={stats?.totalItems || 0}
+                  icon={<IconPackage size={22} />}
+                  suffix=" SKU"
+                  variant="default"
+                />
+              </div>
+              <div className="animate-fade-in-up [animation-delay:250ms]">
+                <StatCard
+                  title="Transaksi Hari Ini"
+                  value={stats?.todayTransactions || 0}
+                  icon={<IconShoppingCart size={22} />}
+                  variant="default"
+                />
+              </div>
             </>
           )}
         </div>
 
         {/* Baris 2 & 3: Bento Layout */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 lg:gap-6 mb-6">
-          {/* Main Chart Section (Spans 8 columns) */}
-          <div className="xl:col-span-8 animate-fade-in-up flex flex-col" style={{ animationDelay: '200ms' }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-4">
+          <div className="animate-fade-in-up flex flex-col [animation-delay:300ms]">
             <TrendChart data={trend || []} isLoading={trendLoading} />
           </div>
 
-          {/* Right Column (Spans 4 columns) */}
-          <div className="xl:col-span-4 flex flex-col gap-4 lg:gap-6">
-            <div className="animate-fade-in-up flex-1" style={{ animationDelay: '250ms' }}>
-              <LowStockAlert items={lowStock || []} isLoading={lowStockLoading} />
-            </div>
-            <div className="animate-fade-in-up flex-1" style={{ animationDelay: '300ms' }}>
-              <RecentTransactions transactions={transactions || []} isLoading={transactionsLoading} />
-            </div>
+          <div className="animate-fade-in-up flex flex-col [animation-delay:350ms]">
+            <LowStockAlert items={lowStock || []} isLoading={lowStockLoading} />
           </div>
-        </div>
-
-        {/* Baris 4: Summary */}
-        <div className="grid grid-cols-1 gap-6">
-          <div className="animate-fade-in-up" style={{ animationDelay: '350ms' }}>
-            <Card variant="flat" padding="lg" className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-sm rounded-3xl p-4 lg:p-6">
-              <h3 className="font-bold text-neutral-900 dark:text-white mb-4 lg:mb-5 text-base lg:text-lg">
-                Ringkasan Stok
-              </h3>
-              <div className="grid grid-cols-2 gap-3 lg:gap-4">
-                {statsLoading ? (
-                  <>
-                    <div className="h-20 bg-neutral-100 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                    <div className="h-20 bg-neutral-100 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                  </>
-                ) : (
-                  <>
-                    <div className="p-4 sm:p-6 rounded-2xl bg-white dark:bg-neutral-950 border border-neutral-100 dark:border-neutral-800/80 shadow-sm relative overflow-hidden">
-                      <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 font-medium tracking-wide uppercase">Total Item Barang</p>
-                      <p className="text-2xl sm:text-3xl font-extrabold text-neutral-900 dark:text-white mt-1 sm:mt-2 tracking-tight">{stats?.totalItems || 0}</p>
-                      <p className="text-[10px] sm:text-xs text-brand-600 dark:text-brand-400 mt-0.5 sm:mt-1 font-medium">SKU Tersedia</p>
-                    </div>
-                    <div className="p-4 sm:p-6 rounded-2xl bg-white dark:bg-neutral-950 border border-neutral-100 dark:border-neutral-800/80 shadow-sm relative overflow-hidden">
-                      <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 font-medium tracking-wide uppercase">Transaksi Hari Ini</p>
-                      <p className="text-2xl sm:text-3xl font-extrabold text-neutral-900 dark:text-white mt-1 sm:mt-2 tracking-tight">{stats?.todayTransactions || 0}</p>
-                      <p className="text-[10px] sm:text-xs text-accent-teal-600 dark:text-accent-teal-400 mt-0.5 sm:mt-1 font-medium">Total Transaksi</p>
-                    </div>
-                  </>
-                )}
-              </div>
-            </Card>
+          
+          <div className="animate-fade-in-up flex flex-col [animation-delay:400ms]">
+            <RecentTransactions transactions={transactions || []} isLoading={transactionsLoading} />
           </div>
         </div>
       </div>

@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { AdminOnly } from '@/components/role';
 import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
+import { formatDateWIB } from '@/lib/utils';
 
 interface Profile {
   id: string;
@@ -155,7 +156,7 @@ export default function UsersPage() {
                     </div>
                     <div className="text-xs text-neutral-500">
                       {user.last_sign_in_at 
-                        ? new Date(user.last_sign_in_at).toLocaleDateString('id-ID') 
+                        ? formatDateWIB(user.last_sign_in_at) 
                         : 'Belum pernah login'}
                     </div>
                   </div>
@@ -224,7 +225,7 @@ export default function UsersPage() {
                     </td>
                     <td className="px-5 py-4 text-sm text-neutral-500">
                       {user.last_sign_in_at 
-                        ? new Date(user.last_sign_in_at).toLocaleDateString('id-ID') 
+                        ? formatDateWIB(user.last_sign_in_at) 
                         : 'Belum pernah login'}
                     </td>
                     <td className="px-5 py-4 text-center">

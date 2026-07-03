@@ -1,4 +1,5 @@
 import { IconUser, IconLogout } from '@tabler/icons-react';
+import { formatDateWIB } from '@/lib/utils';
 
 interface FooterProps {
   userEmail: string;
@@ -15,8 +16,7 @@ export default function Footer({
 }: FooterProps) {
   const formatLastLogin = (date?: string) => {
     if (!date) return 'First login';
-    const d = new Date(date);
-    return d.toLocaleDateString('id-ID', {
+    return formatDateWIB(date, {
       day: 'numeric',
       month: 'short',
       year: 'numeric',

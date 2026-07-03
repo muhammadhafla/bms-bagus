@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { reportApi, StockMutation } from '@/lib/api';
 import { Button } from '@/components/ui';
 import { IconPackage, IconDownload } from '@tabler/icons-react';
+import { formatDateWIB } from '@/lib/utils';
 
 interface StockReportTabProps {
   startDate: string;
@@ -53,24 +54,16 @@ export function StockReportTab({ startDate, endDate, filterButton, filterBadges 
         return;
       }
       
-      const arrayToCsv = (headers: string[], rows: any[][]) => {
-        return [
-          headers.join(','),
-          ...rows.map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
-        ].join('\n');
-      };
-
-      const csvData = arrayToCsv(
-        ['Tanggal', 'Barcode', 'Nama Barang', 'Tipe', 'Qty', 'Transaksi'],
-        result.data.map((m: StockMutation) => [
-          new Date(m.created_at).toLocaleDateString('id-ID'), 
+      const csvData = [
+        ['Tanggal', 'Barcode', 'Nama Barang', 'Tipe', 'Qty'],
+        ...result.data.map((m: StockMutation) => [
+          formatDateWIB(m.created_at),
           m.barcode || '', 
-          m.nama_barang || '', 
-          m.tipe, 
-          m.qty_mutation, 
-          m.transaction_type
+          `"${(m.nama_barang || '').replace(/"/g, '""')}"`, 
+          m.type === 'in' ? 'IN' : 'OUT', 
+          m.qty_mutation
         ])
-      );
+      ].map(e => e.join(',')).join('\n');
 
       const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
@@ -85,46 +78,34 @@ export function StockReportTab({ startDate, endDate, filterButton, filterBadges 
     }
   };
 
-  if (loading && stockMutations.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
-        <div className="w-12 h-12 border-4 border-neutral-200 dark:border-neutral-700 border-t-brand-600 rounded-full animate-spin mb-4"></div>
-        <p>Memuat data...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="mt-3 p-4 bg-danger-50 text-danger-600 rounded-xl text-sm border border-danger-100 flex items-center gap-2">
-        <span className="font-medium">{error}</span>
-      </div>
-    );
-  }
-
-  if (stockMutations.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
-        <IconPackage className="w-16 h-16 mb-4" />
-        <p className="text-lg font-medium">Tidak ada data mutasi stock</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between w-full gap-2 mb-4">
-        {filterButton}
-        
-        <div className="flex-1 min-w-0">
-          {filterBadges}
+  const renderContent = () => {
+    if (loading && stockMutations.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
+          <div className="w-12 h-12 border-4 border-neutral-200 dark:border-neutral-700 border-t-brand-600 rounded-full animate-spin mb-4"></div>
+          <p>Memuat data...</p>
         </div>
+      );
+    }
 
-        <Button onClick={handleExportCSV} disabled={exporting} variant="secondary" size="sm" className="shrink-0 h-[40px]">
-          <IconDownload size={18} />
-          <span className="hidden sm:inline">{exporting ? 'Mengekspor...' : 'Export CSV Semua Data'}</span>
-        </Button>
-      </div>
+    if (error) {
+      return (
+        <div className="mt-3 p-4 bg-danger-50 text-danger-600 rounded-xl text-sm border border-danger-100 flex items-center gap-2">
+          <span className="font-medium">{error}</span>
+        </div>
+      );
+    }
+
+    if (stockMutations.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
+          <IconPackage className="w-16 h-16 mb-4" />
+          <p className="text-lg font-medium">Tidak ada data mutasi stock</p>
+        </div>
+      );
+    }
+
+    return (
       <div className="overflow-hidden rounded-3xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl shadow-elevated">
         <div className="overflow-x-auto hidden lg:block">
           <table className="w-full min-w-[900px]">
@@ -135,14 +116,13 @@ export function StockReportTab({ startDate, endDate, filterButton, filterBadges 
                 <th className="px-4 py-4 text-left text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Nama Barang</th>
                 <th className="px-4 py-4 text-center text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Tipe</th>
                 <th className="px-4 py-4 text-right text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Qty</th>
-                <th className="px-4 py-4 text-left text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Transaksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
               {stockMutations.map((mutation) => (
                 <tr key={mutation.id} className="hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors">
                   <td className="px-4 py-3.5 text-sm text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
-                    {new Date(mutation.created_at).toLocaleDateString('id-ID')}
+                    {formatDateWIB(mutation.created_at)}
                   </td>
                   <td className="px-4 py-3.5 text-sm font-mono text-neutral-700 dark:text-neutral-300">{mutation.barcode}</td>
                   <td className="px-4 py-3.5 text-sm text-neutral-900 dark:text-neutral-100 font-medium">{mutation.nama_barang}</td>
@@ -158,7 +138,6 @@ export function StockReportTab({ startDate, endDate, filterButton, filterBadges 
                   <td className="px-4 py-3.5 text-right font-semibold text-neutral-900 dark:text-neutral-100">
                     {mutation.qty_mutation > 0 ? `+${mutation.qty_mutation}` : mutation.qty_mutation}
                   </td>
-                  <td className="px-4 py-3.5 text-sm text-neutral-600 dark:text-neutral-400">{mutation.transaction_type}</td>
                 </tr>
               ))}
             </tbody>
@@ -183,8 +162,7 @@ export function StockReportTab({ startDate, endDate, filterButton, filterBadges 
               </div>
               <div className="flex justify-between items-end mt-2">
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-neutral-500">{new Date(mutation.created_at).toLocaleDateString('id-ID')}</span>
-                  <span className="text-xs text-neutral-600 dark:text-neutral-400">{mutation.transaction_type}</span>
+                  <span className="text-xs text-neutral-500">{formatDateWIB(mutation.created_at)}</span>
                 </div>
                 <div className="font-semibold text-neutral-900 dark:text-neutral-100 text-lg">
                   {mutation.qty_mutation > 0 ? `+${mutation.qty_mutation}` : mutation.qty_mutation}
@@ -206,6 +184,25 @@ export function StockReportTab({ startDate, endDate, filterButton, filterBadges 
           </div>
         )}
       </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between w-full gap-2 mb-4">
+        {filterButton}
+        
+        <div className="flex-1 min-w-0">
+          {filterBadges}
+        </div>
+
+        <Button onClick={handleExportCSV} disabled={exporting || (stockMutations.length === 0 && !loading)} variant="secondary" size="sm" className="shrink-0 h-[40px]">
+          <IconDownload size={18} />
+          <span className="hidden sm:inline">{exporting ? 'Mengekspor...' : 'Export CSV Semua Data'}</span>
+        </Button>
+      </div>
+
+      {renderContent()}
     </div>
   );
 }

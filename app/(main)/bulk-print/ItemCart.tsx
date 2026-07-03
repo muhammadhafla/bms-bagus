@@ -70,7 +70,7 @@ export function ItemCart({
                       value={editValue}
                       onChange={setEditValue}
                       onBlur={handleEditSubmit}
-                      className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900"
+                      className="!px-3 !py-1.5 !rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm"
                       min={1}
                       autoFocus
                       prefix=""
@@ -127,7 +127,7 @@ export function ItemCart({
                   value={editValue}
                   onChange={setEditValue}
                   onBlur={handleEditSubmit}
-                  className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
+                  className="w-full !px-3 !py-2.5 !rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
                   min={1}
                   autoFocus
                   prefix=""

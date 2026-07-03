@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { inventoryApi } from '@/lib/api/inventory';
 import { useState } from 'react';
 
+import { useQueryClient } from '@tanstack/react-query';
+
 interface LowStockAlertProps {
   items: LowStockItem[];
   isLoading: boolean;
@@ -12,13 +14,14 @@ interface LowStockAlertProps {
 function LowStockItemRow({ item }: { item: LowStockItem }) {
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleDiscontinue = async () => {
     setIsLoading(true);
     await inventoryApi.toggleDiscontinued(item.id);
+    await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     setIsLoading(false);
     setShowConfirm(false);
-    window.location.reload();
   };
 
   return (
@@ -89,7 +92,7 @@ export function LowStockAlert({ items, isLoading }: LowStockAlertProps) {
       <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl rounded-2xl border border-white/40 dark:border-white/10 p-5 shadow-elevated h-full">
         <div className="animate-pulse space-y-3">
           <div className="h-5 bg-neutral-200/50 dark:bg-neutral-700/50 rounded w-48 mb-6" />
-          {[1, 2, 3, 4, 5].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-10 bg-neutral-200/50 dark:bg-neutral-700/50 rounded-xl" />
           ))}
         </div>
@@ -110,16 +113,16 @@ export function LowStockAlert({ items, isLoading }: LowStockAlertProps) {
         </p>
       ) : (
         <div className="space-y-2">
-          {items.slice(0, 5).map((item) => (
+          {items.slice(0, 4).map((item) => (
             <LowStockItemRow key={item.id} item={item} />
           ))}
 
-          {items.length > 5 && (
+          {items.length > 4 && (
             <Link
               href="/inventory"
               className="text-sm text-blue-600 dark:text-blue-400 hover:underline block text-center mt-2"
             >
-              Lihat {items.length - 5} barang lainnya
+              Lihat {items.length - 4} barang lainnya
             </Link>
           )}
         </div>

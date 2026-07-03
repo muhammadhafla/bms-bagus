@@ -96,9 +96,6 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
     };
 
     const result = await inventoryApi.update(selectedItem.id, updateData);
-    console.log('Update result:', result);
-    console.log('Update data sent:', updateData);
-    console.log('Item ID:', selectedItem.id);
     if (!result.error && result.data) {
       const updatedItem = {
         ...result.data,
@@ -107,7 +104,6 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
       onUpdate(selectedItem.id, updatedItem);
       showToast('Perubahan disimpan', 'success');
     } else {
-      console.log('Update error:', result.error);
       showToast('Gagal menyimpan perubahan', 'error');
     }
     setSaveConfirm(false);

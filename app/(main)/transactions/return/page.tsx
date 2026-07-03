@@ -25,8 +25,8 @@ type Mode = 'single' | 'batch';
 export default function ReturnPage() {
   const [mode, setMode] = useState<Mode>('batch');
   const [step, setStep] = useState<1 | 2>(1);
-  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [selectedSupplier, setSelectedSupplier] = useState<import('@/types').Supplier | null>(null);
+  const [suppliers, setSuppliers] = useState<import('@/types').Supplier[]>([]);
   const [items, setItems] = useState<AvailableReturnItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -59,7 +59,7 @@ export default function ReturnPage() {
     const loadSuppliers = async () => {
       const result = await supplierApi.getAll();
       if (!result.error) {
-        setSuppliers(result.data || []);
+        setSuppliers((result.data as import('@/types').Supplier[]) || []);
       }
     };
     loadSuppliers();
@@ -69,7 +69,7 @@ export default function ReturnPage() {
     inputRef.current?.focus();
   }, [step]);
 
-  const handleSelectSupplier = useCallback(async (supplier: any) => {
+  const handleSelectSupplier = useCallback(async (supplier: import('@/types').Supplier) => {
     setSelectedSupplier(supplier);
     setLoading(true);
     setError(null);
@@ -206,9 +206,9 @@ export default function ReturnPage() {
           handleReset();
         }, 3000);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Submit error:', err);
-      setError(err.message || 'Terjadi kesalahan');
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan');
     } finally {
       setSubmitting(false);
     }
@@ -229,7 +229,7 @@ export default function ReturnPage() {
         tanggal: result.data.tanggal,
         supplier_nama: result.data.supplier_nama || selectedSupplier?.nama || '',
         note: result.data.note,
-        items: result.data.items?.map((item: any) => ({
+        items: result.data.items?.map((item: { nama_barang: string; nomor_nota: string; tanggal_pembelian: string; qty: number; harga_beli: number; diskon: number; subtotal: number }) => ({
           nama_barang: item.nama_barang,
           nomor_nota: item.nomor_nota || '-',
           tanggal_pembelian: item.tanggal_pembelian || '-',

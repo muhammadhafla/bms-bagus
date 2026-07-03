@@ -72,7 +72,7 @@ export default function LoginPage() {
       });
 
       if (resolveError || !data) {
-        setError('Username tidak ditemukan');
+        setError('Email/username atau password salah');
         return;
       }
       loginEmail = data;
@@ -82,7 +82,7 @@ export default function LoginPage() {
     if (result.success) {
       router.push('/dashboard');
     } else {
-      setError(result.error || 'Login gagal');
+      setError(result.error?.includes('Invalid') ? 'Email/username atau password salah' : result.error || 'Login gagal');
     }
   };
 

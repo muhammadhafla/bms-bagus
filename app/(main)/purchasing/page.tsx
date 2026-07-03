@@ -1,26 +1,33 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { usePembelianStore } from '@/lib/store';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { usePembelianStore, useBulkPrintStore } from '@/lib/store';
 import { inventoryApi, PembelianItem, purchaseApi, kategoriApi, supplierApi, Supplier } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { InventoryItem } from '@/types/inventory';
-import { formatCurrency, normalizeBarcode, generateIdempotencyKey, generateAutoBarcode } from '@/lib/utils';
-import { IconShoppingCart, IconCamera, IconPackage, IconX, IconCheck, IconDeviceFloppy, IconRefresh } from '@tabler/icons-react';
+import { formatCurrency, normalizeBarcode, generateIdempotencyKey, generateAutoBarcode, debounce } from '@/lib/utils';
+import { IconShoppingCart, IconCamera, IconPackage, IconX, IconCheck, IconDeviceFloppy, IconRefresh, IconSearch, IconPlus, IconPrinter } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
 import DateInput from '@/components/ui/DateInput';
 import SelectInput from '@/components/ui/SelectInput';
-import { Button, AmbientLayout, Badge, Banner, useToast } from '@/components/ui';
+import { Button, AmbientLayout, Badge, Banner, useToast, Modal } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
 import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
-import { ItemSuggestionDialog } from './ItemSuggestionDialog';
 import { NewItemDialog } from './NewItemDialog';
 import { ItemCart } from './ItemCart';
 import ImportCSVWizard from '@/components/purchasing/ImportCSVWizard';
 
 export default function PembelianPage() {
+  const router = useRouter();
+  const resetBulkPrint = useBulkPrintStore((state) => state.reset);
+  const addBulkPrintItem = useBulkPrintStore((state) => state.addItem);
+
   const { items, addItem, updateQty, updateHargaBeli, removeItem, reset, getTotalSistem, getSelisih, setTotalSupplier, setTanggal, totalSupplier, tanggal } = usePembelianStore();
   const { showToast } = useToast();
+
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [lastPurchaseItems, setLastPurchaseItems] = useState<typeof items>([]);
 
   const { data: inventoryData } = useQuery({
     queryKey: ['inventory', 'all'],
@@ -40,9 +47,27 @@ export default function PembelianPage() {
   const [showNewItemDialog, setShowNewItemDialog] = useState(false);
   const [newItemBarcode, setNewItemBarcode] = useState('');
   const [newItemName, setNewItemName] = useState('');
-  const [showSuggestionDialog, setShowSuggestionDialog] = useState(false);
-  const [suggestionQuery, setSuggestionQuery] = useState('');
-  const [suggestionItems, setSuggestionItems] = useState<any[]>([]);
+  
+  const [inventorySearchResults, setInventorySearchResults] = useState<(import('@/types/inventory').InventoryItem & { similarity: number })[]>([]);
+  const [showAddDropdown, setShowAddDropdown] = useState(false);
+
+  const handleSearchInventory = async (query: string, allInventory: import('@/types/inventory').InventoryItem[]) => {
+    if (query.length < 2) {
+      setInventorySearchResults([]);
+      setShowAddDropdown(false);
+      return;
+    }
+    const result = await inventoryApi.fuzzySearch(query, allInventory);
+    if (!result.error && result.data) {
+      setInventorySearchResults(result.data as (import('@/types/inventory').InventoryItem & { similarity: number })[]);
+      setShowAddDropdown(true); // Always show dropdown if query >= 2, to show the Add New button
+    }
+  };
+
+  const debouncedSearch = useMemo(
+    () => debounce((query: string, allInventory: import('@/types/inventory').InventoryItem[]) => handleSearchInventory(query, allInventory), 300),
+    []
+  );
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [supplier, setSupplier] = useState('');
@@ -54,7 +79,7 @@ export default function PembelianPage() {
     setTimeout(() => inputRef.current?.focus(), 0);
   }, []);
 
-  const handleAddResolvedItem = useCallback((item: any) => {
+  const handleAddResolvedItem = useCallback((item: import('@/types/inventory').InventoryItem & { barcode?: string }) => {
     addItem({
       id: item.id,
       barcode: item.kode_barcode,
@@ -67,7 +92,8 @@ export default function PembelianPage() {
       kategori: item.kategori,
     });
     setBarcodeInput('');
-    setShowSuggestionDialog(false);
+    setShowAddDropdown(false);
+    setInventorySearchResults([]);
     focusInput();
     setLoading(false);
   }, [addItem, focusInput]);
@@ -165,6 +191,11 @@ export default function PembelianPage() {
         return;
       }
       
+      if (inventorySearchResults.length > 0) {
+        handleAddResolvedItem(inventorySearchResults[0]);
+        return;
+      }
+      
       const fuzzyResult = await inventoryApi.fuzzySearch(normalized, inventoryData || []);
       
       if (fuzzyResult.data && fuzzyResult.data.length > 0) {
@@ -176,16 +207,10 @@ export default function PembelianPage() {
           return;
         }
         
-        if (fuzzyItems.length === 1 && fuzzyItems[0].similarity >= 80) {
+        if (fuzzyItems[0].similarity >= 80) {
           handleAddResolvedItem(fuzzyItems[0]);
           return;
         }
-        
-        setSuggestionQuery(normalized);
-        setSuggestionItems(fuzzyResult.data);
-        setShowSuggestionDialog(true);
-        setLoading(false);
-        return;
       }
       
       const isLikelyBarcode = /^[A-Z0-9]{4,}$/i.test(normalized);
@@ -200,15 +225,16 @@ export default function PembelianPage() {
       setError('Terjadi kesalahan saat memproses barcode');
       setLoading(false);
     }
-  }, [loading, submitting, handleAddResolvedItem, inventoryData]);
+  }, [loading, submitting, handleAddResolvedItem, inventoryData, inventorySearchResults]);
 
-  const handleCreateNewFromSuggestion = useCallback(() => {
-    setShowSuggestionDialog(false);
-    const isLikelyBarcode = /^\d{8,}$/.test(suggestionQuery);
-    setNewItemBarcode(isLikelyBarcode ? suggestionQuery : '');
-    setNewItemName(isLikelyBarcode ? '' : suggestionQuery);
+  const handleCreateNewFromInput = useCallback(() => {
+    setShowAddDropdown(false);
+    const normalized = normalizeBarcode(barcodeInput);
+    const isLikelyBarcode = /^[A-Z0-9]{4,}$/i.test(normalized);
+    setNewItemBarcode(isLikelyBarcode ? normalized : '');
+    setNewItemName(isLikelyBarcode ? '' : barcodeInput);
     setShowNewItemDialog(true);
-  }, [suggestionQuery]);
+  }, [barcodeInput]);
 
   const handleCreateNewItem = useCallback(async (data: { nama_barang: string; barcode: string; kategori: string; id_kategori?: string; harga_beli: number; harga_jual: number; diskon: number }) => {
     try {
@@ -284,16 +310,19 @@ export default function PembelianPage() {
       } else {
         setSuccess('Pembelian berhasil disimpan');
         showToast('Pembelian berhasil disimpan', 'success');
+        setLastPurchaseItems([...items]);
+        setShowSuccessDialog(true);
         reset();
         setTotalSupplier(0);
         setSelectedSupplierId(null);
         setSupplier('');
         focusInput();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error submitting:', err);
-      setError(err.message || 'Terjadi kesalahan');
-      showToast(err.message || 'Terjadi kesalahan', 'error');
+      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -359,24 +388,65 @@ export default function PembelianPage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between relative z-10">
             <form onSubmit={(e) => {
               e.preventDefault();
               handleBarcodeSubmit(barcodeInput);
             }} className="flex-1 relative">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
-                <IconCamera size={20} />
+                <IconSearch size={20} />
               </div>
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="Scan barcode..."
+                placeholder="Cari atau scan barcode..."
                 value={barcodeInput}
-                onChange={(e) => setBarcodeInput(e.target.value)}
+                onChange={(e) => {
+                  setBarcodeInput(e.target.value);
+                  debouncedSearch(e.target.value, inventoryData || []);
+                }}
+                onFocus={() => {
+                  if (barcodeInput.length >= 2) setShowAddDropdown(true);
+                }}
+                onBlur={() => {
+                  setTimeout(() => setShowAddDropdown(false), 200);
+                }}
                 disabled={loading}
-                className="w-full pl-12 pr-4 py-3.5 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-base lg:text-lg"
+                className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-neutral-900 backdrop-blur-md border border-neutral-200 dark:border-neutral-700 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all text-base lg:text-lg"
                 autoFocus
               />
+              {showAddDropdown && barcodeInput.length >= 2 && (
+                <div className="absolute z-20 w-full mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl max-h-[40vh] md:max-h-80 overflow-auto">
+                  {inventorySearchResults.map((inventory) => (
+                    <button
+                      key={inventory.id}
+                      type="button"
+                      onClick={() => handleAddResolvedItem(inventory)}
+                      className="w-full px-4 py-3 text-left hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex justify-between items-center border-b border-neutral-100 dark:border-neutral-800 last:border-0"
+                    >
+                      <div>
+                        <div className="font-medium text-neutral-900 dark:text-neutral-100">{inventory.nama_barang}</div>
+                        <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono mt-0.5">{inventory.kode_barcode || 'Tanpa barcode'} | Stok: {inventory.stok}</div>
+                      </div>
+                      <div className="text-xs bg-success-100 dark:bg-success-900/40 text-success-700 dark:text-success-300 px-2 py-1 rounded-full whitespace-nowrap ml-2">
+                        {inventory.similarity}% cocok
+                      </div>
+                    </button>
+                  ))}
+                  
+                  {/* Tambah Baru Action */}
+                  <div className="p-2 border-t border-neutral-100 dark:border-neutral-800 sticky bottom-0 bg-white dark:bg-neutral-900">
+                    <button
+                      type="button"
+                      onClick={handleCreateNewFromInput}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-900/20 dark:hover:bg-brand-900/40 dark:text-brand-300 rounded-lg transition-colors font-medium text-sm"
+                    >
+                      <IconPlus size={18} />
+                      Tambah &quot;{barcodeInput}&quot; sebagai barang baru
+                    </button>
+                  </div>
+                </div>
+              )}
             </form>
             
             <div className="animate-fade-in-up">
@@ -483,19 +553,6 @@ export default function PembelianPage() {
 
       </div>
 
-      <ItemSuggestionDialog
-        open={showSuggestionDialog}
-        query={suggestionQuery}
-        items={suggestionItems}
-        onSelect={handleAddResolvedItem}
-        onCreateNew={handleCreateNewFromSuggestion}
-        onClose={() => {
-          setShowSuggestionDialog(false);
-          setBarcodeInput('');
-          focusInput();
-        }}
-      />
-
       <NewItemDialog
         open={showNewItemDialog}
         initialBarcode={newItemBarcode}
@@ -514,7 +571,7 @@ export default function PembelianPage() {
           setShowImportWizard(false);
           focusInput();
         }}
-        onComplete={(importedItems: { item: any; qty: number; harga_beli: number }[]) => {
+        onComplete={(importedItems: { item: import('@/types/inventory').InventoryItem; qty: number; harga_beli: number }[]) => {
           importedItems.forEach(({ item, qty, harga_beli }) => {
             addItem({
               ...item,
@@ -528,6 +585,41 @@ export default function PembelianPage() {
           focusInput();
         }}
       />
+
+      <Modal
+        isOpen={showSuccessDialog}
+        onClose={() => setShowSuccessDialog(false)}
+        title="Pembelian Berhasil"
+      >
+        <div className="p-6">
+          <p className="mb-6 text-neutral-600 dark:text-neutral-400">
+            Transaksi pembelian berhasil disimpan. Apakah Anda ingin langsung mencetak label barcode untuk barang-barang ini?
+          </p>
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="secondary"
+              onClick={() => setShowSuccessDialog(false)}
+            >
+              Nanti Saja
+            </Button>
+            <Button
+              variant="primary"
+              leftIcon={<IconPrinter className="w-5 h-5" />}
+              onClick={() => {
+                resetBulkPrint();
+                lastPurchaseItems.forEach(item => {
+                  if (item.qty > 0) {
+                    addBulkPrintItem(item, item.qty);
+                  }
+                });
+                router.push('/bulk-print');
+              }}
+            >
+              Cetak Label Sekarang
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </AmbientLayout>
   );
 }

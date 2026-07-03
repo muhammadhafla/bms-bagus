@@ -10,6 +10,7 @@ import { kategoriApi, Kategori } from '@/lib/api';
 import TextInput from '@/components/ui/TextInput';
 import Button from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { formatDateWIB } from '@/lib/utils';
 
 export default function KategoriPage() {
   const [kategoris, setKategoris] = useState<Kategori[]>([]);
@@ -159,7 +160,7 @@ export default function KategoriPage() {
                     <tr key={kategori.id} className="hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors">
                       <td className="px-5 py-4 font-medium text-neutral-900 dark:text-neutral-100">{kategori.nama}</td>
                       <td className="px-5 py-4 text-sm text-neutral-500">
-                        {new Date(kategori.created_at).toLocaleDateString('id-ID')}
+                        {formatDateWIB(kategori.created_at)}
                       </td>
                       <td className="px-5 py-4 text-center">
                         <div className="flex items-center justify-center gap-2">

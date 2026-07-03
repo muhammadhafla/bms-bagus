@@ -23,6 +23,129 @@ export interface Penjualan {
 }
 
 export const penjualanApi = {
+  async getAll(options?: {
+    limit?: number;
+    offset?: number;
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    try {
+      let query = supabase
+        .from('penjualan')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false });
+
+      if (options?.limit) {
+        query = query.limit(options.limit);
+      }
+      if (options?.offset) {
+        query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
+      }
+      if (options?.search) {
+        // Asumsi penjualan memiliki id (atau kolom lain) yang bisa dicari. 
+        query = query.ilike('id', `%${options.search}%`);
+      }
+      if (options?.startDate) {
+        query = query.gte('tanggal', options.startDate);
+      }
+      if (options?.endDate) {
+        query = query.lte('tanggal', options.endDate);
+      }
+
+      const result = await safeQuery<{ data: any[], count: number | null }>(async () => {
+        const res = await query;
+        return { data: { data: res.data as any[], count: res.count }, error: res.error as Error | null };
+      });
+
+      if (result.error) {
+        return { data: null, total: 0, error: { message: result.error.message } };
+      }
+
+      return { data: result.data?.data || [], total: result.data?.count || 0, error: null };
+    } catch (err: any) {
+      console.error('Error fetching sales:', err);
+      return { data: null, total: 0, error: { message: err.message || 'Terjadi kesalahan' } };
+    }
+  },
+
+  async getCount(options?: {
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    try {
+      let query = supabase.from('penjualan').select('*', { count: 'exact', head: true });
+
+      if (options?.search) {
+        query = query.ilike('id', `%${options.search}%`);
+      }
+      if (options?.startDate) {
+        query = query.gte('tanggal', options.startDate);
+      }
+      if (options?.endDate) {
+        query = query.lte('tanggal', options.endDate);
+      }
+
+      const result = await safeQuery<any[]>(async () => {
+        const result = await query;
+        return { data: result.data, error: result.error as Error | null };
+      });
+
+      if (result.error) {
+        return { data: 0, error: { message: result.error.message } };
+      }
+
+      return { data: result.data?.length || 0, error: null };
+    } catch (err: any) {
+      return { data: 0, error: { message: err.message || 'Terjadi kesalahan' } };
+    }
+  },
+
+  async getById(id: string) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const saleResult = await safeQuery<any>(async () => {
+        const result = await supabase
+          .from('penjualan')
+          .select('*')
+          .eq('id', id)
+          .abortSignal(controller.signal)
+          .single();
+        return { data: result.data, error: result.error as Error | null };
+      });
+
+      if (saleResult.error) {
+        clearTimeout(timeoutId);
+        return { data: null, error: { message: saleResult.error.message } };
+      }
+
+      const itemsResult = await safeQuery<any[]>(async () => {
+        const result = await supabase
+          .from('penjualan_items')
+          .select('*')
+          .eq('penjualan_id', id)
+          .abortSignal(controller.signal);
+        return { data: result.data, error: result.error as Error | null };
+      });
+
+      clearTimeout(timeoutId);
+
+      return {
+        data: {
+          ...saleResult.data,
+          items: itemsResult.data || [],
+        },
+        error: null,
+      };
+    } catch (err: any) {
+      console.error('Error fetching sale detail:', err);
+      return { data: null, error: { message: err.message || 'Terjadi kesalahan' } };
+    }
+  },
+
   async submit(data: {
     tanggal: string;
     items: PenjualanItem[];

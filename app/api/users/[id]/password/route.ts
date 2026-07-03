@@ -66,7 +66,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     return NextResponse.json({ success: true, message: 'Password berhasil direset' });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Reset password error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { stockAdjustmentApi, StockAdjustment } from '@/lib/api/stockAdjustment';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { AmbientLayout } from '@/components/ui';
+import { formatDateWIB } from '@/lib/utils';
 
 const reasonLabels: Record<string, string> = {
   salah_input: 'Kesalahan Input',
@@ -101,8 +102,8 @@ return (
               <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
                 {filteredAdjustments.map((adj) => (
                   <tr key={adj.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                    <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">{new Date(adj.created_at).toLocaleDateString('id-ID')}</td>
-                    <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">{(adj as any).inventory?.nama_barang || adj.inventory_id}</td>
+                    <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">{formatDateWIB(adj.created_at)}</td>
+                    <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">{(adj as import('@/types').StockAdjustmentWithInventory).inventory?.nama_barang || adj.inventory_id}</td>
                     <td className={`px-4 py-3 text-right text-sm font-mono font-medium ${adj.adjustment_type === 'increase' ? 'text-success-600' : 'text-danger-600'}`}>
                       {adj.adjustment_type === 'increase' ? '+' : '-'}{adj.adjustment_qty}
                     </td>
@@ -120,8 +121,8 @@ return (
               <div key={adj.id} className="p-4 flex flex-col gap-2">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-medium text-neutral-900 dark:text-neutral-100">{(adj as any).inventory?.nama_barang || adj.inventory_id}</div>
-                    <div className="text-xs text-neutral-500 mt-0.5">{new Date(adj.created_at).toLocaleDateString('id-ID')}</div>
+                    <div className="font-medium text-neutral-900 dark:text-neutral-100">{(adj as import('@/types').StockAdjustmentWithInventory).inventory?.nama_barang || adj.inventory_id}</div>
+                    <div className="text-xs text-neutral-500 mt-0.5">{formatDateWIB(adj.created_at)}</div>
                   </div>
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
                     adj.adjustment_type === 'increase' 

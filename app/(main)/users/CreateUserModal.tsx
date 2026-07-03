@@ -51,8 +51,8 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
       setFormData({ email: '', username: '', nama: '', password: '', role: 'staff' });
       onSuccess();
       onClose();
-    } catch (error: any) {
-      showToast(error.message, 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Terjadi kesalahan', 'error');
     } finally {
       setLoading(false);
     }

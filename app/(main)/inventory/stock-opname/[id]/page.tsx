@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { debounce } from '@/lib/utils';
+import { debounce, formatDateWIB } from '@/lib/utils';
 import { StockOpname, StockOpnameItem, stockOpnameApi } from '@/lib/api/stockOpname';
 import { stockAdjustmentApi } from '@/lib/api/stockAdjustment';
 import { inventoryApi } from '@/lib/api';
@@ -30,8 +30,8 @@ export default function StockOpnameDetailPage() {
   const opnameId = params.id as string;
 
   const [opname, setOpname] = useState<StockOpname | null>(null);
-  const [items, setItems] = useState<any[]>([]);
-  const [originalItems, setOriginalItems] = useState<any[]>([]);
+  const [items, setItems] = useState<StockOpnameItem[]>([]);
+  const [originalItems, setOriginalItems] = useState<StockOpnameItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -41,7 +41,7 @@ export default function StockOpnameDetailPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const [searchAdd, setSearchAdd] = useState('');
   const [searchFilter, setSearchFilter] = useState('');
-  const [inventorySearchResults, setInventorySearchResults] = useState<any[]>([]);
+  const [inventorySearchResults, setInventorySearchResults] = useState<(import('@/types/inventory').InventoryItem & { similarity?: number })[]>([]);
   const [showAddDropdown, setShowAddDropdown] = useState(false);
   const [showConfirmDiscard, setShowConfirmDiscard] = useState(false);
 
@@ -85,15 +85,16 @@ export default function StockOpnameDetailPage() {
     fetchData();
   }, [fetchData]);
 
-  const updateItem = (itemId: string, field: string, value: any) => {
+  const updateItem = (itemId: string, field: string, value: string | number | null) => {
+    if (opname?.status !== 'draft') return;
     setItems(prev => {
       const newItems = prev.map(item => {
         if (item.id !== itemId) return item;
         
-        const updated = { ...item, [field]: value };
+        const updated = { ...item, [field]: value } as StockOpnameItem;
         
         if (field === 'physical_stock') {
-          updated.difference = value - item.system_stock;
+          updated.difference = (value as number) - item.system_stock;
         }
         
         return updated;
@@ -152,7 +153,7 @@ export default function StockOpnameDetailPage() {
     addToast({ type: 'info', message: 'Perubahan dibatalkan' });
   };
 
-  const handleSearchInventory = async (query: string, currentItems: any[], allInventory: any[]) => {
+  const handleSearchInventory = async (query: string, currentItems: StockOpnameItem[], allInventory: import('@/types/inventory').InventoryItem[]) => {
     if (query.length < 2) {
       setInventorySearchResults([]);
       setShowAddDropdown(false);
@@ -163,18 +164,18 @@ export default function StockOpnameDetailPage() {
     const result = await inventoryApi.fuzzySearch(query, allInventory);
     if (!result.error && result.data) {
       const existingIds = currentItems.map(i => i.inventory_id);
-      const filtered = result.data.filter((i: any) => !existingIds.includes(i.id));
-      setInventorySearchResults(filtered);
+      const filtered = result.data.filter((i: import('@/types/inventory').InventoryItem) => !existingIds.includes(i.id));
+      setInventorySearchResults(filtered as (import('@/types/inventory').InventoryItem & { similarity?: number })[]);
       setShowAddDropdown(filtered.length > 0);
     }
   };
 
   const debouncedSearch = useMemo(
-    () => debounce((query: string, currentItems: any[], allInventory: any[]) => handleSearchInventory(query, currentItems, allInventory), 300),
+    () => debounce((query: string, currentItems: StockOpnameItem[], allInventory: import('@/types/inventory').InventoryItem[]) => handleSearchInventory(query, currentItems, allInventory), 300),
     []
   );
 
-  const addItemToOpname = async (inventory: any) => {
+  const addItemToOpname = async (inventory: import('@/types/inventory').InventoryItem) => {
     // Segera tutup dropdown dan reset input untuk mencegah race condition
     setShowAddDropdown(false);
     setSearchAdd('');
@@ -182,8 +183,8 @@ export default function StockOpnameDetailPage() {
 
     const result = await stockOpnameApi.addItem(opnameId, inventory.id);
     if (!result.error && result.data) {
-      setItems(prev => [...prev, result.data]);
-      setOriginalItems(prev => [...prev, result.data]);
+      setItems(prev => [...prev, result.data as StockOpnameItem]);
+      setOriginalItems(prev => [...prev, result.data as StockOpnameItem]);
       addToast({ type: 'success', message: `${inventory.nama_barang} ditambahkan` });
       
       // Auto focus kembali ke input untuk scan berikutnya
@@ -303,7 +304,7 @@ return (
         items={[
           { label: 'Inventory', href: '/inventory' },
           { label: 'Stock Opname', href: '/inventory/stock-opname' },
-          { label: opname?.opname_date ? new Date(opname.opname_date).toLocaleDateString('id-ID') : 'Detail', isActive: true },
+          { label: opname?.opname_date ? formatDateWIB(opname.opname_date) : 'Detail', isActive: true },
         ]}
         className="mb-4"
       />
@@ -393,10 +394,11 @@ return (
                   debouncedSearch(e.target.value, items, inventoryData || []);
                 }}
                 onFocus={() => searchAdd.length >= 2 && debouncedSearch(searchAdd, items, inventoryData || [])}
+                onBlur={() => setTimeout(() => setShowAddDropdown(false), 200)}
                 className="w-full pl-10 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               {showAddDropdown && inventorySearchResults.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg max-h-64 overflow-auto">
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg max-h-[40vh] md:max-h-64 overflow-auto">
                   {inventorySearchResults.map((inventory) => (
                     <button
                       key={inventory.id}

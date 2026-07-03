@@ -78,7 +78,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     return NextResponse.json({ success: true, message: 'User berhasil diperbarui' });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Update user error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -107,7 +107,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     await supabaseAdmin.from('profiles').delete().eq('id', userId);
 
     return NextResponse.json({ success: true, message: 'User berhasil dihapus' });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Delete user error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

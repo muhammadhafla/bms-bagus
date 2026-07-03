@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { AmbientLayout, Button, SlideOver } from '@/components/ui';
 import DateInput from '@/components/ui/DateInput';
 import { IconHistory, IconRefresh, IconPrinter, IconChevronLeft, IconChevronRight, IconFilter, IconX } from '@tabler/icons-react';
+import { formatDateTimeWIB } from '@/lib/utils';
+import { supabase } from '@/lib/auth';
 
 interface PrintJob {
   id: string;
@@ -40,7 +42,11 @@ export default function PrintHistoryPage() {
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
 
-      const res = await fetch(`/api/print/history?${params.toString()}`);
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch(`/api/print/history?${params.toString()}`, {
+        headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+      });
       const data = await res.json();
       
       if (data.history) {
@@ -242,8 +248,8 @@ export default function PrintHistoryPage() {
                           {job.status}
                         </span>
                       </td>
-                      <td className="p-4 text-neutral-600 dark:text-neutral-400">{new Date(job.created_at).toLocaleString('id-ID')}</td>
-                      <td className="p-4 text-neutral-600 dark:text-neutral-400">{job.printed_at ? new Date(job.printed_at).toLocaleString('id-ID') : '-'}</td>
+                      <td className="p-4 text-neutral-600 dark:text-neutral-400">{formatDateTimeWIB(job.created_at)}</td>
+                      <td className="p-4 text-neutral-600 dark:text-neutral-400">{job.printed_at ? formatDateTimeWIB(job.printed_at) : '-'}</td>
                     </tr>
                   ))
                 )}

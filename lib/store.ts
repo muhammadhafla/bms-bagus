@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { InventoryItem } from '@/types/inventory';
 
-interface CartItem extends InventoryItem {
+export interface CartItem extends InventoryItem {
   qty: number;
   harga_final: number;
   subtotal: number;

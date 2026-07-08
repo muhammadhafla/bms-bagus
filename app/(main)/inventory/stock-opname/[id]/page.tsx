@@ -321,55 +321,76 @@ return (
         </div>
       </div>
       
-      <div className="flex flex-wrap gap-3 justify-between items-center fixed bottom-0 left-0 right-0 z-20 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md px-4 py-2.5 border-t border-neutral-200 dark:border-neutral-800 lg:static lg:bg-transparent lg:border-none lg:p-0 lg:mb-6">
-          <Button variant="ghost" onClick={() => router.push('/inventory/stock-opname')}>
-            <IconArrowLeft size={18} />
-            <span className="hidden sm:inline">Kembali</span>
-          </Button>
+      <div className="flex flex-col gap-3 lg:gap-4 lg:flex-row justify-between items-stretch lg:items-center fixed bottom-4 left-4 right-4 z-50 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-neutral-200/50 dark:border-neutral-700/50 rounded-[2rem] p-3 shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] pb-[max(env(safe-area-inset-bottom),0.75rem)] lg:pb-0 lg:static lg:bg-transparent lg:border-none lg:rounded-none lg:p-0 lg:shadow-none lg:mb-6">
+          <div className="grid grid-cols-3 gap-2 lg:gap-4 w-full lg:w-auto flex-1 max-w-2xl">
+            <div className="bg-neutral-50/80 dark:bg-neutral-800/80 lg:bg-white/70 lg:dark:bg-neutral-900/60 lg:backdrop-blur-xl rounded-xl lg:rounded-2xl border border-neutral-200/50 dark:border-neutral-700/50 lg:border-white/40 lg:dark:border-white/10 p-2 lg:p-5 lg:shadow-elevated text-center lg:text-left flex flex-col justify-center">
+              <div className="text-[10px] lg:text-sm text-neutral-500 dark:text-neutral-400 font-medium leading-tight">Total Item</div>
+              <div className="text-sm lg:text-2xl font-bold mt-0.5 lg:mt-1 text-neutral-900 dark:text-white">{items.length}</div>
+            </div>
+            <div className="bg-success-50/80 dark:bg-success-900/20 lg:bg-white/70 lg:dark:bg-neutral-900/60 lg:backdrop-blur-xl rounded-xl lg:rounded-2xl border border-success-100 dark:border-success-800 lg:border-white/40 lg:dark:border-white/10 p-2 lg:p-5 lg:shadow-elevated text-center lg:text-left flex flex-col justify-center">
+              <div className="text-[10px] lg:text-sm text-success-600 font-medium leading-tight">Selisih Positif</div>
+              <div className="text-sm lg:text-2xl font-bold mt-0.5 lg:mt-1 text-success-600">
+                +{items.filter(i => i.difference > 0).reduce((sum, i) => sum + i.difference, 0)}
+              </div>
+            </div>
+            <div className="bg-danger-50/80 dark:bg-danger-900/20 lg:bg-white/70 lg:dark:bg-neutral-900/60 lg:backdrop-blur-xl rounded-xl lg:rounded-2xl border border-danger-100 dark:border-danger-800 lg:border-white/40 lg:dark:border-white/10 p-2 lg:p-5 lg:shadow-elevated text-center lg:text-left flex flex-col justify-center">
+              <div className="text-[10px] lg:text-sm text-danger-600 font-medium leading-tight">Selisih Negatif</div>
+              <div className="text-sm lg:text-2xl font-bold mt-0.5 lg:mt-1 text-danger-600">
+                {items.filter(i => i.difference < 0).reduce((sum, i) => sum + i.difference, 0)}
+              </div>
+            </div>
+          </div>
 
-          <div className="flex gap-2">
-            {isDraft && (
-              <>
-                {hasChanges && (
-                  <Button variant="ghost" onClick={() => setShowConfirmDiscard(true)} disabled={saving}>
-                    <IconRefresh size={18} />
-                    <span className="hidden sm:inline">Batal</span>
+          <div className="flex flex-wrap gap-2 justify-between items-center w-full lg:w-auto border-t lg:border-0 border-neutral-200/50 dark:border-neutral-700/50 pt-3 mt-1 lg:pt-0 lg:mt-0">
+            <Button variant="secondary" className="!px-4 h-10 rounded-xl lg:h-auto lg:!px-4 border-neutral-200/50 dark:border-neutral-700/50" onClick={() => router.push('/inventory/stock-opname')}>
+              <IconArrowLeft size={20} />
+              <span className="hidden sm:inline">Kembali</span>
+            </Button>
+
+            <div className="flex gap-2">
+              {isDraft && (
+                <>
+                  {hasChanges && (
+                    <Button variant="secondary" className="!px-4 h-10 rounded-xl lg:h-auto lg:!px-4 border-neutral-200/50 dark:border-neutral-700/50" onClick={() => setShowConfirmDiscard(true)} disabled={saving}>
+                      <IconRefresh size={20} />
+                      <span className="hidden sm:inline">Batal</span>
+                    </Button>
+                  )}
+                  {hasChanges && (
+                    <Button className="!px-4 h-10 rounded-xl lg:h-auto lg:!px-4" onClick={saveChanges} disabled={saving || hasInvalidItems}>
+                      {saving ? <IconLoader2 size={20} className="animate-spin" /> : <IconDeviceFloppy size={20} />}
+                      <span className="hidden sm:inline">
+                        {saving && saveProgress.total > 0 
+                          ? `Menyimpan (${saveProgress.current}/${saveProgress.total})...` 
+                          : saving 
+                            ? 'Menyimpan...' 
+                            : 'Simpan'}
+                      </span>
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={saving || hasInvalidItems}
+                    className={`!px-4 h-10 rounded-xl lg:h-auto lg:!px-4 shadow-brand ${hasInvalidItems ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <IconSend size={20} />
+                    <span className="hidden sm:inline">{saving ? 'Mengirim...' : 'Submit'}</span>
                   </Button>
-                )}
-                {hasChanges && (
-                  <Button onClick={saveChanges} disabled={saving || hasInvalidItems}>
-                    {saving ? <IconLoader2 size={18} className="animate-spin" /> : <IconDeviceFloppy size={18} />}
-                    <span className="hidden sm:inline">
-                      {saving && saveProgress.total > 0 
-                        ? `Menyimpan (${saveProgress.current}/${saveProgress.total})...` 
-                        : saving 
-                          ? 'Menyimpan...' 
-                          : 'Simpan Perubahan'}
-                    </span>
+                </>
+              )}
+              {isPending && (
+                <>
+                  <Button variant="danger" className="!px-4 h-10 rounded-xl lg:h-auto lg:!px-4" onClick={() => setShowRejectModal(true)} disabled={saving}>
+                    <IconX size={20} />
+                    <span className="hidden sm:inline">Tolak</span>
                   </Button>
-                )}
-                <Button
-                  onClick={handleSubmit}
-                  disabled={saving || hasInvalidItems}
-                  className={hasInvalidItems ? 'opacity-50 cursor-not-allowed' : ''}
-                >
-                  <IconSend size={18} />
-                  <span className="hidden sm:inline">{saving ? 'Mengirim...' : 'Submit untuk Approval'}</span>
-                </Button>
-              </>
-            )}
-            {isPending && (
-              <>
-                <Button variant="danger" onClick={() => setShowRejectModal(true)} disabled={saving}>
-                  <IconX size={18} />
-                  <span className="hidden sm:inline">Tolak</span>
-                </Button>
-                <Button variant="primary" onClick={handleApprove} disabled={saving || processing}>
-                  {processing ? <IconLoader2 size={18} className="animate-spin" /> : <IconCheck size={18} />}
-                  <span className="hidden sm:inline">{processing ? 'Memproses...' : 'Setujui'}</span>
-                </Button>
-              </>
-            )}
+                  <Button variant="primary" className="!px-4 h-10 rounded-xl lg:h-auto lg:!px-4 shadow-brand" onClick={handleApprove} disabled={saving || processing}>
+                    {processing ? <IconLoader2 size={20} className="animate-spin" /> : <IconCheck size={20} />}
+                    <span className="hidden sm:inline">{processing ? 'Memproses...' : 'Setujui'}</span>
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -603,24 +624,7 @@ return (
               )}
           </div>
 
-        <div className="grid grid-cols-3 gap-3 lg:gap-4 pb-20 lg:pb-0 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-          <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl rounded-2xl border border-white/40 dark:border-white/10 p-3 lg:p-5 shadow-elevated text-center lg:text-left flex flex-col justify-center">
-            <div className="text-[10px] lg:text-sm text-neutral-500 dark:text-neutral-400 font-medium">Total Item</div>
-            <div className="text-lg lg:text-2xl font-bold mt-0.5 lg:mt-1 text-neutral-900 dark:text-white">{items.length}</div>
-          </div>
-          <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl rounded-2xl border border-white/40 dark:border-white/10 p-3 lg:p-5 shadow-elevated text-center lg:text-left flex flex-col justify-center">
-            <div className="text-[10px] lg:text-sm text-success-600 font-medium">Selisih Positif</div>
-            <div className="text-lg lg:text-2xl font-bold mt-0.5 lg:mt-1 text-success-600">
-              +{items.filter(i => i.difference > 0).reduce((sum, i) => sum + i.difference, 0)}
-            </div>
-          </div>
-          <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl rounded-2xl border border-white/40 dark:border-white/10 p-3 lg:p-5 shadow-elevated text-center lg:text-left flex flex-col justify-center">
-            <div className="text-[10px] lg:text-sm text-danger-600 font-medium">Selisih Negatif</div>
-            <div className="text-lg lg:text-2xl font-bold mt-0.5 lg:mt-1 text-danger-600">
-              {items.filter(i => i.difference < 0).reduce((sum, i) => sum + i.difference, 0)}
-            </div>
-          </div>
-        </div>
+        <div className="pb-32 lg:pb-0" />
 
         <ConfirmDialog
          isOpen={showConfirmDiscard}

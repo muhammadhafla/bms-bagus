@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { StockOpname, StockOpnameWithProfile, stockOpnameApi } from '@/lib/api';
-import { IconPlus, IconEye, IconCheck, IconX, IconTrash, IconClipboardCheck, IconSearch } from '@tabler/icons-react';
+import { IconPlus, IconEye, IconCheck, IconX, IconTrash, IconClipboardCheck, IconSearch, IconChevronRight } from '@tabler/icons-react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Breadcrumb, Button, Badge, AmbientLayout } from '@/components/ui';
 import { useToast } from '@/components/ui/Toast';
@@ -16,7 +16,7 @@ const statusBadgeVariant: Record<string, 'warning' | 'info' | 'success' | 'dange
   pending: 'info',
   approved: 'success',
   rejected: 'danger',
-  completed: 'default'
+  completed: 'success'
 };
 
 const statusLabels: Record<string, string> = {
@@ -80,8 +80,8 @@ return (
       <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)] lg:min-h-0">
         
         {/* Header Area */}
-        <div className="mb-4 lg:mb-6 flex-shrink-0 animate-fade-in-up">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
+        <div className="mb-2 lg:mb-4 flex-shrink-0 animate-fade-in-up">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-2">
             <div className="flex items-center gap-4 pl-12 lg:pl-0">
               <IconClipboardCheck className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
               <div>
@@ -126,37 +126,60 @@ return (
           ) : (
             <>
               {/* Mobile Card List */}
-              <div className="block lg:hidden space-y-4 p-4 overflow-y-auto h-full custom-scrollbar">
+              <div className="block lg:hidden space-y-3 p-3 overflow-y-auto h-full custom-scrollbar">
                 {opnames.map((opname) => (
-                  <div key={opname.id} className="bg-white/50 dark:bg-neutral-950/50 rounded-2xl p-4 shadow-sm border border-neutral-200/50 dark:border-neutral-800/50 transition-colors">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <p className="text-xs text-neutral-500 mb-1">{formatDateWIB(opname.opname_date)}</p>
-                        <p className="font-medium text-neutral-900 dark:text-white">
+                  <Link 
+                    key={opname.id} 
+                    href={`/inventory/stock-opname/${opname.id}`}
+                    className="block bg-white/50 dark:bg-neutral-950/50 rounded-2xl p-4 shadow-sm border border-neutral-200/50 dark:border-neutral-800/50 transition-colors hover:bg-white dark:hover:bg-neutral-900 active:scale-[0.98]"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <p className="font-bold text-neutral-900 dark:text-white text-base mb-0.5">
+                          {formatDateWIB(opname.opname_date)}
+                        </p>
+                        <p className="text-sm text-neutral-500 mb-2">
                           Oleh: {opname.profiles?.nama || opname.created_by || '-'}
                         </p>
                       </div>
-                      <Badge variant={statusBadgeVariant[opname.status]} size="sm">
+                      <Badge variant={statusBadgeVariant[opname.status]} size="sm" className="ml-2 shrink-0">
                         {statusLabels[opname.status]}
                       </Badge>
                     </div>
-                    <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-neutral-200/50 dark:border-neutral-800/50">
-                      <Link
-                        href={`/inventory/stock-opname/${opname.id}`}
-                        className="p-2 text-brand-600 hover:text-brand-700 hover:bg-brand-50 dark:text-brand-400 dark:hover:text-brand-300 dark:hover:bg-brand-900/30 rounded-xl transition-colors btn-press"
-                      >
-                        <IconEye className="w-5 h-5" />
-                      </Link>
-                      {opname.status === 'draft' && (
-                        <button
-                          onClick={() => handleDelete(opname.id)}
-                          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/30 rounded-xl transition-colors btn-press"
-                        >
-                          <IconTrash className="w-5 h-5" />
-                        </button>
-                      )}
+                    
+                    <div className="flex items-center justify-between pt-3 border-t border-neutral-100 dark:border-neutral-800/50 mt-1">
+                      <div className="flex gap-4">
+                         <div className="flex flex-col">
+                            <span className="text-xs text-neutral-400">Total Item</span>
+                            <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                              {opname.total_items ?? 0}
+                            </span>
+                         </div>
+                         <div className="flex flex-col">
+                            <span className="text-xs text-neutral-400">Selisih</span>
+                            <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                              {opname.total_selisih ? (opname.total_selisih > 0 ? `+${opname.total_selisih}` : opname.total_selisih) : 0}
+                            </span>
+                         </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-1">
+                        {opname.status === 'draft' && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleDelete(opname.id);
+                            }}
+                            className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/30 rounded-xl transition-colors btn-press mr-1"
+                          >
+                            <IconTrash className="w-5 h-5" />
+                          </button>
+                        )}
+                        <IconChevronRight className="w-5 h-5 text-neutral-400" />
+                      </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
 

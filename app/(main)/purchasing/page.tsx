@@ -7,7 +7,7 @@ import { inventoryApi, PembelianItem, purchaseApi, kategoriApi, supplierApi, Sup
 import { useQuery } from '@tanstack/react-query';
 import { InventoryItem } from '@/types/inventory';
 import { formatCurrency, normalizeBarcode, generateIdempotencyKey, generateAutoBarcode, debounce } from '@/lib/utils';
-import { IconShoppingCart, IconCamera, IconFileImport, IconX, IconCheck, IconDeviceFloppy, IconRefresh, IconSearch, IconPlus, IconPrinter } from '@tabler/icons-react';
+import { IconShoppingCart, IconCamera, IconFileImport, IconX, IconCheck, IconDeviceFloppy, IconRefresh, IconSearch, IconPlus, IconPrinter, IconChevronUp, IconArrowRight, IconScan } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
 import DateInput from '@/components/ui/DateInput';
 import SelectInput from '@/components/ui/SelectInput';
@@ -39,6 +39,7 @@ export default function PembelianPage() {
   
   const [barcodeInput, setBarcodeInput] = useState('');
   const [showImportWizard, setShowImportWizard] = useState(false);
+  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -367,16 +368,7 @@ export default function PembelianPage() {
               </div>
             </div>
             
-            <div className="flex items-end gap-3 lg:gap-4">
-              <Button 
-                variant="secondary" 
-                onClick={() => setShowImportWizard(true)}
-                className="flex items-center justify-center gap-2 !p-3 lg:!px-4 lg:!py-3 h-[50px] lg:h-auto"
-                title="Import CSV"
-              >
-                <IconFileImport size={22} className="shrink-0" />
-                <span className="hidden lg:inline font-medium">Import CSV</span>
-              </Button>
+            <div className="hidden xl:flex items-end gap-3 lg:gap-4">
               <div className="flex-1 min-w-[140px] max-w-[200px]">
                 <DateInput
                   value={tanggal}
@@ -389,12 +381,13 @@ export default function PembelianPage() {
           </div>
 
           <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between relative z-10">
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              handleBarcodeSubmit(barcodeInput);
-            }} className="flex-1 relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
-                <IconSearch size={20} />
+            <div className="flex-1 flex gap-2 w-full">
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                handleBarcodeSubmit(barcodeInput);
+              }} className="flex-1 relative">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 z-10 pointer-events-none">
+                <IconScan size={22} />
               </div>
               <input
                 ref={inputRef}
@@ -447,9 +440,18 @@ export default function PembelianPage() {
                   </div>
                 </div>
               )}
-            </form>
+              </form>
+              <Button 
+                variant="secondary" 
+                onClick={() => setShowImportWizard(true)}
+                className="flex items-center justify-center !p-0 w-[54px] shrink-0 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 shadow-sm rounded-xl"
+                title="Import CSV"
+              >
+                <IconFileImport size={22} className="text-neutral-600 dark:text-neutral-400" />
+              </Button>
+            </div>
             
-            <div className="animate-fade-in-up">
+            <div className="animate-fade-in-up hidden xl:block">
               <SelectInput
                 label="Supplier"
                 value={selectedSupplierId || ''}
@@ -467,7 +469,7 @@ export default function PembelianPage() {
               />
             </div>
 
-            <div className="flex flex-col gap-2 min-w-[18rem]">
+            <div className="hidden xl:flex flex-col gap-2 min-w-[18rem]">
               <label className="text-sm text-neutral-600 dark:text-neutral-300 font-semibold">Total Tagihan:</label>
               <PriceInput
                 value={totalSupplier || 0}
@@ -502,8 +504,8 @@ export default function PembelianPage() {
           />
         </div>
 
-        {/* Footer Section */}
-        <div className="flex-shrink-0 sticky bottom-4 z-20 lg:relative lg:bottom-0">
+        {/* Desktop Footer Section */}
+        <div className="hidden xl:block flex-shrink-0 relative bottom-0">
           <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-4 lg:p-5 shadow-elevated">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="grid grid-cols-3 gap-2 sm:gap-4">
@@ -545,6 +547,123 @@ export default function PembelianPage() {
                   leftIcon={<IconDeviceFloppy className="w-5 h-5" />}
                 >
                   <span className="hidden sm:inline">{submitting ? 'Menyimpan...' : 'Simpan Pembelian'}</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Bottom Sheet */}
+        <div className="xl:hidden fixed bottom-0 left-0 right-0 z-50">
+          {/* Backdrop */}
+          {isBottomSheetOpen && (
+            <div 
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity"
+              onClick={() => setIsBottomSheetOpen(false)}
+            />
+          )}
+
+          {/* Minimal View / Expanded Sheet Container */}
+          <div className={`absolute bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.3)] transition-transform duration-300 ease-in-out z-50 flex flex-col ${isBottomSheetOpen ? 'translate-y-0' : 'translate-y-[calc(100%-4.5rem)]'}`}>
+            
+            {/* Minimal Bar (Clickable) */}
+            <div 
+              className="h-[4.5rem] px-4 flex items-center justify-between cursor-pointer border-b border-neutral-100 dark:border-neutral-800/50 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl rounded-t-3xl"
+              onClick={() => setIsBottomSheetOpen(!isBottomSheetOpen)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center shrink-0">
+                  <IconChevronUp className={`text-brand-600 dark:text-brand-400 transition-transform duration-300 ${isBottomSheetOpen ? 'rotate-180' : ''}`} size={20} />
+                </div>
+                <div>
+                  <p className="text-[10px] text-neutral-500 dark:text-neutral-400 font-medium leading-tight mb-0.5">Total Sistem</p>
+                  <p className="text-lg font-black text-neutral-900 dark:text-white leading-tight">{formatCurrency(totalSistem)}</p>
+                </div>
+              </div>
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation(); // prevent opening sheet
+                  setIsBottomSheetOpen(true);
+                }}
+                disabled={items.length === 0}
+                variant="primary"
+                className={`shadow-brand px-6 py-2 h-auto transition-opacity duration-300 ${isBottomSheetOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                rightIcon={<IconArrowRight size={18} />}
+              >
+                Lanjutkan
+              </Button>
+            </div>
+
+            {/* Expanded Content */}
+            <div className="p-4 flex flex-col gap-5 overflow-y-auto max-h-[70vh] bg-white dark:bg-neutral-900">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm text-neutral-600 dark:text-neutral-300 font-semibold">Tanggal:</label>
+                  <DateInput
+                    value={tanggal}
+                    onChange={setTanggal}
+                    inputSize="md"
+                  />
+                </div>
+
+                <SelectInput
+                  label="Supplier"
+                  value={selectedSupplierId || ''}
+                  onChange={(id) => {
+                    const s = supplierList.find(x => x.id === id);
+                    setSelectedSupplierId(id || null);
+                    setSupplier(s ? s.nama : '');
+                  }}
+                  options={supplierList.map(s => ({
+                    value: s.id,
+                    label: s.nama + (s.kontak ? ` (${s.kontak})` : '')
+                  }))}
+                  placeholder="-- Pilih Supplier --"
+                />
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm text-neutral-600 dark:text-neutral-300 font-semibold">Total Tagihan:</label>
+                  <PriceInput
+                    value={totalSupplier || 0}
+                    onChange={setTotalSupplier}
+                    className="w-full px-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl focus:outline-none focus:border-brand-500 transition-all"
+                    placeholder="0"
+                    min={0}
+                  />
+                </div>
+                
+                <div className="bg-neutral-50 dark:bg-neutral-800/50 rounded-xl p-4 border border-neutral-100 dark:border-neutral-800 flex justify-between items-center">
+                  <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">Selisih</span>
+                  <span className={`text-lg font-black ${isValid ? 'text-brand-600 dark:text-brand-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {formatCurrency(selisih)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    reset();
+                    setTotalSupplier(0);
+                    focusInput();
+                    setIsBottomSheetOpen(false);
+                  }}
+                  className="flex-1"
+                  leftIcon={<IconRefresh size={18} />}
+                >
+                  Reset
+                </Button>
+                <Button
+                  onClick={(e) => {
+                    handleSubmit();
+                  }}
+                  disabled={items.length === 0 || submitting}
+                  variant="primary"
+                  className="flex-1 shadow-brand"
+                  leftIcon={<IconDeviceFloppy size={18} />}
+                >
+                  Simpan
                 </Button>
               </div>
             </div>

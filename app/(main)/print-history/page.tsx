@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { AmbientLayout, Button, SlideOver } from '@/components/ui';
+import { AmbientLayout, Button, SlideOver, ModernPagination, FilterButton } from '@/components/ui';
 import DateInput from '@/components/ui/DateInput';
 import { IconHistory, IconRefresh, IconPrinter, IconChevronLeft, IconChevronRight, IconFilter, IconX } from '@tabler/icons-react';
 import { formatDateTimeWIB } from '@/lib/utils';
@@ -83,71 +83,59 @@ export default function PrintHistoryPage() {
   return (
     <AmbientLayout>
       <div className="mb-4 lg:mb-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
-          <div className="flex items-center gap-4 animate-fade-in-up pl-12 lg:pl-0">
-            <IconHistory className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
-            <div>
-              <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Riwayat Cetak</h1>
-              <p className="text-xs lg:text-base text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 font-medium">Lihat riwayat pencetakan label massal Anda.</p>
-            </div>
-          </div>
-        </div>
-        
-        {/* Filter Section */}
-        <div className="flex items-center gap-2 sm:gap-4 animate-fade-in-up w-full" style={{ animationDelay: '50ms' }}>
-          <Button
-            variant="secondary"
-            onClick={() => fetchHistory()}
-            className="flex-shrink-0 flex items-center justify-center gap-2 rounded-2xl shadow-sm hover:shadow-md transition-shadow bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-neutral-800/60 h-[52px] w-[52px] sm:h-auto sm:w-auto sm:px-4 sm:py-3"
-          >
-            <IconRefresh size={20} className={loading ? 'animate-spin' : ''} />
-            <span className="hidden sm:inline font-medium">Refresh</span>
-          </Button>
+        {(() => {
+          const activeFilters = [];
+          if (startDate || endDate) {
+            const label = `${startDate ? startDate : 'Awal'} - ${endDate ? endDate : 'Sekarang'}`;
+            activeFilters.push({ 
+              id: 'date', 
+              label, 
+              onRemove: () => { 
+                setStartDate(''); 
+                setEndDate(''); 
+                handleDateChange(); 
+              } 
+            });
+          }
 
-          {(() => {
-            const activeFilters = [];
-            if (startDate || endDate) {
-              const label = `${startDate ? startDate : 'Awal'} - ${endDate ? endDate : 'Sekarang'}`;
-              activeFilters.push({ 
-                id: 'date', 
-                label, 
-                onRemove: () => { 
-                  setStartDate(''); 
-                  setEndDate(''); 
-                  handleDateChange(); 
-                } 
-              });
-            }
-
-            return (
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
-                <Button variant="secondary" size="sm" onClick={() => setIsFilterOpen(true)} className="shrink-0 h-[40px] rounded-xl w-full sm:w-auto justify-center">
-                  <IconFilter size={18} />
-                  <span className="hidden sm:inline">Filter</span>
-                  {activeFilters.length > 0 && (
-                    <span className="ml-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
-                      {activeFilters.length}
-                    </span>
-                  )}
-                </Button>
+          return (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-row items-start justify-between gap-4">
+                <div className="flex items-center gap-4 animate-fade-in-up pl-12 lg:pl-0">
+                  <IconHistory className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
+                  <div>
+                    <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Riwayat Cetak</h1>
+                    <p className="text-xs lg:text-base text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 font-medium">Lihat riwayat pencetakan label massal Anda.</p>
+                  </div>
+                </div>
                 
-                <div className="flex overflow-x-auto whitespace-nowrap gap-2 items-center py-1 w-full no-scrollbar">
-                  {activeFilters.length === 0 && (
-                    <span className="text-sm text-neutral-500 dark:text-neutral-400 italic">Semua data</span>
-                  )}
+                {/* Compact Filter Button Top Right */}
+                <div className="animate-fade-in-up shrink-0 pt-1 lg:pt-0" style={{ animationDelay: '50ms' }}>
+                  <FilterButton 
+                    onClick={() => setIsFilterOpen(true)}
+                    activeCount={activeFilters.length}
+                    className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-neutral-800/60 shadow-sm hover:shadow-md transition-shadow"
+                  />
+                </div>
+              </div>
+              
+              {/* Active Filters Display */}
+              {activeFilters.length > 0 && (
+                <div className="flex overflow-x-auto whitespace-nowrap gap-2 items-center py-1 pl-12 lg:pl-0 w-full no-scrollbar animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+                  <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mr-1">Filter aktif:</span>
                   {activeFilters.map(badge => (
-                    <div key={badge.id} className="inline-flex items-center gap-1.5 rounded-full bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-neutral-800/60 px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 shadow-sm">
+                    <div key={badge.id} className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 dark:bg-brand-900/20 border border-brand-100 dark:border-brand-800/30 px-3 py-1.5 text-xs font-medium text-brand-700 dark:text-brand-300 shadow-sm">
                       {badge.label}
-                      <button onClick={badge.onRemove} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
+                      <button onClick={badge.onRemove} className="text-brand-400 hover:text-brand-600 dark:hover:text-brand-200 transition-colors">
                         <IconX size={14} />
                       </button>
                     </div>
                   ))}
                 </div>
-              </div>
-            );
-          })()}
-        </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       <SlideOver isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filter Riwayat">
@@ -194,7 +182,65 @@ export default function PrintHistoryPage() {
 
       <div className="flex-1 animate-fade-in-up flex flex-col" style={{ animationDelay: '100ms' }}>
         <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-neutral-800/60 rounded-3xl shadow-elevated overflow-hidden min-h-[400px] flex flex-col flex-1">
-          <div className="overflow-x-auto flex-1">
+          {/* Mobile Card List View */}
+          <div className="block md:hidden flex-1 p-4 space-y-4">
+            {loading ? (
+              [...Array(5)].map((_, i) => (
+                <div key={i} className="bg-white/50 dark:bg-neutral-800/50 rounded-2xl p-4 space-y-3 animate-pulse border border-neutral-100 dark:border-neutral-800/50">
+                   <div className="flex justify-between items-center">
+                     <div className="h-4 w-32 bg-neutral-200 dark:bg-neutral-700 rounded" />
+                     <div className="h-6 w-20 bg-neutral-200 dark:bg-neutral-700 rounded-full" />
+                   </div>
+                   <div className="h-4 w-40 bg-neutral-200 dark:bg-neutral-700 rounded" />
+                   <div className="h-3 w-24 bg-neutral-200 dark:bg-neutral-700 rounded" />
+                   <div className="h-3 w-20 bg-neutral-200 dark:bg-neutral-700 rounded mt-2" />
+                </div>
+              ))
+            ) : jobs.length === 0 ? (
+               <div className="flex flex-col items-center justify-center text-neutral-500 dark:text-neutral-400 py-10">
+                 <IconPrinter className="w-12 h-12 mb-3 text-neutral-300 dark:text-neutral-700" />
+                 <p>Belum ada riwayat cetak</p>
+               </div>
+            ) : (
+              jobs.map((job) => {
+                const isArrayPayload = Array.isArray(job.payload_json);
+                const itemName = isArrayPayload ? `${job.payload_json.length} Item` : (job.payload_json?.name || '-');
+                const itemQty = isArrayPayload ? '-' : (job.payload_json?.qty || 1);
+                const itemPrice = isArrayPayload ? '' : (job.payload_json?.price || '');
+
+                return (
+                  <div key={job.id} className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl p-4 flex flex-col gap-3 shadow-sm border border-neutral-100 dark:border-neutral-800/50 relative overflow-hidden">
+                    <div className="flex justify-between items-start">
+                      <span className="font-semibold text-neutral-800 dark:text-neutral-200 text-sm">
+                        {formatDateTimeWIB(job.created_at)}
+                      </span>
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(job.status)}`}>
+                        {job.status}
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <div className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">Template: {job.label_templates?.name || '-'}</div>
+                      <div className="font-semibold text-neutral-900 dark:text-white text-base leading-tight">
+                        {itemName}
+                      </div>
+                      <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                         Qty: {itemQty} {itemPrice ? ` | ${itemPrice}` : ''}
+                      </div>
+                    </div>
+
+                    <div className="mt-2 pt-3 border-t border-neutral-100 dark:border-neutral-800/50 flex justify-between items-center text-[10px] text-neutral-400 font-mono">
+                      <span>ID: {job.id.substring(0, 8)}...</span>
+                      {job.printed_at && <span>Selesai: {formatDateTimeWIB(job.printed_at).split(' ')[1]}</span>}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto flex-1">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-b border-neutral-200/50 dark:border-neutral-800/50">
                 <tr>
@@ -239,8 +285,20 @@ export default function PrintHistoryPage() {
                       <td className="p-4 font-medium text-neutral-800 dark:text-neutral-200">{job.label_templates?.name || '-'}</td>
                       <td className="p-4">
                         <div className="flex flex-col gap-1">
-                          <span className="font-semibold text-neutral-800 dark:text-neutral-200">{job.payload_json?.name || '-'}</span>
-                          <span className="text-xs text-neutral-500 dark:text-neutral-400">Qty: {job.payload_json?.qty || 1} | {job.payload_json?.price || ''}</span>
+                          {(() => {
+                            const isArrayPayload = Array.isArray(job.payload_json);
+                            const itemName = isArrayPayload ? `${job.payload_json.length} Item` : (job.payload_json?.name || '-');
+                            const itemQty = isArrayPayload ? '-' : (job.payload_json?.qty || 1);
+                            const itemPrice = isArrayPayload ? '' : (job.payload_json?.price || '');
+                            return (
+                              <>
+                                <span className="font-semibold text-neutral-800 dark:text-neutral-200">{itemName}</span>
+                                <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                                  Qty: {itemQty} {itemPrice ? ` | ${itemPrice}` : ''}
+                                </span>
+                              </>
+                            );
+                          })()}
                         </div>
                       </td>
                       <td className="p-4">
@@ -259,31 +317,12 @@ export default function PrintHistoryPage() {
           
           {/* Pagination Controls */}
           {!loading && totalPages > 1 && (
-            <div className="flex items-center justify-between p-4 border-t border-neutral-200/50 dark:border-neutral-800/50 bg-white/50 dark:bg-neutral-950/30 backdrop-blur-md">
-              <span className="text-sm text-neutral-500 dark:text-neutral-400">
-                Halaman {page} dari {totalPages}
-              </span>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="!px-2"
-                >
-                  <IconChevronLeft size={20} />
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="!px-2"
-                >
-                  <IconChevronRight size={20} />
-                </Button>
-              </div>
-            </div>
+            <ModernPagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              className="rounded-b-3xl"
+            />
           )}
         </div>
       </div>

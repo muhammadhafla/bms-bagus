@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { purchasesApi, PembelianItem } from '@/lib/api/pembelian';
 import { inventoryApi } from '@/lib/api';
 import { useBulkPrintStore } from '@/lib/store';
-import { formatCurrency, formatDateWIB } from '@/lib/utils';
+import { formatCurrency, formatDateWIB, formatDateTimeWIB } from '@/lib/utils';
 import { IconSearch, IconEye, IconChevronLeft, IconChevronRight, IconPrinter } from '@tabler/icons-react';
-import { Button } from '@/components/ui';
+import { Button, ModernPagination } from '@/components/ui';
 import { SlideOver } from '@/components/ui/SlideOver';
 
 interface PembelianRecord {
@@ -156,6 +156,10 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
     return formatDateWIB(dateStr, { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
+  const formatDateTime = (dateStr: string) => {
+    return formatDateTimeWIB(dateStr, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
   const totalPages = Math.ceil(total / limit) || 1;
 
   return (
@@ -178,23 +182,26 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
           records.map((record) => (
             <div
               key={record.id}
-              className="bg-white dark:bg-neutral-900 rounded-2xl p-4 shadow-sm border border-neutral-100 dark:border-neutral-800"
+              onClick={() => handleViewDetail(record.id)}
+              className="bg-white dark:bg-neutral-900 rounded-2xl p-4 shadow-sm border border-neutral-100 dark:border-neutral-800 cursor-pointer active:scale-[0.98] transition-transform"
             >
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <p className="text-xs text-neutral-500 mb-1">{formatDate(record.tanggal)}</p>
-                  <p className="font-mono font-medium text-neutral-900 dark:text-white">
-                    {record.nomor_nota || '-'}
-                  </p>
+                  <p className="text-xs text-neutral-500 mb-1">{formatDateTime(record.tanggal)}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-mono font-medium text-neutral-900 dark:text-white">
+                      {record.nomor_nota || '-'}
+                    </p>
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                      Selesai
+                    </span>
+                  </div>
                 </div>
-                <button
-                  onClick={() => handleViewDetail(record.id)}
-                  className="p-2 text-brand-600 hover:text-brand-700 bg-brand-50 dark:bg-brand-900/30 rounded-xl"
-                >
-                  <IconEye className="w-5 h-5" />
-                </button>
+                <div className="text-neutral-400 dark:text-neutral-500 p-1">
+                  <IconChevronRight className="w-5 h-5" />
+                </div>
               </div>
-              <div className="flex justify-between items-end mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800">
+              <div className="flex justify-between items-end mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
                 <div>
                   <p className="text-xs text-neutral-500">Supplier</p>
                   <p className="font-medium text-neutral-800 dark:text-neutral-200">
@@ -219,10 +226,10 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
             <tr>
               <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-16">#</th>
               <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">No. Nota</th>
-              <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Tanggal</th>
+              <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Tanggal & Waktu</th>
               <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Supplier</th>
               <th className="px-5 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Total</th>
-              <th className="px-5 py-4 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-24">Aksi</th>
+              <th className="px-5 py-4 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-32">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/50">
@@ -248,7 +255,7 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
               </tr>
             ) : (
               records.map((record, index) => (
-                <tr key={record.id} className="hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors">
+                <tr key={record.id} onClick={() => handleViewDetail(record.id)} className="hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer group">
                   <td className="px-5 py-4 text-sm text-neutral-600 dark:text-neutral-400">
                     {((page - 1) * limit) + index + 1}
                   </td>
@@ -256,7 +263,7 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
                     {record.nomor_nota || '-'}
                   </td>
                   <td className="px-5 py-4 text-sm text-neutral-600 dark:text-neutral-400">
-                    {formatDate(record.tanggal)}
+                    {formatDateTime(record.tanggal)}
                   </td>
                   <td className="px-5 py-4 text-sm font-medium text-neutral-800 dark:text-neutral-200">
                     {record.supplier_nama || '-'}
@@ -265,12 +272,12 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
                     {formatCurrency(record.total)}
                   </td>
                   <td className="px-5 py-4 text-center">
-                    <button
-                      onClick={() => handleViewDetail(record.id)}
-                      className="p-2 text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-900/30 rounded-xl transition-colors btn-press"
-                    >
-                      <IconEye className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                        Selesai
+                      </span>
+                      <IconChevronRight className="w-4 h-4 text-neutral-400 group-hover:text-brand-500 transition-colors" />
+                    </div>
                   </td>
                 </tr>
               ))
@@ -280,27 +287,14 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
       </div>
       
       {totalPages > 0 && (
-        <div className="flex-shrink-0 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50 p-4 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0 rounded-b-3xl">
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 font-medium text-center sm:text-left">
-            Menampilkan {total > 0 ? (page - 1) * limit + 1 : 0}-{Math.min(page * limit, total)} dari {total} data <span className="mx-2">|</span> Halaman {page} / {totalPages}
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="p-2.5 rounded-xl hover:bg-white dark:hover:bg-neutral-800 border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-neutral-600 dark:text-neutral-300 btn-press"
-            >
-              <IconChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="p-2.5 rounded-xl hover:bg-white dark:hover:bg-neutral-800 border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-neutral-600 dark:text-neutral-300 btn-press"
-            >
-              <IconChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+        <ModernPagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          limit={limit}
+          onPageChange={setPage}
+          className="rounded-b-3xl"
+        />
       )}
 
       {/* SlideOver Rincian Pembelian */}

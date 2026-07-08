@@ -82,14 +82,14 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
           </p>
         </div>
 
-        <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-5 mb-6 shadow-elevated">
+        <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-5 mb-6 shadow-elevated overflow-hidden">
           <h3 className="text-lg font-bold mb-4 text-neutral-800 dark:text-neutral-200">Tren Profit & Penjualan</h3>
           <div className="flex flex-col h-[350px] md:h-[450px] w-full gap-2 md:gap-4">
             
             {/* Grafik Atas: Penjualan */}
-            <div className="flex-1 min-h-[150px] w-full relative border-b border-neutral-100 dark:border-neutral-800/50 pb-2">
+            <div className="flex-1 min-h-[100px] md:min-h-[150px] w-full relative border-b border-neutral-100 dark:border-neutral-800/50 pb-2">
               <p className="absolute top-0 left-4 text-xs font-bold text-blue-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Total Penjualan</p>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                 <AreaChart data={chartData} syncId="profitTrend" margin={{ top: 20, right: 20, left: 20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
@@ -122,9 +122,9 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
             </div>
 
             {/* Grafik Bawah: Profit */}
-            <div className="flex-1 min-h-[150px] w-full relative pt-2">
+            <div className="flex-1 min-h-[100px] md:min-h-[150px] w-full relative pt-2">
               <p className="absolute top-0 left-4 text-xs font-bold text-emerald-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Total Profit</p>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                 <AreaChart data={chartData} syncId="profitTrend" margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
                   <defs>
                     <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">

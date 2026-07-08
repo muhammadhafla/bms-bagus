@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { analyticsApi, kategoriApi } from '@/lib/api';
 import { IconDashboard, IconPackage, IconShoppingCart, IconTrendingUp, IconChartBar, IconFilter, IconX } from '@tabler/icons-react';
-import { DateRangePicker, Tabs, SelectInput, SlideOver, Button } from '@/components/ui';
+import { DateRangePicker, Tabs, SelectInput, SlideOver, Button, FilterButton } from '@/components/ui';
 
 import { BusiestTimeChart } from '@/components/analytics/BusiestTimeChart';
 import { CategoryPieChart } from '@/components/analytics/CategoryPieChart';
@@ -158,16 +158,7 @@ function AnalyticsContent() {
       {/* Global Filter Bar (Only for non-overview if they have specific filters) */}
       {showFilterButton && (
         <div className="mb-4 md:mb-6 animate-fade-in-up [animation-delay:75ms] flex items-center justify-between w-full gap-2">
-          <Button variant="secondary" size="sm" onClick={() => setIsFilterOpen(true)} className="shrink-0 h-8 md:h-[40px] px-2 md:px-3">
-            <IconFilter className="w-4 h-4 md:w-[18px] md:h-[18px]" />
-            <span className="hidden sm:inline text-xs md:text-sm">Filter Tambahan</span>
-            <span className="sm:hidden text-xs font-medium ml-1">Filter</span>
-            {activeFilters.length > 0 && (
-              <span className="ml-1.5 flex h-4 w-4 md:h-5 md:w-5 items-center justify-center rounded-full bg-brand-100 text-[10px] md:text-xs font-bold text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
-                {activeFilters.length}
-              </span>
-            )}
-          </Button>
+          <FilterButton onClick={() => setIsFilterOpen(true)} activeCount={activeFilters.length} />
 
           <div className="flex-1 min-w-0 flex overflow-x-auto whitespace-nowrap gap-1.5 md:gap-2 items-center py-1 no-scrollbar">
             {activeFilters.length === 0 ? (

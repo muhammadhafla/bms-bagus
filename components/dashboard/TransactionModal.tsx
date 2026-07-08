@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { penjualanApi } from '@/lib/api/penjualan';
 import { purchasesApi } from '@/lib/api/pembelian';
 import { Button } from '@/components/ui/Button';
+import { IconCopy } from '@tabler/icons-react';
+import { formatCurrency, formatDateTimeWIB } from '@/lib/utils';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -30,16 +32,9 @@ export function TransactionModal({ isOpen, onClose, transactionId, transactionTy
     enabled: isOpen && !!transactionId && !!transactionType,
   });
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
-  };
-
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('id-ID', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    });
+    return formatDateTimeWIB(dateStr, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -55,46 +50,57 @@ export function TransactionModal({ isOpen, onClose, transactionId, transactionTy
           </div>
         ) : data ? (
           <>
-            <div className="flex justify-between items-start text-sm border-b border-neutral-200 dark:border-neutral-800 pb-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:justify-between sm:items-start border-b border-neutral-200 dark:border-neutral-800 pb-4">
               <div>
-                <p className="text-neutral-500 dark:text-neutral-400">ID Transaksi</p>
-                <p className="font-medium text-neutral-900 dark:text-neutral-100">{data.id}</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-0.5 uppercase tracking-wide font-medium">ID Transaksi</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-mono font-medium text-neutral-900 dark:text-neutral-100 text-xs sm:text-sm break-all">{data.id}</p>
+                  <button 
+                    onClick={() => navigator.clipboard.writeText(data.id)} 
+                    className="p-1 text-neutral-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/30 rounded transition-colors shrink-0" 
+                    title="Salin ID"
+                  >
+                    <IconCopy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-neutral-500 dark:text-neutral-400">Tanggal</p>
-                <p className="font-medium text-neutral-900 dark:text-neutral-100">{formatDate(data.created_at || data.tanggal)}</p>
+              <div className="sm:text-right shrink-0">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-0.5 uppercase tracking-wide font-medium">Tanggal</p>
+                <p className="font-medium text-neutral-900 dark:text-neutral-100 text-sm">{formatDate(data.created_at || data.tanggal)}</p>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <h4 className="font-semibold text-neutral-900 dark:text-neutral-100">Daftar Item</h4>
-              <div className="max-h-60 overflow-y-auto pr-2 space-y-3">
-                {data.items?.map((item: any, index: number) => (
-                  <div key={index} className="flex justify-between items-center bg-neutral-50 dark:bg-neutral-900 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800">
-                    <div>
-                      <p className="font-medium text-neutral-900 dark:text-neutral-100">{item.nama_barang}</p>
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                        {item.qty} x {formatCurrency(item.harga_jual || item.harga_beli || 0)}
-                        {item.diskon > 0 && <span className="text-red-500 ml-1">(Diskon {formatCurrency(item.diskon)})</span>}
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Daftar Item</h4>
+              <div className="max-h-60 overflow-y-auto pr-2">
+                <div className="divide-y divide-neutral-200 dark:divide-neutral-800 border-b border-neutral-200 dark:border-neutral-800">
+                  {data.items?.map((item: any, index: number) => (
+                    <div key={index} className="flex justify-between items-start py-2.5">
+                      <div>
+                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{item.nama_barang}</p>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          {item.qty} x {formatCurrency(item.harga_jual || item.harga_beli || 0)}
+                          {item.diskon > 0 && <span className="text-red-500 ml-1">(Diskon {formatCurrency(item.diskon)})</span>}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 pt-0.5">
+                        {formatCurrency(item.subtotal || ((item.harga_final || ((item.harga_jual || item.harga_beli || 0) - (item.diskon || 0))) * item.qty))}
                       </p>
                     </div>
-                    <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                      {formatCurrency(item.subtotal || ((item.harga_final || ((item.harga_jual || item.harga_beli || 0) - (item.diskon || 0))) * item.qty))}
-                    </p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-4 border-t border-neutral-200 dark:border-neutral-800">
-              <p className="font-bold text-lg text-neutral-900 dark:text-neutral-100">Total</p>
-              <p className="font-bold text-xl text-brand-600 dark:text-brand-400">
+            <div className="flex justify-between items-center pt-2">
+              <p className="font-bold text-base text-neutral-900 dark:text-neutral-100">Total</p>
+              <p className="font-bold text-lg text-brand-600 dark:text-brand-400">
                 {formatCurrency(data.total || data.total_sistem || 0)}
               </p>
             </div>
             
-            <div className="flex justify-end pt-4">
-               <Button onClick={onClose} variant="secondary">Tutup</Button>
+            <div className="pt-6">
+               <Button onClick={onClose} variant="secondary" fullWidth>Tutup</Button>
             </div>
           </>
         ) : null}

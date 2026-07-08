@@ -38,9 +38,9 @@ const NAV_ITEMS = [
 ];
 
 const INVENTORY_ITEMS = [
-  { href: '/inventory', title: 'Stock', icon: IconPackage },
+  { href: '/inventory', title: 'Stok', icon: IconPackage },
   { href: '/inventory/kategori', title: 'Kategori', icon: IconTags },
-  { href: '/inventory/stock-opname', title: 'Stock Opname', icon: IconClipboardCheck },
+  { href: '/inventory/stock-opname', title: 'Stok Opname', icon: IconClipboardCheck },
 ];
 
 const PURCHASING_ITEMS = [
@@ -50,7 +50,7 @@ const PURCHASING_ITEMS = [
 
 const TRANSACTIONS_ITEMS = [
   { href: '/transactions/history', title: 'Riwayat Transaksi', icon: IconHistory },
-  { href: '/transactions/return', title: 'Return', icon: IconArrowBack },
+  { href: '/transactions/return', title: 'Retur', icon: IconArrowBack },
 ];
 
 const PRINTING_ITEMS = [
@@ -211,7 +211,7 @@ export default function MainLayout({
   const navItems = useMemo(() => {
     const items = [...NAV_ITEMS];
     if (isAdminUser) {
-      items.push({ href: '/users', title: 'Users', icon: IconUsers });
+      items.push({ href: '/users', title: 'Pengguna', icon: IconUsers });
     }
     return items;
   }, [isAdminUser]);
@@ -542,7 +542,7 @@ export default function MainLayout({
                 className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
               >
                 {theme === 'dark' ? <IconSun className="w-4 h-4" /> : <IconMoon className="w-4 h-4" />}
-                <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+                <span>{theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'}</span>
               </button>
 
               {/* Logout */}

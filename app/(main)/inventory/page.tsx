@@ -5,7 +5,7 @@ import { InventoryItem } from '@/types/inventory';
 import { inventoryApi, kategoriApi } from '@/lib/api';
 import { debounce } from '@/lib/utils';
 import { InventoryTable } from '@/components/inventory/InventoryTable';
-import { Button, DataTable, Badge, SelectInput, Tooltip, AmbientLayout } from '@/components/ui';
+import { Button, DataTable, Badge, SelectInput, Tooltip, AmbientLayout, FilterButton } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
 import { IconPackage, IconSearch, IconFilter, IconUpload, IconX } from '@tabler/icons-react';
 import { SlideOver } from '@/components/ui';
@@ -198,19 +198,11 @@ export default function InventoryPage() {
               />
             </div>
             
-            <Button 
-              variant="secondary" 
-              onClick={() => setIsFilterOpen(true)} 
-              className="shrink-0 h-[40px] sm:h-[46px] w-[40px] sm:w-auto !p-0 sm:!px-4 flex items-center justify-center rounded-xl relative"
-            >
-              <IconFilter size={18} className="shrink-0" />
-              <span className="hidden sm:inline ml-2">Filter</span>
-              {(kategori || lowStockOnly || activeStatus !== 'all') && (
-                <span className="absolute -top-1 -right-1 sm:static sm:ml-1.5 flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-brand-500 sm:bg-brand-100 text-[10px] sm:text-xs font-bold text-white sm:text-brand-600 border border-white sm:border-0 dark:border-neutral-900 dark:sm:bg-brand-900/30 dark:sm:text-brand-400">
-                  {(kategori ? 1 : 0) + (lowStockOnly ? 1 : 0) + (activeStatus !== 'all' ? 1 : 0)}
-                </span>
-              )}
-            </Button>
+            <FilterButton 
+              onClick={() => setIsFilterOpen(true)}
+              activeCount={(kategori ? 1 : 0) + (lowStockOnly ? 1 : 0) + (activeStatus !== 'all' ? 1 : 0)}
+              className="sm:h-[46px]" // override desktop height to match the search bar height
+            />
           </div>
           
           <div className="flex overflow-x-auto whitespace-nowrap gap-2 items-center py-1 w-full no-scrollbar animate-fade-in-up" style={{ animationDelay: '100ms' }}>

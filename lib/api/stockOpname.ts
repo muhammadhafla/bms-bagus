@@ -15,6 +15,8 @@ export interface StockOpname {
 
 export interface StockOpnameWithProfile extends StockOpname {
   profiles?: { nama: string } | null;
+  total_items?: number;
+  total_selisih?: number;
 }
 
 export interface InventoryBasic {
@@ -56,7 +58,7 @@ export const stockOpnameApi = {
     const result = await safeQuery<StockOpname[]>(async () => {
       const result = await supabase
         .from('stock_opname')
-        .select('*')
+        .select('*, stock_opname_items(id, difference)')
         .order('created_at', { ascending: false });
       return { data: result.data, error: result.error as Error | null };
     });
@@ -87,10 +89,19 @@ export const stockOpnameApi = {
       }
     }
 
-    const opnamesWithCreator: StockOpnameWithProfile[] = result.data.map(opname => ({
-      ...opname,
-      profiles: opname.created_by ? profilesMap[opname.created_by] : null
-    }));
+    const opnamesWithCreator: StockOpnameWithProfile[] = result.data.map((opname: any) => {
+      const items = opname.stock_opname_items || [];
+      const total_items = items.length;
+      const total_selisih = items.reduce((sum: number, item: any) => sum + (item.difference || 0), 0);
+      
+      const { stock_opname_items, ...rest } = opname;
+      return {
+        ...rest,
+        profiles: rest.created_by ? profilesMap[rest.created_by] : null,
+        total_items,
+        total_selisih
+      };
+    });
 
     return { data: opnamesWithCreator, error: null };
   },

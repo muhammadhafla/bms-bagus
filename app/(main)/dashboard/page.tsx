@@ -11,7 +11,16 @@ import {
   IconAlertTriangle,
 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import { StatCard, StatCardSkeleton } from '@/components/dashboard/StatCard';
+import { 
+  StatCard, 
+  StatCardSkeleton,
+  HeroStatCard,
+  HeroStatCardSkeleton,
+  CompactStatCard,
+  CompactStatCardSkeleton,
+  ListStatCard,
+  ListStatCardSkeleton
+} from '@/components/dashboard/StatCard';
 import { LowStockAlert } from '@/components/dashboard/LowStockAlert';
 import { TrendChart } from '@/components/dashboard/TrendChart';
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
@@ -72,84 +81,89 @@ function HomeContent() {
     <div className="relative flex flex-col h-full w-full">
       <div className="relative z-10">
         {/* Header */}
-        <div className="mb-3 lg:mb-4 animate-fade-in-up flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="mb-4 lg:mb-6 animate-fade-in-up flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
               Dashboard
             </h1>
-            <p className="text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-1 text-sm lg:text-base font-medium">
+            <p className="text-neutral-500 dark:text-neutral-400 mt-1 text-sm lg:text-base font-medium">
               Ringkasan performa dan stok barang.
             </p>
           </div>
         </div>
 
-        {/* Bento Grid Layout */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 lg:gap-4 mb-4">
+        {/* SaaS Native App Layout for Stats */}
+        <div className="mb-6">
           {statsLoading ? (
-            <>
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-            </>
-          ) : (
-            <>
-              <div className="animate-fade-in-up [animation-delay:0ms]">
-                <StatCard
-                  title="Total Nilai Inventory"
-                  value={stats?.totalInventoryValue || 0}
-                  prefix="Rp "
-                  icon={<IconCurrencyDollar size={22} />}
-                  variant="default"
-                />
+            <div className="flex flex-col gap-4">
+              <HeroStatCardSkeleton />
+              <div className="flex flex-col gap-2">
+                <ListStatCardSkeleton />
+                <ListStatCardSkeleton />
+                <ListStatCardSkeleton />
+                <ListStatCardSkeleton />
+                <ListStatCardSkeleton />
               </div>
-              <div className="animate-fade-in-up [animation-delay:50ms]">
-                <StatCard
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div className="animate-fade-in-up [animation-delay:0ms]">
+                <HeroStatCard
                   title="Penjualan Hari Ini"
                   value={stats?.todaySales || 0}
                   prefix="Rp "
-                  icon={<IconArrowUpCircle size={22} />}
+                  icon={<IconArrowUpCircle size={24} />}
                   variant="success"
                 />
               </div>
-              <div className="animate-fade-in-up [animation-delay:100ms]">
-                <StatCard
-                  title="Pembelian Hari Ini"
-                  value={stats?.todayPurchases || 0}
-                  prefix="Rp "
-                  icon={<IconShoppingCart size={22} />}
-                  variant="warning"
-                />
+              
+              <div className="flex flex-col gap-2">
+                <div className="animate-fade-in-up [animation-delay:50ms]">
+                  <ListStatCard
+                    title="Total Nilai Inventory"
+                    value={stats?.totalInventoryValue || 0}
+                    prefix="Rp "
+                    icon={<IconCurrencyDollar size={20} />}
+                    variant="default"
+                  />
+                </div>
+                <div className="animate-fade-in-up [animation-delay:100ms]">
+                  <ListStatCard
+                    title="Pembelian Hari Ini"
+                    value={stats?.todayPurchases || 0}
+                    prefix="Rp "
+                    icon={<IconShoppingCart size={20} />}
+                    variant="warning"
+                  />
+                </div>
+                <div className="animate-fade-in-up [animation-delay:150ms]">
+                  <ListStatCard
+                    title="Total Item Barang"
+                    value={stats?.totalItems || 0}
+                    icon={<IconPackage size={20} />}
+                    suffix=" SKU"
+                    variant="default"
+                  />
+                </div>
+                <div className="animate-fade-in-up [animation-delay:200ms]">
+                  <ListStatCard
+                    title="Stok Minimum"
+                    value={stats?.lowStockItems || 0}
+                    icon={<IconAlertTriangle size={20} />}
+                    suffix=" item"
+                    variant={stats && stats.lowStockItems > 0 ? 'danger' : 'default'}
+                  />
+                </div>
+                <div className="animate-fade-in-up [animation-delay:250ms]">
+                  <ListStatCard
+                    title="Transaksi Hari Ini"
+                    value={stats?.todayTransactions || 0}
+                    icon={<IconShoppingCart size={20} />}
+                    variant="default"
+                  />
+                </div>
               </div>
-              <div className="animate-fade-in-up [animation-delay:150ms]">
-                <StatCard
-                  title="Stok Minimum"
-                  value={stats?.lowStockItems || 0}
-                  icon={<IconAlertTriangle size={22} />}
-                  suffix=" item"
-                  variant={stats && stats.lowStockItems > 0 ? 'danger' : 'default'}
-                />
-              </div>
-              <div className="animate-fade-in-up [animation-delay:200ms]">
-                <StatCard
-                  title="Total Item Barang"
-                  value={stats?.totalItems || 0}
-                  icon={<IconPackage size={22} />}
-                  suffix=" SKU"
-                  variant="default"
-                />
-              </div>
-              <div className="animate-fade-in-up [animation-delay:250ms]">
-                <StatCard
-                  title="Transaksi Hari Ini"
-                  value={stats?.todayTransactions || 0}
-                  icon={<IconShoppingCart size={22} />}
-                  variant="default"
-                />
-              </div>
-            </>
+            </div>
           )}
         </div>
 

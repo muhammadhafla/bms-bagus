@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { IconPackage, IconDotsVertical, IconDeviceFloppy, IconTrash, IconPrinter } from '@tabler/icons-react';
+import { IconPackage, IconDotsVertical, IconDeviceFloppy, IconTrash, IconPrinter, IconChevronRight, IconChevronLeft, IconBan, IconCheck } from '@tabler/icons-react';
 import { InventoryItem } from '@/types/inventory';
 import { formatCurrency } from '@/lib/utils';
 import { inventoryApi, kategoriApi } from '@/lib/api';
@@ -12,6 +12,7 @@ import { Modal } from '@/components/ui/Modal';
 import TextInput from '@/components/ui/TextInput';
 import SelectInput from '@/components/ui/SelectInput';
 import Button from '@/components/ui/Button';
+import { ModernPagination } from '@/components/ui';
 
 interface PaginationProps {
   page: number;
@@ -51,6 +52,7 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
   });
   const [saveConfirm, setSaveConfirm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [discontinueConfirm, setDiscontinueConfirm] = useState(false);
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [templates, setTemplates] = useState<any[]>([]);
   const [printForm, setPrintForm] = useState({ template_id: '', qty: 1 });
@@ -118,6 +120,20 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
     setDeleteConfirm(false);
     closeSlideOver();
   }, [selectedItem, onDelete, showToast, closeSlideOver]);
+
+  const handleToggleDiscontinue = useCallback(async () => {
+    if (!selectedItem) return;
+    
+    const result = await inventoryApi.toggleDiscontinued(selectedItem.id);
+    if (!result.error && result.data) {
+      showToast(`Barang berhasil ${selectedItem.is_discontinued ? 'diaktifkan' : 'dihentikan'}`, 'success');
+      onUpdate(selectedItem.id, result.data);
+    } else {
+      showToast('Gagal mengubah status', 'error');
+    }
+    setDiscontinueConfirm(false);
+    closeSlideOver();
+  }, [selectedItem, onUpdate, showToast, closeSlideOver]);
 
   const openPrintModal = async () => {
     if (!selectedItem) return;
@@ -198,7 +214,7 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
               <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Jual</th>
               <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Diskon</th>
               <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Stok</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Min Stock</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Minimal Stok</th>
               <th className="px-4 py-3 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400">Aksi</th>
             </tr>
           </thead>
@@ -209,7 +225,8 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
               return (
                 <tr 
                   key={item.id} 
-                  className={isLowStock ? 'bg-red-50/30 dark:bg-red-900/20 hover:bg-red-50/50 dark:hover:bg-red-900/40 transition-colors' : 'hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors'}
+                  onClick={() => openSlideOver(item)}
+                  className={`cursor-pointer group transition-colors ${isLowStock ? 'bg-red-50/30 dark:bg-red-900/20 hover:bg-red-100/60 dark:hover:bg-red-900/50' : 'hover:bg-neutral-50/80 dark:hover:bg-neutral-800/60'}`}
                 >
                   <td className="px-4 py-3 text-sm font-mono text-neutral-900 dark:text-neutral-100">{item.kode_barcode}</td>
                   <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">{item.nama_barang}</td>
@@ -234,13 +251,9 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
                     {item.minimum_stock}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => openSlideOver(item)}
-                      className="p-2 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition-colors"
-                      aria-label={`Buka menu untuk ${item.nama_barang}`}
-                    >
-                      <IconDotsVertical size={18} stroke={2} />
-                    </button>
+                    <div className="inline-flex p-1.5 rounded-lg text-neutral-400 group-hover:text-brand-600 dark:group-hover:text-brand-400 group-hover:bg-brand-50 dark:group-hover:bg-brand-900/20 transition-all">
+                      <IconChevronRight size={18} stroke={2.5} />
+                    </div>
                   </td>
                 </tr>
               );
@@ -249,31 +262,12 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
         </table>
 
         {pagination && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50">
-            <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
-              Halaman <span className="font-bold text-neutral-900 dark:text-white">{pagination.page}</span> dari <span className="font-bold text-neutral-900 dark:text-white">{pagination.totalPages}</span>
-            </p>
-            <div className="flex items-center gap-3">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => pagination.onPageChange(pagination.page - 1)}
-                disabled={pagination.page <= 1}
-                className="min-w-[100px]"
-              >
-                Previous
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => pagination.onPageChange(pagination.page + 1)}
-                disabled={pagination.page >= pagination.totalPages}
-                className="min-w-[100px]"
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+          <ModernPagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={pagination.onPageChange}
+            className="hidden lg:flex border-x-0 border-b-0 rounded-none"
+          />
         )}
       </div>
 
@@ -284,7 +278,8 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
           return (
             <div 
               key={item.id} 
-              className={`p-3 rounded-2xl border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm flex flex-col gap-2 ${isLowStock ? 'bg-red-50/30 dark:bg-red-900/20' : 'bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl'}`}
+              onClick={() => openSlideOver(item)}
+              className={`p-3 rounded-2xl border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm flex flex-col gap-2 cursor-pointer group active:scale-[0.98] transition-all duration-200 ${isLowStock ? 'bg-red-50/30 dark:bg-red-900/20 hover:bg-red-50/80 dark:hover:bg-red-900/40' : 'bg-white/70 dark:bg-neutral-900/60 hover:bg-neutral-50/90 dark:hover:bg-neutral-800/80 backdrop-blur-xl'}`}
             >
               <div className="flex justify-between items-start">
                 <div className="flex-1 pr-2">
@@ -303,12 +298,11 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
                     </span>
                   </div>
                 </div>
-                <button
-                  onClick={() => openSlideOver(item)}
-                  className="p-1 -mr-1 -mt-1 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition-colors shrink-0"
+                <div
+                  className="p-1 -mr-1 -mt-1 rounded-lg text-neutral-400 group-hover:text-brand-600 dark:group-hover:text-brand-400 group-hover:bg-brand-50 dark:group-hover:bg-brand-900/20 transition-all shrink-0"
                 >
-                  <IconDotsVertical size={18} stroke={2} />
-                </button>
+                  <IconChevronRight size={18} stroke={2.5} />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[13px] mt-1 pt-2 border-t border-neutral-100 dark:border-neutral-800/60">
@@ -338,31 +332,12 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
 
       {/* Mobile Pagination */}
       {pagination && pagination.totalPages > 1 && (
-        <div className="block lg:hidden sticky bottom-0 z-20 mt-4 -mx-4 px-4 py-4 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl border-t border-neutral-200/50 dark:border-neutral-800/50 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)]">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
-              Hal <span className="font-bold text-neutral-900 dark:text-white">{pagination.page}</span> / <span className="font-bold text-neutral-900 dark:text-white">{pagination.totalPages}</span>
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => pagination.onPageChange(pagination.page - 1)}
-                disabled={pagination.page <= 1}
-              >
-                Prev
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => pagination.onPageChange(pagination.page + 1)}
-                disabled={pagination.page >= pagination.totalPages}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        </div>
+        <ModernPagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          onPageChange={pagination.onPageChange}
+          className="lg:hidden sticky bottom-0 z-20 mt-4 -mx-4 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)] rounded-none border-x-0 border-b-0"
+        />
       )}
 
       <Modal
@@ -374,6 +349,12 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
         <AdminOnly
           fallback={
             <div className="space-y-4">
+              {selectedItem?.is_discontinued && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
+                  <IconBan size={18} />
+                  Barang telah di-discontinue
+                </div>
+              )}
               <div>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400">Nama Barang</p>
                 <p className="text-neutral-900 dark:text-white">{editForm.nama_barang}</p>
@@ -471,6 +452,14 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
             </div>
             <Button
               variant="secondary"
+              onClick={() => setDiscontinueConfirm(true)}
+              className="w-full"
+              leftIcon={selectedItem?.is_discontinued ? <IconCheck size={18} /> : <IconBan size={18} />}
+            >
+              {selectedItem?.is_discontinued ? 'Aktifkan Kembali' : 'Discontinue Barang'}
+            </Button>
+            <Button
+              variant="secondary"
               onClick={openPrintModal}
               className="w-full"
               leftIcon={<IconPrinter size={18} />}
@@ -500,6 +489,17 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
         onConfirm={handleDelete}
         onCancel={() => setDeleteConfirm(false)}
         danger
+      />
+
+      <ConfirmDialog
+        isOpen={discontinueConfirm}
+        title={selectedItem?.is_discontinued ? "Aktifkan Barang" : "Discontinue Barang"}
+        message={selectedItem?.is_discontinued ? `Apakah Anda yakin ingin mengaktifkan kembali "${selectedItem?.nama_barang}"?` : `Apakah Anda yakin ingin melakukan discontinue pada "${selectedItem?.nama_barang}"? Barang ini tidak akan muncul lagi di pencarian kasir.`}
+        confirmLabel="Ya, Lanjutkan"
+        cancelLabel="Batal"
+        onConfirm={handleToggleDiscontinue}
+        onCancel={() => setDiscontinueConfirm(false)}
+        danger={!selectedItem?.is_discontinued}
       />
 
       <Modal

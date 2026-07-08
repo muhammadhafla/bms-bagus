@@ -21,7 +21,7 @@ export function PaymentMethodChart({ data, isLoading }: { data: PaymentMethods |
     <div className="bg-white dark:bg-neutral-800 rounded-xl p-3 md:p-4 shadow-sm h-full flex flex-col">
       <h3 className="text-base font-semibold text-neutral-900 dark:text-white mb-2 md:mb-4">Distribusi Metode Pembayaran</h3>
       <div className="w-full h-[200px] md:h-[250px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minHeight={1}>
           <PieChart>
             <Pie
               data={chartData}

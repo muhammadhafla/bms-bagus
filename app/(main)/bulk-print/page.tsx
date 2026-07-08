@@ -381,7 +381,7 @@ export default function BulkPrintPage() {
         </div>
 
         {/* Main Table Area */}
-        <div className="flex-1 overflow-hidden flex flex-col min-h-[400px] lg:min-h-0 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl shadow-elevated mb-6">
+        <div className="flex-1 overflow-hidden flex flex-col min-h-[400px] lg:min-h-0 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl shadow-elevated mb-28 lg:mb-6">
           <ItemCart
             items={items}
             selectedIndex={selectedIndex}
@@ -395,10 +395,10 @@ export default function BulkPrintPage() {
           />
         </div>
 
-        {/* Footer Section */}
-        <div className="flex-shrink-0 sticky bottom-4 z-20 lg:relative lg:bottom-0">
-          <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-4 lg:p-5 shadow-elevated">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        {/* Desktop Footer Section */}
+        <div className="hidden lg:block flex-shrink-0 relative bottom-0">
+          <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-5 shadow-elevated">
+            <div className="flex items-center justify-between gap-4">
               
               <div className="flex-1">
                 <p className="text-sm text-neutral-500">Total Macam Barang: <strong>{items.length}</strong></p>
@@ -415,17 +415,53 @@ export default function BulkPrintPage() {
                   className="bg-white/50 dark:bg-neutral-800/50 backdrop-blur-md border-white/40 dark:border-white/10"
                   leftIcon={<IconRefresh className="w-5 h-5" />}
                 >
+                  Reset
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={items.length === 0 || submitting}
+                  variant="primary"
+                  className="shadow-brand px-8"
+                  leftIcon={<IconPrinter className="w-5 h-5" />}
+                >
+                  {submitting ? 'Memproses...' : 'Cetak Semua'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Floating Footer Section */}
+        <div className="lg:hidden fixed bottom-4 left-4 right-4 z-50 pb-[env(safe-area-inset-bottom)]">
+          <div className="bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-neutral-200/50 dark:border-neutral-700/50 rounded-[2rem] p-3 shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+            <div className="flex items-center justify-between gap-3">
+              
+              <div className="flex-1 min-w-0 pl-1">
+                <p className="text-xs text-neutral-500 truncate">Total Macam Barang: <strong>{items.length}</strong></p>
+                <p className="text-xs text-neutral-500 truncate">Total Label Dicetak: <strong>{items.reduce((sum, item) => sum + item.qty, 0)}</strong></p>
+              </div>
+
+              <div className="flex gap-2 justify-end items-center flex-shrink-0">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    reset();
+                    focusInput();
+                  }}
+                  className="bg-white/50 dark:bg-neutral-800/50 backdrop-blur-md border-neutral-200/50 dark:border-neutral-700/50 !px-4 h-10 rounded-xl"
+                  leftIcon={<IconRefresh className="w-5 h-5" />}
+                >
                   <span className="hidden sm:inline">Reset</span>
                 </Button>
                 <Button
                   onClick={handleSubmit}
                   disabled={items.length === 0 || submitting}
                   variant="primary"
-                  size="lg"
-                  className="shadow-brand px-8"
+                  className="shadow-brand !px-6 h-10 rounded-xl"
                   leftIcon={<IconPrinter className="w-5 h-5" />}
                 >
-                  <span className="hidden sm:inline">{submitting ? 'Memproses...' : 'Cetak Semua'}</span>
+                  <span className="hidden sm:inline">{submitting ? '...' : 'Cetak'}</span>
+                  <span className="sm:hidden">{submitting ? '...' : 'Cetak'}</span>
                 </Button>
               </div>
             </div>

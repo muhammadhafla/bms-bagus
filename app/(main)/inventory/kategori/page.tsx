@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { IconTags, IconEdit, IconTrash, IconRefresh, IconPlus, IconDeviceFloppy, IconX } from '@tabler/icons-react';
+import { IconTags, IconEdit, IconTrash, IconSearch, IconPlus, IconDeviceFloppy, IconX, IconDotsVertical } from '@tabler/icons-react';
 import { AdminOnly } from '@/components/role';
 import { useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -18,6 +18,14 @@ export default function KategoriPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formNama, setFormNama] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [openActionId, setOpenActionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const closeMenu = () => setOpenActionId(null);
+    document.addEventListener('click', closeMenu);
+    return () => document.removeEventListener('click', closeMenu);
+  }, []);
   
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string | null; nama: string | null }>({
     isOpen: false,
@@ -99,11 +107,15 @@ export default function KategoriPage() {
     setDeleteConfirm({ isOpen: false, id: null, nama: null });
   };
 
+  const filteredKategoris = kategoris.filter(k => 
+    k.nama.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <AmbientLayout>
       <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)] lg:min-h-0">
         <div className="mb-4 lg:mb-6 flex-shrink-0 animate-fade-in-up">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-4 lg:mb-5">
             <div className="flex items-center gap-4 pl-12 lg:pl-0">
               <IconTags className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
               <div>
@@ -112,18 +124,24 @@ export default function KategoriPage() {
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
-              <button
-                onClick={fetchKategoris}
-                className="flex items-center gap-2 px-4 py-2 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm rounded-xl hover:bg-white/80 dark:hover:bg-neutral-800/80 transition-colors"
-              >
-                <IconRefresh className="w-4 h-4" />
-                Refresh
-              </button>
+            {/* Search and Action Container */}
+            <div className="flex items-center gap-3 w-full lg:w-auto">
+              <div className="relative flex-1 lg:w-64">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-500 z-10">
+                  <IconSearch size={18} />
+                </div>
+                <TextInput
+                  placeholder="Cari kategori..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 w-full"
+                />
+              </div>
               
               <AdminOnly>
-                <Button variant="primary" onClick={() => handleOpenModal()} leftIcon={<IconPlus size={18} />}>
-                  Tambah Kategori
+                <Button variant="primary" onClick={() => handleOpenModal()} leftIcon={<IconPlus size={18} />} className="shrink-0">
+                  <span className="hidden sm:inline">Tambah Kategori</span>
+                  <span className="sm:hidden">Tambah</span>
                 </Button>
               </AdminOnly>
             </div>
@@ -131,60 +149,85 @@ export default function KategoriPage() {
         </div>
 
         <div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl shadow-elevated mb-6 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-          <div className="overflow-x-auto h-full custom-scrollbar">
-            <table className="w-full min-w-[600px]">
-              <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md sticky top-0 z-10 border-b border-neutral-200/50 dark:border-neutral-800/50">
-                <tr>
-                  <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Nama Kategori</th>
-                  <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Dibuat Pada</th>
-                  <th className="px-5 py-4 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/50">
-                {loading ? (
-                  [...Array(3)].map((_, i) => (
-                    <tr key={i}>
-                      <td className="px-5 py-4"><div className="h-4 w-32 bg-neutral-200 dark:bg-neutral-700 rounded animate-pulse" /></td>
-                      <td className="px-5 py-4"><div className="h-4 w-24 bg-neutral-200 dark:bg-neutral-700 rounded animate-pulse" /></td>
-                      <td className="px-5 py-4"><div className="h-8 w-20 bg-neutral-200 dark:bg-neutral-700 rounded animate-pulse mx-auto" /></td>
-                    </tr>
-                  ))
-                ) : kategoris.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="px-5 py-12 text-center text-neutral-500">
-                      Tidak ada kategori
-                    </td>
-                  </tr>
-                ) : (
-                  kategoris.map(kategori => (
-                    <tr key={kategori.id} className="hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors">
-                      <td className="px-5 py-4 font-medium text-neutral-900 dark:text-neutral-100">{kategori.nama}</td>
-                      <td className="px-5 py-4 text-sm text-neutral-500">
-                        {formatDateWIB(kategori.created_at)}
-                      </td>
-                      <td className="px-5 py-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <AdminOnly>
-                            <button
-                              onClick={() => handleOpenModal(kategori)}
-                              className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800/50 text-neutral-600 dark:text-neutral-400 btn-press transition-colors"
-                            >
-                              <IconEdit className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirm({ isOpen: true, id: kategori.id, nama: kategori.nama })}
-                              className="p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 btn-press transition-colors"
-                            >
-                              <IconTrash className="w-5 h-5" />
-                            </button>
-                          </AdminOnly>
+          <div className="h-full custom-scrollbar overflow-y-auto">
+            {/* Desktop Header */}
+            <div className="hidden md:grid grid-cols-[1fr_200px_100px] gap-4 p-4 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md sticky top-0 z-10 border-b border-neutral-200/50 dark:border-neutral-800/50">
+              <div className="text-sm font-semibold text-neutral-600 dark:text-neutral-400">Nama Kategori</div>
+              <div className="text-sm font-semibold text-neutral-600 dark:text-neutral-400">Dibuat Pada</div>
+              <div className="text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400">Aksi</div>
+            </div>
+            
+            {/* List */}
+            <div className="divide-y divide-neutral-100 dark:divide-neutral-800/50">
+              {loading ? (
+                [...Array(3)].map((_, i) => (
+                  <div key={i} className="p-4 grid md:grid-cols-[1fr_200px_100px] gap-4 items-center">
+                    <div className="h-5 w-32 bg-neutral-200 dark:bg-neutral-700 rounded animate-pulse" />
+                    <div className="hidden md:block h-5 w-24 bg-neutral-200 dark:bg-neutral-700 rounded animate-pulse" />
+                    <div className="hidden md:block h-8 w-20 bg-neutral-200 dark:bg-neutral-700 rounded animate-pulse mx-auto" />
+                  </div>
+                ))
+              ) : filteredKategoris.length === 0 ? (
+                <div className="p-12 text-center text-neutral-500">
+                  {searchQuery ? 'Kategori tidak ditemukan' : 'Tidak ada kategori'}
+                </div>
+              ) : (
+                filteredKategoris.map(kategori => (
+                  <div key={kategori.id} className="p-4 flex md:grid md:grid-cols-[1fr_200px_100px] gap-3 md:gap-4 items-start md:items-center hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-neutral-900 dark:text-neutral-100 truncate">{kategori.nama}</div>
+                      {/* Mobile Date */}
+                      <div className="md:hidden text-xs text-neutral-500 mt-1">
+                        Dibuat pada: {formatDateWIB(kategori.created_at)}
+                      </div>
+                    </div>
+                    
+                    {/* Desktop Date */}
+                    <div className="hidden md:block text-sm text-neutral-500 whitespace-nowrap">
+                      {formatDateWIB(kategori.created_at)}
+                    </div>
+                    
+                    {/* Actions */}
+                    <div className="flex items-center md:justify-center shrink-0">
+                      <AdminOnly>
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (e.nativeEvent) {
+                                e.nativeEvent.stopImmediatePropagation();
+                              }
+                              setOpenActionId(openActionId === kategori.id ? null : kategori.id);
+                            }}
+                            className="p-2 -m-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800/50 text-neutral-600 dark:text-neutral-400 btn-press transition-colors"
+                            title="Opsi"
+                          >
+                            <IconDotsVertical className="w-5 h-5" />
+                          </button>
+                          
+                          {openActionId === kategori.id && (
+                            <div className="absolute right-0 top-full mt-2 z-50 min-w-[140px] py-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg animate-fade-in-up">
+                              <button
+                                onClick={() => { handleOpenModal(kategori); setOpenActionId(null); }}
+                                className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors"
+                              >
+                                <IconEdit className="w-4 h-4" /> Edit
+                              </button>
+                              <button
+                                onClick={() => { setDeleteConfirm({ isOpen: true, id: kategori.id, nama: kategori.nama }); setOpenActionId(null); }}
+                                className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
+                              >
+                                <IconTrash className="w-4 h-4" /> Hapus
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                      </AdminOnly>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>

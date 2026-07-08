@@ -5,6 +5,7 @@ export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, 
 
 export { DataTable, type Column, type SortDirection } from './DataTable/DataTable';
 export { Pagination, type PaginationProps } from './DataTable/Pagination';
+export { ModernPagination } from './ModernPagination';
 
 export { Breadcrumb, type BreadcrumbItem, default as BreadcrumbDefault } from './Breadcrumb/Breadcrumb';
 export { DropdownMenu, type DropdownMenuItem, default as DropdownMenuDefault } from './DropdownMenu/DropdownMenu';
@@ -26,3 +27,4 @@ export { SlideOver } from './SlideOver';
 export { Modal } from './Modal';
 export { default as AmbientLayout } from './AmbientLayout';
 export { Portal } from './Portal';
+export { FilterButton } from './FilterButton';

@@ -13,6 +13,7 @@ import {
   IconInbox,
   IconX,
   IconDeviceFloppy,
+  IconDotsVertical,
 } from '@tabler/icons-react';
 import {
   AmbientLayout,
@@ -50,6 +51,14 @@ export default function SupplierPage() {
   // Delete Confirm State
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
+
+  const [openActionId, setOpenActionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const closeMenu = () => setOpenActionId(null);
+    document.addEventListener('click', closeMenu);
+    return () => document.removeEventListener('click', closeMenu);
+  }, []);
 
   const { showToast } = useToast();
   
@@ -315,7 +324,7 @@ export default function SupplierPage() {
       <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)] lg:min-h-0">
         {/* Header Section */}
         <div className="mb-4 lg:mb-6 flex-shrink-0 animate-fade-in-up">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-4 lg:mb-5">
             <div className="flex items-center gap-4 pl-12 lg:pl-0">
               <IconTruck className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
               <div>
@@ -327,34 +336,36 @@ export default function SupplierPage() {
                 </p>
               </div>
             </div>
-            {showAdminActions && (
-              <Button
-                onClick={handleAddClick}
-                leftIcon={<IconPlus className="w-5 h-5" />}
-                variant="primary"
-                className="shadow-brand rounded-xl"
-              >
-                <span className="hidden sm:inline">Tambah Supplier</span>
-              </Button>
-            )}
-          </div>
-
-          {/* Search bar */}
-          <div className="flex gap-3 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
-            <div className="relative flex-1 max-w-md">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
-                <IconSearch size={20} />
+            
+            {/* Search and Action Container */}
+            <div className="flex items-center gap-3 w-full lg:w-auto">
+              <div className="relative flex-1 lg:w-64 max-w-md lg:max-w-none">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 z-10 pointer-events-none">
+                  <IconSearch size={20} />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Cari nama, kontak..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-full pl-11 pr-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-neutral-900 dark:text-white"
+                />
               </div>
-              <input
-                type="text"
-                placeholder="Cari nama, kontak, atau alamat..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-neutral-900 border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-neutral-900 dark:text-white"
-              />
+              
+              {showAdminActions && (
+                <Button
+                  onClick={handleAddClick}
+                  leftIcon={<IconPlus className="w-5 h-5" />}
+                  variant="primary"
+                  className="shadow-brand rounded-xl shrink-0"
+                >
+                  <span className="hidden sm:inline">Tambah Supplier</span>
+                  <span className="sm:hidden">Tambah</span>
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -401,24 +412,41 @@ export default function SupplierPage() {
                 mobileRender={(item: Supplier) => (
                   <div className="p-4 flex flex-col gap-3">
                     <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-semibold text-neutral-900 dark:text-neutral-100">{item.nama}</div>
-                        <div className="text-sm text-neutral-500">{item.kontak || '-'}</div>
+                      <div className="flex-1 min-w-0 pr-2">
+                        <div className="font-semibold text-neutral-900 dark:text-neutral-100 truncate">{item.nama}</div>
+                        <div className="text-sm text-neutral-500 truncate mt-0.5">{item.kontak || '-'}</div>
                       </div>
                       {showAdminActions && (
-                        <div className="flex gap-1">
+                        <div className="relative shrink-0">
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleEditClick(item); }}
-                            className="p-2 rounded-lg text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (e.nativeEvent) {
+                                e.nativeEvent.stopImmediatePropagation();
+                              }
+                              setOpenActionId(openActionId === item.id ? null : item.id);
+                            }}
+                            className="p-2 -m-2 rounded-xl text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition-colors"
                           >
-                            <IconEdit size={18} stroke={2} />
+                            <IconDotsVertical size={20} stroke={2} />
                           </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleDeleteClick(item); }}
-                            className="p-2 rounded-lg text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30 transition-colors"
-                          >
-                            <IconTrash size={18} stroke={2} />
-                          </button>
+                          
+                          {openActionId === item.id && (
+                            <div className="absolute right-0 top-full mt-2 z-50 min-w-[140px] py-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg animate-fade-in-up">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleEditClick(item); setOpenActionId(null); }}
+                                className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors"
+                              >
+                                <IconEdit className="w-4 h-4" /> Edit
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeleteClick(item); setOpenActionId(null); }}
+                                className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
+                              >
+                                <IconTrash className="w-4 h-4" /> Hapus
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

@@ -148,7 +148,7 @@ export default function LabelTemplatesPage() {
               <p className="text-xs lg:text-base text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 font-medium">Kelola template desain cetak label barcode Anda.</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 animate-fade-in-up flex-wrap lg:flex-nowrap">
+          <div className="flex items-center gap-3 animate-fade-in-up w-full lg:w-auto">
             <Button
               variant="primary"
               onClick={() => {
@@ -162,10 +162,10 @@ export default function LabelTemplatesPage() {
                 setError(null);
                 setIsModalOpen(true);
               }}
-              className="flex items-center gap-2 rounded-xl shadow-sm hover:shadow-md transition-shadow"
+              className="flex items-center justify-center gap-2 rounded-xl shadow-sm hover:shadow-md transition-shadow w-full lg:w-auto py-2.5 lg:py-2"
             >
               <IconPlus size={20} />
-              <span className="hidden sm:inline font-medium">Tambah Template</span>
+              <span className="font-medium">Tambah Template</span>
             </Button>
           </div>
         </div>
@@ -174,7 +174,8 @@ export default function LabelTemplatesPage() {
       <div className="flex-1 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
         <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-neutral-800/60 rounded-3xl shadow-elevated overflow-hidden min-h-[400px] flex flex-col">
           <div className="overflow-x-auto flex-1">
-            <table className="w-full text-left border-collapse min-w-[800px]">
+            {/* Desktop Table */}
+            <table className="w-full text-left border-collapse min-w-[800px] hidden md:table">
               <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-b border-neutral-200/50 dark:border-neutral-800/50">
                 <tr>
                   <th className="p-4 font-semibold text-neutral-600 dark:text-neutral-300">Nama Template</th>
@@ -238,23 +239,88 @@ export default function LabelTemplatesPage() {
                 )}
               </tbody>
             </table>
+
+            {/* Mobile View */}
+            <div className="md:hidden flex flex-col p-4 gap-4">
+              {loading ? (
+                [...Array(3)].map((_, i) => (
+                  <div key={i} className="border border-neutral-100 dark:border-neutral-800/50 rounded-2xl p-4 space-y-3">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="h-5 w-40 bg-neutral-200 dark:bg-neutral-800 rounded animate-pulse" />
+                      <div className="h-6 w-16 bg-neutral-200 dark:bg-neutral-800 rounded-full animate-pulse" />
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="h-4 w-20 bg-neutral-200 dark:bg-neutral-800 rounded animate-pulse" />
+                      <div className="h-4 w-32 bg-neutral-200 dark:bg-neutral-800 rounded animate-pulse" />
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800/50 mt-2">
+                      <div className="h-9 w-9 bg-neutral-200 dark:bg-neutral-800 rounded animate-pulse" />
+                      <div className="h-9 w-9 bg-neutral-200 dark:bg-neutral-800 rounded animate-pulse" />
+                    </div>
+                  </div>
+                ))
+              ) : templates.length === 0 ? (
+                <div className="flex flex-col items-center justify-center text-neutral-500 dark:text-neutral-400 py-10">
+                  <IconTemplate className="w-12 h-12 mb-3 text-neutral-300 dark:text-neutral-700" />
+                  <p>Belum ada template</p>
+                </div>
+              ) : (
+                templates.map((t) => (
+                  <div key={t.id} className="bg-white/50 dark:bg-neutral-900/30 border border-neutral-100 dark:border-neutral-800/50 rounded-2xl p-4 flex flex-col gap-3 relative overflow-hidden">
+                    <div className="absolute top-4 right-4">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold shadow-sm uppercase tracking-wider ${t.active ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800/50' : 'bg-gray-100 text-gray-800 dark:bg-neutral-800 dark:text-neutral-300 border border-gray-200 dark:border-neutral-700'}`}>
+                        {t.active ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    </div>
+                    
+                    <div className="pr-20">
+                      <h3 className="font-bold text-neutral-900 dark:text-neutral-100 text-base mb-1">{t.name}</h3>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400 font-medium">
+                        <span className="flex items-center gap-1.5"><IconTemplate size={14} className="text-neutral-400" /> {t.language}</span>
+                        <span className="w-1 h-1 rounded-full bg-neutral-300 dark:bg-neutral-700"></span>
+                        <span>{formatDateWIB(t.created_at)}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-3 border-t border-neutral-100 dark:border-neutral-800/50 mt-1">
+                      <Button 
+                        onClick={() => handleEdit(t)}
+                        variant="secondary"
+                        size="sm"
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2 px-3 text-brand-600 bg-brand-50 hover:bg-brand-100 dark:bg-brand-900/20 dark:text-brand-400 dark:hover:bg-brand-900/40 border-transparent h-auto rounded-lg"
+                      >
+                        <IconEdit size={16} /> Edit
+                      </Button>
+                      <Button 
+                        onClick={() => handleDelete(t.id)}
+                        variant="secondary"
+                        size="sm"
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2 px-3 text-accent-rose-600 bg-accent-rose-50 hover:bg-accent-rose-100 dark:bg-accent-rose-900/20 dark:text-accent-rose-400 dark:hover:bg-accent-rose-900/40 border-transparent h-auto rounded-lg"
+                      >
+                        <IconTrash size={16} /> Hapus
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {isModalOpen && (
         <Portal>
-          <div className="fixed inset-0 bg-neutral-900/60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm animate-fade-in" onClick={() => setIsModalOpen(false)}>
-            <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-elevated w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] border border-neutral-200 dark:border-neutral-800 animate-scale-in" onClick={e => e.stopPropagation()}>
-              <div className="px-6 py-4 border-b border-neutral-100 dark:border-neutral-800 flex justify-between items-center bg-neutral-50/50 dark:bg-neutral-950/50">
-                <h2 className="text-xl font-bold text-neutral-900 dark:text-white tracking-tight">{editingId ? 'Edit Template' : 'Tambah Template Baru'}</h2>
-                <button onClick={() => setIsModalOpen(false)} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors">
-                  <IconX size={24} />
+          <div className="fixed inset-0 bg-neutral-900/60 flex items-end sm:items-center justify-center z-[100] sm:p-4 backdrop-blur-sm animate-fade-in" onClick={() => setIsModalOpen(false)}>
+            <div className="bg-white dark:bg-neutral-900 w-full sm:rounded-2xl shadow-elevated max-w-2xl overflow-hidden flex flex-col h-[90vh] sm:h-auto sm:max-h-[90vh] border-t sm:border border-neutral-200 dark:border-neutral-800 animate-slide-up sm:animate-scale-in rounded-t-2xl sm:rounded-b-2xl" onClick={e => e.stopPropagation()}>
+              <div className="px-4 sm:px-6 py-4 border-b border-neutral-100 dark:border-neutral-800 flex justify-between items-center bg-neutral-50/50 dark:bg-neutral-950/50">
+                <h2 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">{editingId ? 'Edit Template' : 'Tambah Template Baru'}</h2>
+                <button onClick={() => setIsModalOpen(false)} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800">
+                  <IconX size={22} />
                 </button>
               </div>
               
               <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-                <div className="p-6 overflow-y-auto space-y-4">
+                <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
                   {error && (
                     <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm border border-red-200 dark:border-red-800/50 shadow-sm">{error}</div>
                   )}
@@ -310,11 +376,12 @@ export default function LabelTemplatesPage() {
                   </div>
                 </div>
                 
-                <div className="px-6 py-4 border-t border-neutral-100 dark:border-neutral-800 flex justify-end gap-3 bg-neutral-50/50 dark:bg-neutral-950/50">
+                <div className="px-4 sm:px-6 py-4 border-t border-neutral-100 dark:border-neutral-800 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 bg-neutral-50/50 dark:bg-neutral-950/50 pb-safe">
                   <Button 
                     type="button" 
                     variant="secondary"
                     onClick={() => setIsModalOpen(false)}
+                    className="w-full sm:w-auto order-2 sm:order-1"
                   >
                     Batal
                   </Button>
@@ -322,6 +389,7 @@ export default function LabelTemplatesPage() {
                     type="submit" 
                     variant="primary"
                     disabled={saving}
+                    className="w-full sm:w-auto order-1 sm:order-2"
                   >
                     {saving ? 'Menyimpan...' : 'Simpan'}
                   </Button>

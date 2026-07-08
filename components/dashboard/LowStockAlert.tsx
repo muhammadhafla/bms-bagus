@@ -40,7 +40,7 @@ function LowStockItemRow({ item }: { item: LowStockItem }) {
           {item.stok} / {item.minimum_stock}
         </span>
         
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
           <Link
             href="/purchasing"
             className="p-1.5 rounded-md hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 transition-colors"

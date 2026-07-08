@@ -3,7 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { IconHistory, IconFilter, IconX, IconShoppingCart, IconPackage } from '@tabler/icons-react';
-import { AmbientLayout, DateRangePicker, Tabs, SlideOver, Button } from '@/components/ui';
+import { AmbientLayout, DateRangePicker, Tabs, SlideOver, Button, FilterButton } from '@/components/ui';
 
 import { RiwayatPenjualanTab } from '@/components/transactions/RiwayatPenjualanTab';
 import { RiwayatPembelianTab } from '@/components/transactions/RiwayatPembelianTab';
@@ -86,25 +86,17 @@ function TransactionsHistoryContent() {
     <AmbientLayout>
       <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)] lg:min-h-0">
         <div>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5 animate-fade-in-up pl-12 lg:pl-0">
-            <div className="flex items-center gap-4">
-              <IconHistory className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
+          <div className="flex flex-row items-start justify-between gap-3 mb-5 animate-fade-in-up pl-12 lg:pl-0">
+            <div className="flex items-start lg:items-center gap-3 lg:gap-4">
+              <IconHistory className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0 mt-0.5 lg:mt-0" stroke={1.5} />
               <div>
-                <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Riwayat Transaksi</h1>
-                <p className="text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 text-xs lg:text-base font-medium">Rekapitulasi aktivitas penjualan dan pembelian</p>
+                <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight leading-tight">Riwayat Transaksi</h1>
+                <p className="text-neutral-500 dark:text-neutral-400 mt-1 lg:mt-2 text-xs lg:text-base font-medium">Rekapitulasi aktivitas penjualan dan pembelian</p>
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
-               <Button variant="secondary" onClick={handleOpenFilter} className="h-10">
-                  <IconFilter size={18} />
-                  <span className="hidden sm:inline">Filter</span>
-                  {activeFilters.length > 0 && (
-                    <span className="ml-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
-                      {activeFilters.length}
-                    </span>
-                  )}
-               </Button>
+            <div className="shrink-0">
+               <FilterButton onClick={handleOpenFilter} activeCount={activeFilters.length} />
             </div>
           </div>
 

@@ -239,3 +239,23 @@ export const formatDateTimeWIB = (date: Date | string | null | undefined, option
     ...options
   });
 };
+
+/**
+ * Export data array to CSV file and trigger download
+ */
+export const exportToCSV = (data: (string | number)[][], headers: string[], filename: string) => {
+  const arrayToCsv = (h: string[], rows: (string | number)[][]) => {
+    return [
+      h.join(','),
+      ...rows.map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+  };
+
+  const csvData = arrayToCsv(headers, data);
+  const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+};

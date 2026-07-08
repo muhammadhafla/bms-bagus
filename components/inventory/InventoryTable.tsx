@@ -278,56 +278,57 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
       </div>
 
       {/* Mobile Card Layout */}
-      <div className="block lg:hidden space-y-4">
+      <div className="block lg:hidden space-y-3">
         {items.map((item) => {
           const isLowStock = item.stok <= (item.minimum_stock || 0);
           return (
             <div 
               key={item.id} 
-              className={`p-4 rounded-2xl border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm flex flex-col gap-3 ${isLowStock ? 'bg-red-50/30 dark:bg-red-900/20' : 'bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl'}`}
+              className={`p-3 rounded-2xl border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm flex flex-col gap-2 ${isLowStock ? 'bg-red-50/30 dark:bg-red-900/20' : 'bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl'}`}
             >
               <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-semibold text-neutral-900 dark:text-white text-base">{item.nama_barang}</h3>
-                  <p className="text-sm font-mono text-neutral-500 dark:text-neutral-400">{item.kode_barcode}</p>
+                <div className="flex-1 pr-2">
+                  <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                    <h3 className="font-semibold text-neutral-900 dark:text-white text-sm leading-tight line-clamp-1">{item.nama_barang}</h3>
+                    {isLowStock && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 whitespace-nowrap shrink-0">
+                        Low Stock
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-xs font-mono text-neutral-500 dark:text-neutral-400">{item.kode_barcode}</p>
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                      {item.id_kategori?.nama || '-'}
+                    </span>
+                  </div>
                 </div>
                 <button
                   onClick={() => openSlideOver(item)}
-                  className="p-2 -mr-2 -mt-2 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition-colors"
+                  className="p-1 -mr-1 -mt-1 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition-colors shrink-0"
                 >
                   <IconDotsVertical size={18} stroke={2} />
                 </button>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
-                  {item.id_kategori?.nama || '-'}
-                </span>
-                {isLowStock && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400">
-                    Low Stock
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[13px] mt-1 pt-2 border-t border-neutral-100 dark:border-neutral-800/60">
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-500 dark:text-neutral-400 text-xs">Beli</span>
+                  <span className="font-medium text-neutral-900 dark:text-neutral-100">{formatCurrency(item.harga_beli_terakhir || 0)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-500 dark:text-neutral-400 text-xs">Jual</span>
+                  <span className="font-medium text-neutral-900 dark:text-neutral-100">{formatCurrency(item.harga_jual)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-500 dark:text-neutral-400 text-xs">Diskon</span>
+                  <span className="font-medium text-neutral-900 dark:text-neutral-100">{formatCurrency(item.diskon)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-500 dark:text-neutral-400 text-xs">Stok</span>
+                  <span className={`font-bold ${isLowStock ? 'text-red-600 dark:text-red-400' : 'text-neutral-900 dark:text-neutral-100'}`}>
+                    {item.stok} <span className="text-[10px] font-normal text-neutral-500">/{item.minimum_stock}</span>
                   </span>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-sm mt-1">
-                <div>
-                  <p className="text-neutral-500 dark:text-neutral-400 text-xs">Harga Beli</p>
-                  <p className="font-medium text-neutral-900 dark:text-neutral-100">{formatCurrency(item.harga_beli_terakhir || 0)}</p>
-                </div>
-                <div>
-                  <p className="text-neutral-500 dark:text-neutral-400 text-xs">Harga Jual</p>
-                  <p className="font-medium text-neutral-900 dark:text-neutral-100">{formatCurrency(item.harga_jual)}</p>
-                </div>
-                <div>
-                  <p className="text-neutral-500 dark:text-neutral-400 text-xs">Diskon</p>
-                  <p className="font-medium text-neutral-900 dark:text-neutral-100">{formatCurrency(item.diskon)}</p>
-                </div>
-                <div>
-                  <p className="text-neutral-500 dark:text-neutral-400 text-xs">Stok</p>
-                  <p className={`font-bold ${isLowStock ? 'text-red-600 dark:text-red-300' : 'text-neutral-900 dark:text-neutral-100'}`}>
-                    {item.stok} <span className="text-xs font-normal text-neutral-500">(Min: {item.minimum_stock})</span>
-                  </p>
                 </div>
               </div>
             </div>

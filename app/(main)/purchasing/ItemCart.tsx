@@ -33,7 +33,7 @@ export function ItemCart({
           <IconCamera className="w-14 h-14 text-neutral-400" stroke={1.5} />
         </div>
         <p className="text-lg font-bold text-neutral-600 dark:text-neutral-300">Scan barcode untuk menambah barang</p>
-        <p className="text-sm text-neutral-500 mt-2">Atau tekan F2 untuk edit Qty, F3 untuk edit harga</p>
+        <p className="text-sm text-neutral-500 mt-2 hidden lg:block">Atau tekan F2 untuk edit Qty, F3 untuk edit harga</p>
       </div>
     );
   }

@@ -29,6 +29,7 @@ export default function InventoryPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [kategori, setKategori] = useState('');
   const [lowStockOnly, setLowStockOnly] = useState(false);
+  const [activeStatus, setActiveStatus] = useState<'all' | 'active' | 'discontinued'>('all');
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
@@ -49,17 +50,23 @@ export default function InventoryPage() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, kategori, lowStockOnly]);
+  }, [debouncedSearch, kategori, lowStockOnly, activeStatus]);
 
   const { data: inventoryData, isLoading: loading, error: queryError, refetch } = useQuery({
-    queryKey: ['inventory', { page, search: debouncedSearch, categoryName: kategori, lowStockOnly }],
+    queryKey: ['inventory', { page, search: debouncedSearch, categoryName: kategori, lowStockOnly, activeStatus }],
     queryFn: () => inventoryApi.getPaginated({
       page,
       limit: ITEMS_PER_PAGE,
       search: debouncedSearch,
       categoryName: kategori,
       lowStockOnly,
+      activeStatus,
     }),
+  });
+
+  const { data: globalLowStockCount } = useQuery({
+    queryKey: ['inventory', 'low-stock-count', { search: debouncedSearch, categoryName: kategori }],
+    queryFn: () => inventoryApi.getLowStockCount({ search: debouncedSearch, categoryName: kategori }),
   });
 
   const { data: kategoriResponse } = useQuery({
@@ -83,7 +90,7 @@ export default function InventoryPage() {
     }
   }, [queryClient]);
 
-  const lowStockCount = items.filter(item => item.minimum_stock != null && item.stok <= item.minimum_stock).length;
+  const lowStockCount = globalLowStockCount || 0;
 
   const handleFocusSearch = useCallback(() => {
     searchInputRef.current?.focus();
@@ -107,6 +114,7 @@ export default function InventoryPage() {
         setSearch('');
         setKategori('');
         setLowStockOnly(false);
+        setActiveStatus('all');
       },
       description: 'Reset filter',
     },
@@ -139,76 +147,97 @@ export default function InventoryPage() {
       )}
       
       <div className="mb-4 lg:mb-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
-          <div className="flex items-center gap-4 animate-fade-in-up pl-12 lg:pl-0">
+        <div className="flex flex-row items-start lg:items-center justify-between gap-4 mb-4 lg:mb-5">
+          <div className="flex items-center gap-3 lg:gap-4 animate-fade-in-up pl-12 lg:pl-0">
             <IconPackage className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
             <div>
               <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Stok</h1>
               <p className="text-xs lg:text-base text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 font-medium">Kelola data dan stok barang.</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 animate-fade-in-up flex-wrap lg:flex-nowrap">
+          <div className="flex items-center gap-2 sm:gap-3 animate-fade-in-up">
             {lowStockCount > 0 && (
-              <span className="bg-accent-rose-50 dark:bg-accent-rose-950/40 text-accent-rose-600 dark:text-accent-rose-300 px-4 py-2 rounded-xl text-sm font-semibold border border-accent-rose-200 dark:border-accent-rose-800 flex items-center gap-2">
+              <span className="hidden sm:flex bg-accent-rose-50 dark:bg-accent-rose-950/40 text-accent-rose-600 dark:text-accent-rose-300 px-4 py-2 rounded-xl text-sm font-semibold border border-accent-rose-200 dark:border-accent-rose-800 items-center gap-2">
                 <span className="w-2 h-2 bg-accent-rose-500 rounded-full animate-pulse"></span>
-                {lowStockCount} barang low stock
+                {lowStockCount} low stock
               </span>
             )}
             <Button
               variant="secondary"
               onClick={() => setShowImportModal(true)}
-              className="flex items-center gap-2 rounded-xl shadow-sm hover:shadow-md transition-shadow"
+              className="flex items-center justify-center gap-2 rounded-xl shadow-sm hover:shadow-md transition-shadow h-10 w-10 sm:h-auto sm:w-auto !p-0 sm:!px-4 sm:!py-2 shrink-0"
             >
-              <IconUpload size={20} />
+              <IconUpload size={20} className="shrink-0" />
               <span className="hidden sm:inline font-medium">Import CSV</span>
             </Button>
           </div>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <div className="relative flex-1 w-full animate-fade-in-up" style={{ animationDelay: '50ms' }}>
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
-              <IconSearch size={20} />
-            </div>
-            <input
-              ref={searchInputRef}
-              type="text"
-              placeholder="Cari nama atau barcode"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all"
-            />
+        {lowStockCount > 0 && (
+          <div className="sm:hidden mb-4 animate-fade-in-up">
+            <span className="bg-accent-rose-50 dark:bg-accent-rose-950/40 text-accent-rose-600 dark:text-accent-rose-300 px-4 py-2 rounded-xl text-xs font-semibold border border-accent-rose-200 dark:border-accent-rose-800 flex items-center gap-2">
+              <span className="w-2 h-2 bg-accent-rose-500 rounded-full animate-pulse"></span>
+              {lowStockCount} barang low stock
+            </span>
           </div>
-          
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-            <Button variant="secondary" size="sm" onClick={() => setIsFilterOpen(true)} className="shrink-0 h-[40px] w-full sm:w-auto justify-center">
-              <IconFilter size={18} />
-              <span className="hidden sm:inline">Filter</span>
-              {(kategori || lowStockOnly) && (
-                <span className="ml-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
-                  {(kategori ? 1 : 0) + (lowStockOnly ? 1 : 0)}
+        )}
+        
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-row items-center gap-2 w-full animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+            <div className="relative flex-1">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                <IconSearch size={18} />
+              </div>
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Cari nama atau barcode"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 sm:py-3 bg-white dark:bg-neutral-900 border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-sm sm:text-base"
+              />
+            </div>
+            
+            <Button 
+              variant="secondary" 
+              onClick={() => setIsFilterOpen(true)} 
+              className="shrink-0 h-[40px] sm:h-[46px] w-[40px] sm:w-auto !p-0 sm:!px-4 flex items-center justify-center rounded-xl relative"
+            >
+              <IconFilter size={18} className="shrink-0" />
+              <span className="hidden sm:inline ml-2">Filter</span>
+              {(kategori || lowStockOnly || activeStatus !== 'all') && (
+                <span className="absolute -top-1 -right-1 sm:static sm:ml-1.5 flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-brand-500 sm:bg-brand-100 text-[10px] sm:text-xs font-bold text-white sm:text-brand-600 border border-white sm:border-0 dark:border-neutral-900 dark:sm:bg-brand-900/30 dark:sm:text-brand-400">
+                  {(kategori ? 1 : 0) + (lowStockOnly ? 1 : 0) + (activeStatus !== 'all' ? 1 : 0)}
                 </span>
               )}
             </Button>
-            
-            <div className="flex overflow-x-auto whitespace-nowrap gap-2 items-center py-1 w-full sm:w-auto no-scrollbar">
-              {kategori && (
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                  {kategori}
-                  <button onClick={() => setKategori('')} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
-                    <IconX size={14} />
-                  </button>
-                </div>
-              )}
-              {lowStockOnly && (
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                  Low Stock
-                  <button onClick={() => setLowStockOnly(false)} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
-                    <IconX size={14} />
-                  </button>
-                </div>
-              )}
-            </div>
+          </div>
+          
+          <div className="flex overflow-x-auto whitespace-nowrap gap-2 items-center py-1 w-full no-scrollbar animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+            {kategori && (
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                {kategori}
+                <button onClick={() => setKategori('')} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
+                  <IconX size={14} />
+                </button>
+              </div>
+            )}
+            {activeStatus !== 'all' && (
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                {activeStatus === 'active' ? 'Barang Aktif' : 'Discontinue'}
+                <button onClick={() => setActiveStatus('all')} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
+                  <IconX size={14} />
+                </button>
+              </div>
+            )}
+            {lowStockOnly && (
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                Low Stock
+                <button onClick={() => setLowStockOnly(false)} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
+                  <IconX size={14} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -236,6 +265,20 @@ export default function InventoryPage() {
             />
           </div>
 
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Status Barang:</label>
+            <SelectInput
+              value={activeStatus}
+              onChange={(val) => setActiveStatus(val as 'all' | 'active' | 'discontinued')}
+              options={[
+                { value: 'all', label: 'Semua Status' },
+                { value: 'active', label: 'Hanya Barang Aktif' },
+                { value: 'discontinued', label: 'Hanya Discontinue' }
+              ]}
+              className="w-full"
+            />
+          </div>
+
           <div className="pt-4 mt-6 border-t border-neutral-200 dark:border-neutral-800 flex gap-3">
             <Button 
               variant="secondary" 
@@ -243,6 +286,7 @@ export default function InventoryPage() {
               onClick={() => {
                 setKategori('');
                 setLowStockOnly(false);
+                setActiveStatus('all');
               }}
             >
               Reset Filter

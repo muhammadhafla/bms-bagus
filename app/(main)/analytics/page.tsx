@@ -1,0 +1,284 @@
+'use client';
+
+import React, { useState, useEffect, Suspense } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { analyticsApi, kategoriApi } from '@/lib/api';
+import { IconDashboard, IconPackage, IconShoppingCart, IconTrendingUp, IconChartBar, IconFilter, IconX } from '@tabler/icons-react';
+import { DateRangePicker, Tabs, SelectInput, SlideOver, Button } from '@/components/ui';
+
+import { BusiestTimeChart } from '@/components/analytics/BusiestTimeChart';
+import { CategoryPieChart } from '@/components/analytics/CategoryPieChart';
+import { PaymentMethodChart } from '@/components/analytics/PaymentMethodChart';
+import { StockVelocityTable } from '@/components/analytics/StockVelocityTable';
+import { ProfitabilityAndAtvCards } from '@/components/analytics/ProfitabilityAndAtvCards';
+
+import { StockReportTab } from './tabs/StockReportTab';
+import { SalesReportTab } from './tabs/SalesReportTab';
+import { ProfitReportTab } from './tabs/ProfitReportTab';
+import { TopItemsReportTab } from './tabs/TopItemsReportTab';
+import { ValueReportTab } from './tabs/ValueReportTab';
+
+type ReportType = 'overview' | 'stock' | 'sales' | 'profit' | 'top_items' | 'value';
+
+export default function AnalyticsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-neutral-500">Memuat analisis...</div>}>
+      <AnalyticsContent />
+    </Suspense>
+  );
+}
+
+function AnalyticsContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const activeTab = (searchParams.get('type') as ReportType) || 'overview';
+
+  const setActiveTab = (type: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('type', type);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  const today = new Date();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+
+  // Unified Date State
+  const [startDate, setStartDate] = useState<string>(formatDate(thirtyDaysAgo));
+  const [endDate, setEndDate] = useState<string>(formatDate(today));
+
+  // Overview Queries
+  const { data: categoriesData, isLoading: isLoadingCategories } = useQuery({
+    queryKey: ['analytics', 'categories', startDate, endDate],
+    queryFn: () => analyticsApi.getCategoryPerformance(startDate, endDate).then(res => res.data),
+    enabled: activeTab === 'overview'
+  });
+
+  const { data: payments, isLoading: isLoadingPayments } = useQuery({
+    queryKey: ['analytics', 'payments', startDate, endDate],
+    queryFn: () => analyticsApi.getPaymentMethods(startDate, endDate).then(res => res.data),
+    enabled: activeTab === 'overview'
+  });
+
+  const { data: stockVelocity, isLoading: isLoadingVelocity } = useQuery({
+    queryKey: ['analytics', 'velocity', startDate, endDate],
+    queryFn: () => analyticsApi.getStockVelocity(startDate, endDate).then(res => res.data),
+    enabled: activeTab === 'overview'
+  });
+
+  const { data: profitability, isLoading: isLoadingProfitability } = useQuery({
+    queryKey: ['analytics', 'profitability', startDate, endDate],
+    queryFn: () => analyticsApi.getProfitability(startDate, endDate).then(res => res.data),
+    enabled: activeTab === 'overview'
+  });
+
+  const { data: atv, isLoading: isLoadingAtv } = useQuery({
+    queryKey: ['analytics', 'atv', startDate, endDate],
+    queryFn: () => analyticsApi.getAtv(startDate, endDate).then(res => res.data),
+    enabled: activeTab === 'overview'
+  });
+
+  // Report Filter State
+  const [categoryId, setCategoryId] = useState('');
+  const [categoriesList, setCategoriesList] = useState<{id: string, nama: string}[]>([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [topItemsSort, setTopItemsSort] = useState<'qty'|'profit'>('qty');
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const res = await kategoriApi.getAll();
+      if (!res.error && res.data) {
+        setCategoriesList(res.data);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  const tabItems = [
+    { id: 'overview', label: 'Dasbor Visual', icon: <IconDashboard className="w-4 h-4" /> },
+    { id: 'stock', label: 'Mutasi Stock', icon: <IconPackage className="w-4 h-4" /> },
+    { id: 'sales', label: 'Penjualan', icon: <IconShoppingCart className="w-4 h-4" /> },
+    { id: 'profit', label: 'Profit', icon: <IconTrendingUp className="w-4 h-4" /> },
+    { id: 'top_items', label: 'Top Items', icon: <IconChartBar className="w-4 h-4" /> },
+    { id: 'value', label: 'Nilai Inventaris', icon: <IconPackage className="w-4 h-4" /> },
+  ];
+
+  const getActiveFilters = () => {
+    const badges = [];
+    if (['sales', 'profit', 'top_items'].includes(activeTab) && categoryId) {
+      const cat = categoriesList.find(c => c.id === categoryId);
+      if (cat) {
+        badges.push({ id: 'category', label: `Kategori: ${cat.nama}`, onRemove: () => setCategoryId('') });
+      }
+    }
+    if (activeTab === 'top_items') {
+      badges.push({ id: 'sort', label: `Urutan: ${topItemsSort === 'qty' ? 'Kuantitas' : 'Profit'}`, onRemove: null });
+    }
+    return badges;
+  };
+
+  const activeFilters = getActiveFilters();
+  const showFilterButton = ['sales', 'profit', 'top_items'].includes(activeTab);
+
+  return (
+    <div className="flex flex-col h-full w-full max-w-7xl mx-auto pb-8">
+      {/* Header */}
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in-up">
+        <div>
+          <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
+            Analisis & Laporan
+          </h1>
+          <p className="text-neutral-500 dark:text-neutral-400 mt-1 text-sm lg:text-base font-medium">
+            Wawasan mendalam mengenai performa penjualan dan produk.
+          </p>
+        </div>
+        
+        <div className="w-full sm:w-auto">
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onChange={(start, end) => {
+              setStartDate(start);
+              setEndDate(end);
+            }}
+            label="Rentang Waktu Laporan"
+            className="w-full sm:w-[320px]"
+          />
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="mb-4 animate-fade-in-up [animation-delay:50ms]">
+        <Tabs items={tabItems} activeId={activeTab} onChange={setActiveTab} />
+      </div>
+
+      {/* Global Filter Bar (Only for non-overview if they have specific filters) */}
+      {showFilterButton && (
+        <div className="mb-4 md:mb-6 animate-fade-in-up [animation-delay:75ms] flex items-center justify-between w-full gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setIsFilterOpen(true)} className="shrink-0 h-8 md:h-[40px] px-2 md:px-3">
+            <IconFilter className="w-4 h-4 md:w-[18px] md:h-[18px]" />
+            <span className="hidden sm:inline text-xs md:text-sm">Filter Tambahan</span>
+            <span className="sm:hidden text-xs font-medium ml-1">Filter</span>
+            {activeFilters.length > 0 && (
+              <span className="ml-1.5 flex h-4 w-4 md:h-5 md:w-5 items-center justify-center rounded-full bg-brand-100 text-[10px] md:text-xs font-bold text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
+                {activeFilters.length}
+              </span>
+            )}
+          </Button>
+
+          <div className="flex-1 min-w-0 flex overflow-x-auto whitespace-nowrap gap-1.5 md:gap-2 items-center py-1 no-scrollbar">
+            {activeFilters.length === 0 ? (
+              <span className="text-xs md:text-sm text-neutral-500 dark:text-neutral-400 italic">Tanpa filter tambahan</span>
+            ) : (
+              <>
+                {activeFilters.map(badge => (
+                  <div key={badge.id} className="inline-flex items-center gap-1 md:gap-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 px-2.5 py-0.5 md:px-3 md:py-1 text-[10px] md:text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                    {badge.label}
+                    {badge.onRemove && (
+                      <button onClick={badge.onRemove} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
+                        <IconX className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  onClick={() => {
+                    setCategoryId('');
+                    setTopItemsSort('qty');
+                  }}
+                  className="text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline px-2"
+                >
+                  Clear All
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* SlideOver for advanced filters */}
+      <SlideOver isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filter Tambahan">
+        <div className="space-y-6">
+          {['sales', 'profit', 'top_items'].includes(activeTab) && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Kategori:</label>
+              <SelectInput
+                value={categoryId}
+                onChange={setCategoryId}
+                options={[{ value: '', label: 'Semua Kategori' }, ...categoriesList.map(c => ({ value: c.id, label: c.nama }))]}
+                placeholder="Semua Kategori"
+                className="w-full"
+              />
+            </div>
+          )}
+
+          {activeTab === 'top_items' && (
+            <div className="flex flex-col gap-2 pt-2">
+              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Urutkan berdasarkan:</label>
+              <div className="flex flex-col gap-2">
+                <Button 
+                  variant={topItemsSort === 'qty' ? 'primary' : 'secondary'} 
+                  onClick={() => setTopItemsSort('qty')}
+                  className="w-full justify-start"
+                >
+                  Qty Terjual
+                </Button>
+                <Button 
+                  variant={topItemsSort === 'profit' ? 'primary' : 'secondary'} 
+                  onClick={() => setTopItemsSort('profit')}
+                  className="w-full justify-start"
+                >
+                  Total Profit
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          <div className="pt-4 mt-6 border-t border-neutral-200 dark:border-neutral-800 flex gap-3">
+            <Button 
+              variant="secondary" 
+              className="w-1/2" 
+              onClick={() => {
+                setCategoryId('');
+                setTopItemsSort('qty');
+              }}
+            >
+              Reset Filter
+            </Button>
+            <Button variant="primary" className="w-1/2" onClick={() => setIsFilterOpen(false)}>
+              Terapkan
+            </Button>
+          </div>
+        </div>
+      </SlideOver>
+
+      {/* Content based on Tab */}
+      <div className="animate-fade-in-up [animation-delay:100ms] flex-1">
+        {activeTab === 'overview' && (
+          <div className="flex flex-col gap-4">
+            <ProfitabilityAndAtvCards 
+              profitabilityData={profitability || []} 
+              atvData={atv || null} 
+              isLoading={isLoadingProfitability || isLoadingAtv} 
+            />
+            <BusiestTimeChart startDate={startDate} endDate={endDate} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <CategoryPieChart data={categoriesData || []} isLoading={isLoadingCategories} />
+              <PaymentMethodChart data={payments || null} isLoading={isLoadingPayments} />
+            </div>
+            <StockVelocityTable data={stockVelocity || []} isLoading={isLoadingVelocity} />
+          </div>
+        )}
+
+        {activeTab === 'stock' && <StockReportTab startDate={startDate} endDate={endDate} />}
+        {activeTab === 'sales' && <SalesReportTab startDate={startDate} endDate={endDate} categoryId={categoryId} />}
+        {activeTab === 'profit' && <ProfitReportTab startDate={startDate} endDate={endDate} categoryId={categoryId} />}
+        {activeTab === 'top_items' && <TopItemsReportTab startDate={startDate} endDate={endDate} categoryId={categoryId} topItemsSort={topItemsSort} />}
+        {activeTab === 'value' && <ValueReportTab />}
+      </div>
+    </div>
+  );
+}

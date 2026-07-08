@@ -21,7 +21,7 @@ export const inventoryApi = {
     });
   },
 
-  async getPaginated(options: { page?: number; limit?: number; search?: string; categoryName?: string; lowStockOnly?: boolean }) {
+  async getPaginated(options: { page?: number; limit?: number; search?: string; categoryName?: string; lowStockOnly?: boolean; activeStatus?: 'all' | 'active' | 'discontinued' }) {
     const page = Math.max(1, options.page || 1);
     const limit = Math.min(100, Math.max(1, options.limit || 20));
     const offset = (page - 1) * limit;
@@ -42,6 +42,14 @@ export const inventoryApi = {
         const orCondition = `nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`;
         countQuery = countQuery.or(orCondition);
         dataQuery = dataQuery.or(orCondition);
+      }
+
+      if (options.activeStatus === 'active') {
+        countQuery = countQuery.eq('is_discontinued', false);
+        dataQuery = dataQuery.eq('is_discontinued', false);
+      } else if (options.activeStatus === 'discontinued') {
+        countQuery = countQuery.eq('is_discontinued', true);
+        dataQuery = dataQuery.eq('is_discontinued', true);
       }
     }
 
@@ -71,6 +79,25 @@ export const inventoryApi = {
       hasMore: offset + data.length < total,
       error: null
     };
+  },
+
+  async getLowStockCount(options: { search?: string; categoryName?: string } = {}) {
+    const p_search = options.search ? options.search.replace(/%/g, '').toLowerCase() : null;
+    let countQuery = supabase.rpc('get_low_stock_items', { p_search }, { count: 'exact', head: true });
+
+    if (options.categoryName) {
+      const catResult = await supabase.from('kategori').select('id').eq('nama', options.categoryName).single();
+      if (catResult.data) {
+        countQuery = countQuery.eq('id_kategori', catResult.data.id);
+      }
+    }
+
+    const { count, error } = await countQuery;
+    if (error) {
+      console.error('Error fetching low stock count:', error);
+      return 0;
+    }
+    return count || 0;
   },
 
   async getByBarcode(barcode: string) {

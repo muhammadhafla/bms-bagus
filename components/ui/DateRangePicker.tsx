@@ -54,10 +54,10 @@ export function DateRangePicker({ startDate, endDate, onChange, label, className
         };
         return [formatLocal(start), formatLocal(end)];
     }},
-    { label: 'Tahun Ini', getDates: () => {
+    { label: 'Bulan Lalu', getDates: () => {
         const now = new Date();
-        const start = new Date(now.getFullYear(), 0, 1);
-        const end = new Date(now.getFullYear(), 11, 31);
+        const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const end = new Date(now.getFullYear(), now.getMonth(), 0);
         const formatLocal = (d: Date) => {
           const year = d.getFullYear();
           const month = String(d.getMonth() + 1).padStart(2, '0');

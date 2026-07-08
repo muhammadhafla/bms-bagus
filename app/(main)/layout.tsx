@@ -28,18 +28,19 @@ import {
   IconTruck,
   IconTags,
   IconPrinter,
+  IconChartBar,
 } from '@tabler/icons-react';
 
 // Constants extracted outside component to prevent re-creation
 const NAV_ITEMS = [
   { href: '/dashboard', title: 'Dashboard', icon: IconPackage },
+  { href: '/analytics', title: 'Analisis & Laporan', icon: IconChartBar },
 ];
 
 const INVENTORY_ITEMS = [
   { href: '/inventory', title: 'Stock', icon: IconPackage },
   { href: '/inventory/kategori', title: 'Kategori', icon: IconTags },
   { href: '/inventory/stock-opname', title: 'Stock Opname', icon: IconClipboardCheck },
-  { href: '/inventory/reports', title: 'Laporan', icon: IconReport },
 ];
 
 const PURCHASING_ITEMS = [

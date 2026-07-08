@@ -62,7 +62,7 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
       <CardTitle className="mb-4 shrink-0">Trend 7 Hari Terakhir</CardTitle>
 
       <div className="flex-1 w-full min-w-[300px]" style={{ minHeight: 220 }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minHeight={220}>
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorPenjualan" x1="0" y1="0" x2="0" y2="1">
@@ -78,14 +78,14 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
             <XAxis
               dataKey="date"
               tickFormatter={formatDate}
-              tick={{ fontSize: 12, fill: '#888888' }}
+              tick={{ fontSize: '12px', fill: '#888888' }}
               axisLine={false}
               tickLine={false}
               dy={10}
             />
             <YAxis
               tickFormatter={formatValue}
-              tick={{ fontSize: 12, fill: '#888888' }}
+              tick={{ fontSize: '12px', fill: '#888888' }}
               axisLine={false}
               tickLine={false}
               dx={-10}

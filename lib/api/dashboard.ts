@@ -37,46 +37,51 @@ export const dashboardApi = {
   async getStats(): Promise<{ data: DashboardStats | null; error: unknown }> {
     const today = new Date().toISOString().split('T')[0];
 
-    const [statsResult, salesResult, purchasesResult] = await Promise.all([
+    const [statsResult, todayProfitResult] = await Promise.all([
       safeQuery<{ total_inventory_value: number; total_items: number; low_stock_items: number }>(
         async () => {
           const result = await supabase.rpc('get_dashboard_stats').single();
           return { data: result.data as { total_inventory_value: number; total_items: number; low_stock_items: number } | null, error: result.error as Error | null };
         }
       ),
-      safeQuery<{ total: number }[]>(
+      // Gunakan RPC get_today_profit — profit benar berdasarkan cost_at_sale (HPP)
+      safeQuery<{
+        today_sales: number;
+        today_cogs: number;
+        today_profit: number;
+        today_purchases: number;
+        today_transactions: number;
+      }>(
         async () => {
-          const result = await supabase.from('penjualan').select('total').eq('tanggal', today);
-          return { data: result.data, error: result.error as Error | null };
+          const result = await supabase.rpc('get_today_profit', { p_date: today }).single();
+          return { data: result.data as {
+            today_sales: number;
+            today_cogs: number;
+            today_profit: number;
+            today_purchases: number;
+            today_transactions: number;
+          } | null, error: result.error as Error | null };
         }
       ),
-      safeQuery<{ total_sistem: number; tanggal: string }[]>(
-        async () => {
-          const result = await supabase.from('pembelian').select('total_sistem, tanggal').eq('tanggal', today);
-          return { data: result.data, error: result.error as Error | null };
-        }
-      )
     ]);
 
-    if (statsResult.error || salesResult.error || purchasesResult.error) {
+    if (statsResult.error || todayProfitResult.error) {
       return {
         data: null,
-        error: statsResult.error || salesResult.error || purchasesResult.error,
+        error: statsResult.error || todayProfitResult.error,
       };
     }
-
-    const todaySales = (salesResult.data || []).reduce((sum, t) => sum + (t.total || 0), 0);
-    const todayPurchases = (purchasesResult.data || []).reduce((sum, t) => sum + (t.total_sistem || 0), 0);
 
     return {
       data: {
         totalInventoryValue: statsResult.data?.total_inventory_value || 0,
         totalItems: statsResult.data?.total_items || 0,
-        todaySales,
-        todayPurchases,
-        todayProfit: todaySales - todayPurchases,
+        todaySales: todayProfitResult.data?.today_sales || 0,
+        todayPurchases: todayProfitResult.data?.today_purchases || 0,
+        // Profit = revenue - cost_at_sale (HPP), bukan penjualan - pembelian hari ini
+        todayProfit: todayProfitResult.data?.today_profit || 0,
         lowStockItems: statsResult.data?.low_stock_items || 0,
-        todayTransactions: (salesResult.data?.length || 0) + (purchasesResult.data?.length || 0),
+        todayTransactions: todayProfitResult.data?.today_transactions || 0,
       },
       error: null,
     };
@@ -105,50 +110,35 @@ export const dashboardApi = {
   },
 
   async get7DayTrend(): Promise<{ data: TrendData[]; error: unknown }> {
-    const dates: string[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      dates.push(date.toISOString().split('T')[0]);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 6);
+    const startDateStr = startDate.toISOString().split('T')[0];
+
+    // Gunakan RPC get_7day_trend_v2 — profit benar berdasarkan cost_at_sale
+    const result = await safeQuery<TrendData[]>(
+      async () => {
+        const res = await supabase.rpc('get_7day_trend_v2', { p_start_date: startDateStr });
+        // Mapping nama kolom dari RPC ke TrendData interface
+        const mapped = (res.data || []).map((row: {
+          trend_date: string;
+          penjualan: number;
+          pembelian: number;
+          profit: number;
+        }) => ({
+          date: row.trend_date,
+          penjualan: row.penjualan,
+          pembelian: row.pembelian,
+          profit: row.profit,
+        }));
+        return { data: mapped, error: res.error as Error | null };
+      }
+    );
+
+    if (result.error) {
+      return { data: [], error: result.error };
     }
 
-    const [pembelianResult, penjualanResult] = await Promise.all([
-      safeQuery<{ tanggal: string; total_sistem: number }[]>(
-        async () => {
-          const result = await supabase.from('pembelian').select('tanggal, total_sistem').gte('tanggal', dates[0]);
-          return { data: result.data, error: result.error as Error | null };
-        }
-      ),
-      safeQuery<{ tanggal: string; total: number }[]>(
-        async () => {
-          const result = await supabase.from('penjualan').select('tanggal, total').gte('tanggal', dates[0]);
-          return { data: result.data, error: result.error as Error | null };
-        }
-      ),
-    ]);
-
-    if (pembelianResult.error || penjualanResult.error) {
-      return { data: [], error: pembelianResult.error || penjualanResult.error };
-    }
-
-    const trend: TrendData[] = dates.map((date) => {
-      const totalPembelian = (pembelianResult.data || [])
-        .filter((p) => p.tanggal === date)
-        .reduce((sum, p) => sum + (p.total_sistem || 0), 0);
-
-      const totalPenjualan = (penjualanResult.data || [])
-        .filter((p) => p.tanggal === date)
-        .reduce((sum, p) => sum + (p.total || 0), 0);
-
-      return {
-        date,
-        pembelian: totalPembelian,
-        penjualan: totalPenjualan,
-        profit: totalPenjualan - totalPembelian,
-      };
-    });
-
-    return { data: trend, error: null };
+    return { data: result.data || [], error: null };
   },
 
   async getRecentTransactions(): Promise<{ data: RecentTransaction[]; error: unknown }> {

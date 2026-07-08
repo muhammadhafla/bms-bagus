@@ -67,116 +67,15 @@ export const stockAdjustmentApi = {
       return { data: null, error: new Error('User not authenticated') };
     }
 
-    const opnameResult = await safeQuery<any>(async () => {
-      const result = await supabase
-        .from('stock_opname')
-        .select('status')
-        .eq('id', opnameId)
-        .single();
+    // Gunakan RPC untuk atomic transaction — semua insert/update berjalan dalam satu DB transaction
+    // Jika salah satu langkah gagal, seluruh operasi di-rollback otomatis oleh PostgreSQL
+    return safeQuery<{ success: boolean; processed_items: number; opname_id: string }>(async () => {
+      const result = await supabase.rpc('process_opname_adjustments', {
+        p_opname_id: opnameId,
+        p_user_id: user.id,
+      });
       return { data: result.data, error: result.error as Error | null };
     });
-
-    if (!opnameResult.data || opnameResult.data.status !== 'approved') {
-      return { data: null, error: new Error('Opname harus di-approve terlebih dahulu') };
-    }
-
-    const itemsResult = await safeQuery<any[]>(async () => {
-      const result = await supabase
-        .from('stock_opname_items')
-        .select('*')
-        .eq('stock_opname_id', opnameId)
-        .eq('adjusted', false)
-        .not('difference', 'eq', 0);
-      return { data: result.data, error: result.error as Error | null };
-    });
-
-    if (!itemsResult.data || itemsResult.data.length === 0) {
-      await safeQuery<any>(async () => {
-        const result = await supabase
-          .from('stock_opname')
-          .update({ status: 'completed' })
-          .eq('id', opnameId);
-        return { data: result.data, error: result.error as Error | null };
-      });
-      return { data: [], error: null };
-    }
-
-    const adjustments: any[] = [];
-    const movementInserts: any[] = [];
-    const inventoryUpdates: any[] = [];
-
-    for (const item of itemsResult.data) {
-      const adjustmentType = item.difference > 0 ? 'increase' : 'decrease';
-      const adjustmentQty = Math.abs(item.difference);
-
-      adjustments.push({
-        stock_opname_item_id: item.id,
-        inventory_id: item.inventory_id,
-        adjustment_qty: adjustmentQty,
-        adjustment_type: adjustmentType,
-        reason: item.reason || 'lainnya',
-        note: item.note,
-        created_by: user.id
-      });
-
-      movementInserts.push({
-        inventory_id: item.inventory_id,
-        tipe: 'ADJUSTMENT',
-        qty: adjustmentQty,
-        referensi: opnameId
-      });
-
-      inventoryUpdates.push({
-        id: item.inventory_id,
-        stok: item.physical_stock
-      });
-    }
-
-    try {
-      if (adjustments.length > 0) {
-        await safeQuery<any>(async () => {
-          const result = await supabase.from('stock_adjustments').insert(adjustments);
-          return { data: result.data, error: result.error as Error | null };
-        });
-      }
-
-      if (movementInserts.length > 0) {
-        await safeQuery<any>(async () => {
-          const result = await supabase.from('stock_movements').insert(movementInserts);
-          return { data: result.data, error: result.error as Error | null };
-        });
-      }
-
-      for (const update of inventoryUpdates) {
-        await safeQuery<any>(async () => {
-          const result = await supabase
-            .from('inventory')
-            .update({ stok: update.stok })
-            .eq('id', update.id);
-          return { data: result.data, error: result.error as Error | null };
-        });
-      }
-
-      await safeQuery<any>(async () => {
-        const result = await supabase
-          .from('stock_opname_items')
-          .update({ adjusted: true })
-          .eq('stock_opname_id', opnameId);
-        return { data: result.data, error: result.error as Error | null };
-      });
-
-      await safeQuery<any>(async () => {
-        const result = await supabase
-          .from('stock_opname')
-          .update({ status: 'completed' })
-          .eq('id', opnameId);
-        return { data: result.data, error: result.error as Error | null };
-      });
-
-      return { data: adjustments, error: null };
-    } catch (error) {
-      return { data: null, error };
-    }
   },
 
   async createManualAdjustment(inventoryId: string, adjustmentQty: number, adjustmentType: 'increase' | 'decrease', reason: string, note?: string) {

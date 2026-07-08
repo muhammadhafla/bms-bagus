@@ -7,7 +7,7 @@ import { inventoryApi, PembelianItem, purchaseApi, kategoriApi, supplierApi, Sup
 import { useQuery } from '@tanstack/react-query';
 import { InventoryItem } from '@/types/inventory';
 import { formatCurrency, normalizeBarcode, generateIdempotencyKey, generateAutoBarcode, debounce } from '@/lib/utils';
-import { IconShoppingCart, IconCamera, IconPackage, IconX, IconCheck, IconDeviceFloppy, IconRefresh, IconSearch, IconPlus, IconPrinter } from '@tabler/icons-react';
+import { IconShoppingCart, IconCamera, IconFileImport, IconX, IconCheck, IconDeviceFloppy, IconRefresh, IconSearch, IconPlus, IconPrinter } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
 import DateInput from '@/components/ui/DateInput';
 import SelectInput from '@/components/ui/SelectInput';
@@ -374,7 +374,7 @@ export default function PembelianPage() {
                 className="flex items-center justify-center gap-2 !p-3 lg:!px-4 lg:!py-3 h-[50px] lg:h-auto"
                 title="Import CSV"
               >
-                <IconPackage size={22} className="shrink-0" />
+                <IconFileImport size={22} className="shrink-0" />
                 <span className="hidden lg:inline font-medium">Import CSV</span>
               </Button>
               <div className="flex-1 min-w-[140px] max-w-[200px]">
@@ -468,7 +468,7 @@ export default function PembelianPage() {
             </div>
 
             <div className="flex flex-col gap-2 min-w-[18rem]">
-              <label className="text-sm text-neutral-600 dark:text-neutral-300 font-semibold">Total Supplier:</label>
+              <label className="text-sm text-neutral-600 dark:text-neutral-300 font-semibold">Total Tagihan:</label>
               <PriceInput
                 value={totalSupplier || 0}
                 onChange={setTotalSupplier}
@@ -512,7 +512,7 @@ export default function PembelianPage() {
                   <p className="text-sm sm:text-xl lg:text-2xl font-black text-neutral-900 dark:text-white mt-0.5">{formatCurrency(totalSistem)}</p>
                 </div>
                 <div className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-xl lg:rounded-2xl px-3 py-2.5 lg:px-5 lg:py-4 border border-white/40 dark:border-white/10 shadow-sm text-center lg:text-left">
-                  <p className="text-[10px] sm:text-xs lg:text-sm text-neutral-500 dark:text-neutral-400 font-medium whitespace-nowrap">Total Supplier</p>
+                  <p className="text-[10px] sm:text-xs lg:text-sm text-neutral-500 dark:text-neutral-400 font-medium whitespace-nowrap">Total Tagihan</p>
                   <p className="text-sm sm:text-xl lg:text-2xl font-black text-neutral-900 dark:text-white mt-0.5">{formatCurrency(totalSupplier)}</p>
                 </div>
                 <div className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-xl lg:rounded-2xl px-3 py-2.5 lg:px-5 lg:py-4 border border-white/40 dark:border-white/10 shadow-sm text-center lg:text-left">

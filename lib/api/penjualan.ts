@@ -87,16 +87,14 @@ export const penjualanApi = {
         query = query.lte('tanggal', options.endDate);
       }
 
-      const result = await safeQuery<any[]>(async () => {
-        const result = await query;
-        return { data: result.data, error: result.error as Error | null };
-      });
+      // head: true → data selalu null, count ada di response.count
+      const { count, error } = await query;
 
-      if (result.error) {
-        return { data: 0, error: { message: result.error.message } };
+      if (error) {
+        return { data: 0, error: { message: error.message } };
       }
 
-      return { data: result.data?.length || 0, error: null };
+      return { data: count ?? 0, error: null };
     } catch (err: any) {
       return { data: 0, error: { message: err.message || 'Terjadi kesalahan' } };
     }

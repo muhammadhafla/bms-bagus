@@ -19,6 +19,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.103.0",
     "@tabler/icons-react": "^3.41.1",

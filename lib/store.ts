@@ -52,7 +52,6 @@ export const usePembelianStore = create<PembelianStore>((set, get) => ({
     const newItem: CartItem = {
       ...item,
       qty: initialQty,
-      diskon: 0, // Set diskon to 0 for pembelian since we use netto price
       harga_final,
       subtotal: harga_final * initialQty,
     };

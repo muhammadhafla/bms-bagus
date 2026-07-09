@@ -16,6 +16,10 @@ const PUBLIC_PATHS = [
   '/api/auth',
   '/_next',
   '/favicon.ico',
+  '/manifest.webmanifest',
+  '/manifest.json',
+  '/sw.js',
+  '/workbox-',
 ];
 
 function isPublicPath(pathname: string): boolean {
@@ -25,9 +29,33 @@ function isPublicPath(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+  const cspHeader = `
+    default-src 'self';
+    base-uri 'none';
+    object-src 'none';
+    script-src 'self' 'nonce-${nonce}' ${
+      process.env.NODE_ENV === 'production'
+        ? "'strict-dynamic'"
+        : "'unsafe-inline' 'unsafe-eval'"
+    };
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data: https:;
+    connect-src 'self' https://letxagpmrumwcjuzruyg.supabase.co https://*.supabase.co wss://*.supabase.co;
+  `.replace(/\s{2,}/g, ' ').trim();
+
+  request.headers.set('x-nonce', nonce);
+  request.headers.set('Content-Security-Policy', cspHeader);
+
   // Lewati path publik — tidak perlu cek session
   if (isPublicPath(pathname)) {
-    return NextResponse.next();
+    const response = NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    });
+    response.headers.set('Content-Security-Policy', cspHeader);
+    return response;
   }
 
   // Buat response baru untuk menangani cookie refresh
@@ -36,6 +64,7 @@ export async function middleware(request: NextRequest) {
       headers: request.headers,
     },
   });
+  response.headers.set('Content-Security-Policy', cspHeader);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,8 +81,12 @@ export async function middleware(request: NextRequest) {
           );
           // Buat response baru dengan cookie yang diperbarui
           response = NextResponse.next({
-            request,
+            request: {
+              headers: request.headers,
+            }
           });
+          response.headers.set('Content-Security-Policy', cspHeader);
+          
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           );
@@ -72,7 +105,9 @@ export async function middleware(request: NextRequest) {
     const loginUrl = new URL('/login', request.url);
     // Simpan URL asal agar setelah login bisa redirect balik
     loginUrl.searchParams.set('redirectTo', pathname);
-    return NextResponse.redirect(loginUrl);
+    const redirectResponse = NextResponse.redirect(loginUrl);
+    redirectResponse.headers.set('Content-Security-Policy', cspHeader);
+    return redirectResponse;
   }
 
   return response;

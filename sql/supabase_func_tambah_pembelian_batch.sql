@@ -104,7 +104,7 @@ BEGIN
         v_item->>'nama_barang',
         LOWER(REPLACE(REPLACE(v_item->>'nama_barang', ' ', '-'), '_', '-')) || '-' || EXTRACT(EPOCH FROM NOW())::TEXT,
         (v_item->>'harga')::NUMERIC,
-        ((v_item->>'harga')::NUMERIC * 1.2),
+        COALESCE((v_item->>'harga_jual')::NUMERIC, ((v_item->>'harga')::NUMERIC * 1.2)),
         p_user,
         0
       )
@@ -139,6 +139,10 @@ BEGIN
     SET 
       stok = COALESCE(stok, 0) + v_qty,
       harga_beli_terakhir = v_harga_beli,
+      harga_jual = CASE 
+        WHEN v_item->>'harga_jual' IS NOT NULL THEN (v_item->>'harga_jual')::NUMERIC 
+        ELSE harga_jual 
+      END,
       updated_by = p_user,
       updated_at = NOW()
     WHERE id = v_inventory_id;

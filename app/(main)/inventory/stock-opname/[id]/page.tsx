@@ -43,6 +43,7 @@ export default function StockOpnameDetailPage() {
   const [searchFilter, setSearchFilter] = useState('');
   const [inventorySearchResults, setInventorySearchResults] = useState<(import('@/types/inventory').InventoryItem & { similarity?: number })[]>([]);
   const [showAddDropdown, setShowAddDropdown] = useState(false);
+  const [searchSelectedIndex, setSearchSelectedIndex] = useState<number>(-1);
   const [showConfirmDiscard, setShowConfirmDiscard] = useState(false);
 
   const { data: inventoryData } = useQuery({
@@ -157,6 +158,7 @@ export default function StockOpnameDetailPage() {
     if (query.length < 2) {
       setInventorySearchResults([]);
       setShowAddDropdown(false);
+      setSearchSelectedIndex(-1);
       return;
     }
 
@@ -412,19 +414,37 @@ return (
                 value={searchAdd}
                 onChange={(e) => {
                   setSearchAdd(e.target.value);
+                  setSearchSelectedIndex(-1);
                   debouncedSearch(e.target.value, items, inventoryData || []);
                 }}
                 onFocus={() => searchAdd.length >= 2 && debouncedSearch(searchAdd, items, inventoryData || [])}
                 onBlur={() => setTimeout(() => setShowAddDropdown(false), 200)}
+                onKeyDown={(e) => {
+                  if (!showAddDropdown) return;
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setSearchSelectedIndex(prev => Math.min(prev + 1, inventorySearchResults.length - 1));
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setSearchSelectedIndex(prev => Math.max(prev - 1, -1));
+                  } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (searchSelectedIndex >= 0 && searchSelectedIndex < inventorySearchResults.length) {
+                      addItemToOpname(inventorySearchResults[searchSelectedIndex]);
+                    } else if (inventorySearchResults.length > 0) {
+                      addItemToOpname(inventorySearchResults[0]);
+                    }
+                  }
+                }}
                 className="w-full pl-10 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               {showAddDropdown && inventorySearchResults.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg max-h-[40vh] md:max-h-64 overflow-auto">
-                  {inventorySearchResults.map((inventory) => (
+                  {inventorySearchResults.map((inventory, idx) => (
                     <button
                       key={inventory.id}
                       onClick={() => addItemToOpname(inventory)}
-                      className="w-full px-4 py-2 text-left hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex justify-between items-center"
+                      className={`w-full px-4 py-2 text-left hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex justify-between items-center ${searchSelectedIndex === idx ? 'bg-neutral-50 dark:bg-neutral-800' : ''}`}
                     >
                       <div>
                         <div className="font-medium text-neutral-900 dark:text-neutral-100">{inventory.nama_barang}</div>

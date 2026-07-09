@@ -5,6 +5,7 @@ import { IconCheck } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
 import { Button } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
+import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
 
 interface NewItemDialogProps {
   open: boolean;
@@ -24,6 +25,7 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
   const [kategoriList, setKategoriList] = useState<string[]>([]);
   const [showKategoriSuggestions, setShowKategoriSuggestions] = useState(false);
   const [filteredKategori, setFilteredKategori] = useState<string[]>([]);
+  const [kategoriSelectedIndex, setKategoriSelectedIndex] = useState<number>(-1);
 
   useEffect(() => {
     const loadKategori = async () => {
@@ -63,6 +65,7 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
   const handleKategoriChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setKategori(value);
+    setKategoriSelectedIndex(-1);
     
     if (value.trim().length > 0) {
       const filtered = kategoriList.filter(k => 
@@ -78,9 +81,10 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
   const handleSelectKategori = (nama: string) => {
     setKategori(nama);
     setShowKategoriSuggestions(false);
+    setKategoriSelectedIndex(-1);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent | Event) => {
     e.preventDefault();
     if (nama_barang.trim()) {
       const kategoriResult = await kategoriApi.getOrCreate(kategori.trim());
@@ -97,6 +101,22 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
       });
     }
   };
+
+  useKeyboardShortcuts(
+    open ? [
+      {
+        key: 's',
+        ctrl: true,
+        allowInInput: true,
+        description: 'Simpan Data',
+        handler: () => {
+          if (nama_barang.trim()) {
+            handleSubmit(new Event('submit') as unknown as React.FormEvent);
+          }
+        },
+      }
+    ] : []
+  );
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -151,8 +171,30 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
               type="text"
               value={kategori}
               onChange={handleKategoriChange}
-              onFocus={() => kategoriList.length > 0 && setShowKategoriSuggestions(true)}
+              onFocus={() => {
+                if (kategoriList.length > 0) {
+                  setShowKategoriSuggestions(true);
+                  if (kategori.trim().length === 0) {
+                    setFilteredKategori(kategoriList.slice(0, 5));
+                  }
+                }
+              }}
               onBlur={() => setTimeout(() => setShowKategoriSuggestions(false), 200)}
+              onKeyDown={(e) => {
+                if (!showKategoriSuggestions) return;
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setKategoriSelectedIndex(prev => Math.min(prev + 1, filteredKategori.length - 1));
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setKategoriSelectedIndex(prev => Math.max(prev - 1, -1));
+                } else if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (kategoriSelectedIndex >= 0 && kategoriSelectedIndex < filteredKategori.length) {
+                    handleSelectKategori(filteredKategori[kategoriSelectedIndex]);
+                  }
+                }
+              }}
               className="w-full px-4 py-3.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-neutral-900 dark:text-neutral-100"
               placeholder="Masukkan nama kategori"
               autoComplete="off"
@@ -160,12 +202,12 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
             
             {showKategoriSuggestions && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-xl shadow-lg z-10 overflow-hidden">
-                {filteredKategori.map((nama) => (
+                {filteredKategori.map((nama, idx) => (
                   <button
                     key={nama}
                     type="button"
                     onClick={() => handleSelectKategori(nama)}
-                    className="w-full text-left px-4 py-2.5 hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50 text-sm text-neutral-900 dark:text-neutral-100 transition-colors"
+                    className={`w-full text-left px-4 py-2.5 hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50 text-sm text-neutral-900 dark:text-neutral-100 transition-colors ${kategoriSelectedIndex === idx ? 'bg-neutral-100/50 dark:bg-neutral-800/50' : ''}`}
                   >
                     {nama}
                   </button>

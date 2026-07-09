@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { IconX } from '@tabler/icons-react';
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 
 interface SlideOverProps {
   isOpen: boolean;
@@ -36,6 +37,8 @@ export function SlideOver({ isOpen, onClose, title, children, size = 'md' }: Sli
     };
   }, [isOpen, handleEscape]);
 
+  const focusTrapRef = useFocusTrap(isOpen && mounted);
+
   if (!isOpen || !mounted) return null;
 
   const sizeClasses = {
@@ -51,7 +54,7 @@ export function SlideOver({ isOpen, onClose, title, children, size = 'md' }: Sli
         className="absolute inset-0 bg-black/50"
         onClick={onClose}
       />
-      <div className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-neutral-950 shadow-xl flex flex-col h-full animate-slide-in`}>
+      <div ref={focusTrapRef} className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-neutral-950 shadow-xl flex flex-col h-full animate-slide-in`}>
         <div className="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-800">
           <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">{title}</h2>
           <button

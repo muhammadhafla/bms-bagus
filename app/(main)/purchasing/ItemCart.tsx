@@ -6,10 +6,10 @@ import { PriceInput } from '@/components/ui/PriceInput';
 interface ItemCartProps {
   items: import('@/lib/store').CartItem[];
   selectedIndex: number | null;
-  editMode: 'qty' | 'harga' | null;
+  editMode: 'qty' | 'harga' | 'harga_jual' | null;
   editValue: number;
   setSelectedIndex: (index: number | null) => void;
-  setEditMode: (mode: 'qty' | 'harga' | null) => void;
+  setEditMode: (mode: 'qty' | 'harga' | 'harga_jual' | null) => void;
   setEditValue: (val: number) => void;
   handleEditSubmit: () => void;
   removeItem: (index: number) => void;
@@ -33,7 +33,7 @@ export function ItemCart({
           <IconCamera className="w-14 h-14 text-neutral-400" stroke={1.5} />
         </div>
         <p className="text-lg font-bold text-neutral-600 dark:text-neutral-300">Scan barcode untuk menambah barang</p>
-        <p className="text-sm text-neutral-500 mt-2 hidden lg:block">Atau tekan F2 untuk edit Qty, F3 untuk edit harga</p>
+        <p className="text-sm text-neutral-500 mt-2 hidden lg:block">Atau tekan F2 untuk edit Qty, F3 untuk edit Harga Beli, F4 untuk edit Harga Jual</p>
       </div>
     );
   }
@@ -48,6 +48,7 @@ export function ItemCart({
             <th className="px-4 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Nama Barang</th>
             <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Qty</th>
             <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Beli</th>
+            <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Jual</th>
             <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Subtotal</th>
             <th className="px-4 py-4 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-16">Aksi</th>
           </tr>
@@ -116,6 +117,33 @@ export function ItemCart({
                   </div>
                 )}
               </td>
+              <td className="px-4 py-3 text-right">
+                {selectedIndex === index && editMode === 'harga_jual' ? (
+                  <div className="w-32 ml-auto">
+                    <PriceInput
+                      value={editValue}
+                      onChange={setEditValue}
+                      onBlur={handleEditSubmit}
+                      className="!px-3 !py-1.5 !rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm"
+                      min={0}
+                      autoFocus
+                    />
+                  </div>
+                ) : (
+                  <div className="w-32 ml-auto">
+                    <button
+                      onClick={() => {
+                        setSelectedIndex(index);
+                        setEditMode('harga_jual');
+                        setEditValue(item.harga_jual || 0);
+                      }}
+                      className="px-3 py-1.5 w-full text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 border border-transparent rounded-lg transition-colors font-medium text-neutral-700 dark:text-neutral-300"
+                    >
+                      {formatCurrency(item.harga_jual || 0)}
+                    </button>
+                  </div>
+                )}
+              </td>
               <td className="px-4 py-3 text-right font-bold text-neutral-900 dark:text-neutral-100">
                 {formatCurrency(item.subtotal)}
               </td>
@@ -147,7 +175,7 @@ export function ItemCart({
               <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">{item.barcode}</div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="grid grid-cols-3 gap-3 mb-3">
               <div>
                 <label className="text-xs text-neutral-500 dark:text-neutral-400 font-medium block mb-1.5">Qty</label>
                 {selectedIndex === index && editMode === 'qty' ? (
@@ -194,6 +222,30 @@ export function ItemCart({
                     className="w-full px-3 py-2.5 text-left bg-white/70 dark:bg-neutral-900/70 border border-neutral-200/50 dark:border-neutral-700/50 rounded-xl font-medium text-neutral-700 dark:text-neutral-300 shadow-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
                   >
                     {formatCurrency(item.harga_beli || 0)}
+                  </button>
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-neutral-500 dark:text-neutral-400 font-medium block mb-1.5">Harga Jual</label>
+                {selectedIndex === index && editMode === 'harga_jual' ? (
+                  <PriceInput
+                    value={editValue}
+                    onChange={setEditValue}
+                    onBlur={handleEditSubmit}
+                    className="w-full !px-3 !py-2.5 !rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
+                    min={0}
+                    autoFocus
+                  />
+                ) : (
+                  <button
+                    onClick={() => {
+                      setSelectedIndex(index);
+                      setEditMode('harga_jual');
+                      setEditValue(item.harga_jual || 0);
+                    }}
+                    className="w-full px-3 py-2.5 text-left bg-white/70 dark:bg-neutral-900/70 border border-neutral-200/50 dark:border-neutral-700/50 rounded-xl font-medium text-neutral-700 dark:text-neutral-300 shadow-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                  >
+                    {formatCurrency(item.harga_jual || 0)}
                   </button>
                 )}
               </div>

@@ -52,5 +52,10 @@
     "cross-env": "^10.1.0",
     "jsdom": "^29.0.2",
     "vitest": "^4.1.4"
+  },
+  "overrides": {
+    "workbox-build": "^7.4.0",
+    "workbox-webpack-plugin": "^7.4.0",
+    "source-map": "^0.7.4"
   }
 }

@@ -28,6 +28,16 @@ export function DropdownMenu({
 }: DropdownMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen && menuRef.current) {
+      const firstBtn = menuRef.current.querySelector('button');
+      if (firstBtn) {
+        setTimeout(() => firstBtn.focus(), 50);
+      }
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -66,6 +76,7 @@ export function DropdownMenu({
       
       {isOpen && (
         <div
+          ref={menuRef}
           className={`
             absolute top-full mt-1 z-50
             min-w-[180px] py-1
@@ -84,10 +95,20 @@ export function DropdownMenu({
                 onSelect(item.value);
                 setIsOpen(false);
               }}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  (e.currentTarget.nextElementSibling as HTMLElement)?.focus();
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  (e.currentTarget.previousElementSibling as HTMLElement)?.focus();
+                }
+              }}
               className={`
                 w-full px-4 py-2.5 text-left text-sm
                 flex items-center justify-between gap-2
                 hover:bg-neutral-100 dark:hover:bg-neutral-800
+                focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:outline-none
                 transition-colors
                 ${value === item.value 
                   ? 'text-brand-600 dark:text-brand-400 font-medium' 

@@ -16,6 +16,7 @@ interface PembelianStore {
   addItem: (item: InventoryItem, initialQty?: number) => void;
   updateQty: (index: number, qty: number) => void;
   updateHargaBeli: (index: number, harga: number) => void;
+  updateHargaJual: (index: number, harga: number) => void;
   removeItem: (index: number) => void;
   setSupplier: (id: string | null) => void;
   setTanggal: (tanggal: string) => void;
@@ -76,6 +77,15 @@ export const usePembelianStore = create<PembelianStore>((set, get) => ({
         if (i !== index) return item;
         const harga_final = harga;
         return { ...item, harga_beli: harga, harga_final, subtotal: item.qty * harga_final };
+      })
+    };
+  }),
+
+  updateHargaJual: (index, harga) => set((state) => {
+    return {
+      items: state.items.map((item, i) => {
+        if (i !== index) return item;
+        return { ...item, harga_jual: harga };
       })
     };
   }),

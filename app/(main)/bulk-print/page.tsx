@@ -39,11 +39,13 @@ export default function BulkPrintPage() {
   
   const [inventorySearchResults, setInventorySearchResults] = useState<(InventoryItem & { similarity: number })[]>([]);
   const [showAddDropdown, setShowAddDropdown] = useState(false);
+  const [searchSelectedIndex, setSearchSelectedIndex] = useState<number>(-1);
 
   const handleSearchInventory = async (query: string, allInventory: InventoryItem[]) => {
     if (query.length < 2) {
       setInventorySearchResults([]);
       setShowAddDropdown(false);
+      setSearchSelectedIndex(-1);
       return;
     }
     const result = await inventoryApi.fuzzySearch(query, allInventory);
@@ -337,6 +339,7 @@ export default function BulkPrintPage() {
                 value={barcodeInput}
                 onChange={(e) => {
                   setBarcodeInput(e.target.value);
+                  setSearchSelectedIndex(-1);
                   debouncedSearch(e.target.value, inventoryData || []);
                 }}
                 onFocus={() => {
@@ -345,18 +348,35 @@ export default function BulkPrintPage() {
                 onBlur={() => {
                   setTimeout(() => setShowAddDropdown(false), 200);
                 }}
+                onKeyDown={(e) => {
+                  if (!showAddDropdown) return;
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setSearchSelectedIndex(prev => Math.min(prev + 1, inventorySearchResults.length - 1));
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setSearchSelectedIndex(prev => Math.max(prev - 1, -1));
+                  } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (searchSelectedIndex >= 0 && searchSelectedIndex < inventorySearchResults.length) {
+                      handleAddResolvedItem(inventorySearchResults[searchSelectedIndex]);
+                    } else {
+                      handleBarcodeSubmit(barcodeInput);
+                    }
+                  }
+                }}
                 disabled={loading}
                 className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-neutral-900 backdrop-blur-md border border-neutral-200 dark:border-neutral-700 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all text-base lg:text-lg"
                 autoFocus
               />
               {showAddDropdown && inventorySearchResults.length > 0 && (
                 <div className="absolute z-20 w-full mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl max-h-[40vh] md:max-h-64 overflow-auto">
-                  {inventorySearchResults.map((inventory) => (
+                  {inventorySearchResults.map((inventory, idx) => (
                     <button
                       key={inventory.id}
                       type="button"
                       onClick={() => handleAddResolvedItem(inventory)}
-                      className="w-full px-4 py-3 text-left hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex justify-between items-center border-b border-neutral-100 dark:border-neutral-800 last:border-0"
+                      className={`w-full px-4 py-3 text-left hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex justify-between items-center border-b border-neutral-100 dark:border-neutral-800 last:border-0 ${searchSelectedIndex === idx ? 'bg-neutral-50 dark:bg-neutral-800' : ''}`}
                     >
                       <div>
                         <div className="font-medium text-neutral-900 dark:text-neutral-100">{inventory.nama_barang}</div>

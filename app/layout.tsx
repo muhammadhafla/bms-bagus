@@ -6,6 +6,7 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { AuthProvider } from "@/components/AuthProvider";
 import { DarkModeProvider } from "@/components/DarkModeProvider";
 import { QueryProvider } from "@/components/QueryProvider";
+import { headers } from "next/headers";
 
 const poppins = Poppins({
   weight: ['400', '500', '600', '700'],
@@ -31,15 +32,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const nonce = headersList.get('x-nonce') ?? undefined;
+
   return (
     <html lang="id" suppressHydrationWarning className="light">
       <head>
-        <script dangerouslySetInnerHTML={{
+        <script nonce={nonce} dangerouslySetInnerHTML={{
           __html: `
             try {
               const t = localStorage.getItem('theme');

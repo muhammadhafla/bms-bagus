@@ -98,10 +98,10 @@ export default function InventoryPage() {
 
   const shortcuts: Shortcut[] = useMemo(() => [
     {
-      key: 'f',
+      key: 'k',
       ctrl: true,
       handler: handleFocusSearch,
-      description: 'Fokus ke pencarian',
+      description: 'Fokus ke pencarian (Ctrl+K)',
     },
     {
       key: '?',

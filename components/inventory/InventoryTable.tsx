@@ -13,6 +13,7 @@ import TextInput from '@/components/ui/TextInput';
 import SelectInput from '@/components/ui/SelectInput';
 import Button from '@/components/ui/Button';
 import { ModernPagination } from '@/components/ui';
+import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
 
 interface PaginationProps {
   page: number;
@@ -134,6 +135,20 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
     setDiscontinueConfirm(false);
     closeSlideOver();
   }, [selectedItem, onUpdate, showToast, closeSlideOver]);
+
+  useKeyboardShortcuts(
+    isSlideOverOpen ? [
+      {
+        key: 's',
+        ctrl: true,
+        allowInInput: true,
+        description: 'Simpan Perubahan',
+        handler: () => {
+          handleSave();
+        },
+      }
+    ] : []
+  );
 
   const openPrintModal = async () => {
     if (!selectedItem) return;

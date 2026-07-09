@@ -78,8 +78,22 @@ export function DataTable<T>({
           {data.map((item) => (
             <div 
               key={String(item[keyField])}
-              className={`${onRowClick ? 'cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors' : ''}`}
+              tabIndex={onRowClick ? 0 : undefined}
+              className={`${onRowClick ? 'cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus:bg-neutral-50 dark:focus:bg-neutral-800 focus:ring-2 focus:ring-inset focus:ring-brand-500 rounded-xl' : ''}`}
               onClick={() => onRowClick?.(item)}
+              onKeyDown={(e) => {
+                if (!onRowClick) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onRowClick(item);
+                } else if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  (e.currentTarget.nextElementSibling as HTMLElement)?.focus();
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  (e.currentTarget.previousElementSibling as HTMLElement)?.focus();
+                }
+              }}
             >
               {mobileRender(item)}
             </div>
@@ -125,10 +139,26 @@ export function DataTable<T>({
           {data.map((item) => (
             <tr
               key={String(item[keyField])}
-              className={`hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors ${
-                onRowClick ? 'cursor-pointer' : ''
+              tabIndex={onRowClick ? 0 : undefined}
+              className={`transition-colors ${
+                onRowClick 
+                  ? 'cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 focus:outline-none focus:bg-neutral-50 dark:focus:bg-neutral-800 focus:ring-2 focus:ring-inset focus:ring-brand-500' 
+                  : 'hover:bg-neutral-50 dark:hover:bg-neutral-800'
               }`}
               onClick={() => onRowClick?.(item)}
+              onKeyDown={(e) => {
+                if (!onRowClick) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onRowClick(item);
+                } else if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  (e.currentTarget.nextElementSibling as HTMLElement)?.focus();
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  (e.currentTarget.previousElementSibling as HTMLElement)?.focus();
+                }
+              }}
             >
               {columns.map((col) => (
                 <td

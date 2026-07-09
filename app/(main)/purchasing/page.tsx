@@ -16,6 +16,7 @@ import { Portal } from '@/components/ui/Portal';
 import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
 import { NewItemDialog } from './NewItemDialog';
 import { ItemCart } from './ItemCart';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import ImportCSVWizard from '@/components/purchasing/ImportCSVWizard';
 
 export default function PembelianPage() {
@@ -23,7 +24,7 @@ export default function PembelianPage() {
   const resetBulkPrint = useBulkPrintStore((state) => state.reset);
   const addBulkPrintItem = useBulkPrintStore((state) => state.addItem);
 
-  const { items, addItem, updateQty, updateHargaBeli, removeItem, reset, getTotalSistem, getSelisih, setTotalSupplier, setTanggal, totalSupplier, tanggal } = usePembelianStore();
+  const { items, addItem, updateQty, updateHargaBeli, updateHargaJual, removeItem, reset, getTotalSistem, getSelisih, setTotalSupplier, setTanggal, totalSupplier, tanggal } = usePembelianStore();
   const { showToast } = useToast();
 
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
@@ -43,7 +44,7 @@ export default function PembelianPage() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [editMode, setEditMode] = useState<'qty' | 'harga' | null>(null);
+  const [editMode, setEditMode] = useState<'qty' | 'harga' | 'harga_jual' | null>(null);
   const [editValue, setEditValue] = useState<number>(0);
   const [showNewItemDialog, setShowNewItemDialog] = useState(false);
   const [newItemBarcode, setNewItemBarcode] = useState('');
@@ -51,11 +52,14 @@ export default function PembelianPage() {
   
   const [inventorySearchResults, setInventorySearchResults] = useState<(import('@/types/inventory').InventoryItem & { similarity: number })[]>([]);
   const [showAddDropdown, setShowAddDropdown] = useState(false);
+  const [searchSelectedIndex, setSearchSelectedIndex] = useState<number>(-1);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const handleSearchInventory = async (query: string, allInventory: import('@/types/inventory').InventoryItem[]) => {
     if (query.length < 2) {
       setInventorySearchResults([]);
       setShowAddDropdown(false);
+      setSearchSelectedIndex(-1);
       return;
     }
     const result = await inventoryApi.fuzzySearch(query, allInventory);
@@ -122,6 +126,18 @@ export default function PembelianPage() {
         }
       },
       description: 'Edit Harga baris pertama',
+      allowInInput: true,
+    },
+    {
+      key: 'F4',
+      handler: () => {
+        if (items.length > 0) {
+          setSelectedIndex(0);
+          setEditMode('harga_jual');
+          setEditValue(items[0].harga_jual || 0);
+        }
+      },
+      description: 'Edit Harga Jual baris pertama',
       allowInInput: true,
     },
     {
@@ -343,12 +359,14 @@ export default function PembelianPage() {
       }
     } else if (editMode === 'harga') {
       updateHargaBeli(selectedIndex, value);
+    } else if (editMode === 'harga_jual') {
+      updateHargaJual(selectedIndex, value);
     }
 
     setEditMode(null);
     setSelectedIndex(null);
     focusInput();
-  }, [selectedIndex, editMode, editValue, updateQty, updateHargaBeli, removeItem, focusInput]);
+  }, [selectedIndex, editMode, editValue, updateQty, updateHargaBeli, updateHargaJual, removeItem, focusInput]);
 
   const totalSistem = getTotalSistem();
   const selisih = getSelisih();
@@ -396,6 +414,7 @@ export default function PembelianPage() {
                 value={barcodeInput}
                 onChange={(e) => {
                   setBarcodeInput(e.target.value);
+                  setSearchSelectedIndex(-1);
                   debouncedSearch(e.target.value, inventoryData || []);
                 }}
                 onFocus={() => {
@@ -404,18 +423,37 @@ export default function PembelianPage() {
                 onBlur={() => {
                   setTimeout(() => setShowAddDropdown(false), 200);
                 }}
+                onKeyDown={(e) => {
+                  if (!showAddDropdown) return;
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setSearchSelectedIndex(prev => Math.min(prev + 1, inventorySearchResults.length));
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setSearchSelectedIndex(prev => Math.max(prev - 1, -1));
+                  } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (searchSelectedIndex >= 0 && searchSelectedIndex < inventorySearchResults.length) {
+                      handleAddResolvedItem(inventorySearchResults[searchSelectedIndex]);
+                    } else if (searchSelectedIndex === inventorySearchResults.length) {
+                      handleCreateNewFromInput();
+                    } else {
+                      handleBarcodeSubmit(barcodeInput);
+                    }
+                  }
+                }}
                 disabled={loading}
                 className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-neutral-900 backdrop-blur-md border border-neutral-200 dark:border-neutral-700 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all text-base lg:text-lg"
                 autoFocus
               />
               {showAddDropdown && barcodeInput.length >= 2 && (
                 <div className="absolute z-20 w-full mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl max-h-[40vh] md:max-h-80 overflow-auto">
-                  {inventorySearchResults.map((inventory) => (
+                  {inventorySearchResults.map((inventory, idx) => (
                     <button
                       key={inventory.id}
                       type="button"
                       onClick={() => handleAddResolvedItem(inventory)}
-                      className="w-full px-4 py-3 text-left hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex justify-between items-center border-b border-neutral-100 dark:border-neutral-800 last:border-0"
+                      className={`w-full px-4 py-3 text-left hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex justify-between items-center border-b border-neutral-100 dark:border-neutral-800 last:border-0 ${searchSelectedIndex === idx ? 'bg-neutral-50 dark:bg-neutral-800' : ''}`}
                     >
                       <div>
                         <div className="font-medium text-neutral-900 dark:text-neutral-100">{inventory.nama_barang}</div>
@@ -432,7 +470,7 @@ export default function PembelianPage() {
                     <button
                       type="button"
                       onClick={handleCreateNewFromInput}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-900/20 dark:hover:bg-brand-900/40 dark:text-brand-300 rounded-lg transition-colors font-medium text-sm"
+                      className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-900/20 dark:hover:bg-brand-900/40 dark:text-brand-300 rounded-lg transition-colors font-medium text-sm ${searchSelectedIndex === inventorySearchResults.length ? 'ring-2 ring-brand-500' : ''}`}
                     >
                       <IconPlus size={18} />
                       Tambah &quot;{barcodeInput}&quot; sebagai barang baru
@@ -528,11 +566,7 @@ export default function PembelianPage() {
               <div className="flex gap-3 justify-end items-center">
                 <Button
                   variant="secondary"
-                  onClick={() => {
-                    reset();
-                    setTotalSupplier(0);
-                    focusInput();
-                  }}
+                  onClick={() => setShowResetConfirm(true)}
                   className="bg-white/50 dark:bg-neutral-800/50 backdrop-blur-md border-white/40 dark:border-white/10"
                   leftIcon={<IconRefresh className="w-5 h-5" />}
                 >
@@ -643,12 +677,7 @@ export default function PembelianPage() {
               <div className="flex gap-3 pt-2">
                 <Button
                   variant="secondary"
-                  onClick={() => {
-                    reset();
-                    setTotalSupplier(0);
-                    focusInput();
-                    setIsBottomSheetOpen(false);
-                  }}
+                  onClick={() => setShowResetConfirm(true)}
                   className="flex-1"
                   leftIcon={<IconRefresh size={18} />}
                 >
@@ -739,6 +768,23 @@ export default function PembelianPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={showResetConfirm}
+        title="Konfirmasi Reset"
+        message="Apakah Anda yakin ingin mengosongkan daftar pembelian? Semua item yang telah dimasukkan akan dihapus."
+        confirmLabel="Ya, Reset"
+        cancelLabel="Batal"
+        onConfirm={() => {
+          reset();
+          setTotalSupplier(0);
+          focusInput();
+          setShowResetConfirm(false);
+          setIsBottomSheetOpen(false);
+        }}
+        onCancel={() => setShowResetConfirm(false)}
+        danger={true}
+      />
     </AmbientLayout>
   );
 }

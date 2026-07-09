@@ -224,7 +224,8 @@ export const purchaseApi = {
       const itemsPayload = data.items.map(item => ({
         nama_barang: item.nama_barang,
         qty: item.qty,
-        harga: item.harga_final || 0
+        harga: item.harga_final || 0,
+        harga_jual: item.harga_jual
       }));
 
       const result = await supabase.rpc('tambah_pembelian_batch', {

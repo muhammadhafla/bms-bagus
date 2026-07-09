@@ -3,6 +3,7 @@
 import { useEffect, useCallback } from 'react';
 import { IconX } from '@tabler/icons-react';
 import { Portal } from './Portal';
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 
 interface ModalProps {
   isOpen: boolean;
@@ -30,6 +31,8 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
     };
   }, [isOpen, handleEscape]);
 
+  const focusTrapRef = useFocusTrap(isOpen);
+
   if (!isOpen) return null;
 
   const sizeClasses = {
@@ -47,7 +50,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
           onClick={onClose}
           aria-hidden="true"
         />
-        <div className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-neutral-950 shadow-xl flex flex-col rounded-2xl max-h-full animate-scale-in`}>
+        <div ref={focusTrapRef} className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-neutral-950 shadow-xl flex flex-col rounded-2xl max-h-full animate-scale-in`}>
           {title && (
             <div className="flex items-center justify-between p-5 border-b border-neutral-200 dark:border-neutral-800 shrink-0">
               <h2 className="text-xl font-bold text-neutral-900 dark:text-white">{title}</h2>

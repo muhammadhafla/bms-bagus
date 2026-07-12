@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useAuthStore, supabase } from '@/lib/auth';
+import { useAuthStore } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { AmbientLayout } from '@/components/ui';
 import { useToast } from '@/components/ui/Toast';
 import { IconUser, IconCamera, IconDeviceFloppy } from '@tabler/icons-react';
@@ -163,7 +164,7 @@ export default function ProfilePage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
                   placeholder="Contoh: agus_kasir"
-                  className="w-full px-4 py-2.5 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-neutral-900 dark:text-white"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500/20 focus:border-brand-500 transition-all text-neutral-900 dark:text-white"
                 />
                 <p className="text-xs text-neutral-500 mt-1">Gunakan huruf kecil, angka, garis bawah (_), atau titik (.). Digunakan untuk login.</p>
               </div>
@@ -177,7 +178,7 @@ export default function ProfilePage() {
                   onChange={(e) => setNama(e.target.value)}
                   placeholder="Nama Lengkap Anda"
                   required
-                  className="w-full px-4 py-2.5 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-neutral-900 dark:text-white"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500/20 focus:border-brand-500 transition-all text-neutral-900 dark:text-white"
                 />
               </div>
             </div>

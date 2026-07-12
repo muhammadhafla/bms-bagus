@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { stockAdjustmentApi, StockAdjustment } from '@/lib/api/stockAdjustment';
 import { IconAlertCircle } from '@tabler/icons-react';
-import { AmbientLayout } from '@/components/ui';
+import { AmbientLayout, ModernPagination } from '@/components/ui';
 import { formatDateWIB } from '@/lib/utils';
 
 const reasonLabels: Record<string, string> = {
@@ -19,6 +19,12 @@ export default function DifferenceReportPage() {
   const [adjustments, setAdjustments] = useState<StockAdjustment[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterReason, setFilterReason] = useState('');
+  const [page, setPage] = useState(1);
+  const LIMIT = 10;
+
+  useEffect(() => {
+    setPage(1);
+  }, [filterReason]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -42,6 +48,9 @@ export default function DifferenceReportPage() {
     return acc;
   }, {} as Record<string, number>);
 
+  const totalPages = Math.ceil(filteredAdjustments.length / LIMIT) || 1;
+  const pagedAdjustments = filteredAdjustments.slice((page - 1) * LIMIT, page * LIMIT);
+
 return (
     <AmbientLayout>
       <div className="mb-4 lg:mb-6 flex-shrink-0 animate-fade-in-up">
@@ -62,7 +71,7 @@ return (
           <select
             value={filterReason}
             onChange={(e) => setFilterReason(e.target.value)}
-            className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl px-4 py-2.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl px-4 py-2.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500"
           >
             <option value="">Semua Alasan</option>
             {Object.entries(reasonLabels).map(([value, label]) => (
@@ -100,7 +109,7 @@ return (
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-                {filteredAdjustments.map((adj) => (
+                {pagedAdjustments.map((adj) => (
                   <tr key={adj.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                     <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">{formatDateWIB(adj.created_at)}</td>
                     <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">{(adj as import('@/types').StockAdjustmentWithInventory).inventory?.nama_barang || adj.inventory_id}</td>
@@ -117,7 +126,7 @@ return (
           </div>
 
           <div className="block lg:hidden divide-y divide-neutral-200 dark:divide-neutral-800">
-            {filteredAdjustments.map((adj) => (
+            {pagedAdjustments.map((adj) => (
               <div key={adj.id} className="p-4 flex flex-col gap-2">
                 <div className="flex justify-between items-start">
                   <div>
@@ -145,6 +154,16 @@ return (
               </div>
             ))}
           </div>
+
+          {/* Pagination */}
+          {!loading && filteredAdjustments.length > LIMIT && (
+            <ModernPagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              className="border-x-0 border-b-0 rounded-none rounded-b-3xl"
+            />
+          )}
         </div>
       )}
     </AmbientLayout>

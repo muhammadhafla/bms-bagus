@@ -11,6 +11,7 @@ export { kategoriApi, type Kategori } from './kategori';
 export { stockOpnameApi, type StockOpname, type StockOpnameItem, type StockOpnameWithProfile } from './stockOpname';
 export { stockAdjustmentApi, type StockAdjustment } from './stockAdjustment';
 export { dashboardApi, type DashboardStats, type LowStockItem, type TrendData, type RecentTransaction } from './dashboard';
-export { analyticsApi, type BusiestHour, type CategoryPerformance, type PaymentMethods, type StockVelocity, type Profitability, type Atv } from './analytics';
+export { analyticsApi, type BusiestHour, type CategoryPerformance, type PaymentMethods, type StockVelocity, type Profitability, type Atv, type ReturnAnalytics } from './analytics';
+export { kasApi, type KasLogItem } from './kas';
 
 export type { ApiError } from './utils';

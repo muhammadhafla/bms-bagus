@@ -4,13 +4,14 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useAuthStore } from '@/lib/auth';
+import { useAuthStore, useIsAdmin } from '@/lib/auth';
 import { usePresenceStore } from '@/lib/presence';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useDarkMode } from '@/components/DarkModeProvider';
 import { useToast } from '@/components/ui/Toast';
 import Tooltip from '@/components/ui/Tooltip';
 import {
+  IconLayoutDashboard,
   IconPackage,
   IconShoppingCart,
   IconArrowBack,
@@ -33,8 +34,7 @@ import {
 
 // Constants extracted outside component to prevent re-creation
 const NAV_ITEMS = [
-  { href: '/dashboard', title: 'Dashboard', icon: IconPackage },
-  { href: '/analytics', title: 'Analisis & Laporan', icon: IconChartBar },
+  { href: '/dashboard', title: 'Dashboard', icon: IconLayoutDashboard },
 ];
 
 const INVENTORY_ITEMS = [
@@ -59,35 +59,11 @@ const PRINTING_ITEMS = [
   { href: '/master/label-templates', title: 'Template Label', icon: IconTags },
 ];
 
-// Storage keys
-const STORAGE_KEYS = {
-  SIDEBAR_COLLAPSED: 'bms-sidebar-collapsed',
-  INVENTORY_EXPANDED: 'bms-inventory-expanded',
-  PURCHASING_EXPANDED: 'bms-purchasing-expanded',
-  TRANSACTIONS_EXPANDED: 'bms-transactions-expanded',
-  PRINTING_EXPANDED: 'bms-printing-expanded',
-} as const;
+const FINANCE_ITEMS = [
+  { href: '/finance/cash-flow', title: 'Arus Kas', icon: IconReport },
+];
 
-// Helper to read from localStorage safely
-function getStoredValue<T>(key: string, defaultValue: T): T {
-  if (typeof window === 'undefined') return defaultValue;
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : defaultValue;
-  } catch {
-    return defaultValue;
-  }
-}
-
-// Helper to write to localStorage safely
-function setStoredValue<T>(key: string, value: T): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // silently fail
-  }
-}
+import { useSidebarState } from '@/hooks/useSidebarState';
 
 interface SidebarLinkProps {
   href: string;
@@ -104,8 +80,8 @@ function SidebarLink({ href, title, icon: Icon, isActive, sidebarCollapsed }: Si
       aria-current={isActive ? 'page' : undefined}
       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
         isActive
-          ? 'text-brand-700 dark:text-brand-300 font-semibold'
-          : 'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'
+          ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 font-semibold'
+          : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-100 dark:hover:bg-neutral-800'
       }`}
     >
       <Icon className={`w-4 h-4 flex-shrink-0 ${sidebarCollapsed ? 'lg:w-3 lg:h-3' : ''}`} />
@@ -122,32 +98,24 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   const { user, profile, initialized, signOut } = useAuthStore();
-  const isAdminUser = useAuthStore(state => state.profile?.role === 'admin');
+  const isAdminUser = profile?.role === 'admin';
   const router = useRouter();
   const pathname = usePathname();
   const { theme, toggleTheme } = useDarkMode();
   const { showToast } = useToast();
 
-   // State with localStorage persistence
-   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() =>
-     getStoredValue(STORAGE_KEYS.SIDEBAR_COLLAPSED, false)
-   );
-   const [inventoryExpanded, setInventoryExpanded] = useState<boolean>(() =>
-     getStoredValue(STORAGE_KEYS.INVENTORY_EXPANDED, true)
-   );
-   const [purchasingExpanded, setPurchasingExpanded] = useState<boolean>(() =>
-     getStoredValue(STORAGE_KEYS.PURCHASING_EXPANDED, true)
-   );
-   const [transactionsExpanded, setTransactionsExpanded] = useState<boolean>(() =>
-     getStoredValue(STORAGE_KEYS.TRANSACTIONS_EXPANDED, true)
-   );
-   const [printingExpanded, setPrintingExpanded] = useState<boolean>(() =>
-     getStoredValue(STORAGE_KEYS.PRINTING_EXPANDED, true)
-   );
+   const {
+     sidebarCollapsed, setSidebarCollapsed,
+     inventoryExpanded, setInventoryExpanded,
+     purchasingExpanded, setPurchasingExpanded,
+     transactionsExpanded, setTransactionsExpanded,
+     printingExpanded, setPrintingExpanded,
+     financeExpanded, setFinanceExpanded,
+     autoHideEnabled, setAutoHideEnabled,
+   } = useSidebarState();
    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
    const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
    const [isLoggingOut, setIsLoggingOut] = useState(false);
-   const [autoHideEnabled, setAutoHideEnabled] = useState(false);
    const [sidebarHovered, setSidebarHovered] = useState(false);
    const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -162,26 +130,21 @@ export default function MainLayout({
      ? (sidebarHovered ? 'lg:ml-56' : 'lg:ml-16')
      : 'lg:ml-56';
 
-   // Persist state changes to localStorage
-  useEffect(() => {
-    setStoredValue(STORAGE_KEYS.SIDEBAR_COLLAPSED, sidebarCollapsed);
-  }, [sidebarCollapsed]);
-
-  useEffect(() => {
-    setStoredValue(STORAGE_KEYS.INVENTORY_EXPANDED, inventoryExpanded);
-  }, [inventoryExpanded]);
-
-  useEffect(() => {
-    setStoredValue(STORAGE_KEYS.PURCHASING_EXPANDED, purchasingExpanded);
-  }, [purchasingExpanded]);
-
-  useEffect(() => {
-    setStoredValue(STORAGE_KEYS.TRANSACTIONS_EXPANDED, transactionsExpanded);
-  }, [transactionsExpanded]);
-
-  useEffect(() => {
-    setStoredValue(STORAGE_KEYS.PRINTING_EXPANDED, printingExpanded);
-  }, [printingExpanded]);
+   // Click-outside handler for userMenuOpen
+   useEffect(() => {
+     const handleClickOutside = (event: MouseEvent) => {
+       const userMenuElement = document.getElementById('user-menu-container');
+       if (userMenuElement && !userMenuElement.contains(event.target as Node)) {
+         setUserMenuOpen(false);
+       }
+     };
+     if (userMenuOpen) {
+       document.addEventListener('mousedown', handleClickOutside);
+     }
+     return () => {
+       document.removeEventListener('mousedown', handleClickOutside);
+     };
+   }, [userMenuOpen]);
 
   // Auth redirect
   useEffect(() => {
@@ -211,6 +174,7 @@ export default function MainLayout({
   const navItems = useMemo(() => {
     const items = [...NAV_ITEMS];
     if (isAdminUser) {
+      items.push({ href: '/analytics', title: 'Analisis & Laporan', icon: IconChartBar });
       items.push({ href: '/users', title: 'Pengguna', icon: IconUsers });
     }
     return items;
@@ -224,24 +188,28 @@ export default function MainLayout({
    }, [signOut]);
 
    const handleToggleInventory = useCallback(() => {
-     setInventoryExpanded((prev) => !prev);
-   }, []);
+    setInventoryExpanded((prev: boolean) => !prev);
+  }, [setInventoryExpanded]);
 
-   const handleTogglePurchasing = useCallback(() => {
-     setPurchasingExpanded((prev) => !prev);
-   }, []);
+  const handleTogglePurchasing = useCallback(() => {
+    setPurchasingExpanded((prev: boolean) => !prev);
+  }, [setPurchasingExpanded]);
 
-   const handleToggleTransactions = useCallback(() => {
-     setTransactionsExpanded((prev) => !prev);
-   }, []);
+  const handleToggleTransactions = useCallback(() => {
+    setTransactionsExpanded((prev: boolean) => !prev);
+  }, [setTransactionsExpanded]);
 
-   const handleTogglePrinting = useCallback(() => {
-     setPrintingExpanded((prev) => !prev);
-   }, []);
+  const handleTogglePrinting = useCallback(() => {
+    setPrintingExpanded((prev: boolean) => !prev);
+  }, [setPrintingExpanded]);
 
-   const handleToggleAutoHide = useCallback(() => {
-     setAutoHideEnabled((prev) => !prev);
-   }, []);
+  const handleToggleFinance = useCallback(() => {
+    setFinanceExpanded((prev: boolean) => !prev);
+  }, [setFinanceExpanded]);
+
+  const handleToggleAutoHide = useCallback(() => {
+    setAutoHideEnabled((prev: boolean) => !prev);
+  }, [setAutoHideEnabled]);
 
    if (!initialized) {
     return (
@@ -374,37 +342,39 @@ export default function MainLayout({
            </div>
 
            {/* Purchasing Group */}
-           <div className="space-y-1">
-             {(isSidebarVisible || mobileMenuOpen) && (
-               <button
-                 type="button"
-                 onClick={handleTogglePurchasing}
-                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-colors"
-                 aria-expanded={purchasingExpanded}
-               >
-                 <span className="flex-1 text-left">Pembelian</span>
-                 {isSidebarVisible && (
-                   <IconChevronRight
-                     className={`w-3 h-3 transition-transform ${purchasingExpanded ? 'rotate-90' : ''}`}
-                   />
-                 )}
-               </button>
-             )}
-              {(purchasingExpanded && (isSidebarVisible || mobileMenuOpen)) ? (
-                <div className="space-y-1 pl-2">
-                  {PURCHASING_ITEMS.map((item) => (
-                    <SidebarLink
-                      key={item.href}
-                      href={item.href}
-                      title={item.title}
-                      icon={item.icon}
-                      isActive={pathname === item.href}
-                      sidebarCollapsed={!isSidebarVisible}
-                    />
-                  ))}
-                </div>
-              ) : null}
-           </div>
+           {isAdminUser && (
+             <div className="space-y-1">
+               {(isSidebarVisible || mobileMenuOpen) && (
+                 <button
+                   type="button"
+                   onClick={handleTogglePurchasing}
+                   className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-colors"
+                   aria-expanded={purchasingExpanded}
+                 >
+                   <span className="flex-1 text-left">Pembelian</span>
+                   {isSidebarVisible && (
+                     <IconChevronRight
+                       className={`w-3 h-3 transition-transform ${purchasingExpanded ? 'rotate-90' : ''}`}
+                     />
+                   )}
+                 </button>
+               )}
+                {(purchasingExpanded && (isSidebarVisible || mobileMenuOpen)) ? (
+                  <div className="space-y-1 pl-2">
+                    {PURCHASING_ITEMS.map((item) => (
+                      <SidebarLink
+                        key={item.href}
+                        href={item.href}
+                        title={item.title}
+                        icon={item.icon}
+                        isActive={pathname === item.href}
+                        sidebarCollapsed={!isSidebarVisible}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+             </div>
+           )}
 
             {/* Transactions Group */}
             <div className="space-y-1">
@@ -458,7 +428,40 @@ export default function MainLayout({
               )}
               {(printingExpanded && (isSidebarVisible || mobileMenuOpen)) ? (
                 <div className="space-y-1 pl-2">
-                  {PRINTING_ITEMS.map((item) => (
+                  {PRINTING_ITEMS.filter(item => isAdminUser || item.href !== '/master/label-templates').map((item) => (
+                    <SidebarLink
+                      key={item.href}
+                      href={item.href}
+                      title={item.title}
+                      icon={item.icon}
+                      isActive={pathname === item.href}
+                      sidebarCollapsed={!isSidebarVisible}
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            {/* Finance Group */}
+            <div className="space-y-1">
+              {(isSidebarVisible || mobileMenuOpen) && (
+                <button
+                  type="button"
+                  onClick={handleToggleFinance}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-colors"
+                  aria-expanded={financeExpanded}
+                >
+                  <span className="flex-1 text-left">Keuangan</span>
+                  {isSidebarVisible && (
+                    <IconChevronRight
+                      className={`w-3 h-3 transition-transform ${financeExpanded ? 'rotate-90' : ''}`}
+                    />
+                  )}
+                </button>
+              )}
+              {(financeExpanded && (isSidebarVisible || mobileMenuOpen)) ? (
+                <div className="space-y-1 pl-2">
+                  {FINANCE_ITEMS.map((item) => (
                     <SidebarLink
                       key={item.href}
                       href={item.href}
@@ -474,7 +477,7 @@ export default function MainLayout({
          </nav>
 
         {/* Sidebar Footer: User Dropup Menu */}
-        <div className="p-3 relative">
+        <div id="user-menu-container" className="p-3 relative">
           {/* User Menu Trigger */}
           <button
             onClick={() => setUserMenuOpen(!userMenuOpen)}

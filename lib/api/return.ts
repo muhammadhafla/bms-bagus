@@ -121,7 +121,7 @@ export const returnApi = {
         p_items: data.items,
       });
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
   },
 
   async submitPenjualanReturn(data: {
@@ -145,7 +145,7 @@ export const returnApi = {
         p_items: data.items,
       });
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
   },
 
   async getAvailableItemsBySupplier(supplierId: string) {
@@ -171,7 +171,7 @@ export const returnApi = {
         p_created_by: user.id,
       });
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
   },
 
   async getReturnDetail(returnId: string) {
@@ -202,5 +202,98 @@ export const returnApi = {
         .limit(100);
       return { data: result.data, error: result.error as Error | null };
     });
+  },
+
+  async getAllPenjualanReturns(options?: {
+    limit?: number;
+    offset?: number;
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    try {
+      let query = supabase
+        .from('penjualan_return')
+        .select('*, items:penjualan_return_items(harga_final, qty)', { count: 'exact' })
+        .order('created_at', { ascending: false });
+
+      if (options?.limit) query = query.limit(options.limit);
+      if (options?.offset) query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
+      if (options?.search) query = query.ilike('id', `%${options.search}%`);
+      if (options?.startDate) query = query.gte('tanggal', options.startDate);
+      if (options?.endDate) query = query.lte('tanggal', options.endDate);
+
+      const result = await safeQuery<{ data: any[], count: number | null }>(async () => {
+        const res = await query;
+        return { data: { data: res.data as any[], count: res.count }, error: res.error as Error | null };
+      });
+      
+      if (result.error) return { data: null, error: result.error, total: 0 };
+      
+      const transformedData = result.data?.data?.map(item => {
+        const total = item.items?.reduce((sum: number, returnItem: any) => sum + (returnItem.harga_final * returnItem.qty), 0) || 0;
+        return { ...item, total };
+      });
+      
+      return { data: transformedData || null, total: result.data?.count || 0, error: null };
+    } catch (e: any) {
+      return { data: null, error: { message: e.message }, total: 0 };
+    }
+  },
+
+  async getAllPembelianReturns(options?: {
+    limit?: number;
+    offset?: number;
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    try {
+      let query = supabase
+        .from('pembelian_return')
+        .select('*, items:pembelian_return_items(harga_final, qty)', { count: 'exact' })
+        .order('created_at', { ascending: false });
+
+      if (options?.limit) query = query.limit(options.limit);
+      if (options?.offset) query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
+      if (options?.search) query = query.or(`id.ilike.%${options.search}%,supplier_nama.ilike.%${options.search}%`);
+      if (options?.startDate) query = query.gte('tanggal', options.startDate);
+      if (options?.endDate) query = query.lte('tanggal', options.endDate);
+
+      const result = await safeQuery<{ data: any[], count: number | null }>(async () => {
+        const res = await query;
+        return { data: { data: res.data as any[], count: res.count }, error: res.error as Error | null };
+      });
+      
+      if (result.error) return { data: null, error: result.error, total: 0 };
+      
+      const transformedData = result.data?.data?.map(item => {
+        const total = item.items?.reduce((sum: number, returnItem: any) => sum + (returnItem.harga_final * returnItem.qty), 0) || 0;
+        return { ...item, total };
+      });
+      
+      return { data: transformedData || null, total: result.data?.count || 0, error: null };
+    } catch (e: any) {
+      return { data: null, error: { message: e.message }, total: 0 };
+    }
+  },
+
+  async getPenjualanReturnDetail(returnId: string) {
+    const headerResult = await safeQuery<any>(async () => {
+      const result = await supabase.from('penjualan_return').select('*').eq('id', returnId).single();
+      return { data: result.data, error: result.error as Error | null };
+    });
+    const itemsResult = await safeQuery<any[]>(async () => {
+      const result = await supabase.from('penjualan_return_items').select('*').eq('penjualan_return_id', returnId);
+      return { data: result.data, error: result.error as Error | null };
+    });
+
+    return {
+      data: {
+        ...headerResult?.data,
+        items: itemsResult?.data
+      },
+      error: headerResult.error || itemsResult.error
+    };
   }
 };

@@ -2,13 +2,16 @@
 
 import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { IconHistory, IconFilter, IconX, IconShoppingCart, IconPackage } from '@tabler/icons-react';
+import { IconHistory, IconFilter, IconX, IconShoppingCart, IconPackage, IconArrowBackUp } from '@tabler/icons-react';
 import { AmbientLayout, DateRangePicker, Tabs, SlideOver, Button, FilterButton } from '@/components/ui';
 
 import { RiwayatPenjualanTab } from '@/components/transactions/RiwayatPenjualanTab';
 import { RiwayatPembelianTab } from '@/components/transactions/RiwayatPembelianTab';
+import { RiwayatReturPenjualanTab } from '@/components/transactions/RiwayatReturPenjualanTab';
+import { RiwayatReturPembelianTab } from '@/components/transactions/RiwayatReturPembelianTab';
+import { useAuthStore, useIsAdmin } from '@/lib/auth';
 
-type HistoryType = 'penjualan' | 'pembelian';
+type HistoryType = 'penjualan' | 'pembelian' | 'retur_penjualan' | 'retur_pembelian';
 
 export default function TransactionsHistoryPage() {
   return (
@@ -40,10 +43,15 @@ function TransactionsHistoryContent() {
   const [tempEndDate, setTempEndDate] = useState('');
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const isAdminUser = useIsAdmin();
 
   const tabItems = [
     { id: 'penjualan', label: 'Penjualan', icon: <IconShoppingCart className="w-4 h-4" /> },
-    { id: 'pembelian', label: 'Pembelian', icon: <IconPackage className="w-4 h-4" /> },
+    { id: 'retur_penjualan', label: 'Retur Penjualan', icon: <IconArrowBackUp className="w-4 h-4" /> },
+    ...(isAdminUser ? [
+      { id: 'pembelian', label: 'Pembelian', icon: <IconPackage className="w-4 h-4" /> },
+      { id: 'retur_pembelian', label: 'Retur Pembelian', icon: <IconArrowBackUp className="w-4 h-4" /> }
+    ] : []),
   ];
 
   const handleOpenFilter = () => {
@@ -133,7 +141,7 @@ function TransactionsHistoryContent() {
                 value={tempSearch}
                 onChange={(e) => setTempSearch(e.target.value)}
                 placeholder={historyType === 'penjualan' ? "Cari ID Transaksi..." : "Cari No. Nota atau Supplier..."}
-                className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-neutral-900 dark:text-white"
+                className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500/20 focus:border-brand-500 transition-all text-neutral-900 dark:text-white"
               />
             </div>
 
@@ -170,6 +178,10 @@ function TransactionsHistoryContent() {
             <RiwayatPenjualanTab search={search} startDate={startDate} endDate={endDate} />
           ) : historyType === 'pembelian' ? (
             <RiwayatPembelianTab search={search} startDate={startDate} endDate={endDate} />
+          ) : historyType === 'retur_penjualan' ? (
+            <RiwayatReturPenjualanTab search={search} startDate={startDate} endDate={endDate} />
+          ) : historyType === 'retur_pembelian' ? (
+            <RiwayatReturPembelianTab search={search} startDate={startDate} endDate={endDate} />
           ) : null}
         </div>
       </div>

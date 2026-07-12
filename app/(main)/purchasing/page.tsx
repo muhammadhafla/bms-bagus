@@ -13,6 +13,7 @@ import DateInput from '@/components/ui/DateInput';
 import SelectInput from '@/components/ui/SelectInput';
 import { Button, AmbientLayout, Badge, Banner, useToast, Modal } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
+import { AdminOnly } from '@/components/role';
 import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
 import { NewItemDialog } from './NewItemDialog';
 import { ItemCart } from './ItemCart';
@@ -374,6 +375,7 @@ export default function PembelianPage() {
 
   return (
     <AmbientLayout>
+      <AdminOnly>
       <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)]">
         {/* Header Section */}
         <div className="mb-4 lg:mb-6 flex-shrink-0">
@@ -443,7 +445,7 @@ export default function PembelianPage() {
                   }
                 }}
                 disabled={loading}
-                className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-neutral-900 backdrop-blur-md border border-neutral-200 dark:border-neutral-700 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all text-base lg:text-lg"
+                className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-neutral-900 backdrop-blur-md border border-neutral-200 dark:border-neutral-700 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 transition-all text-base lg:text-lg"
                 autoFocus
               />
               {showAddDropdown && barcodeInput.length >= 2 && (
@@ -785,6 +787,7 @@ export default function PembelianPage() {
         onCancel={() => setShowResetConfirm(false)}
         danger={true}
       />
+      </AdminOnly>
     </AmbientLayout>
   );
 }

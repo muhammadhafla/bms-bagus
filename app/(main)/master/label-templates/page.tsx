@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { IconPlus, IconEdit, IconTrash, IconTemplate, IconX } from '@tabler/icons-react';
 import { AmbientLayout, Button } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
-import { supabase } from '@/lib/auth';
+import { AdminOnly } from '@/components/role';
+import { supabase } from '@/lib/supabase';
 import { formatDateWIB } from '@/lib/utils';
 
 interface LabelTemplate {
@@ -139,6 +140,7 @@ export default function LabelTemplatesPage() {
 
   return (
     <AmbientLayout>
+      <AdminOnly>
       <div className="mb-4 lg:mb-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
           <div className="flex items-center gap-4 animate-fade-in-up pl-12 lg:pl-0">
@@ -399,6 +401,7 @@ export default function LabelTemplatesPage() {
           </div>
         </Portal>
       )}
+      </AdminOnly>
     </AmbientLayout>
   );
 }

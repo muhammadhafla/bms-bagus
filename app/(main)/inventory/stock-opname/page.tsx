@@ -69,8 +69,13 @@ export default function StockOpnameListPage() {
 
   const confirmDelete = async () => {
     if (deleteId) {
-      await stockOpnameApi.delete(deleteId);
-      fetchOpnames();
+      const result = await stockOpnameApi.delete(deleteId);
+      if (result.error) {
+        showToast(result.error.message || 'Gagal menghapus stock opname', 'error');
+      } else {
+        showToast('Stock opname berhasil dihapus', 'success');
+        fetchOpnames();
+      }
       setDeleteId(null);
     }
   };

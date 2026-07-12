@@ -4,6 +4,7 @@ import { useEffect, useCallback } from 'react';
 import { IconX } from '@tabler/icons-react';
 import { Portal } from './Portal';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 interface ModalProps {
   isOpen: boolean;
@@ -23,13 +24,13 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
     }
     return () => {
       document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
     };
   }, [isOpen, handleEscape]);
+
+  useBodyScrollLock(isOpen);
 
   const focusTrapRef = useFocusTrap(isOpen);
 

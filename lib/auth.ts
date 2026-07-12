@@ -1,16 +1,7 @@
 import { create } from 'zustand';
 import { User } from '@supabase/supabase-js';
-import { createBrowserClient } from '@supabase/ssr';
 import { safeQuery } from '@/lib/api/utils';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-  throw new Error('[Auth] NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY wajib diisi');
-}
-
-export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from './supabase';
 
 interface Profile {
   id: string;
@@ -184,14 +175,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Fetch profile with guard
       const fetchId = ++profileFetchSeq;
       const profile = await fetchProfile(data.session.user.id);
-      get()._setProfileIfLatest(fetchId, profile, data.session.user.id);
-
-      // Always update user and session expiry
-      set({ 
-        user: data.session.user, 
-        isRefreshing: false,
-        initialized: true 
-      });
+      
+      if (fetchId === profileFetchSeq && profile) {
+        set({ 
+          user: data.session.user, 
+          profile,
+          isRefreshing: false,
+          initialized: true 
+        });
+      } else {
+        set({ 
+          user: data.session.user, 
+          isRefreshing: false,
+          initialized: true 
+        });
+      }
 
       if (data.session.expires_at) {
         get().setSessionExpiry(data.session.expires_at * 1000);
@@ -425,26 +423,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const fetchId = ++profileFetchSeq;
         const profile = await fetchProfile(data.user.id);
         
-        const baseState = { 
-          user: data.user, 
-          loading: false, 
-          isRefreshing: false,
-          initialized: true 
-        };
+        // Set state synchronously so we don't rely on _setProfileIfLatest
+        // which requires get().user to already be set.
+        if (fetchId === profileFetchSeq && profile) {
+          set({ 
+            user: data.user,
+            profile,
+            loading: false, 
+            isRefreshing: false,
+            initialized: true 
+          });
+        } else {
+          set({ 
+            user: data.user,
+            loading: false, 
+            isRefreshing: false,
+            initialized: true 
+          });
+          if (!profile) {
+            console.error('Failed to fetch profile in signIn for user', data.user.id);
+          }
+        }
         
         // Set session expiry tracking
         if (data.session?.expires_at) {
           get().setSessionExpiry(data.session.expires_at * 1000);
         }
-        
-        if (profile) {
-          get()._setProfileIfLatest(fetchId, profile, data.user.id);
-        } else {
-          console.error('Failed to fetch profile in signIn for user', data.user.id);
-        }
-        
-        // Always set user and other state
-        set(baseState);
       }
 
       return { success: true };
@@ -488,7 +492,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Force local logout even if server signout failed
       try {
         if (typeof window !== 'undefined') {
-          const projectRef = supabaseUrl.split('//')[1]?.split('.')[0] || 'auth';
+          const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0] || 'auth';
 
           // Remove all Supabase auth tokens (based on Supabase storageKey pattern)
           const keysToRemove = [
@@ -509,3 +513,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 }));
+
+// Custom hook to check if current user is an admin
+export const useIsAdmin = () => {
+  return useAuthStore(state => state.profile?.role === 'admin');
+};

@@ -14,6 +14,7 @@ import { Portal } from '@/components/ui/Portal';
 import SelectInput from '@/components/ui/SelectInput';
 import TextareaInput from '@/components/ui/TextareaInput';
 import { Button, Breadcrumb, Badge, Card, AmbientLayout } from '@/components/ui';
+import { AdminOnly } from '@/components/role';
 
 const reasonOptions = [
   { value: 'salah_input', label: 'Kesalahan Input' },
@@ -236,7 +237,12 @@ export default function StockOpnameDetailPage() {
       addToast({ type: "error", message: result.error.message });
     } else {
       setProcessing(true);
-      await stockAdjustmentApi.processOpnameAdjustments(opnameId);
+      const adjustResult = await stockAdjustmentApi.processOpnameAdjustments(opnameId);
+      if (adjustResult.error) {
+        addToast({ type: "error", message: `Gagal memproses penyesuaian stok: ${adjustResult.error.message}` });
+      } else {
+        addToast({ type: "success", message: "Stock Opname berhasil disetujui dan stok telah disesuaikan" });
+      }
       setProcessing(false);
       fetchData();
     }
@@ -381,7 +387,7 @@ return (
                 </>
               )}
               {isPending && (
-                <>
+                <AdminOnly>
                   <Button variant="danger" className="!px-4 h-10 rounded-xl lg:h-auto lg:!px-4" onClick={() => setShowRejectModal(true)} disabled={saving}>
                     <IconX size={20} />
                     <span className="hidden sm:inline">Tolak</span>
@@ -390,7 +396,7 @@ return (
                     {processing ? <IconLoader2 size={20} className="animate-spin" /> : <IconCheck size={20} />}
                     <span className="hidden sm:inline">{processing ? 'Memproses...' : 'Setujui'}</span>
                   </Button>
-                </>
+                </AdminOnly>
               )}
             </div>
           </div>
@@ -436,7 +442,7 @@ return (
                     }
                   }
                 }}
-                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500"
               />
               {showAddDropdown && inventorySearchResults.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg max-h-[40vh] md:max-h-64 overflow-auto">
@@ -469,7 +475,7 @@ return (
                   placeholder="Cari di dalam daftar..."
                   value={searchFilter}
                   onChange={(e) => setSearchFilter(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full pl-10 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500"
                 />
               </div>
             )}
@@ -542,7 +548,7 @@ return (
                                   value={item.reason || ''}
                                   onChange={(e) => updateItem(item.id, 'reason', e.target.value || null)}
                                   disabled={!isEditable}
-                                  className={`w-full bg-neutral-50 dark:bg-neutral-800 border rounded-lg px-3 py-2 text-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-brand-500 ${!isValid ? 'border-danger-400 bg-danger-50 dark:bg-danger-900/20' : 'border-neutral-200 dark:border-neutral-700'}`}
+                                  className={`w-full bg-neutral-50 dark:bg-neutral-800 border rounded-lg px-3 py-2 text-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 ${!isValid ? 'border-danger-400 bg-danger-50 dark:bg-danger-900/20' : 'border-neutral-200 dark:border-neutral-700'}`}
                                 >
                                   <option value="">-- Pilih Alasan --</option>
                                   {reasonOptions.map(opt => (
@@ -557,7 +563,7 @@ return (
                                   value={item.note || ''}
                                   onChange={(e) => updateItem(item.id, 'note', e.target.value)}
                                   disabled={!isEditable}
-                                  className="w-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-2 text-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                                  className="w-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-2 text-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500"
                                   placeholder="Opsional..."
                                 />
                               </div>
@@ -593,7 +599,7 @@ return (
                              value={item.physical_stock}
                              onChange={(e) => updateItem(item.id, 'physical_stock', parseInt(e.target.value) || 0)}
                              disabled={!isEditable}
-                             className="w-full text-right bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-md px-2 py-1.5 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 font-mono font-medium shadow-sm"
+                             className="w-full text-right bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-md px-2 py-1.5 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 focus:border-brand-500 font-mono font-medium shadow-sm"
                            />
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -606,7 +612,7 @@ return (
                               value={item.reason || ''}
                               onChange={(e) => updateItem(item.id, 'reason', e.target.value || null)}
                               disabled={!isEditable || item.difference === 0}
-                              className={`w-full bg-white dark:bg-neutral-800 border rounded-md px-2 py-1.5 text-sm shadow-sm disabled:opacity-50 disabled:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-500 ${!isValid ? 'border-danger-400' : 'border-neutral-300 dark:border-neutral-700'}`}
+                              className={`w-full bg-white dark:bg-neutral-800 border rounded-md px-2 py-1.5 text-sm shadow-sm disabled:opacity-50 disabled:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 ${!isValid ? 'border-danger-400' : 'border-neutral-300 dark:border-neutral-700'}`}
                             >
                               <option value="">Pilih Alasan</option>
                               {reasonOptions.map(opt => (
@@ -620,7 +626,7 @@ return (
                                value={item.note || ''}
                                onChange={(e) => updateItem(item.id, 'note', e.target.value)}
                                disabled={!isEditable}
-                               className="w-full bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-md px-2 py-1.5 text-sm shadow-sm disabled:opacity-50 disabled:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                               className="w-full bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-md px-2 py-1.5 text-sm shadow-sm disabled:opacity-50 disabled:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500"
                                placeholder="Catatan"
                              />
                           </td>

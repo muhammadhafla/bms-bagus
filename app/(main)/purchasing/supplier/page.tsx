@@ -22,10 +22,11 @@ import {
   Modal,
   TextInput,
   TextareaInput,
-  ConfirmDialog,
   Pagination,
   useToast,
+  ConfirmDialog,
 } from '@/components/ui';
+import { AdminOnly } from '@/components/role';
 
 export default function SupplierPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -234,6 +235,7 @@ export default function SupplierPage() {
     try {
       const date = new Date(dateStr);
       return date.toLocaleDateString('id-ID', {
+        timeZone: 'Asia/Jakarta',
         day: 'numeric',
         month: 'short',
         year: 'numeric',
@@ -321,6 +323,7 @@ export default function SupplierPage() {
 
   return (
     <AmbientLayout>
+      <AdminOnly>
       <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)] lg:min-h-0">
         {/* Header Section */}
         <div className="mb-4 lg:mb-6 flex-shrink-0 animate-fade-in-up">
@@ -539,6 +542,7 @@ export default function SupplierPage() {
         onCancel={() => setDeleteConfirmOpen(false)}
         danger
       />
+      </AdminOnly>
     </AmbientLayout>
   );
 }

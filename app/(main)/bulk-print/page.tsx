@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useBulkPrintStore } from '@/lib/store';
 import { inventoryApi } from '@/lib/api';
-import { supabase } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import { InventoryItem } from '@/types/inventory';
 import { Template } from '@/types';
@@ -70,16 +70,20 @@ export default function BulkPrintPage() {
 
   const fetchTemplates = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      const res = await fetch('/api/templates', {
-        headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
-      });
-      const data = await res.json();
-      if (data.templates) {
-        setTemplates(data.templates);
-        if (data.templates.length > 0) {
-          setSelectedTemplate(data.templates[0].id);
+      const { data, error } = await supabase
+        .from('label_templates')
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        console.error('Error fetching templates:', error);
+        return;
+      }
+      
+      if (data) {
+        setTemplates(data);
+        if (data.length > 0) {
+          setSelectedTemplate(data[0].id);
         }
       }
     } catch (err) {
@@ -366,7 +370,7 @@ export default function BulkPrintPage() {
                   }
                 }}
                 disabled={loading}
-                className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-neutral-900 backdrop-blur-md border border-neutral-200 dark:border-neutral-700 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all text-base lg:text-lg"
+                className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-neutral-900 backdrop-blur-md border border-neutral-200 dark:border-neutral-700 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 transition-all text-base lg:text-lg"
                 autoFocus
               />
               {showAddDropdown && inventorySearchResults.length > 0 && (

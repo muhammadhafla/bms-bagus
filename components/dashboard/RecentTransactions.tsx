@@ -36,6 +36,7 @@ export function RecentTransactions({ transactions, isLoading }: RecentTransactio
 
   const formatTime = (date: string) => {
     return new Date(date).toLocaleTimeString('id-ID', {
+      timeZone: 'Asia/Jakarta',
       hour: '2-digit',
       minute: '2-digit',
     });

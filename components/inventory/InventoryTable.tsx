@@ -8,6 +8,7 @@ import { inventoryApi, kategoriApi } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { AdminOnly } from '@/components/role';
+import { useAuthStore, useIsAdmin } from '@/lib/auth';
 import { Modal } from '@/components/ui/Modal';
 import TextInput from '@/components/ui/TextInput';
 import SelectInput from '@/components/ui/SelectInput';
@@ -59,6 +60,7 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
   const [printForm, setPrintForm] = useState({ template_id: '', qty: 1 });
   const [isPrinting, setIsPrinting] = useState(false);
   const { showToast } = useToast();
+  const isAdminUser = useIsAdmin();
 
   const openSlideOver = useCallback((item: InventoryItem) => {
     setSelectedItem(item);
@@ -225,7 +227,7 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
               <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Barcode</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Nama Barang</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Kategori</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Beli</th>
+              {isAdminUser && <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Beli</th>}
               <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Jual</th>
               <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Diskon</th>
               <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Stok</th>
@@ -250,9 +252,11 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
                       {item.id_kategori?.nama || '-'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right text-neutral-600 dark:text-neutral-300">
-                    {formatCurrency(item.harga_beli_terakhir || 0)}
-                  </td>
+                  {isAdminUser && (
+                    <td className="px-4 py-3 text-right text-neutral-600 dark:text-neutral-300">
+                      {formatCurrency(item.harga_beli_terakhir || 0)}
+                    </td>
+                  )}
                   <td className="px-4 py-3 text-right font-medium text-neutral-900 dark:text-neutral-100">
                     {formatCurrency(item.harga_jual)}
                   </td>
@@ -321,10 +325,12 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
               </div>
 
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[13px] mt-1 pt-2 border-t border-neutral-100 dark:border-neutral-800/60">
-                <div className="flex justify-between items-center">
-                  <span className="text-neutral-500 dark:text-neutral-400 text-xs">Beli</span>
-                  <span className="font-medium text-neutral-900 dark:text-neutral-100">{formatCurrency(item.harga_beli_terakhir || 0)}</span>
-                </div>
+                {isAdminUser && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-neutral-500 dark:text-neutral-400 text-xs">Beli</span>
+                    <span className="font-medium text-neutral-900 dark:text-neutral-100">{formatCurrency(item.harga_beli_terakhir || 0)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center">
                   <span className="text-neutral-500 dark:text-neutral-400 text-xs">Jual</span>
                   <span className="font-medium text-neutral-900 dark:text-neutral-100">{formatCurrency(item.harga_jual)}</span>
@@ -382,10 +388,12 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
                 <p className="text-sm text-neutral-500 dark:text-neutral-400">Kategori</p>
                 <p className="text-neutral-900 dark:text-white">{editForm.id_kategori}</p>
               </div>
-              <div>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">Harga Beli Terakhir</p>
-                <p className="text-neutral-900 dark:text-white">{formatCurrency(editForm.harga_beli_terakhir)}</p>
-              </div>
+              {isAdminUser && (
+                <div>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">Harga Beli Terakhir</p>
+                  <p className="text-neutral-900 dark:text-white">{formatCurrency(editForm.harga_beli_terakhir)}</p>
+                </div>
+              )}
               <div>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400">Harga Jual</p>
                 <p className="text-neutral-900 dark:text-white">{formatCurrency(editForm.harga_jual)}</p>
@@ -420,12 +428,14 @@ export function InventoryTable({ items, onUpdate, onDelete, pagination, kategori
               options={[...kategoriList].sort().map(k => ({ value: k, label: k }))}
               placeholder="Pilih kategori"
             />
-            <TextInput
-              label="Harga Beli Terakhir"
-              type="number"
-              value={editForm.harga_beli_terakhir}
-              onChange={(e) => setEditForm(prev => ({ ...prev, harga_beli_terakhir: parseInt(e.target.value) || 0 }))}
-            />
+            {isAdminUser && (
+              <TextInput
+                label="Harga Beli Terakhir"
+                type="number"
+                value={editForm.harga_beli_terakhir}
+                onChange={(e) => setEditForm(prev => ({ ...prev, harga_beli_terakhir: parseInt(e.target.value) || 0 }))}
+              />
+            )}
             <TextInput
               label="Harga Jual"
               type="number"

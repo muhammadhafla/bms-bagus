@@ -75,7 +75,7 @@ export const stockAdjustmentApi = {
         p_user_id: user.id,
       });
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
   },
 
   async createManualAdjustment(inventoryId: string, adjustmentQty: number, adjustmentType: 'increase' | 'decrease', reason: string, note?: string) {
@@ -120,7 +120,7 @@ export const stockAdjustmentApi = {
           .select()
           .single();
         return { data: result.data, error: result.error as Error | null };
-      });
+      }, { isMutation: true });
 
       if (adjustment.error) throw adjustment.error;
 

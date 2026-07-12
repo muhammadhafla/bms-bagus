@@ -9,6 +9,7 @@ import { formatCurrency, formatDateWIB, formatDateTimeWIB } from '@/lib/utils';
 import { IconSearch, IconEye, IconChevronLeft, IconChevronRight, IconPrinter } from '@tabler/icons-react';
 import { Button, ModernPagination } from '@/components/ui';
 import { SlideOver } from '@/components/ui/SlideOver';
+import { TransactionHistoryTable } from './TransactionHistoryTable';
 
 interface PembelianRecord {
   id: string;
@@ -129,11 +130,9 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
   const handleCetakLabel = async () => {
     if (!detail || !detail.items || detail.items.length === 0) return;
     
-    // Extract unique inventory ids
     const inventoryIds = Array.from(new Set(detail.items.map(item => item.inventory_id)));
     
     try {
-      // Fetch full inventory items
       const { data: inventoryData } = await inventoryApi.getByIds(inventoryIds);
       if (inventoryData && inventoryData.length > 0) {
         resetBulkPrint();
@@ -160,142 +159,95 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
     return formatDateTimeWIB(dateStr, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
-  const totalPages = Math.ceil(total / limit) || 1;
+  const renderMobileCard = (record: PembelianRecord, index: number) => (
+    <div
+      key={record.id}
+      onClick={() => handleViewDetail(record.id)}
+      className="bg-white dark:bg-neutral-900 rounded-2xl p-4 shadow-sm border border-neutral-100 dark:border-neutral-800 cursor-pointer active:scale-[0.98] transition-transform"
+    >
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <p className="text-xs text-neutral-500 mb-1">{formatDateTime(record.tanggal)}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-mono font-medium text-neutral-900 dark:text-white">
+              {record.nomor_nota || '-'}
+            </p>
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+              Selesai
+            </span>
+          </div>
+        </div>
+        <div className="text-neutral-400 dark:text-neutral-500 p-1">
+          <IconChevronRight className="w-5 h-5" />
+        </div>
+      </div>
+      <div className="flex justify-between items-end mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+        <div>
+          <p className="text-xs text-neutral-500">Supplier</p>
+          <p className="font-medium text-neutral-800 dark:text-neutral-200">
+            {record.supplier_nama || '-'}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-neutral-500">Total</p>
+          <p className="font-bold text-neutral-900 dark:text-white">
+            {formatCurrency(record.total)}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderTableHeader = () => (
+    <tr>
+      <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-16">#</th>
+      <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">No. Nota</th>
+      <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Tanggal & Waktu</th>
+      <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Supplier</th>
+      <th className="px-5 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Total</th>
+      <th className="px-5 py-4 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-32">Status</th>
+    </tr>
+  );
+
+  const renderTableRow = (record: PembelianRecord, index: number, pageOffset: number) => (
+    <tr key={record.id} onClick={() => handleViewDetail(record.id)} className="hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer group">
+      <td className="px-5 py-4 text-sm text-neutral-600 dark:text-neutral-400">
+        {pageOffset + index + 1}
+      </td>
+      <td className="px-5 py-4 text-sm font-mono font-medium text-neutral-900 dark:text-neutral-100">
+        {record.nomor_nota || '-'}
+      </td>
+      <td className="px-5 py-4 text-sm text-neutral-600 dark:text-neutral-400">
+        {formatDateTime(record.tanggal)}
+      </td>
+      <td className="px-5 py-4 text-sm font-medium text-neutral-800 dark:text-neutral-200">
+        {record.supplier_nama || '-'}
+      </td>
+      <td className="px-5 py-4 text-sm font-bold text-neutral-900 dark:text-neutral-100 text-right">
+        {formatCurrency(record.total)}
+      </td>
+      <td className="px-5 py-4 text-center">
+        <div className="flex items-center justify-center gap-2">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+            Selesai
+          </span>
+          <IconChevronRight className="w-4 h-4 text-neutral-400 group-hover:text-brand-500 transition-colors" />
+        </div>
+      </td>
+    </tr>
+  );
 
   return (
-    <div className="flex-1 overflow-hidden flex flex-col min-h-[400px] bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl shadow-elevated">
-      {/* Mobile View */}
-      <div className="block lg:hidden space-y-4 p-4 overflow-y-auto">
-        {loading ? (
-          <div className="flex justify-center items-center h-32">
-            <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        ) : records.length === 0 ? (
-          <div className="py-8 text-center text-neutral-500 flex flex-col items-center">
-            <div className="w-16 h-16 bg-white/50 dark:bg-neutral-950/50 rounded-2xl flex items-center justify-center mb-4">
-              <IconSearch className="w-8 h-8 text-neutral-400" />
-            </div>
-            <p className="text-lg font-medium text-neutral-600 dark:text-neutral-300">Tidak ada data</p>
-            <p className="text-sm mt-1">Coba sesuaikan filter pencarian.</p>
-          </div>
-        ) : (
-          records.map((record) => (
-            <div
-              key={record.id}
-              onClick={() => handleViewDetail(record.id)}
-              className="bg-white dark:bg-neutral-900 rounded-2xl p-4 shadow-sm border border-neutral-100 dark:border-neutral-800 cursor-pointer active:scale-[0.98] transition-transform"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <p className="text-xs text-neutral-500 mb-1">{formatDateTime(record.tanggal)}</p>
-                  <div className="flex items-center gap-2">
-                    <p className="font-mono font-medium text-neutral-900 dark:text-white">
-                      {record.nomor_nota || '-'}
-                    </p>
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                      Selesai
-                    </span>
-                  </div>
-                </div>
-                <div className="text-neutral-400 dark:text-neutral-500 p-1">
-                  <IconChevronRight className="w-5 h-5" />
-                </div>
-              </div>
-              <div className="flex justify-between items-end mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
-                <div>
-                  <p className="text-xs text-neutral-500">Supplier</p>
-                  <p className="font-medium text-neutral-800 dark:text-neutral-200">
-                    {record.supplier_nama || '-'}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-neutral-500">Total</p>
-                  <p className="font-bold text-neutral-900 dark:text-white">
-                    {formatCurrency(record.total)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      <div className="overflow-x-auto h-full custom-scrollbar hidden lg:block">
-        <table className="w-full min-w-[900px]">
-          <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md sticky top-0 z-10 border-b border-neutral-200/50 dark:border-neutral-800/50">
-            <tr>
-              <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-16">#</th>
-              <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">No. Nota</th>
-              <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Tanggal & Waktu</th>
-              <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Supplier</th>
-              <th className="px-5 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Total</th>
-              <th className="px-5 py-4 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-32">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/50">
-            {loading ? (
-              <tr>
-                <td colSpan={6} className="px-5 py-8 text-center text-neutral-500">
-                  <div className="flex justify-center items-center h-32">
-                    <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
-                  </div>
-                </td>
-              </tr>
-            ) : records.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-5 py-16 text-center text-neutral-500">
-                  <div className="flex flex-col items-center justify-center">
-                    <div className="w-16 h-16 bg-white/50 dark:bg-neutral-950/50 rounded-2xl flex items-center justify-center mb-4">
-                      <IconSearch className="w-8 h-8 text-neutral-400" />
-                    </div>
-                    <p className="text-lg font-medium text-neutral-600 dark:text-neutral-300">Tidak ada data</p>
-                    <p className="text-sm mt-1">Coba sesuaikan filter pencarian.</p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              records.map((record, index) => (
-                <tr key={record.id} onClick={() => handleViewDetail(record.id)} className="hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer group">
-                  <td className="px-5 py-4 text-sm text-neutral-600 dark:text-neutral-400">
-                    {((page - 1) * limit) + index + 1}
-                  </td>
-                  <td className="px-5 py-4 text-sm font-mono font-medium text-neutral-900 dark:text-neutral-100">
-                    {record.nomor_nota || '-'}
-                  </td>
-                  <td className="px-5 py-4 text-sm text-neutral-600 dark:text-neutral-400">
-                    {formatDateTime(record.tanggal)}
-                  </td>
-                  <td className="px-5 py-4 text-sm font-medium text-neutral-800 dark:text-neutral-200">
-                    {record.supplier_nama || '-'}
-                  </td>
-                  <td className="px-5 py-4 text-sm font-bold text-neutral-900 dark:text-neutral-100 text-right">
-                    {formatCurrency(record.total)}
-                  </td>
-                  <td className="px-5 py-4 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                        Selesai
-                      </span>
-                      <IconChevronRight className="w-4 h-4 text-neutral-400 group-hover:text-brand-500 transition-colors" />
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-      
-      {totalPages > 0 && (
-        <ModernPagination
-          page={page}
-          totalPages={totalPages}
-          total={total}
-          limit={limit}
-          onPageChange={setPage}
-          className="rounded-b-3xl"
-        />
-      )}
+    <>
+      <TransactionHistoryTable<PembelianRecord>
+        fetchFn={purchasesApi.getAll}
+        search={search}
+        startDate={startDate}
+        endDate={endDate}
+        renderMobileCard={renderMobileCard}
+        renderTableHeader={renderTableHeader}
+        renderTableRow={renderTableRow}
+      />
 
       {/* SlideOver Rincian Pembelian */}
       <SlideOver
@@ -393,6 +345,6 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
           )}
         </div>
       </SlideOver>
-    </div>
+    </>
   );
 }

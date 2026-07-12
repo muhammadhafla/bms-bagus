@@ -1,6 +1,6 @@
 export const INPUT_STYLES = {
   base: 'w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 transition-colors',
-  focus: 'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent focus:bg-white dark:focus:bg-neutral-900',
+  focus: 'focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 focus:border-transparent focus:bg-white dark:focus:bg-neutral-900',
   error: 'border-red-500 focus:ring-red-200 dark:focus:ring-red-900',
   disabled: 'opacity-50 cursor-not-allowed',
   placeholder: 'placeholder:text-neutral-400 dark:placeholder:text-neutral-500',

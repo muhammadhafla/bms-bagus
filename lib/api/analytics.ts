@@ -46,6 +46,23 @@ export interface Atv {
   items_per_ticket: number;
 }
 
+export interface ReturnAnalytics {
+  kpi: {
+    total_revenue_returned: number;
+    total_transactions: number;
+  };
+  top_items: {
+    inventory_id: string;
+    nama_barang: string;
+    total_qty: number;
+    total_value: number;
+  }[];
+  reasons: {
+    reason: string;
+    count: number;
+  }[];
+}
+
 export const analyticsApi = {
   async getBusiestHours(startDate?: string, endDate?: string) {
     const result = await safeQuery<BusiestHour[]>(async () => {
@@ -184,5 +201,16 @@ export const analyticsApi = {
       data: result.data || { avg_transaction_value: 0, items_per_ticket: 0 }, 
       error: result.error 
     };
+  },
+
+  async getReturnAnalytics(startDate?: string, endDate?: string) {
+    const result = await safeQuery<ReturnAnalytics>(async () => {
+      const res = await supabase.rpc('get_analytics_returns', {
+        p_start_date: startDate ? `${startDate}T00:00:00Z` : null,
+        p_end_date: endDate ? `${endDate}T23:59:59Z` : null,
+      });
+      return { data: res.data as ReturnAnalytics, error: res.error as Error | null };
+    });
+    return { data: result.data || { kpi: { total_revenue_returned: 0, total_transactions: 0 }, top_items: [], reasons: [] }, error: result.error };
   }
 };

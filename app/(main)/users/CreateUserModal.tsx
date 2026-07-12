@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '@/components/ui';
-import { useAuthStore, supabase } from '@/lib/auth';
+import { useAuthStore } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/Toast';
 import { IconUserPlus, IconLoader2 } from '@tabler/icons-react';
 
@@ -71,7 +72,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
             value={formData.nama}
             onChange={handleChange}
             required
-            className="w-full px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-neutral-900 dark:text-white"
+            className="w-full px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500/20 focus:border-brand-500 text-neutral-900 dark:text-white"
           />
         </div>
         
@@ -85,7 +86,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
             value={formData.email}
             onChange={handleChange}
             required
-            className="w-full px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-neutral-900 dark:text-white"
+            className="w-full px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500/20 focus:border-brand-500 text-neutral-900 dark:text-white"
           />
         </div>
 
@@ -98,7 +99,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
             name="username"
             value={formData.username}
             onChange={(e) => setFormData({...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '')})}
-            className="w-full px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-neutral-900 dark:text-white"
+            className="w-full px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500/20 focus:border-brand-500 text-neutral-900 dark:text-white"
             placeholder="Opsional, untuk login tanpa email"
           />
         </div>
@@ -114,7 +115,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
             onChange={handleChange}
             required
             minLength={6}
-            className="w-full px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-neutral-900 dark:text-white"
+            className="w-full px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500/20 focus:border-brand-500 text-neutral-900 dark:text-white"
           />
         </div>
 
@@ -126,7 +127,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
             name="role"
             value={formData.role}
             onChange={handleChange}
-            className="w-full px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-neutral-900 dark:text-white"
+            className="w-full px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500/20 focus:border-brand-500 text-neutral-900 dark:text-white"
           >
             <option value="staff">Staff (Kasir)</option>
             <option value="admin">Admin</option>

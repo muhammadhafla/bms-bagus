@@ -1,6 +1,5 @@
 import { supabase } from './client';
 import { safeQuery } from './utils';
-import { useAuthStore } from '@/lib/auth';
 
 export interface StockOpname {
   id: string;
@@ -161,7 +160,7 @@ export const stockOpnameApi = {
         .select()
         .single();
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
 
     if (opnameResult.error || !opnameResult.data) {
       return opnameResult;
@@ -187,7 +186,7 @@ export const stockOpnameApi = {
         .select()
         .single();
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
   },
 
   async submitForApproval(opnameId: string) {
@@ -223,17 +222,13 @@ export const stockOpnameApi = {
         .select()
         .single();
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
   },
 
   async approve(opnameId: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { data: null, error: new Error('User not authenticated') };
-    }
-
-    if (!useAuthStore.getState().isAdmin()) {
-      return { data: null, error: new Error('Hanya admin yang dapat melakukan approval') };
     }
 
     return safeQuery<StockOpname>(async () => {
@@ -248,17 +243,13 @@ export const stockOpnameApi = {
         .select()
         .single();
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
   },
 
   async reject(opnameId: string, note: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { data: null, error: new Error('User not authenticated') };
-    }
-
-    if (!useAuthStore.getState().isAdmin()) {
-      return { data: null, error: new Error('Hanya admin yang dapat melakukan approval') };
     }
 
     return safeQuery<StockOpname>(async () => {
@@ -274,7 +265,7 @@ export const stockOpnameApi = {
         .select()
         .single();
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
   },
 
   async delete(opnameId: string) {
@@ -284,7 +275,7 @@ export const stockOpnameApi = {
         .delete()
         .eq('id', opnameId);
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
   },
 
   async addItem(opnameId: string, inventoryId: string) {
@@ -315,7 +306,7 @@ export const stockOpnameApi = {
         .select()
         .single();
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
 
     if (insertResult.error || !insertResult.data) {
       return insertResult;
@@ -334,6 +325,6 @@ export const stockOpnameApi = {
         .delete()
         .eq('id', itemId);
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
   }
 };

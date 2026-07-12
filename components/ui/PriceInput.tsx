@@ -235,28 +235,4 @@ export const PriceInput = ({
   );
 };
 
-// CSS untuk menghilangkan spinner di semua browser
-const globalStyles = `
-  input[type="number"]::-webkit-inner-spin-button,
-  input[type="number"]::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-  input[type="number"] {
-    -moz-appearance: textfield;
-    appearance: textfield;
-  }
-`;
-
-// Inject style jika di browser
-if (typeof document !== 'undefined') {
-  const existingStyle = document.getElementById('price-input-styles');
-  if (!existingStyle) {
-    const style = document.createElement('style');
-    style.id = 'price-input-styles';
-    style.textContent = globalStyles;
-    document.head.appendChild(style);
-  }
-}
-
 export default PriceInput;

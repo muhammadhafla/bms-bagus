@@ -241,6 +241,15 @@ export const formatDateTimeWIB = (date: Date | string | null | undefined, option
 };
 
 /**
+ * Format a date for input type="date" (YYYY-MM-DD) in UTC+7
+ */
+export const formatDateForInputWIB = (date: Date | string | null | undefined): string => {
+  if (!date) return '';
+  const d = parseUTCDate(date);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(d);
+};
+
+/**
  * Export data array to CSV file and trigger download
  */
 export const exportToCSV = (data: (string | number)[][], headers: string[], filename: string) => {

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { verifyAuth, createAdminClient } from '@/lib/api/auth-guard';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     const { user, error: authError } = await verifyAuth(request);

@@ -20,12 +20,18 @@ async function ensureSession(): Promise<boolean> {
   return refreshPromise;
 }
 
-export async function safeQuery<T>(operation: () => Promise<{ data: T | null; error: Error | null }>): Promise<{ data: T | null; error: ApiError | null }> {
+export async function safeQuery<T>(
+  operation: () => Promise<{ data: T | null; error: Error | null }>,
+  options?: { isMutation?: boolean }
+): Promise<{ data: T | null; error: ApiError | null }> {
   let result: { data: T | null; error: Error | null };
   
   try {
-    // Retry only on thrown exceptions (network errors, timeouts)
-    result = await retryWithBackoff(operation);
+    if (options?.isMutation) {
+      result = await operation();
+    } else {
+      result = await retryWithBackoff(operation);
+    }
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
     return { data: null, error: createError(error.message, (error as any).name) };

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore, supabase } from '@/lib/auth';
+import { useAuthStore } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { IconLock, IconMail, IconMoon, IconSun, IconEye, IconEyeOff, IconUser } from '@tabler/icons-react';
 import { useDarkMode } from '@/components/DarkModeProvider';
 import Image from 'next/image';
@@ -63,12 +64,12 @@ export default function LoginPage() {
       return;
     }
 
-    let loginEmail = identifier;
+    let loginEmail = identifier.trim();
 
     // Resolve username to email if it's not an email
-    if (!identifier.includes('@')) {
+    if (!loginEmail.includes('@')) {
       const { data, error: resolveError } = await supabase.rpc('resolve_username', {
-        p_username: identifier.toLowerCase()
+        p_username: loginEmail.toLowerCase()
       });
 
       if (resolveError || !data) {

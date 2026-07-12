@@ -422,16 +422,14 @@ CREATE POLICY "inventory_barcodes_update" ON inventory_barcodes FOR UPDATE TO au
 CREATE POLICY "inventory_barcodes_delete" ON inventory_barcodes FOR DELETE TO authenticated USING (true);
 
 -- ========== PEMBELIAN POLICIES ==========
-CREATE POLICY "pembelian_anon_select" ON pembelian FOR SELECT TO public USING (true);
-CREATE POLICY "pembelian_select" ON pembelian FOR SELECT TO authenticated USING (true);
-CREATE POLICY "pembelian_insert_staff" ON pembelian FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "pembelian_update_own_or_admin" ON pembelian FOR UPDATE TO authenticated USING (is_admin() OR created_by = auth.uid());
+CREATE POLICY "pembelian_select_admin" ON pembelian FOR SELECT TO authenticated USING (is_admin());
+CREATE POLICY "pembelian_insert_admin" ON pembelian FOR INSERT TO authenticated WITH CHECK (is_admin());
+CREATE POLICY "pembelian_update_admin" ON pembelian FOR UPDATE TO authenticated USING (is_admin());
 CREATE POLICY "pembelian_delete_admin" ON pembelian FOR DELETE TO authenticated USING (is_admin());
 
 -- ========== PEMBELIAN_ITEMS POLICIES ==========
-CREATE POLICY "pembelian_items_anon_select" ON pembelian_items FOR SELECT TO public USING (true);
-CREATE POLICY "pembelian_items_select" ON pembelian_items FOR SELECT TO authenticated USING (true);
-CREATE POLICY "pembelian_items_insert_staff" ON pembelian_items FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "pembelian_items_select_admin" ON pembelian_items FOR SELECT TO authenticated USING (is_admin());
+CREATE POLICY "pembelian_items_insert_admin" ON pembelian_items FOR INSERT TO authenticated WITH CHECK (is_admin());
 CREATE POLICY "pembelian_items_update_admin" ON pembelian_items FOR UPDATE TO authenticated USING (is_admin());
 CREATE POLICY "pembelian_items_delete_admin" ON pembelian_items FOR DELETE TO authenticated USING (is_admin());
 
@@ -455,9 +453,10 @@ CREATE POLICY "profiles_all_admin" ON profiles FOR ALL TO authenticated USING (i
 CREATE POLICY "profiles_update_own" ON profiles FOR UPDATE TO authenticated USING (id = auth.uid());
 
 -- ========== SUPPLIER POLICIES ==========
-CREATE POLICY "supplier_anon_select" ON supplier FOR SELECT TO public USING (true);
-CREATE POLICY "supplier_select" ON supplier FOR SELECT TO authenticated USING (true);
-CREATE POLICY "supplier_all_admin" ON supplier FOR ALL TO authenticated USING (is_admin());
+CREATE POLICY "supplier_select_admin" ON supplier FOR SELECT TO authenticated USING (is_admin());
+CREATE POLICY "supplier_insert_admin" ON supplier FOR INSERT TO authenticated WITH CHECK (is_admin());
+CREATE POLICY "supplier_update_admin" ON supplier FOR UPDATE TO authenticated USING (is_admin());
+CREATE POLICY "supplier_delete_admin" ON supplier FOR DELETE TO authenticated USING (is_admin());
 
 -- ========== STOCK_MOVEMENTS POLICIES ==========
 CREATE POLICY "stock_movements_select" ON stock_movements FOR SELECT TO authenticated USING (true);
@@ -473,8 +472,8 @@ ALTER TABLE stock_adjustments ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "stock_opname_select" ON stock_opname FOR SELECT TO authenticated USING (true);
 CREATE POLICY "stock_opname_insert_draft" ON stock_opname FOR INSERT TO authenticated WITH CHECK (status = 'draft');
-CREATE POLICY "stock_opname_update_allow" ON stock_opname FOR UPDATE TO authenticated USING (is_admin() OR ((status='draft') AND (created_by = auth.uid())));
-CREATE POLICY "stock_opname_delete_allow" ON stock_opname FOR DELETE TO authenticated USING (is_admin() OR ((status='draft') AND (created_by = auth.uid())));
+CREATE POLICY "stock_opname_update_allow" ON stock_opname FOR UPDATE TO authenticated USING (is_admin() OR status='draft') WITH CHECK (is_admin() OR status IN ('draft', 'pending'));
+CREATE POLICY "stock_opname_delete_allow" ON stock_opname FOR DELETE TO authenticated USING (is_admin() OR status='draft');
 
 -- ========== STOCK_OPNAME_ITEMS POLICIES ==========
 CREATE POLICY "stock_opname_items_select" ON stock_opname_items FOR SELECT TO authenticated USING (true);
@@ -484,12 +483,12 @@ CREATE POLICY "stock_opname_items_insert_allow" ON stock_opname_items FOR INSERT
 CREATE POLICY "stock_opname_items_update_allow" ON stock_opname_items FOR UPDATE TO authenticated USING (
   EXISTS (SELECT 1 FROM stock_opname so 
     WHERE so.id = stock_opname_items.stock_opname_id 
-    AND (is_admin() OR (so.status = 'draft' AND so.created_by = auth.uid())))
+    AND (is_admin() OR so.status = 'draft'))
 );
 CREATE POLICY "stock_opname_items_delete_allow" ON stock_opname_items FOR DELETE TO authenticated USING (
   EXISTS (SELECT 1 FROM stock_opname so 
     WHERE so.id = stock_opname_items.stock_opname_id 
-    AND (is_admin() OR (so.status = 'draft' AND so.created_by = auth.uid())))
+    AND (is_admin() OR so.status = 'draft'))
 );
 
   -- ========== STOCK_ADJUSTMENTS POLICIES ==========

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { IconX } from '@tabler/icons-react';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 interface SlideOverProps {
   isOpen: boolean;
@@ -29,13 +30,13 @@ export function SlideOver({ isOpen, onClose, title, children, size = 'md' }: Sli
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
     }
     return () => {
       document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
     };
   }, [isOpen, handleEscape]);
+
+  useBodyScrollLock(isOpen);
 
   const focusTrapRef = useFocusTrap(isOpen && mounted);
 

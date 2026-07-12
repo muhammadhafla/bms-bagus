@@ -12,6 +12,7 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
 
   const date = new Date(label as string);
   const formattedDate = date.toLocaleDateString('id-ID', {
+    timeZone: 'Asia/Jakarta',
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -47,7 +48,7 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
 
   const formatDate = (date: string) => {
     const d = new Date(date);
-    return d.toLocaleDateString('id-ID', { weekday: 'short' });
+    return d.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'short' });
   };
 
   const formatValue = (value: number) => {

@@ -82,7 +82,7 @@ export async function POST(request: Request) {
       .update({
         nama,
         username: username || null,
-        role: role === 'admin' ? 'admin' : 'staff',
+        role: role?.toLowerCase() === 'admin' ? 'admin' : 'staff',
       })
       .eq('id', newUser.user.id);
 
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
         id: newUser.user.id,
         nama,
         username: username || null,
-        role: role === 'admin' ? 'admin' : 'staff',
+        role: role?.toLowerCase() === 'admin' ? 'admin' : 'staff',
       });
     }
 

@@ -173,6 +173,6 @@ export const penjualanApi = {
     return safeQuery(async () => {
       const result = await supabase.rpc('create_penjualan', payload);
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
   }
 };

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { Modal } from '@/components/ui';
 import { useToast } from '@/components/ui/Toast';
 import { IconUser, IconKey, IconShieldLock, IconLoader2, IconTrash } from '@tabler/icons-react';
@@ -127,7 +127,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, userId, init
               type="text"
               value={nama}
               onChange={(e) => setNama(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-shadow outline-none"
+              className="w-full pl-10 pr-4 py-2 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-inset focus:ring-brand-500/20 focus:border-brand-500 transition-shadow outline-none"
               placeholder="Nama pengguna"
               required
               disabled={loading || isDeleting}
@@ -146,7 +146,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, userId, init
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as 'admin' | 'staff')}
-              className="w-full pl-10 pr-4 py-2 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-shadow outline-none appearance-none"
+              className="w-full pl-10 pr-4 py-2 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-inset focus:ring-brand-500/20 focus:border-brand-500 transition-shadow outline-none appearance-none"
               disabled={loading || isDeleting}
             >
               <option value="admin">Admin</option>
@@ -167,7 +167,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, userId, init
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-shadow outline-none"
+              className="w-full pl-10 pr-4 py-2 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-inset focus:ring-brand-500/20 focus:border-brand-500 transition-shadow outline-none"
               placeholder="Kosongkan jika tidak ingin ganti password"
               disabled={loading || isDeleting}
               minLength={6}

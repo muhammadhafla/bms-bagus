@@ -5,7 +5,7 @@ import { AmbientLayout, Button, SlideOver, ModernPagination, FilterButton } from
 import DateInput from '@/components/ui/DateInput';
 import { IconHistory, IconRefresh, IconPrinter, IconChevronLeft, IconChevronRight, IconFilter, IconX } from '@tabler/icons-react';
 import { formatDateTimeWIB } from '@/lib/utils';
-import { supabase } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 
 interface PrintJob {
   id: string;

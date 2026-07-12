@@ -75,10 +75,23 @@ export function DateRangePicker({ startDate, endDate, onChange, label, className
     setIsOpen(false);
   };
 
+  const formatShortDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    try {
+      const date = new Date(dateStr);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const currentYear = new Date().getFullYear();
+      const yearStr = date.getFullYear() !== currentYear ? ` ${date.getFullYear()}` : '';
+      return `${date.getDate()} ${months[date.getMonth()]}${yearStr}`;
+    } catch {
+      return dateStr;
+    }
+  };
+
   const displayValue = startDate && endDate 
-    ? `${startDate} s.d ${endDate}` 
-    : startDate ? `Mulai: ${startDate}` 
-    : endDate ? `Sampai: ${endDate}` 
+    ? `${formatShortDate(startDate)} - ${formatShortDate(endDate)}` 
+    : startDate ? `Mulai: ${formatShortDate(startDate)}` 
+    : endDate ? `Sampai: ${formatShortDate(endDate)}` 
     : 'Semua Waktu';
 
   return (

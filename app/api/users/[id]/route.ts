@@ -60,7 +60,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .update({ nama, role: role === 'admin' ? 'admin' : 'staff' })
+      .update({ nama, role: role?.toLowerCase() === 'admin' ? 'admin' : 'staff' })
       .eq('id', userId);
 
     if (profileError) {

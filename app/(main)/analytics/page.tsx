@@ -4,8 +4,10 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { analyticsApi, kategoriApi } from '@/lib/api';
-import { IconDashboard, IconPackage, IconShoppingCart, IconTrendingUp, IconChartBar, IconFilter, IconX } from '@tabler/icons-react';
+import { IconDashboard, IconPackage, IconShoppingCart, IconTrendingUp, IconChartBar, IconFilter, IconX, IconLock, IconRotateClockwise2 } from '@tabler/icons-react';
 import { DateRangePicker, Tabs, SelectInput, SlideOver, Button, FilterButton } from '@/components/ui';
+import { AdminOnly } from '@/components/role';
+import { formatDateForInputWIB } from '@/lib/utils';
 
 import { BusiestTimeChart } from '@/components/analytics/BusiestTimeChart';
 import { CategoryPieChart } from '@/components/analytics/CategoryPieChart';
@@ -18,13 +20,26 @@ import { SalesReportTab } from './tabs/SalesReportTab';
 import { ProfitReportTab } from './tabs/ProfitReportTab';
 import { TopItemsReportTab } from './tabs/TopItemsReportTab';
 import { ValueReportTab } from './tabs/ValueReportTab';
+import { ReturnsReportTab } from './tabs/ReturnsReportTab';
 
-type ReportType = 'overview' | 'stock' | 'sales' | 'profit' | 'top_items' | 'value';
+type ReportType = 'overview' | 'stock' | 'sales' | 'profit' | 'top_items' | 'value' | 'returns';
 
 export default function AnalyticsPage() {
   return (
     <Suspense fallback={<div className="p-8 text-center text-neutral-500">Memuat analisis...</div>}>
-      <AnalyticsContent />
+      <AdminOnly fallback={
+        <div className="flex flex-col items-center justify-center p-12 text-center min-h-[50vh] animate-fade-in-up">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mb-4">
+            <IconLock className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">Akses Ditolak</h2>
+          <p className="text-neutral-500 dark:text-neutral-400 max-w-md">
+            Halaman analisis dan laporan ini hanya dapat diakses oleh Administrator.
+          </p>
+        </div>
+      }>
+        <AnalyticsContent />
+      </AdminOnly>
     </Suspense>
   );
 }
@@ -44,11 +59,10 @@ function AnalyticsContent() {
   const today = new Date();
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(today.getDate() - 30);
-  const formatDate = (d: Date) => d.toISOString().split('T')[0];
 
   // Unified Date State
-  const [startDate, setStartDate] = useState<string>(formatDate(thirtyDaysAgo));
-  const [endDate, setEndDate] = useState<string>(formatDate(today));
+  const [startDate, setStartDate] = useState<string>(formatDateForInputWIB(thirtyDaysAgo));
+  const [endDate, setEndDate] = useState<string>(formatDateForInputWIB(today));
 
   // Overview Queries
   const { data: categoriesData, isLoading: isLoadingCategories } = useQuery({
@@ -104,6 +118,7 @@ function AnalyticsContent() {
     { id: 'profit', label: 'Profit', icon: <IconTrendingUp className="w-4 h-4" /> },
     { id: 'top_items', label: 'Top Items', icon: <IconChartBar className="w-4 h-4" /> },
     { id: 'value', label: 'Nilai Inventaris', icon: <IconPackage className="w-4 h-4" /> },
+    { id: 'returns', label: 'Retur', icon: <IconRotateClockwise2 className="w-4 h-4" /> },
   ];
 
   const getActiveFilters = () => {
@@ -265,10 +280,11 @@ function AnalyticsContent() {
         )}
 
         {activeTab === 'stock' && <StockReportTab startDate={startDate} endDate={endDate} />}
-        {activeTab === 'sales' && <SalesReportTab startDate={startDate} endDate={endDate} categoryId={categoryId} />}
-        {activeTab === 'profit' && <ProfitReportTab startDate={startDate} endDate={endDate} categoryId={categoryId} />}
-        {activeTab === 'top_items' && <TopItemsReportTab startDate={startDate} endDate={endDate} categoryId={categoryId} topItemsSort={topItemsSort} />}
-        {activeTab === 'value' && <ValueReportTab />}
+        { activeTab === 'sales' && <SalesReportTab startDate={startDate} endDate={endDate} categoryId={categoryId} /> }
+        { activeTab === 'profit' && <ProfitReportTab startDate={startDate} endDate={endDate} categoryId={categoryId} /> }
+        { activeTab === 'top_items' && <TopItemsReportTab startDate={startDate} endDate={endDate} categoryId={categoryId} topItemsSort={topItemsSort} /> }
+        { activeTab === 'value' && <ValueReportTab /> }
+        { activeTab === 'returns' && <ReturnsReportTab startDate={startDate} endDate={endDate} /> }
       </div>
     </div>
   );

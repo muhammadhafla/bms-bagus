@@ -60,7 +60,7 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(({
             INPUT_SIZE[inputSize],
             error ? FORM_ERROR_STYLES.input : INPUT_STYLES.focus,
             disabled && INPUT_STYLES.disabled,
-            'appearance-none cursor-pointer pr-10',
+            'appearance-none cursor-pointer pr-10 text-ellipsis',
             className,
           ].join(' ')}
           aria-invalid={!!error}

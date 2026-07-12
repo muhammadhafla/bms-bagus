@@ -21,7 +21,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info', duration = 3000) => {
-    const id = Date.now().toString();
+    const id = crypto.randomUUID();
     setToasts((prev) => [...prev, { id, message, type, duration }]);
   }, []);
 
@@ -51,30 +51,21 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
 
 function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) => void }) {
   const [isPaused, setIsPaused] = useState(false);
-  const [progress, setProgress] = useState(100);
   const toastRef = useRef<HTMLDivElement>(null);
-  const startTimeRef = useRef<number>(0);
   const duration = toast.duration || 3000;
-
-  useEffect(() => {
-    startTimeRef.current = Date.now();
-  }, []);
+  const remainingTimeRef = useRef(duration);
+  const startTimeRef = useRef<number>(0);
 
   useEffect(() => {
     if (isPaused) return;
-    
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTimeRef.current;
-      const remaining = Math.max(0, ((duration - elapsed) / duration) * 100);
-      setProgress(remaining);
-      
-      if (remaining === 0) {
-        onRemove(toast.id);
-      }
-    }, 50);
 
-    return () => clearInterval(interval);
-  }, [isPaused, duration, onRemove, toast.id]);
+    startTimeRef.current = Date.now();
+    const timeout = setTimeout(() => {
+      onRemove(toast.id);
+    }, remainingTimeRef.current);
+
+    return () => clearTimeout(timeout);
+  }, [isPaused, onRemove, toast.id]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -86,7 +77,6 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
     const currentToast = toastRef.current;
     if (currentToast) {
       currentToast.addEventListener('keydown', handleKeyDown);
-      currentToast.focus();
     }
 
     return () => {
@@ -102,11 +92,11 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
       tabIndex={-1}
       role="status"
       aria-live="polite"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => {
-        setIsPaused(false);
-        startTimeRef.current = Date.now() - ((100 - progress) / 100) * duration;
+      onMouseEnter={() => {
+        setIsPaused(true);
+        remainingTimeRef.current -= (Date.now() - startTimeRef.current);
       }}
+      onMouseLeave={() => setIsPaused(false)}
       className={`px-4 py-3 rounded-xl shadow-lg text-white min-w-[300px] flex items-center justify-between border-l-4 focus:outline-none focus:ring-2 focus:ring-brand-500 ${
         toast.type === 'success' ? 'bg-green-600 border-l-green-400' : toast.type === 'error' ? 'bg-red-600 border-l-red-400' : 'bg-brand-600 border-l-brand-400'
       }`}
@@ -115,8 +105,11 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
       <div className="flex items-center gap-2">
         <div className="w-16 h-1 bg-white/20 rounded-full overflow-hidden">
           <div 
-            className="h-full bg-white/80 rounded-full transition-all duration-75"
-            style={{ width: `${progress}%` }}
+            className="h-full bg-white/80 rounded-full"
+            style={{ 
+              animation: `toast-shrink ${duration}ms linear forwards`,
+              animationPlayState: isPaused ? 'paused' : 'running'
+            }}
           />
         </div>
         <button

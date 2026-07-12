@@ -130,7 +130,7 @@ export function SalesReportTab({ startDate, endDate, categoryId }: SalesReportTa
                   minTickGap={20}
                   tickFormatter={(val) => {
                     const date = new Date(val);
-                    return isNaN(date.getTime()) ? val : date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                    return isNaN(date.getTime()) ? val : date.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short' });
                   }}
                 />
                 <YAxis 

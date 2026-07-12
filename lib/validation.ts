@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const inventoryItemSchema = z.object({
-  nama_barang: z.string().min(1, 'Nama barang wajib diisi'),
+  nama_barang: z.string().min(1, 'Nama barang wajib diisi').max(255, 'Nama barang maksimal 255 karakter'),
   barcode: z.string().optional(),
   kategori: z.string().optional(),
 });
@@ -15,7 +15,7 @@ export const inventoryUpdateSchema = z.object({
 export const pembelianItemSchema = z.object({
   inventory_id: z.string().min(1, 'Inventory ID wajib diisi'),
   barcode: z.string(),
-  nama_barang: z.string(),
+  nama_barang: z.string().max(255, 'Nama barang maksimal 255 karakter'),
   qty: z.number().int('Qty harus bilangan bulat').min(1, 'Qty minimal 1'),
   harga_beli: z.number().min(0, 'Harga beli tidak boleh negatif'),
   diskon: z.number().min(0, 'Diskon tidak boleh negatif').optional(),
@@ -33,7 +33,7 @@ export const pembelianSubmitSchema = z.object({
 export const penjualanItemSchema = z.object({
   inventory_id: z.string().min(1, 'Inventory ID wajib diisi'),
   barcode: z.string(),
-  nama_barang: z.string(),
+  nama_barang: z.string().max(255, 'Nama barang maksimal 255 karakter'),
   qty: z.number().int('Qty harus bilangan bulat').min(1, 'Qty minimal 1'),
   harga_jual: z.number().min(0, 'Harga jual tidak boleh negatif'),
   diskon: z.number().min(0, 'Diskon tidak boleh negatif').optional(),

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface PresenceState {

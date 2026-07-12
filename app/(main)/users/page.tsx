@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuthStore, supabase } from '@/lib/auth';
+import { useAuthStore } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { IconUsers, IconEdit, IconDotsVertical, IconUserPlus, IconTrash } from '@tabler/icons-react';
 import { usePresenceStore } from '@/lib/presence';
 import { useToast } from '@/components/ui/Toast';
-import { AmbientLayout, DropdownMenu } from '@/components/ui';
+import { AmbientLayout, DropdownMenu, ModernPagination } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 import { AdminOnly } from '@/components/role';
 import CreateUserModal from './CreateUserModal';
@@ -32,6 +33,8 @@ export default function UsersPage() {
     userName: '',
     userRole: 'staff',
   });
+  const [page, setPage] = useState(1);
+  const LIMIT = 10;
   const { showToast } = useToast();
   const { isAdmin, initialized } = useAuthStore();
   const router = useRouter();
@@ -76,7 +79,8 @@ export default function UsersPage() {
     return null;
   }
 
-
+  const totalPages = Math.ceil(users.length / LIMIT) || 1;
+  const pagedUsers = users.slice((page - 1) * LIMIT, page * LIMIT);
 
   return (
     <AmbientLayout>
@@ -105,7 +109,7 @@ export default function UsersPage() {
 
         <div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl shadow-elevated mb-6 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
           {/* Mobile View */}
-          <div className="block lg:hidden overflow-y-auto p-4 space-y-4">
+          <div className="block lg:hidden flex flex-col gap-3 p-4 overflow-y-auto flex-1">
             {loading ? (
               [...Array(5)].map((_, i) => (
                 <div key={i} className="p-4 space-y-3 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl border border-neutral-200/50 dark:border-neutral-800/50 shadow-sm">
@@ -118,8 +122,8 @@ export default function UsersPage() {
                 Tidak ada user terdaftar
               </div>
             ) : (
-              users.map(user => (
-                <div key={user.id} className="p-4 flex flex-col gap-3 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl border border-neutral-200/50 dark:border-neutral-800/50 shadow-sm transition-all">
+              pagedUsers.map(user => (
+                <div key={user.id} className="p-3 sm:p-4 flex flex-col gap-3 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl border border-neutral-200/50 dark:border-neutral-800/50 shadow-sm transition-all">
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="font-bold text-neutral-900 dark:text-white text-base leading-tight mb-1">{user.nama}</div>
@@ -195,7 +199,7 @@ export default function UsersPage() {
                   </td>
                 </tr>
               ) : (
-                users.map(user => {
+                pagedUsers.map(user => {
                   const isOnline = onlineUsers.includes(user.id);
                   return (
                   <tr key={user.id} className="hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors">
@@ -247,6 +251,16 @@ export default function UsersPage() {
             </tbody>
           </table>
           </div>
+
+          {/* Pagination */}
+          {!loading && users.length > LIMIT && (
+            <ModernPagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              className="border-x-0 border-b-0 rounded-none rounded-b-3xl mt-auto z-10"
+            />
+          )}
         </div>
       </div>
 

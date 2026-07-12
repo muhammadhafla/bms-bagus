@@ -30,6 +30,10 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+  const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
+    ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
+    : '*.supabase.co';
+
   const cspHeader = `
     default-src 'self';
     base-uri 'none';
@@ -41,7 +45,7 @@ export async function middleware(request: NextRequest) {
     };
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: https:;
-    connect-src 'self' https://letxagpmrumwcjuzruyg.supabase.co https://*.supabase.co wss://*.supabase.co;
+    connect-src 'self' https://${supabaseHost} wss://${supabaseHost};
   `.replace(/\s{2,}/g, ' ').trim();
 
   request.headers.set('x-nonce', nonce);

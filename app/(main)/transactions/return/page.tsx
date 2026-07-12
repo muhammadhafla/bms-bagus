@@ -323,7 +323,7 @@ export default function ReturnPage() {
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Tambahkan alasan retur..."
-                  className="w-full px-4 py-3 text-sm bg-white/80 dark:bg-neutral-950/80 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent transition-all placeholder:text-neutral-400 resize-none"
+                  className="w-full px-4 py-3 text-sm bg-white/80 dark:bg-neutral-950/80 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-400 focus:border-transparent transition-all placeholder:text-neutral-400 resize-none"
                   rows={2}
                 />
               </div>

@@ -45,7 +45,7 @@ export function TransactionModal({ isOpen, onClose, transactionId, transactionTy
             <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : error ? (
-          <div className="text-center py-10 text-red-500">
+          <div className="text-center py-10 text-accent-rose-500">
             Gagal memuat data transaksi.
           </div>
         ) : data ? (
@@ -80,7 +80,7 @@ export function TransactionModal({ isOpen, onClose, transactionId, transactionTy
                         <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{item.nama_barang}</p>
                         <p className="text-xs text-neutral-500 dark:text-neutral-400">
                           {item.qty} x {formatCurrency(item.harga_jual || item.harga_beli || 0)}
-                          {item.diskon > 0 && <span className="text-red-500 ml-1">(Diskon {formatCurrency(item.diskon)})</span>}
+                          {item.diskon > 0 && <span className="text-accent-rose-500 ml-1">(Diskon {formatCurrency(item.diskon)})</span>}
                         </p>
                       </div>
                       <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 pt-0.5">

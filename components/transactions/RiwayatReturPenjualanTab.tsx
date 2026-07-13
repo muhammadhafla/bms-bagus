@@ -52,7 +52,7 @@ export function RiwayatReturPenjualanTab({ search, startDate, endDate }: Riwayat
             <p className="font-mono font-medium text-neutral-900 dark:text-white">
               {record.id.slice(0, 8)}...
             </p>
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-accent-rose-100 text-accent-rose-700 dark:bg-accent-rose-900/30 dark:text-accent-rose-400">
               Retur
             </span>
           </div>
@@ -64,7 +64,7 @@ export function RiwayatReturPenjualanTab({ search, startDate, endDate }: Riwayat
       <div className="flex justify-end mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
         <div className="text-right">
           <p className="text-xs text-neutral-500">Total Nominal Retur</p>
-          <p className="font-bold text-red-600 dark:text-red-400">
+          <p className="font-bold text-accent-rose-600 dark:text-accent-rose-400">
             {formatCurrency(record.total)}
           </p>
         </div>
@@ -93,12 +93,12 @@ export function RiwayatReturPenjualanTab({ search, startDate, endDate }: Riwayat
       <td className="px-5 py-4 text-sm text-neutral-600 dark:text-neutral-400">
         {formatDateTime(record.created_at || record.tanggal)}
       </td>
-      <td className="px-5 py-4 text-sm font-bold text-red-600 dark:text-red-400 text-right">
+      <td className="px-5 py-4 text-sm font-bold text-accent-rose-600 dark:text-accent-rose-400 text-right">
         {formatCurrency(record.total)}
       </td>
       <td className="px-5 py-4 text-center">
         <div className="flex items-center justify-center gap-2">
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-accent-rose-100 text-accent-rose-700 dark:bg-accent-rose-900/30 dark:text-accent-rose-400">
             Retur
           </span>
           <IconChevronRight className="w-4 h-4 text-neutral-400 group-hover:text-brand-500 transition-colors" />

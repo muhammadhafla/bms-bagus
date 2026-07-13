@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
+import { IconX } from '@tabler/icons-react';
 
 interface Toast {
   id: string;
@@ -51,26 +52,32 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
 
 function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) => void }) {
   const [isPaused, setIsPaused] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
   const toastRef = useRef<HTMLDivElement>(null);
   const duration = toast.duration || 3000;
   const remainingTimeRef = useRef(duration);
   const startTimeRef = useRef<number>(0);
+
+  const handleRemove = useCallback(() => {
+    setIsLeaving(true);
+    setTimeout(() => onRemove(toast.id), 300);
+  }, [onRemove, toast.id]);
 
   useEffect(() => {
     if (isPaused) return;
 
     startTimeRef.current = Date.now();
     const timeout = setTimeout(() => {
-      onRemove(toast.id);
+      handleRemove();
     }, remainingTimeRef.current);
 
     return () => clearTimeout(timeout);
-  }, [isPaused, onRemove, toast.id]);
+  }, [isPaused, handleRemove]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onRemove(toast.id);
+        handleRemove();
       }
     };
 
@@ -84,7 +91,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
         currentToast.removeEventListener('keydown', handleKeyDown);
       }
     };
-  }, [onRemove, toast.id]);
+  }, [handleRemove]);
 
   return (
     <div
@@ -97,9 +104,10 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
         remainingTimeRef.current -= (Date.now() - startTimeRef.current);
       }}
       onMouseLeave={() => setIsPaused(false)}
-      className={`px-4 py-3 rounded-xl shadow-lg text-white min-w-[300px] flex items-center justify-between border-l-4 focus:outline-none focus:ring-2 focus:ring-brand-500 ${
-        toast.type === 'success' ? 'bg-green-600 border-l-green-400' : toast.type === 'error' ? 'bg-red-600 border-l-red-400' : 'bg-brand-600 border-l-brand-400'
-      }`}
+      className={`p-4 rounded-xl shadow-elevated border-l-4 flex items-start gap-3 relative overflow-hidden backdrop-blur-xl transition-all duration-300 transform
+        ${isLeaving ? 'opacity-0 translate-x-full' : 'opacity-100 translate-x-0'}
+        ${toast.type === 'success' ? 'bg-accent-teal-600 border-l-accent-teal-400' : toast.type === 'error' ? 'bg-accent-rose-600 border-l-accent-rose-400' : 'bg-brand-600 border-l-brand-400'}
+      `}
     >
       <span>{toast.message}</span>
       <div className="flex items-center gap-2">
@@ -113,11 +121,11 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
           />
         </div>
         <button
-          onClick={() => onRemove(toast.id)}
+          onClick={handleRemove}
           className="ml-2 text-white/80 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-white rounded"
           aria-label="Tutup notifikasi"
         >
-          ×
+          <IconX className="w-4 h-4" />
         </button>
       </div>
     </div>

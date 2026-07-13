@@ -29,28 +29,28 @@ function LowStockItemRow({ item }: { item: LowStockItem }) {
       className="relative flex items-center justify-between p-3 rounded-xl transition-colors duration-200 group hover:bg-neutral-50 dark:hover:bg-neutral-800/50 border border-transparent hover:border-neutral-100 dark:hover:border-neutral-800"
     >
       <div className="flex items-center gap-3 overflow-hidden">
-        <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse-glow flex-shrink-0" />
+        <div className="w-2 h-2 rounded-full bg-accent-amber-500 animate-pulse-glow flex-shrink-0" />
         <span className="text-sm font-medium text-neutral-900 dark:text-white truncate">
           {item.nama_barang}
         </span>
       </div>
       
       <div className="flex items-center gap-3">
-        <span className="text-sm font-bold text-yellow-600 dark:text-yellow-400">
+        <span className="text-sm font-bold text-accent-amber-600 dark:text-accent-amber-400">
           {item.stok} / {item.minimum_stock}
         </span>
         
         <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
           <Link
             href="/purchasing"
-            className="p-1.5 rounded-md hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 transition-colors"
+            className="p-1.5 rounded-md hover:bg-accent-teal-100 dark:hover:bg-accent-teal-900/30 text-accent-teal-600 dark:text-accent-teal-400 transition-colors"
             title="Tambah Stok"
           >
             <IconCirclePlus size={18} stroke={2} />
           </Link>
           
           <button
-            className="p-1.5 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
+            className="p-1.5 rounded-md hover:bg-accent-rose-100 dark:hover:bg-accent-rose-900/30 text-accent-rose-600 dark:text-accent-rose-400 transition-colors"
             title="Tandai Discontinue"
             onClick={() => setShowConfirm(true)}
             disabled={isLoading}
@@ -75,7 +75,7 @@ function LowStockItemRow({ item }: { item: LowStockItem }) {
             <button
               onClick={handleDiscontinue}
               disabled={isLoading}
-              className="flex-1 px-3 py-1.5 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50"
+              className="flex-1 px-3 py-1.5 text-sm bg-accent-rose-500 text-white rounded-lg hover:bg-accent-rose-600 disabled:opacity-50"
             >
               Ya
             </button>
@@ -103,7 +103,7 @@ export function LowStockAlert({ items, isLoading }: LowStockAlertProps) {
   return (
     <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl rounded-2xl border border-white/40 dark:border-white/10 p-5 shadow-elevated h-full">
       <h3 className="font-semibold text-neutral-900 dark:text-white flex items-center gap-2 mb-4">
-        <IconAlertTriangle size={18} className="text-yellow-500" />
+        <IconAlertTriangle size={18} className="text-accent-amber-500" />
         Peringatan Stok Minimum
       </h3>
 
@@ -120,7 +120,7 @@ export function LowStockAlert({ items, isLoading }: LowStockAlertProps) {
           {items.length > 4 && (
             <Link
               href="/inventory"
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline block text-center mt-2"
+              className="text-sm text-brand-600 dark:text-brand-400 hover:underline block text-center mt-2"
             >
               Lihat {items.length - 4} barang lainnya
             </Link>

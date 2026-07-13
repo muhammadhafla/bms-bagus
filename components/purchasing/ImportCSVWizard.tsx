@@ -258,7 +258,7 @@ export default function ImportCSVWizard({ open, onClose, onComplete }: ImportCSV
 
         {/* Error Banner */}
         {error && (
-          <div className="mx-6 mt-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl flex items-start gap-3 border border-red-100 dark:border-red-900/50">
+          <div className="mx-6 mt-4 p-3 bg-accent-rose-50 dark:bg-accent-rose-900/20 text-accent-rose-600 dark:text-accent-rose-400 rounded-xl flex items-start gap-3 border border-accent-rose-100 dark:border-accent-rose-900/50">
             <IconAlertCircle size={20} className="shrink-0 mt-0.5" />
             <span className="text-sm">{error}</span>
           </div>

@@ -40,14 +40,14 @@ export function ProfitabilityAndAtvCards({
       </div>
 
       {/* IPT Card */}
-      <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-3 md:p-4 shadow-sm text-white flex flex-col justify-between">
+      <div className="bg-gradient-to-br from-accent-teal-500 to-accent-teal-600 rounded-xl p-3 md:p-4 shadow-sm text-white flex flex-col justify-between">
         <div className="flex items-center gap-1.5 md:gap-2 mb-2 opacity-90">
           <IconShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
           <h3 className="font-medium text-xs md:text-sm leading-tight">Items Per Ticket (IPT)</h3>
         </div>
         <div>
           <div className="text-lg md:text-2xl font-bold">{atvData?.items_per_ticket || 0} <span className="text-xs md:text-base font-normal">item</span></div>
-          <p className="text-emerald-100 text-[10px] md:text-xs mt-0.5 md:mt-1">Rata-rata barang per struk</p>
+          <p className="text-accent-teal-100 text-[10px] md:text-xs mt-0.5 md:mt-1">Rata-rata barang per struk</p>
         </div>
       </div>
 

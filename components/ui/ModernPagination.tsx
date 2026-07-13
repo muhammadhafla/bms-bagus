@@ -24,13 +24,18 @@ export function ModernPagination({
   const endIdx = total ? Math.min(page * limit, total) : 0;
 
   return (
-    <div className={`flex-shrink-0 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50 p-3 sm:p-4 flex items-center justify-between gap-3 sm:gap-4 ${className}`}>
+    <nav 
+      role="navigation" 
+      aria-label="Navigasi paginasi"
+      className={`flex-shrink-0 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border-t border-neutral-200/50 dark:border-neutral-800/50 p-3 sm:p-4 flex items-center justify-between gap-3 sm:gap-4 ${className}`}
+    >
       <button
         onClick={() => onPageChange(Math.max(1, page - 1))}
         disabled={page === 1}
+        aria-label="Halaman sebelumnya"
         className="p-2 sm:px-4 h-10 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-neutral-700 dark:text-neutral-200 flex items-center justify-center gap-1.5 shrink-0 shadow-sm"
       >
-        <IconChevronLeft className="w-5 h-5" />
+        <IconChevronLeft className="w-5 h-5" aria-hidden="true" />
         <span className="hidden sm:inline text-sm font-semibold">Sebelumnya</span>
       </button>
       
@@ -50,11 +55,12 @@ export function ModernPagination({
       <button
         onClick={() => onPageChange(Math.min(totalPages, page + 1))}
         disabled={page === totalPages}
+        aria-label="Halaman berikutnya"
         className="p-2 sm:px-4 h-10 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-neutral-700 dark:text-neutral-200 flex items-center justify-center gap-1.5 shrink-0 shadow-sm"
       >
         <span className="hidden sm:inline text-sm font-semibold">Berikutnya</span>
-        <IconChevronRight className="w-5 h-5" />
+        <IconChevronRight className="w-5 h-5" aria-hidden="true" />
       </button>
-    </div>
+    </nav>
   );
 }

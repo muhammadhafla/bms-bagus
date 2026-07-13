@@ -21,9 +21,11 @@ const downloadPdf = (blob: Blob, filename: string) => {
   URL.revokeObjectURL(url);
 };
 
+import { useSuppliers } from '@/lib/hooks/useSuppliers';
+
 export default function ReturnPage() {
   const [selectedSupplier, setSelectedSupplier] = useState<import('@/types').Supplier | null>(null);
-  const [suppliers, setSuppliers] = useState<import('@/types').Supplier[]>([]);
+  const { data: suppliers = [] } = useSuppliers();
   const [items, setItems] = useState<AvailableReturnItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -53,15 +55,7 @@ export default function ReturnPage() {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const loadSuppliers = async () => {
-      const result = await supplierApi.getAll();
-      if (!result.error) {
-        setSuppliers((result.data as import('@/types').Supplier[]) || []);
-      }
-    };
-    loadSuppliers();
-  }, []);
+
 
   const handleSelectSupplier = useCallback(async (supplier: import('@/types').Supplier) => {
     setSelectedSupplier(supplier);
@@ -298,7 +292,7 @@ export default function ReturnPage() {
                     value={selectedSupplier?.id || ""}
                     onChange={(val) => {
                       const supplier = suppliers.find(s => s.id === val);
-                      if (supplier) handleSelectSupplier(supplier);
+                      if (supplier) handleSelectSupplier(supplier as any);
                     }}
                     options={suppliers.map(s => ({ value: s.id, label: s.nama }))}
                     placeholder="Pilih Supplier..."

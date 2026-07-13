@@ -34,7 +34,7 @@ export function StockVelocityTable({ data, isLoading }: { data: StockVelocity[],
                 <tr key={item.inventory_id} className="border-b dark:border-neutral-700 last:border-0">
                   <td className="px-3 md:px-4 py-2 md:py-3 font-medium text-neutral-900 dark:text-white truncate max-w-[120px] md:max-w-[150px]">{item.nama_barang}</td>
                   <td className="px-3 md:px-4 py-2 md:py-3 text-right">{item.total_sold}</td>
-                  <td className="px-3 md:px-4 py-2 md:py-3 text-right text-emerald-600 font-semibold">{item.sales_velocity}</td>
+                  <td className="px-3 md:px-4 py-2 md:py-3 text-right text-accent-teal-600 font-semibold">{item.sales_velocity}</td>
                 </tr>
               ))}
             </tbody>

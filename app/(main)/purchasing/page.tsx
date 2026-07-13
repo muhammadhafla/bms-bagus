@@ -12,13 +12,24 @@ import { PriceInput } from '@/components/ui/PriceInput';
 import DateInput from '@/components/ui/DateInput';
 import SelectInput from '@/components/ui/SelectInput';
 import { Button, AmbientLayout, Badge, Banner, useToast, Modal } from '@/components/ui';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Portal } from '@/components/ui/Portal';
 import { AdminOnly } from '@/components/role';
 import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
 import { NewItemDialog } from './NewItemDialog';
 import { ItemCart } from './ItemCart';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import ImportCSVWizard from '@/components/purchasing/ImportCSVWizard';
+import dynamic from 'next/dynamic';
+
+const ImportCSVWizard = dynamic(
+  () => import('@/components/purchasing/ImportCSVWizard'),
+  {
+    loading: () => <div className="skeleton-shimmer h-64 rounded-2xl" />,
+    ssr: false,
+  }
+);
+
+import { useSuppliers } from '@/lib/hooks/useSuppliers';
 
 export default function PembelianPage() {
   const router = useRouter();
@@ -78,7 +89,7 @@ export default function PembelianPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [supplier, setSupplier] = useState('');
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
-  const [supplierList, setSupplierList] = useState<Supplier[]>([]);
+  const { data: supplierList = [] } = useSuppliers();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const focusInput = useCallback(() => {
@@ -144,8 +155,8 @@ export default function PembelianPage() {
     {
       key: 'Delete',
       handler: () => {
-        if (selectedIndex !== null) {
-          removeItem(selectedIndex);
+        if (selectedIndex !== null && items[selectedIndex]) {
+          removeItem(items[selectedIndex].id);
           setSelectedIndex((prev) => prev === null ? null : Math.max(0, prev - 1));
         }
       },
@@ -167,15 +178,7 @@ export default function PembelianPage() {
     focusInput();
   }, [focusInput]);
 
-  useEffect(() => {
-    const loadSuppliers = async () => {
-      const result = await supplierApi.getAll();
-      if (result.data) {
-        setSupplierList(result.data);
-      }
-    };
-    loadSuppliers();
-  }, []);
+
 
 
   useEffect(() => {
@@ -351,30 +354,33 @@ export default function PembelianPage() {
     
     const value = editValue;
     if (isNaN(value) || value < 0) return;
+    
+    const itemId = items[selectedIndex].id;
 
     if (editMode === 'qty') {
       if (value === 0) {
-        removeItem(selectedIndex);
+        removeItem(itemId);
       } else {
-        updateQty(selectedIndex, value);
+        updateQty(itemId, value);
       }
     } else if (editMode === 'harga') {
-      updateHargaBeli(selectedIndex, value);
+      updateHargaBeli(itemId, value);
     } else if (editMode === 'harga_jual') {
-      updateHargaJual(selectedIndex, value);
+      updateHargaJual(itemId, value);
     }
 
     setEditMode(null);
     setSelectedIndex(null);
     focusInput();
-  }, [selectedIndex, editMode, editValue, updateQty, updateHargaBeli, updateHargaJual, removeItem, focusInput]);
+  }, [items, selectedIndex, editMode, editValue, updateQty, updateHargaBeli, updateHargaJual, removeItem, focusInput]);
 
   const totalSistem = getTotalSistem();
   const selisih = getSelisih();
   const isValid = selisih === 0;
 
   return (
-    <AmbientLayout>
+    <ErrorBoundary>
+      <AmbientLayout>
       <AdminOnly>
       <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)]">
         {/* Header Section */}
@@ -788,6 +794,7 @@ export default function PembelianPage() {
         danger={true}
       />
       </AdminOnly>
-    </AmbientLayout>
+      </AmbientLayout>
+    </ErrorBoundary>
   );
 }

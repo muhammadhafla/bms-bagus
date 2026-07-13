@@ -69,7 +69,7 @@ describe('usePembelianStore', () => {
       const item = createMockItem();
       getStore().addItem(item);
 
-      getStore().updateQty(0, 5);
+      getStore().updateQty(item.id, 5);
       const store = getStore();
 
       expect(store.items[0].qty).toBe(5);
@@ -80,7 +80,7 @@ describe('usePembelianStore', () => {
       const item = createMockItem();
       getStore().addItem(item);
 
-      getStore().updateQty(0, 0);
+      getStore().updateQty(item.id, 0);
       const store = getStore();
 
       expect(store.items).toHaveLength(0);
@@ -90,7 +90,7 @@ describe('usePembelianStore', () => {
       const item = createMockItem();
       getStore().addItem(item);
 
-      getStore().updateQty(0, -1);
+      getStore().updateQty(item.id, -1);
       const store = getStore();
 
       expect(store.items).toHaveLength(0);
@@ -102,7 +102,7 @@ describe('usePembelianStore', () => {
       const item = createMockItem({ diskon: 10000 });
       getStore().addItem(item);
 
-      getStore().updateHargaBeli(0, 60000);
+      getStore().updateHargaBeli(item.id, 60000);
       const store = getStore();
 
       expect(store.items[0].harga_beli).toBe(60000);
@@ -113,7 +113,7 @@ describe('usePembelianStore', () => {
       const item = createMockItem();
       getStore().addItem(item);
 
-      getStore().updateHargaBeli(0, 40000);
+      getStore().updateHargaBeli(item.id, 40000);
       const store = getStore();
 
       expect(store.items[0].subtotal).toBe(40000);
@@ -121,11 +121,11 @@ describe('usePembelianStore', () => {
   });
 
   describe('removeItem', () => {
-    it('should remove item by index', () => {
+    it('should remove item by id', () => {
       const item = createMockItem();
       getStore().addItem(item);
 
-      getStore().removeItem(0);
+      getStore().removeItem(item.id);
       const store = getStore();
 
       expect(store.items).toHaveLength(0);
@@ -135,7 +135,7 @@ describe('usePembelianStore', () => {
       getStore().addItem(createMockItem({ id: '1' }));
       getStore().addItem(createMockItem({ id: '2' }));
 
-      getStore().removeItem(0);
+      getStore().removeItem('1');
       const store = getStore();
 
       expect(store.items).toHaveLength(1);

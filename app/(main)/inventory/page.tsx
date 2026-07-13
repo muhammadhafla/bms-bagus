@@ -5,15 +5,24 @@ import { InventoryItem } from '@/types/inventory';
 import { inventoryApi, kategoriApi } from '@/lib/api';
 import { debounce } from '@/lib/utils';
 import { InventoryTable } from '@/components/inventory/InventoryTable';
-import { Button, DataTable, Badge, SelectInput, Tooltip, AmbientLayout, FilterButton } from '@/components/ui';
+import { Button, DataTable, Badge, SelectInput, Tooltip, AmbientLayout, FilterButton, useToast } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
 import { IconPackage, IconSearch, IconFilter, IconUpload, IconX } from '@tabler/icons-react';
 import { SlideOver } from '@/components/ui';
 import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
 import CheckboxInput from '@/components/ui/CheckboxInput';
 import { API_ERROR_MESSAGES, UI_MESSAGES, INVENTORY_MESSAGES } from '@/lib/constants';
-import ImportInventoryCSVWizard from '@/components/inventory/ImportInventoryCSVWizard';
+import dynamic from 'next/dynamic';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+const ImportInventoryCSVWizard = dynamic(
+  () => import('@/components/inventory/ImportInventoryCSVWizard'),
+  {
+    loading: () => <div className="skeleton-shimmer h-64 rounded-2xl" />,
+    ssr: false,
+  }
+);
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface Shortcut {
   key: string;
@@ -38,6 +47,7 @@ export default function InventoryPage() {
   
   const searchInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   // Debounce search
   useEffect(() => {
@@ -80,8 +90,13 @@ export default function InventoryPage() {
   const kategoriList = (kategoriResponse?.data || []).map(k => k.nama);
 
   const handleUpdate = useCallback(async (id: string, data: Partial<InventoryItem>) => {
+    const result = await inventoryApi.update(id, data as Record<string, unknown>);
+    if (result.error) {
+      showToast(`Gagal memperbarui: ${result.error.message}`, 'error');
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ['inventory'] });
-  }, [queryClient]);
+  }, [queryClient, showToast]);
 
   const handleDelete = useCallback(async (id: string) => {
     const result = await inventoryApi.delete(id);
@@ -123,7 +138,8 @@ export default function InventoryPage() {
   useKeyboardShortcuts(shortcuts);
 
   return (
-    <AmbientLayout>
+    <ErrorBoundary>
+      <AmbientLayout>
       {showShortcutsHelp && (
         <Portal>
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-neutral-900/60 animate-fade-in" onClick={() => setShowShortcutsHelp(false)}>
@@ -192,6 +208,7 @@ export default function InventoryPage() {
                 ref={searchInputRef}
                 type="text"
                 placeholder="Cari nama atau barcode"
+                aria-label="Cari nama atau barcode"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 sm:py-3 bg-white dark:bg-neutral-900 border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-sm sm:text-base"
@@ -365,6 +382,7 @@ export default function InventoryPage() {
           refetch();
         }}
       />
-    </AmbientLayout>
+      </AmbientLayout>
+    </ErrorBoundary>
   );
 }

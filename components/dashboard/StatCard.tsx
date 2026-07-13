@@ -82,12 +82,19 @@ export function StatCard({ title, value, icon, prefix = '', suffix = '', variant
     iconSizeClass = '[&>svg]:w-4 [&>svg]:h-4 sm:[&>svg]:w-5 sm:[&>svg]:h-5 lg:[&>svg]:w-6 lg:[&>svg]:h-6';
   }
 
+  const cardBgColors = {
+    default: 'bg-white/70 dark:bg-neutral-900/60',
+    success: 'bg-accent-teal-50/60 dark:bg-accent-teal-900/20',
+    warning: 'bg-accent-amber-50/60 dark:bg-accent-amber-900/20',
+    danger: 'bg-accent-rose-50/60 dark:bg-accent-rose-900/20',
+  };
+
   return (
     <div className={`relative rounded-2xl overflow-hidden group card-hover animate-fade-in-up`}>
       {/* Soft background glow */}
       <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 ${iconBgClasses[variant]}`} />
       
-      <Card padding="none" variant="flat" className={`relative h-full bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border ${borderColors[variant]} transition-all duration-300 p-3 sm:p-4 lg:p-6`}>
+      <Card padding="none" variant="flat" className={`relative h-full ${cardBgColors[variant]} backdrop-blur-xl border ${borderColors[variant]} transition-all duration-300 p-3 sm:p-4 lg:p-6`}>
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-0">
           <div className="flex-1 order-2 sm:order-1 min-w-0">
             <p className="text-xs sm:text-sm font-medium text-neutral-500 dark:text-neutral-400 truncate">{title}</p>
@@ -177,10 +184,17 @@ export function CompactStatCard({ title, value, icon, prefix = '', suffix = '', 
   const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
 
   const iconColors = {
-    default: 'text-brand-500 bg-brand-50 dark:bg-brand-500/10',
-    success: 'text-accent-teal-500 bg-accent-teal-50 dark:bg-accent-teal-500/10',
-    warning: 'text-accent-amber-500 bg-accent-amber-50 dark:bg-accent-amber-500/10',
-    danger: 'text-accent-rose-500 bg-accent-rose-50 dark:bg-accent-rose-500/10',
+    default: 'text-brand-600 bg-white dark:bg-neutral-800 shadow-sm border border-brand-100 dark:border-brand-900/50',
+    success: 'text-accent-teal-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-teal-100 dark:border-accent-teal-900/50',
+    warning: 'text-accent-amber-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-amber-100 dark:border-accent-amber-900/50',
+    danger: 'text-accent-rose-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-rose-100 dark:border-accent-rose-900/50',
+  };
+
+  const bgColors = {
+    default: 'bg-brand-50/50 dark:bg-brand-900/10 border-brand-100/50 dark:border-brand-900/30',
+    success: 'bg-accent-teal-50/50 dark:bg-accent-teal-900/10 border-accent-teal-100/50 dark:border-accent-teal-900/30',
+    warning: 'bg-accent-amber-50/50 dark:bg-accent-amber-900/10 border-accent-amber-100/50 dark:border-accent-amber-900/30',
+    danger: 'bg-accent-rose-50/50 dark:bg-accent-rose-900/10 border-accent-rose-100/50 dark:border-accent-rose-900/30',
   };
 
   const finalStringLength = `${prefix}${formatNumber(value)}${suffix}`.length;
@@ -189,7 +203,7 @@ export function CompactStatCard({ title, value, icon, prefix = '', suffix = '', 
   else if (finalStringLength >= 10) textSizeClass = 'text-lg sm:text-xl lg:text-2xl';
 
   return (
-    <Card padding="none" variant="flat" className={`relative rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 p-4 sm:p-5 card-hover animate-fade-in-up`}>
+    <Card padding="none" variant="flat" className={`relative rounded-2xl ${bgColors[variant]} border p-4 sm:p-5 card-hover animate-fade-in-up`}>
       <div className="flex items-start gap-3 sm:gap-4">
         <div className={`p-2 sm:p-2.5 rounded-xl flex-shrink-0 ${iconColors[variant]}`}>
           <div className="[&>svg]:w-5 [&>svg]:h-5 sm:[&>svg]:w-6 sm:[&>svg]:h-6">
@@ -226,14 +240,21 @@ export function ListStatCard({ title, value, icon, prefix = '', suffix = '', var
   const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
 
   const iconColors = {
-    default: 'text-brand-500 bg-brand-50 dark:bg-brand-500/10',
-    success: 'text-accent-teal-500 bg-accent-teal-50 dark:bg-accent-teal-500/10',
-    warning: 'text-accent-amber-500 bg-accent-amber-50 dark:bg-accent-amber-500/10',
-    danger: 'text-accent-rose-500 bg-accent-rose-50 dark:bg-accent-rose-500/10',
+    default: 'text-brand-600 bg-white dark:bg-neutral-800 shadow-sm border border-brand-100 dark:border-brand-900/50',
+    success: 'text-accent-teal-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-teal-100 dark:border-accent-teal-900/50',
+    warning: 'text-accent-amber-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-amber-100 dark:border-accent-amber-900/50',
+    danger: 'text-accent-rose-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-rose-100 dark:border-accent-rose-900/50',
+  };
+
+  const bgColors = {
+    default: 'bg-brand-50/50 dark:bg-brand-900/10 border-brand-100/50 dark:border-brand-900/30 hover:bg-brand-50 dark:hover:bg-brand-900/20',
+    success: 'bg-accent-teal-50/50 dark:bg-accent-teal-900/10 border-accent-teal-100/50 dark:border-accent-teal-900/30 hover:bg-accent-teal-50 dark:hover:bg-accent-teal-900/20',
+    warning: 'bg-accent-amber-50/50 dark:bg-accent-amber-900/10 border-accent-amber-100/50 dark:border-accent-amber-900/30 hover:bg-accent-amber-50 dark:hover:bg-accent-amber-900/20',
+    danger: 'bg-accent-rose-50/50 dark:bg-accent-rose-900/10 border-accent-rose-100/50 dark:border-accent-rose-900/30 hover:bg-accent-rose-50 dark:hover:bg-accent-rose-900/20',
   };
 
   return (
-    <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors animate-fade-in-up">
+    <div className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl border transition-colors animate-fade-in-up ${bgColors[variant]}`}>
       <div className={`p-2 sm:p-2.5 rounded-xl flex-shrink-0 ${iconColors[variant]}`}>
          <div className="[&>svg]:w-5 [&>svg]:h-5">
             {icon}

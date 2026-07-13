@@ -1,37 +1,41 @@
 import { useState, useEffect } from 'react';
 
-function usePersistentBoolean(key: string, defaultValue: boolean) {
-  const [value, setValue] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return defaultValue;
+const defaultSidebarState = {
+  inventoryExpanded: true,
+  purchasingExpanded: true,
+  transactionsExpanded: true,
+  printingExpanded: true,
+  financeExpanded: true,
+  autoHideEnabled: false,
+  sidebarCollapsed: false,
+};
+
+type SidebarState = typeof defaultSidebarState;
+
+export function useSidebarState() {
+  const [state, setState] = useState<SidebarState>(() => {
+    if (typeof window === 'undefined') return defaultSidebarState;
     try {
-      const stored = localStorage.getItem(key);
-      return stored ? JSON.parse(stored) : defaultValue;
-    } catch { return defaultValue; }
+      const stored = localStorage.getItem('bms-sidebar-state');
+      return stored ? { ...defaultSidebarState, ...JSON.parse(stored) } : defaultSidebarState;
+    } catch { return defaultSidebarState; }
   });
 
   useEffect(() => {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
-  }, [key, value]);
+    try { localStorage.setItem('bms-sidebar-state', JSON.stringify(state)); } catch {}
+  }, [state]);
 
-  return [value, setValue] as const;
-}
-
-export function useSidebarState() {
-  const [sidebarCollapsed, setSidebarCollapsed] = usePersistentBoolean('bms-sidebar-collapsed', false);
-  const [inventoryExpanded, setInventoryExpanded] = usePersistentBoolean('bms-inventory-expanded', true);
-  const [purchasingExpanded, setPurchasingExpanded] = usePersistentBoolean('bms-purchasing-expanded', true);
-  const [transactionsExpanded, setTransactionsExpanded] = usePersistentBoolean('bms-transactions-expanded', true);
-  const [printingExpanded, setPrintingExpanded] = usePersistentBoolean('bms-printing-expanded', true);
-  const [financeExpanded, setFinanceExpanded] = usePersistentBoolean('bms-finance-expanded', true);
-  const [autoHideEnabled, setAutoHideEnabled] = usePersistentBoolean('bms-autohide-enabled', false);
+  const setField = <K extends keyof SidebarState>(key: K, value: SidebarState[K] | ((p: SidebarState[K]) => SidebarState[K])) =>
+    setState(prev => ({ ...prev, [key]: typeof value === 'function' ? (value as any)(prev[key]) : value }));
 
   return {
-    sidebarCollapsed, setSidebarCollapsed,
-    inventoryExpanded, setInventoryExpanded,
-    purchasingExpanded, setPurchasingExpanded,
-    transactionsExpanded, setTransactionsExpanded,
-    printingExpanded, setPrintingExpanded,
-    financeExpanded, setFinanceExpanded,
-    autoHideEnabled, setAutoHideEnabled,
+    ...state,
+    setSidebarCollapsed: (v: boolean | ((p: boolean) => boolean)) => setField('sidebarCollapsed', v),
+    setInventoryExpanded: (v: boolean | ((p: boolean) => boolean)) => setField('inventoryExpanded', v),
+    setPurchasingExpanded: (v: boolean | ((p: boolean) => boolean)) => setField('purchasingExpanded', v),
+    setTransactionsExpanded: (v: boolean | ((p: boolean) => boolean)) => setField('transactionsExpanded', v),
+    setPrintingExpanded: (v: boolean | ((p: boolean) => boolean)) => setField('printingExpanded', v),
+    setFinanceExpanded: (v: boolean | ((p: boolean) => boolean)) => setField('financeExpanded', v),
+    setAutoHideEnabled: (v: boolean | ((p: boolean) => boolean)) => setField('autoHideEnabled', v),
   };
 }

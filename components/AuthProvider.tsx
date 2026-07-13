@@ -9,25 +9,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { initialize, cleanup, initialized, checkAndRefreshSession, user, profile } = useAuthStore();
   const prevUserIdRef = useRef<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [isMounted, setIsMounted] = useState(true);
+  const isMountedRef = useRef(true);
 
   // Safe wrapper for checkAndRefreshSession
   const safeCheckSession = useCallback(async () => {
-    if (!isMounted) return false;
+    if (!isMountedRef.current) return false;
     try {
-      return await checkAndRefreshSession();
+      const result = await checkAndRefreshSession();
+      if (!isMountedRef.current) return false;
+      return result;
     } catch (error) {
-      console.error('Session check error:', error);
+      if (isMountedRef.current) console.error('Session check error:', error);
       return false;
     }
-  }, [checkAndRefreshSession, isMounted]);
+  }, [checkAndRefreshSession]);
 
   useEffect(() => {
-    setIsMounted(true);
+    isMountedRef.current = true;
     initialize();
 
     return () => {
-      setIsMounted(false);
+      isMountedRef.current = false;
       cleanup();
       if (intervalRef.current) {
         clearInterval(intervalRef.current);

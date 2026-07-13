@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useId } from 'react';
 import { IconX } from '@tabler/icons-react';
 import { Portal } from './Portal';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
@@ -15,6 +15,8 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
+  const titleId = useId();
+
   const handleEscape = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       onClose();
@@ -51,10 +53,16 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
           onClick={onClose}
           aria-hidden="true"
         />
-        <div ref={focusTrapRef} className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-neutral-950 shadow-xl flex flex-col rounded-2xl max-h-full animate-scale-in`}>
+        <div 
+          ref={focusTrapRef} 
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={title ? titleId : undefined}
+          className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-neutral-950 shadow-xl flex flex-col rounded-2xl max-h-full animate-scale-in`}
+        >
           {title && (
             <div className="flex items-center justify-between p-5 border-b border-neutral-200 dark:border-neutral-800 shrink-0">
-              <h2 className="text-xl font-bold text-neutral-900 dark:text-white">{title}</h2>
+              <h2 id={titleId} className="text-xl font-bold text-neutral-900 dark:text-white">{title}</h2>
               <button
                 onClick={onClose}
                 className="p-2 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"

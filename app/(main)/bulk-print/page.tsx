@@ -130,8 +130,8 @@ export default function BulkPrintPage() {
     {
       key: 'Delete',
       handler: () => {
-        if (selectedIndex !== null) {
-          removeItem(selectedIndex);
+        if (selectedIndex !== null && items[selectedIndex]) {
+          removeItem(items[selectedIndex].id);
           setSelectedIndex((prev) => prev === null ? null : Math.max(0, prev - 1));
         }
       },
@@ -287,19 +287,21 @@ export default function BulkPrintPage() {
     
     const value = editValue;
     if (isNaN(value) || value < 0) return;
+    
+    const itemId = items[selectedIndex].id;
 
     if (editMode === 'qty') {
       if (value === 0) {
-        removeItem(selectedIndex);
+        removeItem(itemId);
       } else {
-        updateQty(selectedIndex, value);
+        updateQty(itemId, value);
       }
     }
 
     setEditMode(null);
     setSelectedIndex(null);
     focusInput();
-  }, [selectedIndex, editMode, editValue, updateQty, removeItem, focusInput]);
+  }, [items, selectedIndex, editMode, editValue, updateQty, removeItem, focusInput]);
 
   return (
     <AmbientLayout>

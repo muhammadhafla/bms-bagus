@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { reportApi, TopSellingItem } from '@/lib/api';
 import { formatCurrency, exportToCSV } from '@/lib/utils';
 import { Button } from '@/components/ui';
+import { useToast } from '@/components/ui/Toast';
 import { IconChartBar, IconDownload } from '@tabler/icons-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { ReportState } from '@/components/analytics/ReportState';
@@ -16,6 +17,7 @@ interface TopItemsReportTabProps {
 }
 
 export function TopItemsReportTab({ startDate, endDate, categoryId, topItemsSort }: TopItemsReportTabProps) {
+  const { showToast } = useToast();
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
   // We fetch a reasonable amount of top items, since the API only supports limit, not offset.
@@ -46,7 +48,7 @@ export function TopItemsReportTab({ startDate, endDate, categoryId, topItemsSort
       // Re-fetch with a higher limit for export
       const result = await reportApi.getTopSellingItems(startDate || undefined, endDate || undefined, categoryId || undefined, 1000);
       if (result.error || !result.data) {
-        alert('Gagal mengekspor data');
+        showToast('Gagal mengekspor data', 'error');
         return;
       }
       
@@ -73,7 +75,7 @@ export function TopItemsReportTab({ startDate, endDate, categoryId, topItemsSort
         `report_top_items_${new Date().toISOString().split('T')[0]}.csv`
       );
     } catch (err) {
-      alert('Terjadi kesalahan saat mengekspor');
+      showToast('Terjadi kesalahan saat mengekspor', 'error');
     }
   };
 

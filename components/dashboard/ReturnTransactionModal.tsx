@@ -47,7 +47,7 @@ export function ReturnTransactionModal({ isOpen, onClose, transactionId, transac
             <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : error ? (
-          <div className="text-center py-10 text-red-500">
+          <div className="text-center py-10 text-accent-rose-500">
             Gagal memuat data retur.
           </div>
         ) : data ? (
@@ -102,7 +102,7 @@ export function ReturnTransactionModal({ isOpen, onClose, transactionId, transac
 
             <div className="flex justify-between items-center pt-2">
               <p className="font-bold text-base text-neutral-900 dark:text-neutral-100">Total Nominal Retur</p>
-              <p className="font-bold text-lg text-red-600 dark:text-red-400">
+              <p className="font-bold text-lg text-accent-rose-600 dark:text-accent-rose-400">
                 {formatCurrency(totalReturn)}
               </p>
             </div>

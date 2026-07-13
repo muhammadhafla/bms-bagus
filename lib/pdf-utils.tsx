@@ -19,10 +19,15 @@ interface ReturnData {
   total: number;
 }
 
+async function getPdfMake() {
+  const pdfMake = (await import('pdfmake/build/pdfmake')).default || await import('pdfmake/build/pdfmake');
+  const pdfFonts = (await import('pdfmake/build/vfs_fonts')).default || await import('pdfmake/build/vfs_fonts');
+  (pdfMake as any).vfs = (pdfFonts as any).pdfMake?.vfs || (pdfFonts as any).vfs || pdfFonts;
+  return pdfMake;
+}
+
 export async function generateReturnPdf(returnData: ReturnData): Promise<Buffer> {
-  const pdfMake = require('pdfmake/build/pdfmake');
-  const pdfFonts = require('pdfmake/build/vfs_fonts');
-  (pdfMake as any).vfs = pdfFonts.pdfMake?.vfs || pdfFonts;
+  const pdfMake = await getPdfMake();
   const docDefinition = {
     pageSize: 'A4',
     pageMargins: [30, 30, 30, 30],

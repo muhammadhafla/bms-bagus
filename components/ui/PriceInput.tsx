@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useId } from 'react';
 
 interface PriceInputProps {
   value: number;
@@ -51,6 +51,8 @@ export const PriceInput = ({
   label,
   error,
 }: PriceInputProps) => {
+  const defaultId = useId();
+  const inputId = id || defaultId;
   const inputRef = useRef<HTMLInputElement>(null);
   const [displayValue, setDisplayValue] = useState<string>('');
   const [isFocused, setIsFocused] = useState(false);
@@ -179,7 +181,10 @@ export const PriceInput = ({
   return (
     <div>
       {label && (
-        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+        <label 
+          htmlFor={inputId}
+          className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2"
+        >
           {label}
         </label>
       )}
@@ -200,7 +205,7 @@ export const PriceInput = ({
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           placeholder={placeholder}
-          id={id}
+          id={inputId}
           name={name}
           disabled={disabled}
           className={`

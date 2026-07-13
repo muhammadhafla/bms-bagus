@@ -15,10 +15,10 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 
 const variantStyles: Record<BadgeVariant, string> = {
   default: 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300',
-  success: 'bg-accent-teal-100 dark:bg-accent-teal-950/40 text-accent-teal-700 dark:text-accent-teal-300',
-  warning: 'bg-accent-amber-100 dark:bg-accent-amber-950/40 text-accent-amber-700 dark:text-accent-amber-300',
-  danger: 'bg-accent-rose-100 dark:bg-accent-rose-950/40 text-accent-rose-700 dark:text-accent-rose-300',
-  info: 'bg-accent-indigo-100 dark:bg-accent-indigo-950/40 text-accent-indigo-700 dark:text-accent-indigo-300',
+  success: 'bg-accent-teal-100 dark:bg-accent-teal-900/40 text-accent-teal-700 dark:text-accent-teal-300',
+  warning: 'bg-accent-amber-100 dark:bg-accent-amber-900/40 text-accent-amber-700 dark:text-accent-amber-300',
+  danger: 'bg-accent-rose-100 dark:bg-accent-rose-900/40 text-accent-rose-700 dark:text-accent-rose-300',
+  info: 'bg-accent-indigo-100 dark:bg-accent-indigo-900/40 text-accent-indigo-700 dark:text-accent-indigo-300',
 };
 
 const sizeStyles: Record<BadgeSize, string> = {
@@ -29,7 +29,7 @@ const sizeStyles: Record<BadgeSize, string> = {
 const dotStyles: Record<BadgeVariant, string> = {
   default: 'bg-neutral-500',
   success: 'bg-accent-teal-500',
-  warning: 'bg-amber-500',
+  warning: 'bg-accent-amber-500',
   danger: 'bg-accent-rose-500',
   info: 'bg-accent-indigo-500',
 };

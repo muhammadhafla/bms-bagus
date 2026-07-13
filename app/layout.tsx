@@ -12,15 +12,16 @@ const poppins = Poppins({
   weight: ['400', '500', '600', '700'],
   subsets: ["latin"],
   variable: '--font-poppins',
-  preload: false,
+  display: 'swap',
 });
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  themeColor: "#ffffff",
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#121212' },
+  ],
 };
 
 export const metadata: Metadata = {
@@ -43,7 +44,7 @@ export default async function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning className="light">
       <head>
-        <script nonce={nonce} dangerouslySetInnerHTML={{
+        <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{
           __html: `
             try {
               const t = localStorage.getItem('theme');

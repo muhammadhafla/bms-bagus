@@ -21,10 +21,19 @@ export const pembelianItemSchema = z.object({
   diskon: z.number().min(0, 'Diskon tidak boleh negatif').optional(),
   harga_final: z.number().min(0, 'Harga final tidak boleh negatif'),
   subtotal: z.number().min(0, 'Subtotal tidak boleh negatif'),
-});
+}).refine(
+  (data) => {
+    const expectedFinal = data.harga_beli - (data.diskon || 0);
+    return Math.abs(data.harga_final - expectedFinal) < 1;
+  },
+  { message: 'Harga final tidak konsisten dengan harga beli - diskon', path: ['harga_final'] }
+).refine(
+  (data) => Math.abs(data.subtotal - (data.qty * data.harga_final)) < 1,
+  { message: 'Subtotal tidak konsisten dengan qty × harga final', path: ['subtotal'] }
+);
 
 export const pembelianSubmitSchema = z.object({
-  supplier_id: z.string().nullable(),
+  supplier_id: z.string().uuid('Format supplier ID tidak valid').nullable(),
   tanggal: z.string().min(1, 'Tanggal wajib diisi'),
   items: z.array(pembelianItemSchema).min(1, 'Minimal 1 item'),
   total_supplier: z.number().min(0, 'Total supplier tidak boleh negatif'),

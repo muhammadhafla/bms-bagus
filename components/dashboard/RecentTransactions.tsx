@@ -62,8 +62,8 @@ export function RecentTransactions({ transactions, isLoading }: RecentTransactio
             >
               <div className="flex items-center gap-4">
                 <div className={`p-2.5 rounded-xl transition-transform duration-200 group-hover:scale-110 ${tx.type === 'penjualan'
-                  ? 'bg-gradient-to-br from-green-400 to-green-500 shadow-teal text-white'
-                  : 'bg-gradient-to-br from-yellow-400 to-yellow-500 shadow-amber text-white'
+                  ? 'bg-gradient-to-br from-accent-teal-500 to-accent-teal-600 shadow-teal text-white'
+                  : 'bg-gradient-to-br from-accent-amber-500 to-accent-amber-600 shadow-amber text-white'
                 }`}>
                   {tx.type === 'penjualan' ? <IconArrowUp size={18} stroke={2.5} /> : <IconArrowDown size={18} stroke={2.5} />}
                 </div>

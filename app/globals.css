@@ -3,98 +3,112 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Brand Orange - Dominant Identity Color */
-  --color-brand-50: #FFF3E0;
-  --color-brand-100: #FFE0B2;
-  --color-brand-200: #FFCC80;
-  --color-brand-300: #FFB74D;
-  --color-brand-400: #FFA726;
-  --color-brand-500: #FF7043;
-  --color-brand-600: #F4511E;
-  --color-brand-700: #E64A19;
-  --color-brand-800: #D84315;
-  --color-brand-900: #BF360C;
+  /* Brand - Indigo (Professional & Clean) */
+  --color-brand-50: var(--color-indigo-50);
+  --color-brand-100: var(--color-indigo-100);
+  --color-brand-200: var(--color-indigo-200);
+  --color-brand-300: var(--color-indigo-300);
+  --color-brand-400: var(--color-indigo-400);
+  --color-brand-500: var(--color-indigo-500);
+  --color-brand-600: var(--color-indigo-600);
+  --color-brand-700: var(--color-indigo-700);
+  --color-brand-800: var(--color-indigo-800);
+  --color-brand-900: var(--color-indigo-900);
   
+  /* Accent Orange - For CTA & Highlights */
+  --color-accent-orange-50: #fcebe8;
+  --color-accent-orange-100: #fad5ce;
+  --color-accent-orange-200: #f5b0a3;
+  --color-accent-orange-300: #ee8370;
+  --color-accent-orange-400: #e65c43;
+  --color-accent-orange-500: #db4a2c;
+  --color-accent-orange-600: #c2391e;
+  --color-accent-orange-700: #93311e;
+  --color-accent-orange-800: #752819;
+  --color-accent-orange-900: #622318;
+
   /* Accent - Teal (Success/Growth) */
-  --color-accent-teal-50: #F0FDFA;
-  --color-accent-teal-100: #CCFBF1;
-  --color-accent-teal-200: #99F6E4;
-  --color-accent-teal-300: #5EEAD4;
-  --color-accent-teal-400: #2DD4BF;
-  --color-accent-teal-500: #14B8A6;
-  --color-accent-teal-600: #0D9488;
-  --color-accent-teal-700: #0F766E;
-  --color-accent-teal-800: #115E59;
-  --color-accent-teal-900: #134E4A;
+  --color-accent-teal-50: var(--color-teal-50);
+  --color-accent-teal-100: var(--color-teal-100);
+  --color-accent-teal-200: var(--color-teal-200);
+  --color-accent-teal-300: var(--color-teal-300);
+  --color-accent-teal-400: var(--color-teal-400);
+  --color-accent-teal-500: var(--color-teal-500);
+  --color-accent-teal-600: var(--color-teal-600);
+  --color-accent-teal-700: var(--color-teal-700);
+  --color-accent-teal-800: var(--color-teal-800);
+  --color-accent-teal-900: var(--color-teal-900);
   
   /* Accent - Indigo (Info/Tech) */
-  --color-accent-indigo-50: #EEF2FF;
-  --color-accent-indigo-100: #E0E7FF;
-  --color-accent-indigo-200: #C7D2FE;
-  --color-accent-indigo-300: #A5B4FC;
-  --color-accent-indigo-400: #818CF8;
-  --color-accent-indigo-500: #6366F1;
-  --color-accent-indigo-600: #4F46E5;
-  --color-accent-indigo-700: #4338CA;
-  --color-accent-indigo-800: #3730A3;
-  --color-accent-indigo-900: #312E81;
+  --color-accent-indigo-50: var(--color-indigo-50);
+  --color-accent-indigo-100: var(--color-indigo-100);
+  --color-accent-indigo-200: var(--color-indigo-200);
+  --color-accent-indigo-300: var(--color-indigo-300);
+  --color-accent-indigo-400: var(--color-indigo-400);
+  --color-accent-indigo-500: var(--color-indigo-500);
+  --color-accent-indigo-600: var(--color-indigo-600);
+  --color-accent-indigo-700: var(--color-indigo-700);
+  --color-accent-indigo-800: var(--color-indigo-800);
+  --color-accent-indigo-900: var(--color-indigo-900);
   
   /* Accent - Rose (Danger/Alerts) */
-  --color-accent-rose-50: #FFF1F2;
-  --color-accent-rose-100: #FFE4E6;
-  --color-accent-rose-200: #FECDD3;
-  --color-accent-rose-300: #FDA4AF;
-  --color-accent-rose-400: #FB7185;
-  --color-accent-rose-500: #F43F5E;
-  --color-accent-rose-600: #E11D48;
-  --color-accent-rose-700: #BE123C;
-  --color-accent-rose-800: #9F1239;
-  --color-accent-rose-900: #881337;
+  --color-accent-rose-50: var(--color-rose-50);
+  --color-accent-rose-100: var(--color-rose-100);
+  --color-accent-rose-200: var(--color-rose-200);
+  --color-accent-rose-300: var(--color-rose-300);
+  --color-accent-rose-400: var(--color-rose-400);
+  --color-accent-rose-500: var(--color-rose-500);
+  --color-accent-rose-600: var(--color-rose-600);
+  --color-accent-rose-700: var(--color-rose-700);
+  --color-accent-rose-800: var(--color-rose-800);
+  --color-accent-rose-900: var(--color-rose-900);
   
   /* Accent - Amber (Warning) */
-  --color-accent-amber-50: #FFFBEB;
-  --color-accent-amber-100: #FEF3C7;
-  --color-accent-amber-200: #FDE68A;
-  --color-accent-amber-300: #FCD34D;
-  --color-accent-amber-400: #FBBF24;
-  --color-accent-amber-500: #F59E0B;
-  --color-accent-amber-600: #D97706;
-  --color-accent-amber-700: #B45309;
-  --color-accent-amber-800: #92400E;
-  --color-accent-amber-900: #78350F;
+  --color-accent-amber-50: var(--color-amber-50);
+  --color-accent-amber-100: var(--color-amber-100);
+  --color-accent-amber-200: var(--color-amber-200);
+  --color-accent-amber-300: var(--color-amber-300);
+  --color-accent-amber-400: var(--color-amber-400);
+  --color-accent-amber-500: var(--color-amber-500);
+  --color-accent-amber-600: var(--color-amber-600);
+  --color-accent-amber-700: var(--color-amber-700);
+  --color-accent-amber-800: var(--color-amber-800);
+  --color-accent-amber-900: var(--color-amber-900);
   
-  /* Neutrals - Keep flat */
-  --color-neutral-50: #FAFAFA;
-  --color-neutral-100: #F5F5F5;
-  --color-neutral-200: #EEEEEE;
-  --color-neutral-300: #E0E0E0;
-  --color-neutral-400: #BDBDBD;
-  --color-neutral-500: #9E9E9E;
-  --color-neutral-600: #757575;
-  --color-neutral-700: #616161;
-  --color-neutral-800: #424242;
-  --color-neutral-900: #212121;
-  --color-neutral-950: #121212;
+  /* Neutrals - Slate (Clean & Modern) */
+  --color-neutral-50: var(--color-slate-50);
+  --color-neutral-100: var(--color-slate-100);
+  --color-neutral-200: var(--color-slate-200);
+  --color-neutral-300: var(--color-slate-300);
+  --color-neutral-400: var(--color-slate-400);
+  --color-neutral-500: var(--color-slate-500);
+  --color-neutral-600: var(--color-slate-600);
+  --color-neutral-700: var(--color-slate-700);
+  --color-neutral-800: var(--color-slate-800);
+  --color-neutral-900: var(--color-slate-900);
+  --color-neutral-950: var(--color-slate-950);
   
   /* Semantic Colors */
-  --color-success: #0D9488;
-  --color-success-light: #14B8A6;
-  --color-warning: #D97706;
-  --color-warning-light: #F59E0B;
-  --color-error: #BE123C;
-  --color-error-light: #F43F5E;
-  --color-info: #4F46E5;
-  --color-info-light: #6366F1;
+  --color-success: var(--color-teal-600);
+  --color-success-light: var(--color-teal-500);
+  --color-warning: var(--color-amber-600);
+  --color-warning-light: var(--color-amber-500);
+  --color-error: var(--color-rose-600);
+  --color-error-light: var(--color-rose-500);
+  --color-info: var(--color-indigo-600);
+  --color-info-light: var(--color-indigo-500);
 
-  /* Shadow - Colored variants */
-  --shadow-brand: 0 4px 14px 0 rgba(255, 112, 67, 0.25);
-  --shadow-brand-lg: 0 8px 30px -4px rgba(255, 112, 67, 0.35);
-  --shadow-teal: 0 4px 14px 0 rgba(20, 184, 166, 0.25);
-  --shadow-indigo: 0 4px 14px 0 rgba(99, 102, 241, 0.25);
-  --shadow-rose: 0 4px 14px 0 rgba(244, 63, 94, 0.25);
-  --shadow-amber: 0 4px 14px 0 rgba(245, 158, 11, 0.25);
-  --shadow-elevated: 0 10px 40px -10px rgba(0, 0, 0, 0.12);
-  --shadow-card: 0 2px 8px -2px rgba(0, 0, 0, 0.08);
+  /* Shadow - Clean Minimalist (Slate based) */
+  --shadow-brand: 0 4px 14px 0 rgba(15, 23, 42, 0.08);
+  --shadow-brand-lg: 0 8px 30px -4px rgba(15, 23, 42, 0.12);
+  --shadow-orange: 0 4px 14px 0 rgba(219, 74, 44, 0.15);
+  --shadow-orange-lg: 0 8px 30px -4px rgba(219, 74, 44, 0.2);
+  --shadow-teal: 0 4px 14px 0 rgba(15, 23, 42, 0.08);
+  --shadow-indigo: 0 4px 14px 0 rgba(15, 23, 42, 0.08);
+  --shadow-rose: 0 4px 14px 0 rgba(15, 23, 42, 0.08);
+  --shadow-amber: 0 4px 14px 0 rgba(15, 23, 42, 0.08);
+  --shadow-elevated: 0 10px 40px -10px rgba(15, 23, 42, 0.12);
+  --shadow-card: 0 2px 8px -2px rgba(15, 23, 42, 0.06);
   
   /* Border Radius - Varied for character */
   --radius-sm: 0.375rem;

@@ -91,7 +91,7 @@ export function RiwayatPenjualanTab({ search, startDate, endDate }: RiwayatPenju
             <p className="font-mono font-medium text-neutral-900 dark:text-white">
               {record.id.slice(0, 8)}...
             </p>
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-accent-teal-100 text-accent-teal-700 dark:bg-accent-teal-900/30 dark:text-accent-teal-400">
               Selesai
             </span>
           </div>
@@ -141,7 +141,7 @@ export function RiwayatPenjualanTab({ search, startDate, endDate }: RiwayatPenju
       )}
       <td className="px-5 py-4 text-center">
         <div className="flex items-center justify-center gap-2">
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-accent-teal-100 text-accent-teal-700 dark:bg-accent-teal-900/30 dark:text-accent-teal-400">
             Selesai
           </span>
           <IconChevronRight className="w-4 h-4 text-neutral-400 group-hover:text-brand-500 transition-colors" />

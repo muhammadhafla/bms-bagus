@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
-import { IconUpload, IconArrowRight, IconCheck, IconX, IconAlertCircle } from '@tabler/icons-react';
+import { IconUpload, IconArrowRight, IconCheck, IconX, IconAlertCircle, IconAlertTriangle } from '@tabler/icons-react';
 import { Button } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
 import { formatCurrency } from '@/lib/utils';
@@ -240,8 +240,8 @@ export default function ImportInventoryCSVWizard({ open, onClose, onComplete }: 
 
         {/* Error Banner */}
         {error && (
-          <div className="mx-6 mt-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl flex items-start gap-3 border border-red-100 dark:border-red-900/50">
-            <IconAlertCircle size={20} className="shrink-0 mt-0.5" />
+          <div className="mx-6 mt-4 p-3 bg-accent-rose-50 dark:bg-accent-rose-900/20 text-accent-rose-600 dark:text-accent-rose-400 rounded-xl flex items-start gap-3 border border-accent-rose-100 dark:border-accent-rose-900/50">
+            <IconAlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <span className="text-sm">{error}</span>
           </div>
         )}
@@ -332,15 +332,17 @@ export default function ImportInventoryCSVWizard({ open, onClose, onComplete }: 
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-3 flex flex-col items-center justify-center text-center">
                   <span className="text-sm text-neutral-500 mb-1">Barang Baru</span>
-                  <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{summary.newCount}</span>
+                  <span className="text-xl font-bold text-accent-teal-600 dark:text-accent-teal-400">{summary.newCount}</span>
                 </div>
                 <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-3 flex flex-col items-center justify-center text-center">
-                  <span className="text-sm text-neutral-500 mb-1">Update (Sudah Ada)</span>
-                  <span className="text-xl font-bold text-blue-600 dark:text-blue-400">{summary.updateCount}</span>
+                  <div className="p-4 rounded-xl bg-brand-50 dark:bg-brand-900/10 border border-brand-100 dark:border-brand-900/30">
+                  <span className="text-xl font-bold text-brand-600 dark:text-brand-400">{summary.updateCount}</span>
+                  <p className="text-xs text-brand-700 dark:text-brand-300 font-medium">Update Stok</p>
+                </div>
                 </div>
                 <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-3 flex flex-col items-center justify-center text-center relative group">
                   <span className="text-sm text-neutral-500 mb-1">Duplikat CSV (Diabaikan)</span>
-                  <span className="text-xl font-bold text-rose-600 dark:text-rose-400">{summary.duplicateCount}</span>
+                  <span className="text-xl font-bold text-accent-rose-600 dark:text-accent-rose-400">{summary.duplicateCount}</span>
                 </div>
               </div>
 
@@ -363,10 +365,10 @@ export default function ImportInventoryCSVWizard({ open, onClose, onComplete }: 
                       {mappedData.slice(0, 10).map((row: any, i) => (
                         <tr key={i} className="bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
                           <td className="px-4 py-3">
-                            {row.isNew ? (
-                              <span className="px-2 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded text-xs font-semibold">Baru</span>
+                            {!row.isNew ? (
+                              <span className="px-2 py-1 bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400 rounded text-xs font-semibold">Update</span>
                             ) : (
-                              <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded text-xs font-semibold">Update</span>
+                              <span className="px-2 py-1 bg-accent-teal-100 text-accent-teal-700 dark:bg-accent-teal-900/30 dark:text-accent-teal-400 rounded text-xs font-semibold">Baru</span>
                             )}
                           </td>
                           <td className="px-4 py-3 text-neutral-900 dark:text-neutral-100 font-medium">{row.nama_barang}</td>

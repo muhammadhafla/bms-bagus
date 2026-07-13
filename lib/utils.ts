@@ -21,27 +21,27 @@ export const formatNumber = (num: number): string => {
  * Parse price input string to clean number
  * Handles Indonesian format: dot as thousand separator, comma as decimal
  */
-export const parsePrice = (input: string | number): number => {
-  if (typeof input === 'number') return Math.max(0, input);
-  
-  // Handle Indonesian format: 1.500.000,50 or 1,500,000.50
-  let normalized = input.replace(/\s/g, '');
-  
-  // Find decimal separator (last non-digit character)
-  const lastNonDigit = normalized.match(/[^\d](?=\d*$)/);
-  
-  if (lastNonDigit) {
-    const decimalPos = normalized.lastIndexOf(lastNonDigit[0]);
-    const integerPart = normalized.slice(0, decimalPos).replace(/[^\d]/g, '');
-    const decimalPart = normalized.slice(decimalPos + 1).replace(/[^\d]/g, '');
-    normalized = `${integerPart}.${decimalPart}`;
-  } else {
-    normalized = normalized.replace(/[^\d]/g, '');
+export function parsePrice(input: string | number): number {
+  if (typeof input === 'number') return isNaN(input) ? 0 : Math.max(0, input);
+  if (!input || (typeof input === 'string' && input.trim() === '')) return 0;
+
+  // Hapus simbol mata uang dan spasi
+  let normalized = input.toString().replace(/[Rp\s]/gi, '').trim();
+
+  // Format Indonesia: titik = ribuan separator, koma = desimal
+  // Contoh: "1.500.000" → 1500000 | "1.500,50" → 1500.50
+  if (normalized.includes(',')) {
+    // Ada koma → koma adalah desimal, titik adalah ribuan
+    normalized = normalized.replace(/\./g, '').replace(',', '.');
+  } else if (/^\d{1,3}(\.\d{3})+$/.test(normalized)) {
+    // Hanya titik dengan pola ribuan (misal: 1.500, 1.500.000)
+    normalized = normalized.replace(/\./g, '');
   }
-  
-  const parsed = parseFloat(normalized);
-  return isNaN(parsed) ? 0 : Math.max(0, parsed);
-};
+  // else: angka biasa tanpa separator (atau titik tunggal = desimal Inggris)
+
+  const result = parseFloat(normalized);
+  return isNaN(result) ? 0 : Math.max(0, result);
+}
 
 /**
  * Debounce function for input handling
@@ -173,6 +173,7 @@ export const stringSimilarity = (a: string, b: string): number => {
   
   const distance = levenshteinDistance(aLower, bLower);
   const maxLength = Math.max(aLower.length, bLower.length);
+  if (maxLength === 0) return 100;
   
   return Math.round(((maxLength - distance) / maxLength) * 100);
 };
@@ -181,8 +182,9 @@ export const stringSimilarity = (a: string, b: string): number => {
  * Generate auto barcode with format AUTO-XXXXXX
  */
 export const generateAutoBarcode = (): string => {
-  const random = Math.floor(100000 + Math.random() * 900000);
-  return `AUTO-${random}`;
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `AUTO-${timestamp}-${random}`;
 };
 
 /**
@@ -261,7 +263,8 @@ export const exportToCSV = (data: (string | number)[][], headers: string[], file
   };
 
   const csvData = arrayToCsv(headers, data);
-  const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+  const BOM = '\uFEFF';
+  const blob = new Blob([BOM + csvData], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
   link.download = filename;

@@ -31,7 +31,7 @@ export const TextareaInput = forwardRef<HTMLTextAreaElement, TextareaInputProps>
       {label && (
         <label htmlFor={inputId} className={LABEL_STYLES.base}>
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-accent-rose-500 ml-1">*</span>}
         </label>
       )}
       <textarea

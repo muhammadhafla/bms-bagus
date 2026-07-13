@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { kasApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth';
 import { DateRangePicker, Button, SelectInput, DataTable, Badge, FilterButton, AmbientLayout, ModernPagination } from '@/components/ui';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { IconReportMoney, IconArrowUpRight, IconArrowDownRight, IconWallet, IconChevronRight } from '@tabler/icons-react';
 import { formatCurrency, formatDateTimeWIB, formatDateForInputWIB } from '@/lib/utils';
 import { ManualKasModal } from './components/ManualKasModal';
@@ -100,7 +101,8 @@ export default function CashFlowPage() {
   };
 
   return (
-    <AmbientLayout>
+    <ErrorBoundary>
+      <AmbientLayout>
       <div className="mb-4 lg:mb-6">
         <div className="flex flex-row items-start lg:items-center justify-between gap-4 mb-4 lg:mb-5">
           <div className="flex items-center gap-3 lg:gap-4 animate-fade-in-up pl-12 lg:pl-0">
@@ -232,12 +234,12 @@ export default function CashFlowPage() {
               <table className="w-full min-w-[700px]">
                 <thead className="bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 sticky top-0 z-10">
                   <tr>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider w-40">Tanggal</th>
-                    {isAdmin && <th className="px-5 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider">Kasir</th>}
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider">Tipe</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider">Keterangan</th>
-                    <th className="px-5 py-3 text-right text-xs font-semibold text-neutral-500 uppercase tracking-wider w-32">Metode</th>
-                    <th className="px-5 py-3 text-right text-xs font-semibold text-neutral-500 uppercase tracking-wider w-40">Nominal</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider w-40">Tanggal</th>
+                    {isAdmin && <th className="px-5 py-3 text-left text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Kasir</th>}
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Tipe</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Keterangan</th>
+                    <th className="px-5 py-3 text-right text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider w-32">Metode</th>
+                    <th className="px-5 py-3 text-right text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider w-40">Nominal</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
@@ -254,7 +256,7 @@ export default function CashFlowPage() {
                     ))
                   ) : kasLogData?.data.length === 0 ? (
                     <tr>
-                      <td colSpan={isAdmin ? 6 : 5} className="px-5 py-12 text-center text-neutral-500">
+                      <td colSpan={isAdmin ? 6 : 5} className="px-5 py-12 text-center text-neutral-500 dark:text-neutral-400">
                         Belum ada riwayat arus kas
                       </td>
                     </tr>
@@ -327,7 +329,7 @@ export default function CashFlowPage() {
               ))
             ) : kasLogData?.data.length === 0 ? (
               <div className="p-8 text-center bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800">
-                <p className="text-neutral-500">Belum ada riwayat arus kas</p>
+                <p className="text-neutral-500 dark:text-neutral-400">Belum ada riwayat arus kas</p>
               </div>
             ) : (
               kasLogData?.data.map((item: any) => (
@@ -399,7 +401,7 @@ export default function CashFlowPage() {
                   <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
                 </div>
               ) : shiftSummaryData?.data?.length === 0 ? (
-                <p className="text-center text-neutral-500 py-8">Tidak ada shift aktif pada tanggal ini.</p>
+                <p className="text-center text-neutral-500 dark:text-neutral-400 py-8">Tidak ada shift aktif pada tanggal ini.</p>
               ) : (
                 <div className="space-y-4">
                   {shiftSummaryData?.data?.map((shift: any) => (
@@ -452,6 +454,7 @@ export default function CashFlowPage() {
         transactionId={selectedTransactionId}
         transactionType="penjualan"
       />
-    </AmbientLayout>
+      </AmbientLayout>
+    </ErrorBoundary>
   );
 }

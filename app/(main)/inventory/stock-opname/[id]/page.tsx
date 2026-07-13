@@ -7,7 +7,7 @@ import { StockOpname, StockOpnameItem, stockOpnameApi } from '@/lib/api/stockOpn
 import { stockAdjustmentApi } from '@/lib/api/stockAdjustment';
 import { inventoryApi } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
-import { IconArrowLeft, IconCheck, IconX, IconSend, IconLoader2, IconDeviceFloppy, IconRefresh, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react';
+import { IconArrowLeft, IconCheck, IconX, IconSend, IconLoader2, IconDeviceFloppy, IconRefresh, IconPlus, IconMinus, IconSearch, IconTrash, IconBarcode, IconBox } from '@tabler/icons-react';
 import { useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Portal } from '@/components/ui/Portal';
@@ -186,16 +186,22 @@ export default function StockOpnameDetailPage() {
 
     const result = await stockOpnameApi.addItem(opnameId, inventory.id);
     if (!result.error && result.data) {
-      setItems(prev => [...prev, result.data as StockOpnameItem]);
-      setOriginalItems(prev => [...prev, result.data as StockOpnameItem]);
+      const newItem = result.data as StockOpnameItem;
+      setItems(prev => [newItem, ...prev]);
+      setOriginalItems(prev => [newItem, ...prev]);
       addToast({ type: 'success', message: `${inventory.nama_barang} ditambahkan` });
       
-      // Auto focus kembali ke input untuk scan berikutnya
+      // Auto focus ke input kuantitas barang yang baru ditambahkan
       setTimeout(() => {
-        if (addSearchRef.current) {
-          addSearchRef.current.focus();
+        const mobileInput = document.getElementById(`input-phys-qty-${newItem.id}`);
+        const deskInput = document.getElementById(`input-phys-qty-desk-${newItem.id}`);
+        const inputToFocus = (deskInput && window.innerWidth >= 1024) ? deskInput : mobileInput;
+        
+        if (inputToFocus) {
+          inputToFocus.focus();
+          (inputToFocus as HTMLInputElement).select();
         }
-      }, 50);
+      }, 100);
     } else {
       addToast({ type: 'error', message: result.error?.message || 'Gagal menambahkan barang' });
     }
@@ -327,96 +333,124 @@ return (
             <p className="text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 text-xs lg:text-base font-medium">Pengelolaan stok fisik</p>
           </div>
         </div>
+        
+        {/* Desktop Action Buttons */}
+        <div className="hidden lg:flex items-center gap-2">
+          <Button variant="secondary" onClick={() => router.push('/inventory/stock-opname')}>
+            <IconArrowLeft size={20} />
+            <span>Kembali</span>
+          </Button>
+
+          {isDraft && (
+            <>
+              {hasChanges && (
+                <Button variant="secondary" onClick={() => setShowConfirmDiscard(true)} disabled={saving}>
+                  <IconRefresh size={20} />
+                  <span>Batal</span>
+                </Button>
+              )}
+              {hasChanges && (
+                <Button onClick={saveChanges} disabled={saving || hasInvalidItems}>
+                  {saving ? <IconLoader2 size={20} className="animate-spin" /> : <IconDeviceFloppy size={20} />}
+                  <span>{saving && saveProgress.total > 0 ? `Menyimpan (${saveProgress.current}/${saveProgress.total})...` : saving ? 'Menyimpan...' : 'Simpan'}</span>
+                </Button>
+              )}
+              <Button onClick={handleSubmit} disabled={saving || hasInvalidItems} className={`shadow-brand ${hasInvalidItems ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                <IconSend size={20} />
+                <span>{saving ? 'Mengirim...' : 'Submit'}</span>
+              </Button>
+            </>
+          )}
+          {isPending && (
+            <AdminOnly>
+              <Button variant="danger" onClick={() => setShowRejectModal(true)} disabled={saving}>
+                <IconX size={20} />
+                <span>Tolak</span>
+              </Button>
+              <Button variant="primary" className="shadow-brand" onClick={handleApprove} disabled={saving || processing}>
+                {processing ? <IconLoader2 size={20} className="animate-spin" /> : <IconCheck size={20} />}
+                <span>{processing ? 'Memproses...' : 'Setujui'}</span>
+              </Button>
+            </AdminOnly>
+          )}
+        </div>
       </div>
       
-      <div className="flex flex-col gap-3 lg:gap-4 lg:flex-row justify-between items-stretch lg:items-center fixed bottom-4 left-4 right-4 z-50 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-neutral-200/50 dark:border-neutral-700/50 rounded-[2rem] p-3 shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] pb-[max(env(safe-area-inset-bottom),0.75rem)] lg:pb-0 lg:static lg:bg-transparent lg:border-none lg:rounded-none lg:p-0 lg:shadow-none lg:mb-6">
-          <div className="grid grid-cols-3 gap-2 lg:gap-4 w-full lg:w-auto flex-1 max-w-2xl">
-            <div className="bg-neutral-50/80 dark:bg-neutral-800/80 lg:bg-white/70 lg:dark:bg-neutral-900/60 lg:backdrop-blur-xl rounded-xl lg:rounded-2xl border border-neutral-200/50 dark:border-neutral-700/50 lg:border-white/40 lg:dark:border-white/10 p-2 lg:p-5 lg:shadow-elevated text-center lg:text-left flex flex-col justify-center">
-              <div className="text-[10px] lg:text-sm text-neutral-500 dark:text-neutral-400 font-medium leading-tight">Total Item</div>
-              <div className="text-sm lg:text-2xl font-bold mt-0.5 lg:mt-1 text-neutral-900 dark:text-white">{items.length}</div>
-            </div>
-            <div className="bg-success-50/80 dark:bg-success-900/20 lg:bg-white/70 lg:dark:bg-neutral-900/60 lg:backdrop-blur-xl rounded-xl lg:rounded-2xl border border-success-100 dark:border-success-800 lg:border-white/40 lg:dark:border-white/10 p-2 lg:p-5 lg:shadow-elevated text-center lg:text-left flex flex-col justify-center">
-              <div className="text-[10px] lg:text-sm text-success-600 font-medium leading-tight">Selisih Positif</div>
-              <div className="text-sm lg:text-2xl font-bold mt-0.5 lg:mt-1 text-success-600">
-                +{items.filter(i => i.difference > 0).reduce((sum, i) => sum + i.difference, 0)}
-              </div>
-            </div>
-            <div className="bg-danger-50/80 dark:bg-danger-900/20 lg:bg-white/70 lg:dark:bg-neutral-900/60 lg:backdrop-blur-xl rounded-xl lg:rounded-2xl border border-danger-100 dark:border-danger-800 lg:border-white/40 lg:dark:border-white/10 p-2 lg:p-5 lg:shadow-elevated text-center lg:text-left flex flex-col justify-center">
-              <div className="text-[10px] lg:text-sm text-danger-600 font-medium leading-tight">Selisih Negatif</div>
-              <div className="text-sm lg:text-2xl font-bold mt-0.5 lg:mt-1 text-danger-600">
-                {items.filter(i => i.difference < 0).reduce((sum, i) => sum + i.difference, 0)}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2 justify-between items-center w-full lg:w-auto border-t lg:border-0 border-neutral-200/50 dark:border-neutral-700/50 pt-3 mt-1 lg:pt-0 lg:mt-0">
-            <Button variant="secondary" className="!px-4 h-10 rounded-xl lg:h-auto lg:!px-4 border-neutral-200/50 dark:border-neutral-700/50" onClick={() => router.push('/inventory/stock-opname')}>
-              <IconArrowLeft size={20} />
-              <span className="hidden sm:inline">Kembali</span>
-            </Button>
-
-            <div className="flex gap-2">
-              {isDraft && (
-                <>
-                  {hasChanges && (
-                    <Button variant="secondary" className="!px-4 h-10 rounded-xl lg:h-auto lg:!px-4 border-neutral-200/50 dark:border-neutral-700/50" onClick={() => setShowConfirmDiscard(true)} disabled={saving}>
-                      <IconRefresh size={20} />
-                      <span className="hidden sm:inline">Batal</span>
-                    </Button>
-                  )}
-                  {hasChanges && (
-                    <Button className="!px-4 h-10 rounded-xl lg:h-auto lg:!px-4" onClick={saveChanges} disabled={saving || hasInvalidItems}>
-                      {saving ? <IconLoader2 size={20} className="animate-spin" /> : <IconDeviceFloppy size={20} />}
-                      <span className="hidden sm:inline">
-                        {saving && saveProgress.total > 0 
-                          ? `Menyimpan (${saveProgress.current}/${saveProgress.total})...` 
-                          : saving 
-                            ? 'Menyimpan...' 
-                            : 'Simpan'}
-                      </span>
-                    </Button>
-                  )}
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={saving || hasInvalidItems}
-                    className={`!px-4 h-10 rounded-xl lg:h-auto lg:!px-4 shadow-brand ${hasInvalidItems ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <IconSend size={20} />
-                    <span className="hidden sm:inline">{saving ? 'Mengirim...' : 'Submit'}</span>
-                  </Button>
-                </>
-              )}
-              {isPending && (
-                <AdminOnly>
-                  <Button variant="danger" className="!px-4 h-10 rounded-xl lg:h-auto lg:!px-4" onClick={() => setShowRejectModal(true)} disabled={saving}>
-                    <IconX size={20} />
-                    <span className="hidden sm:inline">Tolak</span>
-                  </Button>
-                  <Button variant="primary" className="!px-4 h-10 rounded-xl lg:h-auto lg:!px-4 shadow-brand" onClick={handleApprove} disabled={saving || processing}>
-                    {processing ? <IconLoader2 size={20} className="animate-spin" /> : <IconCheck size={20} />}
-                    <span className="hidden sm:inline">{processing ? 'Memproses...' : 'Setujui'}</span>
-                  </Button>
-                </AdminOnly>
-              )}
-            </div>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-3 gap-2 lg:gap-4 w-full mb-6">
+        <div className="bg-neutral-50/80 dark:bg-neutral-800/80 lg:bg-white/70 lg:dark:bg-neutral-900/60 lg:backdrop-blur-xl rounded-xl lg:rounded-2xl border border-neutral-200/50 dark:border-neutral-700/50 lg:border-white/40 lg:dark:border-white/10 p-3 lg:p-4 lg:shadow-elevated text-center lg:text-left flex flex-col justify-center">
+          <div className="text-[10px] lg:text-sm text-neutral-500 dark:text-neutral-400 font-medium leading-tight">Total Item</div>
+          <div className="text-sm lg:text-2xl font-bold mt-0.5 lg:mt-1 text-neutral-900 dark:text-white">{items.length}</div>
+        </div>
+        <div className="bg-success-50/80 dark:bg-success-900/20 lg:bg-white/70 lg:dark:bg-neutral-900/60 lg:backdrop-blur-xl rounded-xl lg:rounded-2xl border border-success-100 dark:border-success-800 lg:border-white/40 lg:dark:border-white/10 p-3 lg:p-4 lg:shadow-elevated text-center lg:text-left flex flex-col justify-center">
+          <div className="text-[10px] lg:text-sm text-success-600 font-medium leading-tight">Selisih Positif</div>
+          <div className="text-sm lg:text-2xl font-bold mt-0.5 lg:mt-1 text-success-600">
+            +{items.filter(i => i.difference > 0).reduce((sum, i) => sum + i.difference, 0)}
           </div>
         </div>
+        <div className="bg-danger-50/80 dark:bg-danger-900/20 lg:bg-white/70 lg:dark:bg-neutral-900/60 lg:backdrop-blur-xl rounded-xl lg:rounded-2xl border border-danger-100 dark:border-danger-800 lg:border-white/40 lg:dark:border-white/10 p-3 lg:p-4 lg:shadow-elevated text-center lg:text-left flex flex-col justify-center">
+          <div className="text-[10px] lg:text-sm text-danger-600 font-medium leading-tight">Selisih Negatif</div>
+          <div className="text-sm lg:text-2xl font-bold mt-0.5 lg:mt-1 text-danger-600">
+            {items.filter(i => i.difference < 0).reduce((sum, i) => sum + i.difference, 0)}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Sticky Action Bar */}
+      <div className="flex lg:hidden gap-2 justify-between items-center fixed bottom-4 left-4 right-4 z-50 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-neutral-200/50 dark:border-neutral-700/50 rounded-2xl p-2.5 shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] pb-[max(env(safe-area-inset-bottom),0.625rem)]">
+        <Button variant="secondary" className="!px-3 h-10 rounded-xl" onClick={() => router.push('/inventory/stock-opname')}>
+          <IconArrowLeft size={18} />
+        </Button>
+        <div className="flex gap-2 flex-1 justify-end">
+          {isDraft && (
+            <>
+              {hasChanges && (
+                <Button variant="secondary" className="!px-3 h-10 rounded-xl" onClick={() => setShowConfirmDiscard(true)} disabled={saving}>
+                  <IconRefresh size={18} />
+                </Button>
+              )}
+              {hasChanges && (
+                <Button className="!px-3 h-10 rounded-xl flex-1 max-w-[120px]" onClick={saveChanges} disabled={saving || hasInvalidItems}>
+                  {saving ? <IconLoader2 size={18} className="animate-spin" /> : <IconDeviceFloppy size={18} />}
+                  <span className="text-sm truncate">Simpan</span>
+                </Button>
+              )}
+              <Button onClick={handleSubmit} disabled={saving || hasInvalidItems} className={`!px-3 h-10 rounded-xl flex-1 max-w-[120px] shadow-brand ${hasInvalidItems ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                <IconSend size={18} />
+                <span className="text-sm truncate">Submit</span>
+              </Button>
+            </>
+          )}
+          {isPending && (
+            <AdminOnly>
+              <Button variant="danger" className="!px-3 h-10 rounded-xl flex-1 max-w-[120px]" onClick={() => setShowRejectModal(true)} disabled={saving}>
+                <IconX size={18} />
+                <span className="text-sm truncate">Tolak</span>
+              </Button>
+              <Button variant="primary" className="!px-3 h-10 rounded-xl shadow-brand flex-1 max-w-[120px]" onClick={handleApprove} disabled={saving || processing}>
+                {processing ? <IconLoader2 size={18} className="animate-spin" /> : <IconCheck size={18} />}
+                <span className="text-sm truncate">Setujui</span>
+              </Button>
+            </AdminOnly>
+          )}
+        </div>
+      </div>
 
         {isDraft && (
-          <div className="flex flex-col lg:flex-row gap-4 mb-4">
+          <div className="sticky top-[72px] z-40 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl p-2 rounded-2xl border border-white/40 dark:border-white/10 shadow-sm flex flex-col lg:flex-row gap-3 lg:gap-4 mb-6">
             <form onSubmit={(e) => {
               e.preventDefault();
               if (inventorySearchResults.length > 0) {
                 addItemToOpname(inventorySearchResults[0]);
               }
-            }} className="relative flex-1 max-w-md">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
-                <IconSearch size={18} />
+            }} className="relative flex-1 max-w-xl">
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 p-1.5 rounded-lg">
+                <IconBarcode size={20} />
               </div>
               <input
                 ref={addSearchRef}
                 type="text"
-                placeholder="Cari barang untuk ditambahkan..."
+                placeholder="Scan barcode atau cari barang..."
                 value={searchAdd}
                 onChange={(e) => {
                   setSearchAdd(e.target.value);
@@ -442,7 +476,7 @@ return (
                     }
                   }
                 }}
-                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500"
+                className="w-full pl-12 pr-4 py-3 bg-white dark:bg-neutral-900 border-2 border-brand-200 dark:border-brand-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-brand-500/20 focus:border-brand-500 shadow-sm text-sm sm:text-base transition-all font-medium placeholder:font-normal"
               />
               {showAddDropdown && inventorySearchResults.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg max-h-[40vh] md:max-h-64 overflow-auto">
@@ -492,9 +526,21 @@ return (
 
           <div className="mb-6">
               {items.length === 0 ? (
-                <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-elevated rounded-3xl px-4 py-16 text-center animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-                  <div className="text-neutral-500 dark:text-neutral-400 mb-2 font-medium">Belum ada barang yang ditambahkan</div>
-                  <div className="text-sm text-neutral-400">Gunakan kotak pencarian di atas untuk menambahkan barang yang akan dihitung</div>
+                <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-elevated rounded-3xl px-4 py-20 text-center animate-fade-in-up flex flex-col items-center justify-center" style={{ animationDelay: '100ms' }}>
+                  <div className="w-20 h-20 mb-6 rounded-full bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center text-brand-500 dark:text-brand-400">
+                    <IconBox size={40} stroke={1.5} />
+                  </div>
+                  <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-2">Belum ada barang</h3>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-sm mb-8">Scan barcode atau cari nama barang untuk mulai melakukan perhitungan stok fisik.</p>
+                  {isDraft && (
+                    <Button 
+                      onClick={() => addSearchRef.current?.focus()} 
+                      className="shadow-brand rounded-xl px-6 h-12"
+                    >
+                      <IconBarcode size={20} className="mr-2" />
+                      Mulai Scan Barang
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <>
@@ -522,14 +568,33 @@ return (
                             </div>
                             
                             <div className="bg-brand-50 dark:bg-brand-900/10 p-3 rounded-lg flex flex-col justify-between border border-brand-100 dark:border-brand-900/30">
-                              <span className="text-xs text-brand-600 dark:text-brand-400 mb-1">Stok Fisik</span>
-                              <input
-                                type="number"
-                                value={item.physical_stock}
-                                onChange={(e) => updateItem(item.id, 'physical_stock', parseInt(e.target.value) || 0)}
-                                disabled={!isEditable}
-                                className="w-full text-lg font-mono font-bold text-brand-700 dark:text-brand-300 bg-transparent border-b border-brand-200 dark:border-brand-800 rounded-none px-0 py-0 disabled:opacity-70 focus:outline-none focus:border-brand-500 text-left"
-                              />
+                              <span className="text-xs text-brand-600 dark:text-brand-400 mb-2">Stok Fisik</span>
+                              <div className="flex items-center gap-2">
+                                {isEditable && (
+                                  <button
+                                    onClick={() => updateItem(item.id, 'physical_stock', Math.max(0, item.physical_stock - 1))}
+                                    className="w-8 h-8 flex items-center justify-center bg-white dark:bg-neutral-800 rounded-md border border-brand-200 dark:border-brand-800 text-brand-600 dark:text-brand-400 active:bg-brand-100 dark:active:bg-brand-900/40 shrink-0 shadow-sm"
+                                  >
+                                    <IconMinus size={16} />
+                                  </button>
+                                )}
+                                <input
+                                  id={`input-phys-qty-${item.id}`}
+                                  type="number"
+                                  value={item.physical_stock}
+                                  onChange={(e) => updateItem(item.id, 'physical_stock', parseInt(e.target.value) || 0)}
+                                  disabled={!isEditable}
+                                  className="w-full text-lg font-mono font-bold text-brand-700 dark:text-brand-300 bg-white dark:bg-neutral-900 border border-brand-200 dark:border-brand-800 rounded-md px-2 py-1 text-center disabled:opacity-70 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 shadow-inner"
+                                />
+                                {isEditable && (
+                                  <button
+                                    onClick={() => updateItem(item.id, 'physical_stock', item.physical_stock + 1)}
+                                    className="w-8 h-8 flex items-center justify-center bg-white dark:bg-neutral-800 rounded-md border border-brand-200 dark:border-brand-800 text-brand-600 dark:text-brand-400 active:bg-brand-100 dark:active:bg-brand-900/40 shrink-0 shadow-sm"
+                                  >
+                                    <IconPlus size={16} />
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
 
@@ -595,6 +660,7 @@ return (
                           <td className="px-4 py-3 text-right text-sm text-neutral-600 dark:text-neutral-300 font-mono">{item.system_stock}</td>
                           <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">
                            <input
+                             id={`input-phys-qty-desk-${item.id}`}
                              type="number"
                              value={item.physical_stock}
                              onChange={(e) => updateItem(item.id, 'physical_stock', parseInt(e.target.value) || 0)}

@@ -18,6 +18,7 @@ const reasonLabels: Record<string, string> = {
 export default function DifferenceReportPage() {
   const [adjustments, setAdjustments] = useState<StockAdjustment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filterReason, setFilterReason] = useState('');
   const [page, setPage] = useState(1);
   const LIMIT = 10;
@@ -28,11 +29,19 @@ export default function DifferenceReportPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const result = await stockAdjustmentApi.getAll();
-    if (!result.error && result.data) {
-      setAdjustments(result.data);
+    setError(null);
+    try {
+      const result = await stockAdjustmentApi.getAll();
+      if (result.error) {
+        setError(result.error.message || 'Gagal memuat data selisih stok');
+      } else if (result.data) {
+        setAdjustments(result.data);
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Terjadi kesalahan saat memuat data');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -90,7 +99,16 @@ return (
         ))}
       </div>
 
-      {filteredAdjustments.length === 0 ? (
+      {error ? (
+        <div className="text-center py-16 bg-red-50 dark:bg-red-900/20 rounded-3xl border border-red-200 dark:border-red-900/50 shadow-sm animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+          <IconAlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" stroke={1.5} />
+          <p className="text-lg font-bold text-red-700 dark:text-red-400 mb-2">Gagal Memuat Data</p>
+          <p className="text-red-600 dark:text-red-300 mb-6">{error}</p>
+          <button onClick={fetchData} className="px-6 py-2.5 bg-red-100 hover:bg-red-200 dark:bg-red-800 dark:hover:bg-red-700 text-red-700 dark:text-red-100 rounded-xl font-medium transition-colors">
+            Coba Lagi
+          </button>
+        </div>
+      ) : filteredAdjustments.length === 0 ? (
         <div className="text-center py-16 text-neutral-500 bg-white/70 dark:bg-neutral-900/60 rounded-3xl border border-white/40 dark:border-white/10 shadow-elevated backdrop-blur-xl animate-fade-in-up" style={{ animationDelay: '150ms' }}>
           <p className="text-lg font-medium">Tidak ada data selisih stok</p>
         </div>

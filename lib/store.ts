@@ -14,10 +14,10 @@ interface PembelianStore {
   totalSupplier: number;
   
   addItem: (item: InventoryItem, initialQty?: number) => void;
-  updateQty: (index: number, qty: number) => void;
-  updateHargaBeli: (index: number, harga: number) => void;
-  updateHargaJual: (index: number, harga: number) => void;
-  removeItem: (index: number) => void;
+  updateQty: (id: string, qty: number) => void;
+  updateHargaBeli: (id: string, harga: number) => void;
+  updateHargaJual: (id: string, harga: number) => void;
+  removeItem: (id: string) => void;
   setSupplier: (id: string | null) => void;
   setTanggal: (tanggal: string) => void;
   setTotalSupplier: (total: number) => void;
@@ -60,38 +60,38 @@ export const usePembelianStore = create<PembelianStore>((set, get) => ({
     return { items: [...state.items, newItem] };
   }),
 
-  updateQty: (index, qty) => set((state) => {
+  updateQty: (id, qty) => set((state) => {
     if (qty <= 0) {
-      return { items: state.items.filter((_, i) => i !== index) };
+      return { items: state.items.filter(item => item.id !== id) };
     }
     return {
-      items: state.items.map((item, i) =>
-        i === index ? { ...item, qty, subtotal: qty * item.harga_final } : item
+      items: state.items.map(item =>
+        item.id === id ? { ...item, qty, subtotal: qty * item.harga_final } : item
       )
     };
   }),
 
-  updateHargaBeli: (index, harga) => set((state) => {
+  updateHargaBeli: (id, harga) => set((state) => {
     return {
-      items: state.items.map((item, i) => {
-        if (i !== index) return item;
+      items: state.items.map(item => {
+        if (item.id !== id) return item;
         const harga_final = harga;
         return { ...item, harga_beli: harga, harga_final, subtotal: item.qty * harga_final };
       })
     };
   }),
 
-  updateHargaJual: (index, harga) => set((state) => {
+  updateHargaJual: (id, harga) => set((state) => {
     return {
-      items: state.items.map((item, i) => {
-        if (i !== index) return item;
+      items: state.items.map(item => {
+        if (item.id !== id) return item;
         return { ...item, harga_jual: harga };
       })
     };
   }),
 
-  removeItem: (index) => set((state) => ({
-    items: state.items.filter((_, i) => i !== index)
+  removeItem: (id) => set((state) => ({
+    items: state.items.filter(item => item.id !== id)
   })),
 
   setSupplier: (id) => set({ supplierId: id }),
@@ -122,8 +122,8 @@ interface BulkPrintStore {
   items: PrintItem[];
   
   addItem: (item: InventoryItem, initialQty?: number) => void;
-  updateQty: (index: number, qty: number) => void;
-  removeItem: (index: number) => void;
+  updateQty: (id: string, qty: number) => void;
+  removeItem: (id: string) => void;
   reset: () => void;
 }
 
@@ -151,19 +151,19 @@ export const useBulkPrintStore = create<BulkPrintStore>((set) => ({
     return { items: [...state.items, newItem] };
   }),
 
-  updateQty: (index, qty) => set((state) => {
+  updateQty: (id, qty) => set((state) => {
     if (qty <= 0) {
-      return { items: state.items.filter((_, i) => i !== index) };
+      return { items: state.items.filter(item => item.id !== id) };
     }
     return {
-      items: state.items.map((item, i) =>
-        i === index ? { ...item, qty } : item
+      items: state.items.map(item =>
+        item.id === id ? { ...item, qty } : item
       )
     };
   }),
 
-  removeItem: (index) => set((state) => ({
-    items: state.items.filter((_, i) => i !== index)
+  removeItem: (id) => set((state) => ({
+    items: state.items.filter(item => item.id !== id)
   })),
 
   reset: () => set({

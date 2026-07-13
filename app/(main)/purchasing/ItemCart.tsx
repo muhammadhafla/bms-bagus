@@ -12,7 +12,7 @@ interface ItemCartProps {
   setEditMode: (mode: 'qty' | 'harga' | 'harga_jual' | null) => void;
   setEditValue: (val: number) => void;
   handleEditSubmit: () => void;
-  removeItem: (index: number) => void;
+  removeItem: (id: string) => void;
 }
 
 export function ItemCart({
@@ -149,7 +149,7 @@ export function ItemCart({
               </td>
               <td className="px-4 py-3 text-center">
                 <button
-                  onClick={() => removeItem(index)}
+                  onClick={() => removeItem(item.id)}
                   className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 text-lg btn-press p-2 rounded-xl transition-colors"
                 >
                   <IconX size={18} />
@@ -165,7 +165,7 @@ export function ItemCart({
         {items.map((item, index) => (
           <div key={`${item.id}-${index}-mobile`} className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl p-4 border border-neutral-200/50 dark:border-neutral-800/50 shadow-sm relative transition-all">
             <button
-              onClick={() => removeItem(index)}
+              onClick={() => removeItem(item.id)}
               className="absolute top-3 right-3 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded-xl transition-colors btn-press"
             >
               <IconX size={18} />

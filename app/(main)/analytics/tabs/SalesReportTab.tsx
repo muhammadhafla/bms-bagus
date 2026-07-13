@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { reportApi, SalesSummary } from '@/lib/api';
 import { formatCurrency, exportToCSV } from '@/lib/utils';
 import { Button } from '@/components/ui';
+import { useToast } from '@/components/ui/Toast';
 import { IconShoppingCart, IconDownload } from '@tabler/icons-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { ReportState } from '@/components/analytics/ReportState';
@@ -15,6 +16,7 @@ interface SalesReportTabProps {
 }
 
 export function SalesReportTab({ startDate, endDate, categoryId }: SalesReportTabProps) {
+  const { showToast } = useToast();
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
@@ -30,7 +32,7 @@ export function SalesReportTab({ startDate, endDate, categoryId }: SalesReportTa
     try {
       const result = await reportApi.exportSalesReport(startDate || undefined, endDate || undefined, categoryId || undefined);
       if (result.error || !result.data) {
-        alert('Gagal mengekspor data');
+        showToast('Gagal mengekspor data', 'error');
         return;
       }
       
@@ -44,7 +46,7 @@ export function SalesReportTab({ startDate, endDate, categoryId }: SalesReportTa
       
       exportToCSV(csvData, ['Tanggal', 'Jumlah Transaksi', 'Cash', 'QRIS', 'Total Penjualan'], `report_sales_${new Date().toISOString().split('T')[0]}.csv`);
     } catch (err) {
-      alert('Terjadi kesalahan saat mengekspor');
+      showToast('Terjadi kesalahan saat mengekspor', 'error');
     }
   };
 

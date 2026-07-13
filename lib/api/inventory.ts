@@ -110,14 +110,14 @@ export const inventoryApi = {
   async search(query: string, includeDiscontinued = false) {
     const safeQueryString = query.replace(/%/g, '').toLowerCase();
     
-    const queryBuilder = supabase
+    let queryBuilder = supabase
       .from('inventory')
       .select('*, id_kategori:id_kategori(*)')
       .or(`nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`)
       .order('nama_barang');
 
     if (!includeDiscontinued) {
-      queryBuilder.eq('is_discontinued', false);
+      queryBuilder = queryBuilder.eq('is_discontinued', false);
     }
 
     return safeQuery<InventoryItem[]>(async () => {

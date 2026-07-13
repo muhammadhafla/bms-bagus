@@ -74,10 +74,11 @@ export function DataTable<T>({
     <div className={`flex flex-col rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 ${className}`}>
       {/* Mobile View */}
       {mobileRender && data.length > 0 && (
-        <div className="block lg:hidden divide-y divide-neutral-100 dark:divide-neutral-800">
+        <div role="list" className="block lg:hidden divide-y divide-neutral-100 dark:divide-neutral-800">
           {data.map((item) => (
             <div 
               key={String(item[keyField])}
+              role={onRowClick ? "button" : "listitem"}
               tabIndex={onRowClick ? 0 : undefined}
               className={`${onRowClick ? 'cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus:bg-neutral-50 dark:focus:bg-neutral-800 focus:ring-2 focus:ring-inset focus:ring-brand-500 rounded-xl' : ''}`}
               onClick={() => onRowClick?.(item)}
@@ -111,6 +112,15 @@ export function DataTable<T>({
                 key={col.key}
                 className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400"
                 style={{ width: col.width }}
+                aria-sort={
+                  col.sortable
+                    ? sortKey === col.key
+                      ? sortDirection === 'asc'
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
+                    : undefined
+                }
               >
                 {col.sortable ? (
                   <button

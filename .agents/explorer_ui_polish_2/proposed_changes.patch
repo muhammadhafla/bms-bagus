@@ -1,0 +1,105 @@
+diff --git a/components/ui/Tooltip.tsx b/components/ui/Tooltip.tsx
+index 45b85ef..6fd2432 100644
+--- a/components/ui/Tooltip.tsx
++++ b/components/ui/Tooltip.tsx
+@@ -2,14 +2,32 @@
+ 
+ import { useState, ReactNode } from 'react';
+ 
+ interface TooltipProps {
+   content: string;
+   children: ReactNode;
++  className?: string;
++  position?: 'top' | 'right' | 'bottom' | 'left';
+ }
+ 
+-export default function Tooltip({ content, children }: TooltipProps) {
++export default function Tooltip({ content, children, className = '', position = 'top' }: TooltipProps) {
+   const [show, setShow] = useState(false);
+ 
++  const positionClasses = {
++    top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
++    right: 'left-full top-1/2 -translate-y-1/2 ml-2',
++    bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
++    left: 'right-full top-1/2 -translate-y-1/2 mr-2',
++  };
++
++  const arrowClasses = {
++    top: 'top-full left-1/2 -translate-x-1/2 border-t-neutral-900 dark:border-t-neutral-700',
++    right: 'right-full top-1/2 -translate-y-1/2 border-r-neutral-900 dark:border-r-neutral-700',
++    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-b-neutral-900 dark:border-b-neutral-700',
++    left: 'left-full top-1/2 -translate-y-1/2 border-l-neutral-900 dark:border-l-neutral-700',
++  };
++
+   return (
+     <div 
+-      className="relative inline-block"
++      className={`relative inline-block ${className}`}
+       onMouseEnter={() => setShow(true)}
+       onMouseLeave={() => setShow(false)}
+       onFocus={() => setShow(true)}
+       onBlur={() => setShow(false)}
+     >
+       {children}
+       {show && (
+-        <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-neutral-900 dark:bg-neutral-700 text-white text-xs rounded-lg whitespace-nowrap animate-fade-in">
+-          {content}
+-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-neutral-900 dark:border-t-neutral-700" />
+-        </div>
++        <div className={`absolute z-50 px-3 py-1.5 bg-neutral-900 dark:bg-neutral-700 text-white text-xs rounded-lg whitespace-nowrap animate-fade-in ${positionClasses[position]}`}>
++          {content}
++          <div className={`absolute border-4 border-transparent ${arrowClasses[position]}`} />
++        </div>
+       )}
+     </div>
+   );
+ }
+diff --git a/app/(main)/layout.tsx b/app/(main)/layout.tsx
+index d7a5bc8..c13ab69 100644
+--- a/app/(main)/layout.tsx
++++ b/app/(main)/layout.tsx
+@@ -75,20 +75,28 @@ interface SidebarLinkProps {
+ function SidebarLink({ href, title, icon: Icon, isActive, sidebarCollapsed }: SidebarLinkProps) {
+-  return (
+-    <Link
+-      href={href}
+-      aria-current={isActive ? 'page' : undefined}
+-      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+-        isActive
+-          ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 font-semibold'
+-          : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-100 dark:hover:bg-neutral-800'
+-      }`}
+-    >
+-      <Icon className={`w-4 h-4 flex-shrink-0 ${sidebarCollapsed ? 'lg:w-3 lg:h-3' : ''}`} />
+-      <span className={`transition-all ${sidebarCollapsed ? 'lg:hidden' : 'lg:block'}`}>
+-        {title}
+-      </span>
+-    </Link>
+-  );
++  const linkContent = (
++    <Link
++      href={href}
++      aria-current={isActive ? 'page' : undefined}
++      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
++        isActive
++          ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 font-semibold'
++          : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-100 dark:hover:bg-neutral-800'
++      }`}
++    >
++      <Icon className={`w-4 h-4 flex-shrink-0 ${sidebarCollapsed ? 'lg:w-3 lg:h-3' : ''}`} />
++      <span className={`transition-all ${sidebarCollapsed ? 'lg:hidden' : 'lg:block'}`}>
++        {title}
++      </span>
++    </Link>
++  );
++
++  if (sidebarCollapsed) {
++    return (
++      <Tooltip content={title} position="right" className="w-full">
++        {linkContent}
++      </Tooltip>
++    );
++  }
++
++  return linkContent;
+ }

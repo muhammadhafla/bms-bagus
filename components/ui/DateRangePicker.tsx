@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useId } from 'react';
 import { IconCalendar, IconX } from '@tabler/icons-react';
 import DateInput from './DateInput';
 import { Button } from './Button';
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 
 export interface DateRangePickerProps {
   startDate: string;
@@ -16,6 +17,8 @@ export interface DateRangePickerProps {
 export function DateRangePicker({ startDate, endDate, onChange, label, className = '' }: DateRangePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const popoverId = useId();
+  const focusTrapRef = useFocusTrap(isOpen);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -23,10 +26,19 @@ export function DateRangePicker({ startDate, endDate, onChange, label, className
         setIsOpen(false);
       }
     };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen]);
 
   const presets = [
@@ -100,6 +112,9 @@ export function DateRangePicker({ startDate, endDate, onChange, label, className
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        aria-controls={popoverId}
         className="w-full sm:w-auto flex items-center justify-between gap-3 px-3 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50"
       >
         <div className="flex items-center gap-2">
@@ -114,16 +129,26 @@ export function DateRangePicker({ startDate, endDate, onChange, label, className
           <div className="fixed inset-0 bg-black/40 z-40 sm:hidden animate-fade-in" onClick={() => setIsOpen(false)} />
           
           {/* Popover / Bottom Sheet */}
-          <div className="fixed sm:absolute inset-x-0 bottom-0 sm:inset-auto sm:top-full sm:left-0 sm:mt-2 z-50 bg-white dark:bg-neutral-900 sm:rounded-xl rounded-t-2xl shadow-xl sm:shadow-lg border border-neutral-200 dark:border-neutral-800 p-4 sm:p-5 w-full sm:w-[340px] animate-slide-up sm:animate-fade-in-up">
-            <div className="flex items-center justify-between sm:hidden mb-4">
+          <div 
+            ref={focusTrapRef}
+            id={popoverId}
+            role="dialog"
+            aria-label={label || 'Pilih rentang tanggal'}
+            className="fixed sm:absolute inset-x-0 bottom-0 sm:inset-auto sm:top-full sm:left-0 sm:mt-2 z-50 bg-white dark:bg-neutral-900 sm:rounded-xl rounded-t-2xl shadow-xl sm:shadow-lg border border-neutral-200 dark:border-neutral-800 p-4 sm:p-5 w-full sm:w-[340px] animate-slide-up sm:animate-fade-in-up"
+          >
+            <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-neutral-900 dark:text-white">Pilih Periode</h3>
-              <button onClick={() => setIsOpen(false)} className="p-1 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 rounded-full">
+              <button 
+                onClick={() => setIsOpen(false)} 
+                aria-label="Tutup dialog pilihan tanggal"
+                className="p-1 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 rounded-full"
+              >
                 <IconX className="w-5 h-5" />
               </button>
             </div>
 
             <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3" role="group" aria-label="Input tanggal kustom">
                 <DateInput
                   value={startDate}
                   onChange={(v) => onChange(v, endDate)}
@@ -140,8 +165,8 @@ export function DateRangePicker({ startDate, endDate, onChange, label, className
 
               <div className="h-px bg-neutral-200 dark:bg-neutral-800 w-full" />
 
-              <div className="flex flex-col gap-2">
-                <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Preset Cepat</span>
+              <div className="flex flex-col gap-2" role="group" aria-labelledby={`${popoverId}-presets-label`}>
+                <span id={`${popoverId}-presets-label`} className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Preset Cepat</span>
                 <div className="grid grid-cols-2 gap-2">
                   {presets.map((p) => (
                     <button

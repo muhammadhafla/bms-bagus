@@ -32,14 +32,14 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
       return (
-        <div className="flex items-center justify-center min-h-screen bg-neutral-50">
-          <div className="text-center p-8 bg-white rounded-2xl shadow-lg max-w-md border border-neutral-200">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl">⚠️</span>
+        <div className="flex items-center justify-center min-h-screen bg-neutral-50 dark:bg-neutral-950">
+          <div className="bg-white p-8 rounded-2xl shadow-elevated max-w-md w-full border border-neutral-100 text-center relative overflow-hidden">
+            <div className="w-16 h-16 bg-accent-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl text-accent-rose-600">⚠️</span>
             </div>
-            <h1 className="text-2xl font-bold text-neutral-900 mb-4">Terjadi Kesalahan</h1>
-            <p className="text-neutral-600 mb-6">
-              {this.state.error?.message || 'Silakan muat ulang halaman'}
+            <h1 className="text-2xl font-bold text-neutral-900 dark:text-white mb-4">Terjadi Kesalahan</h1>
+            <p className="text-neutral-600 dark:text-neutral-400 mb-6">
+              Terjadi kesalahan tak terduga. Silakan muat ulang halaman.
             </p>
             <button
               onClick={() => window.location.reload()}

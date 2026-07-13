@@ -21,6 +21,8 @@ interface AuthState {
   isRefreshing: boolean;
   sessionExpiryTime: number | null;
   sessionWarningShown: boolean;
+  sessionWarningTimerId: ReturnType<typeof setTimeout> | null;
+  initTimeoutId: ReturnType<typeof setTimeout> | null;
   authSubscription: { unsubscribe: () => void } | null;
   isAdmin: () => boolean;
   isStaff: () => boolean;
@@ -91,6 +93,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isRefreshing: false,
   sessionExpiryTime: null,
   sessionWarningShown: false,
+  sessionWarningTimerId: null,
+  initTimeoutId: null,
   authSubscription: null,
 
   isAdmin: () => {
@@ -129,24 +133,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   setSessionExpiry: (expiryTimestamp: number) => {
-    const { sessionWarningShown } = get();
+    const { sessionWarningShown, sessionWarningTimerId } = get();
+    // Batalkan timer sebelumnya
+    if (sessionWarningTimerId) clearTimeout(sessionWarningTimerId);
+
     set({ sessionExpiryTime: expiryTimestamp });
 
-    // Schedule warning 5 minutes before expiry
     const warningTime = expiryTimestamp - (5 * 60 * 1000);
     const now = Date.now();
 
     if (warningTime > now && !sessionWarningShown) {
-      setTimeout(() => {
+      const timerId = setTimeout(() => {
         const currentExpiry = get().sessionExpiryTime;
         if (currentExpiry === expiryTimestamp && !get().sessionWarningShown) {
-          // Use custom event to show toast from UI layer
           window.dispatchEvent(new CustomEvent('auth:session-warning', {
-            detail: { message: 'Sesi Anda akan berakhir dalam 5 menit. Silakan refresh halaman.' }
+            detail: { message: 'Sesi Anda akan berakhir dalam 5 menit.' }
           }));
           set({ sessionWarningShown: true });
         }
       }, warningTime - now);
+      set({ sessionWarningTimerId: timerId });
     }
   },
 
@@ -250,12 +256,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   cleanup: () => {
-    const { authSubscription } = get();
+    const { authSubscription, sessionWarningTimerId, initTimeoutId } = get();
     if (authSubscription) {
       authSubscription.unsubscribe();
     }
+    if (sessionWarningTimerId) clearTimeout(sessionWarningTimerId);
+    if (initTimeoutId) clearTimeout(initTimeoutId);
     set({ 
       authSubscription: null, 
+      sessionWarningTimerId: null,
+      initTimeoutId: null,
       isRefreshing: false,
       sessionExpiryTime: null,
       sessionWarningShown: false 
@@ -283,7 +293,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           const eventUserId = session?.user?.id || null;
 
           // Prevent stale events from previous user
-          if (eventUserId && lastUserId && eventUserId !== lastUserId) {
+          if (eventUserId && lastUserId && eventUserId !== lastUserId && event !== 'SIGNED_IN' && event !== 'INITIAL_SESSION') {
             return;
           }
 
@@ -384,12 +394,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ authSubscription: subscription });
 
       // Safety timeout: if initialization hasn't completed within 10 seconds, force ready state
-      setTimeout(() => {
+      const timerId = setTimeout(() => {
         if (!get().initialized) {
           console.warn('Auth initialization timeout - forcing initialized');
           set({ initialized: true, user: null, profile: null });
         }
       }, 10000);
+      set({ initTimeoutId: timerId });
 
     } catch (error) {
       console.error('Auth initialization error:', error);

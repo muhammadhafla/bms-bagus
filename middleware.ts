@@ -101,14 +101,18 @@ export async function middleware(request: NextRequest) {
 
   // Cek session — ini juga akan refresh session token jika mendekati expiry
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+    error
+  } = await supabase.auth.getUser();
 
   // Tidak ada session → redirect ke login
-  if (!session) {
+  if (error || !user) {
     const loginUrl = new URL('/login', request.url);
-    // Simpan URL asal agar setelah login bisa redirect balik
-    loginUrl.searchParams.set('redirectTo', pathname);
+    // Validasi path sebelum set ke param (cegah open redirect)
+    const safeRedirect = pathname.startsWith('/') && !pathname.startsWith('//')
+      ? pathname
+      : '/dashboard';
+    loginUrl.searchParams.set('redirectTo', safeRedirect);
     const redirectResponse = NextResponse.redirect(loginUrl);
     redirectResponse.headers.set('Content-Security-Policy', cspHeader);
     return redirectResponse;

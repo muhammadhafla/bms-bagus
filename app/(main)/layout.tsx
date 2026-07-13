@@ -74,7 +74,7 @@ interface SidebarLinkProps {
 }
 
 function SidebarLink({ href, title, icon: Icon, isActive, sidebarCollapsed }: SidebarLinkProps) {
-  return (
+  const link = (
     <Link
       href={href}
       aria-current={isActive ? 'page' : undefined}
@@ -90,6 +90,16 @@ function SidebarLink({ href, title, icon: Icon, isActive, sidebarCollapsed }: Si
       </span>
     </Link>
   );
+
+  if (sidebarCollapsed) {
+    return (
+      <Tooltip content={title} position="right" className="w-full block">
+        {link}
+      </Tooltip>
+    );
+  }
+
+  return link;
 }
 
 export default function MainLayout({
@@ -98,7 +108,7 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   const { user, profile, initialized, signOut } = useAuthStore();
-  const isAdminUser = profile?.role === 'admin';
+  const isAdminUser = useIsAdmin();
   const router = useRouter();
   const pathname = usePathname();
   const { theme, toggleTheme } = useDarkMode();
@@ -252,7 +262,7 @@ export default function MainLayout({
       {/* Mobile Menu Toggle Button (fixed, only visible on mobile) */}
       <button
         onClick={() => setMobileMenuOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-30 p-2 rounded-lg bg-white dark:bg-neutral-800 shadow-md border border-neutral-200 dark:border-neutral-700"
+        className="lg:hidden fixed top-4 left-4 z-40 p-2 rounded-lg bg-white dark:bg-neutral-800 shadow-md border border-neutral-200 dark:border-neutral-700"
         aria-label="Open menu"
       >
         <IconMenu className="w-5 h-5" />

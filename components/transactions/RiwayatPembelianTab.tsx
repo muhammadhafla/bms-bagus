@@ -172,7 +172,7 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
             <p className="font-mono font-medium text-neutral-900 dark:text-white">
               {record.nomor_nota || '-'}
             </p>
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-accent-teal-100 text-accent-teal-700 dark:bg-accent-teal-900/30 dark:text-accent-teal-400">
               Selesai
             </span>
           </div>
@@ -228,7 +228,7 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
       </td>
       <td className="px-5 py-4 text-center">
         <div className="flex items-center justify-center gap-2">
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-accent-teal-100 text-accent-teal-700 dark:bg-accent-teal-900/30 dark:text-accent-teal-400">
             Selesai
           </span>
           <IconChevronRight className="w-4 h-4 text-neutral-400 group-hover:text-brand-500 transition-colors" />
@@ -262,7 +262,7 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
               <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : detailError ? (
-            <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800/50">
+            <div className="p-4 bg-accent-rose-50 dark:bg-accent-rose-900/30 text-accent-rose-600 dark:text-accent-rose-400 rounded-xl border border-accent-rose-200 dark:border-accent-rose-800/50">
               {detailError}
             </div>
           ) : !detail ? (

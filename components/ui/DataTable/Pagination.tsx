@@ -45,14 +45,14 @@ export function Pagination({
   }
 
   return (
-    <div className={`flex items-center justify-center gap-1 ${className}`}>
+    <nav role="navigation" aria-label="Navigasi paginasi" className={`flex items-center justify-center gap-1 ${className}`}>
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
         className="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        aria-label="Previous page"
+        aria-label="Halaman sebelumnya"
       >
-        <IconChevronLeft className="w-5 h-5" />
+        <IconChevronLeft className="w-5 h-5" aria-hidden="true" />
       </button>
       
       {pages.map((page, idx) => (
@@ -60,6 +60,7 @@ export function Pagination({
           <button
             key={idx}
             onClick={() => onPageChange(page)}
+            aria-current={currentPage === page ? 'page' : undefined}
             className={`min-w-[36px] h-9 px-3 rounded-lg text-sm font-medium transition-colors ${
               currentPage === page
                 ? 'bg-brand-500 text-white'
@@ -79,11 +80,11 @@ export function Pagination({
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
         className="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        aria-label="Next page"
+        aria-label="Halaman berikutnya"
       >
-        <IconChevronRight className="w-5 h-5" />
+        <IconChevronRight className="w-5 h-5" aria-hidden="true" />
       </button>
-    </div>
+    </nav>
   );
 }
 

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { reportApi, StockMutation } from '@/lib/api';
 import { Button } from '@/components/ui';
+import { useToast } from '@/components/ui/Toast';
 import { IconPackage, IconDownload } from '@tabler/icons-react';
 import { formatDateWIB, exportToCSV } from '@/lib/utils';
 import { ReportState } from '@/components/analytics/ReportState';
@@ -13,6 +14,7 @@ interface StockReportTabProps {
 }
 
 export function StockReportTab({ startDate, endDate }: StockReportTabProps) {
+  const { showToast } = useToast();
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
@@ -28,7 +30,7 @@ export function StockReportTab({ startDate, endDate }: StockReportTabProps) {
     try {
       const result = await reportApi.exportStockMutations(startDate || undefined, endDate || undefined);
       if (result.error || !result.data) {
-        alert('Gagal mengekspor data');
+        showToast('Gagal mengekspor data', 'error');
         return;
       }
       
@@ -42,7 +44,7 @@ export function StockReportTab({ startDate, endDate }: StockReportTabProps) {
       
       exportToCSV(csvData, ['Tanggal', 'Barcode', 'Nama Barang', 'Tipe', 'Qty'], `report_stock_${new Date().toISOString().split('T')[0]}.csv`);
     } catch (err) {
-      alert('Terjadi kesalahan saat mengekspor');
+      showToast('Terjadi kesalahan saat mengekspor', 'error');
     }
   };
 

@@ -67,12 +67,12 @@ export function ConfirmDialog({
           className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-scale-in border border-neutral-200 dark:border-neutral-800 focus:outline-none"
         >
           <div className={`p-6 border-b ${
-            danger ? 'border-red-100 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10' : 'border-neutral-100 dark:border-neutral-800'
+            danger ? 'border-accent-rose-100 dark:border-accent-rose-900/30 bg-accent-rose-50/50 dark:bg-accent-rose-900/10' : 'border-neutral-100 dark:border-neutral-800'
           }`}>
             <div className="flex items-start gap-4">
               <div className={`p-2 rounded-xl shrink-0 ${
                 danger 
-                  ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' 
+                  ? 'bg-accent-rose-100 text-accent-rose-600 dark:bg-accent-rose-900/30 dark:text-accent-rose-400' 
                   : 'bg-brand-100 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400'
               }`}>
                 {danger ? <IconAlertTriangle className="w-6 h-6" /> : <IconInfoCircle className="w-6 h-6" />}

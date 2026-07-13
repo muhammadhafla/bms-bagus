@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { kategoriApi } from '@/lib/api';
 import { generateAutoBarcode } from '@/lib/utils';
-import { IconCheck } from '@tabler/icons-react';
+import { IconCheck, IconX, IconBarcode, IconSearch, IconAlertCircle } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
 import { Button } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
 import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
+import { useKategoris } from '@/lib/hooks/useKategoris';
 
 interface NewItemDialogProps {
   open: boolean;
@@ -22,20 +23,20 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
   const [harga_beli, setHargaBeli] = useState(0);
   const [harga_jual, setHargaJual] = useState(0);
   const [diskon, setDiskon] = useState(0);
-  const [kategoriList, setKategoriList] = useState<string[]>([]);
+  const { data: kategoriResponse } = useKategoris();
+  const kategoriList = kategoriResponse?.map(k => k.nama) || [];
   const [showKategoriSuggestions, setShowKategoriSuggestions] = useState(false);
   const [filteredKategori, setFilteredKategori] = useState<string[]>([]);
   const [kategoriSelectedIndex, setKategoriSelectedIndex] = useState<number>(-1);
+  const [marginWarning, setMarginWarning] = useState(false);
 
   useEffect(() => {
-    const loadKategori = async () => {
-      const result = await kategoriApi.getAll();
-      if (result.data) {
-        setKategoriList(result.data.map(k => k.nama));
-      }
-    };
-    loadKategori();
-  }, []);
+    if (harga_beli > 0 && harga_jual > 0 && harga_beli >= harga_jual) {
+      setMarginWarning(true);
+    } else {
+      setMarginWarning(false);
+    }
+  }, [harga_beli, harga_jual]);
 
   useEffect(() => {
     if (open) {
@@ -86,6 +87,8 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
 
   const handleSubmit = async (e: React.FormEvent | Event) => {
     e.preventDefault();
+    if (marginWarning) return;
+    
     if (nama_barang.trim()) {
       const kategoriResult = await kategoriApi.getOrCreate(kategori.trim());
       const id_kategori = kategoriResult.data?.id;
@@ -246,11 +249,18 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
             </div>
           </div>
           
+          {marginWarning && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-xl border border-red-200 dark:border-red-900/50 flex items-start gap-2">
+              <IconAlertCircle className="w-5 h-5 shrink-0" />
+              <p>Harga Beli lebih besar atau sama dengan Harga Jual. Silakan periksa kembali untuk menghindari margin negatif.</p>
+            </div>
+          )}
+
           <div className="flex gap-3">
             <Button variant="secondary" onClick={onClose} className="flex-1">
               Batal
             </Button>
-            <Button variant="primary" type="submit" className="flex-1">
+            <Button variant="primary" type="submit" className="flex-1" disabled={marginWarning}>
               Simpan
             </Button>
           </div>

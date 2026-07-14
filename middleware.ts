@@ -38,11 +38,7 @@ export async function middleware(request: NextRequest) {
     default-src 'self';
     base-uri 'none';
     object-src 'none';
-    script-src 'self' 'nonce-${nonce}' ${
-      process.env.NODE_ENV === 'production'
-        ? "'strict-dynamic'"
-        : "'unsafe-inline' 'unsafe-eval'"
-    };
+    script-src 'self' 'unsafe-inline' 'unsafe-eval';
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: https:;
     connect-src 'self' https://${supabaseHost} wss://${supabaseHost};

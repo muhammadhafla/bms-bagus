@@ -161,9 +161,9 @@ export function ItemCart({
       </table>
 
       {/* Mobile Cards Layout */}
-      <div className="block lg:hidden space-y-3 p-4">
+      <div className="block lg:hidden space-y-3 p-0 sm:p-4">
         {items.map((item, index) => (
-          <div key={`${item.id}-${index}-mobile`} className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl p-4 border border-neutral-200/50 dark:border-neutral-800/50 shadow-sm relative transition-all">
+          <div key={`${item.id}-${index}-mobile`} className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl p-2.5 sm:p-4 border border-neutral-200/50 dark:border-neutral-800/50 shadow-sm relative transition-all">
             <button
               onClick={() => removeItem(item.id)}
               className="absolute top-3 right-3 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded-xl transition-colors btn-press"
@@ -175,7 +175,7 @@ export function ItemCart({
               <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">{item.barcode}</div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 mb-3">
+            <div className="grid grid-cols-[80px_1fr_1fr] gap-3 mb-3">
               <div>
                 <label className="text-xs text-neutral-500 dark:text-neutral-400 font-medium block mb-1.5">Qty</label>
                 {selectedIndex === index && editMode === 'qty' ? (

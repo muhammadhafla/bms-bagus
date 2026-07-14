@@ -89,14 +89,10 @@ export default function InventoryPage() {
   const error = queryError ? queryError.message : (inventoryData?.error?.message || null);
   const kategoriList = (kategoriResponse?.data || []).map(k => k.nama);
 
-  const handleUpdate = useCallback(async (id: string, data: Partial<InventoryItem>) => {
-    const result = await inventoryApi.update(id, data as Record<string, unknown>);
-    if (result.error) {
-      showToast(`Gagal memperbarui: ${result.error.message}`, 'error');
-      return;
-    }
+  const handleUpdate = useCallback((id: string, data: Partial<InventoryItem>) => {
+    // InventoryTable already handles the API call, we just need to invalidate the cache
     queryClient.invalidateQueries({ queryKey: ['inventory'] });
-  }, [queryClient, showToast]);
+  }, [queryClient]);
 
   const handleDelete = useCallback(async (id: string) => {
     const result = await inventoryApi.delete(id);

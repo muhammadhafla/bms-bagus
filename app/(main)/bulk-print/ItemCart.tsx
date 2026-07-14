@@ -103,11 +103,11 @@ export function ItemCart({
       </table>
 
       {/* Mobile Cards Layout */}
-      <div className="block lg:hidden space-y-3 p-4">
+      <div className="block lg:hidden space-y-3 p-0 sm:p-4">
         {items.map((item, index) => {
           const finalPrice = (item.harga_jual || 0) - (item.diskon || 0);
           return (
-          <div key={`${item.id}-${index}-mobile`} className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl p-4 border border-neutral-200/50 dark:border-neutral-800/50 shadow-sm relative transition-all">
+          <div key={`${item.id}-${index}-mobile`} className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl p-2.5 sm:p-4 border border-neutral-200/50 dark:border-neutral-800/50 shadow-sm relative transition-all">
             <button
               onClick={() => removeItem(item.id)}
               className="absolute top-3 right-3 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded-xl transition-colors btn-press"

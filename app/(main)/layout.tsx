@@ -575,9 +575,9 @@ export default function MainLayout({
       </aside>
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${contentMargin} p-2 lg:p-3 pt-16 lg:pt-3`}>
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${contentMargin} p-1 sm:p-2 lg:p-3 pt-16 lg:pt-3`}>
         {/* Page content */}
-        <main className="flex-1 overflow-auto bg-white dark:bg-neutral-900 rounded-[1.5rem] lg:rounded-[2rem] shadow-sm border border-neutral-200/50 dark:border-neutral-800/50 p-4 lg:p-6 relative">
+        <main className="flex-1 overflow-auto bg-white dark:bg-neutral-900 rounded-[1.5rem] lg:rounded-[2rem] shadow-sm border border-neutral-200/50 dark:border-neutral-800/50 p-1.5 sm:p-4 lg:p-6 relative">
           {children}
         </main>
       </div>

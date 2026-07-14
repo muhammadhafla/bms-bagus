@@ -28,12 +28,17 @@ export function ItemCart({
 }: ItemCartProps) {
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-neutral-400 py-20">
-        <div className="w-28 h-28 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md border border-white/40 dark:border-white/10 rounded-3xl flex items-center justify-center mb-5 shadow-sm">
-          <IconCamera className="w-14 h-14 text-neutral-400" stroke={1.5} />
+      <div className="flex flex-col items-center justify-center h-full text-neutral-400 py-12 px-6">
+        <div className="w-24 h-24 sm:w-28 sm:h-28 bg-neutral-50/50 dark:bg-neutral-900/50 backdrop-blur-md border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-[2rem] flex items-center justify-center mb-5 sm:mb-6 shadow-sm">
+          <IconCamera className="w-10 h-10 sm:w-12 sm:h-12 text-neutral-400" stroke={1.5} />
         </div>
-        <p className="text-lg font-bold text-neutral-600 dark:text-neutral-300">Scan barcode untuk menambah barang</p>
-        <p className="text-sm text-neutral-500 mt-2 hidden lg:block">Atau tekan F2 untuk edit Qty, F3 untuk edit Harga Beli, F4 untuk edit Harga Jual</p>
+        <h3 className="text-lg sm:text-xl font-bold text-neutral-700 dark:text-neutral-200 text-center mb-2">Belum ada barang</h3>
+        <p className="text-sm sm:text-base text-neutral-500 dark:text-neutral-400 text-center max-w-xs sm:max-w-sm leading-relaxed">
+          Gunakan fitur pencarian atau scan barcode untuk mulai menambahkan barang masuk.
+        </p>
+        <p className="text-xs sm:text-sm text-neutral-400 mt-6 hidden lg:block bg-neutral-100/80 dark:bg-neutral-900/80 px-4 py-2.5 rounded-xl border border-neutral-200/50 dark:border-neutral-800/50">
+          <span className="font-semibold text-neutral-500 dark:text-neutral-300">Shortcut:</span> Tekan F2 (Edit Qty), F3 (Edit Harga), F4 (Edit Harga Jual)
+        </p>
       </div>
     );
   }

@@ -7,17 +7,17 @@ import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import { InventoryItem } from '@/types/inventory';
 import { Template } from '@/types';
+import { fetchApi } from '@/lib/fetchApi';
 import { formatCurrency, normalizeBarcode, debounce } from '@/lib/utils';
 import { IconPrinter, IconCamera, IconDeviceFloppy, IconRefresh, IconSearch } from '@tabler/icons-react';
 import SelectInput from '@/components/ui/SelectInput';
-import { Button, AmbientLayout, useToast } from '@/components/ui';
+import { Button, AmbientLayout } from '@/components/ui';
+import { toast } from 'sonner';
 import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
 import { ItemCart } from './ItemCart';
 
 export default function BulkPrintPage() {
   const { items, addItem, updateQty, removeItem, reset } = useBulkPrintStore();
-  const { showToast } = useToast();
-
   const { data: inventoryData } = useQuery({
     queryKey: ['inventory', 'all'],
     queryFn: async () => {
@@ -249,13 +249,10 @@ export default function BulkPrintPage() {
         }
       });
 
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      const res = await fetch('/api/print', {
+      const res = await fetchApi('/api/print', {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           template_id: selectedTemplate,
@@ -265,22 +262,22 @@ export default function BulkPrintPage() {
 
       if (res.ok) {
         setSuccess('Semua antrean cetak massal berhasil dibuat');
-        showToast('Antrean cetak berhasil dibuat', 'success');
+        toast.success('Antrean cetak berhasil dibuat');
         reset();
         focusInput();
       } else {
         const errorData = await res.json();
         setError(errorData.error || 'Gagal membuat antrean cetak massal');
-        showToast(errorData.error || 'Gagal membuat antrean cetak', 'error');
+        toast.error(errorData.error || 'Gagal membuat antrean cetak');
       }
     } catch (err: unknown) {
       console.error('Error submitting:', err);
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan sistem');
-      showToast('Terjadi kesalahan sistem', 'error');
+      toast.error('Terjadi kesalahan sistem');
     } finally {
       setSubmitting(false);
     }
-  }, [items, selectedTemplate, submitting, reset, focusInput, showToast]);
+  }, [items, selectedTemplate, submitting, reset, focusInput]);
 
   const handleEditSubmit = useCallback(() => {
     if (selectedIndex === null || !editMode) return;

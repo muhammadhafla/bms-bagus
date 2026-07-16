@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { fetchApi } from '@/lib/fetchApi';
 import { Modal } from '@/components/ui';
-import { useToast } from '@/components/ui/Toast';
+import { toast } from "sonner";
 import { IconUser, IconKey, IconShieldLock, IconLoader2, IconTrash } from '@tabler/icons-react';
 
 interface EditUserModalProps {
@@ -21,8 +21,6 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, userId, init
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { showToast } = useToast();
-
   useEffect(() => {
     if (isOpen) {
       setNama(initialName);
@@ -35,26 +33,16 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, userId, init
     e.preventDefault();
 
     if (password && password.length < 6) {
-      showToast('Password baru minimal 6 karakter', 'error');
+      toast.error('Password baru minimal 6 karakter');
       return;
     }
 
     setLoading(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-
-      if (!token) {
-        showToast('Sesi tidak valid, harap login kembali', 'error');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetchApi(`/api/users/${userId}`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ nama, role, password })
       });
@@ -65,11 +53,11 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, userId, init
         throw new Error(data.error || 'Gagal memperbarui user');
       }
 
-      showToast('User berhasil diperbarui', 'success');
+      toast.success('User berhasil diperbarui');
       onSuccess();
       onClose();
     } catch (error: unknown) {
-      showToast(error instanceof Error ? error.message : 'Terjadi kesalahan sistem', 'error');
+      toast.error(error instanceof Error ? error.message : 'Terjadi kesalahan sistem');
     } finally {
       setLoading(false);
     }
@@ -80,20 +68,8 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, userId, init
     
     setIsDeleting(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-
-      if (!token) {
-        showToast('Sesi tidak valid, harap login kembali', 'error');
-        setIsDeleting(false);
-        return;
-      }
-
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await fetchApi(`/api/users/${userId}`, {
+        method: 'DELETE'
       });
 
       const data = await response.json();
@@ -102,11 +78,11 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, userId, init
         throw new Error(data.error || 'Gagal menghapus user');
       }
 
-      showToast('User berhasil dihapus', 'success');
+      toast.success('User berhasil dihapus');
       onSuccess();
       onClose();
     } catch (error: unknown) {
-      showToast(error instanceof Error ? error.message : 'Terjadi kesalahan sistem saat menghapus user', 'error');
+      toast.error(error instanceof Error ? error.message : 'Terjadi kesalahan sistem saat menghapus user');
     } finally {
       setIsDeleting(false);
     }

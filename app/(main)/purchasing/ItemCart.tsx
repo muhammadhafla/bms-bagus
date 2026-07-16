@@ -59,7 +59,7 @@ export function ItemCart({
           </tr>
         </thead>
         <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/50">
-          {items.map((item, index) => (
+          {(Array.isArray(items) ? items : []).map((item, index) => (
             <tr
               key={`${item.id}-${index}`}
               className={`transition-colors ${selectedIndex === index ? 'bg-brand-50/50 dark:bg-brand-900/30' : 'hover:bg-white/50 dark:hover:bg-neutral-800/50'}`}
@@ -167,7 +167,7 @@ export function ItemCart({
 
       {/* Mobile Cards Layout */}
       <div className="block lg:hidden space-y-3 p-0 sm:p-4">
-        {items.map((item, index) => (
+        {(Array.isArray(items) ? items : []).map((item, index) => (
           <div key={`${item.id}-${index}-mobile`} className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl p-2.5 sm:p-4 border border-neutral-200/50 dark:border-neutral-800/50 shadow-sm relative transition-all">
             <button
               onClick={() => removeItem(item.id)}

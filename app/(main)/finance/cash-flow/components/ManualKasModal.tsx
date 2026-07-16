@@ -9,7 +9,7 @@ import { PriceInput } from '@/components/ui/PriceInput';
 import TextareaInput from '@/components/ui/TextareaInput';
 import { kasApi } from '@/lib/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@/components/ui/Toast';
+import { toast } from "sonner";
 
 interface ManualKasModalProps {
   isOpen: boolean;
@@ -23,7 +23,6 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
   const [catatan, setCatatan] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   
-  const { showToast } = useToast();
   const queryClient = useQueryClient();
 
   // Reset form when opened with new type
@@ -40,24 +39,24 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
     mutationFn: kasApi.addManualEntry,
     onSuccess: (res) => {
       if (res.error) {
-        showToast(res.error.message, 'error');
+        toast.error(res.error.message);
         return;
       }
-      showToast('Pencatatan kas berhasil', 'success');
+      toast.success('Pencatatan kas berhasil');
       queryClient.invalidateQueries({ queryKey: ['kas_log'] });
       queryClient.invalidateQueries({ queryKey: ['shift_balance'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       onClose();
     },
     onError: (err: any) => {
-      showToast(err.message || 'Terjadi kesalahan', 'error');
+      toast.error(err.message || 'Terjadi kesalahan');
     }
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!jumlah || jumlah <= 0) {
-      showToast('Jumlah harus lebih dari 0', 'error');
+      toast.error('Jumlah harus lebih dari 0');
       return;
     }
     

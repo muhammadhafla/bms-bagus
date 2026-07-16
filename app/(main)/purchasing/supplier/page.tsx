@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'sonner';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuthStore } from '@/lib/auth';
@@ -23,7 +24,6 @@ import {
   TextInput,
   TextareaInput,
   Pagination,
-  useToast,
   ConfirmDialog,
 } from '@/components/ui';
 import { AdminOnly } from '@/components/role';
@@ -61,8 +61,6 @@ export default function SupplierPage() {
     return () => document.removeEventListener('click', closeMenu);
   }, []);
 
-  const { showToast } = useToast();
-  
   // Role Auth Checks
   const profile = useAuthStore((state) => state.profile);
   const isAdmin = useAuthStore((state) => state.isAdmin);
@@ -76,12 +74,12 @@ export default function SupplierPage() {
     const result = await supplierApi.getAll();
     if (result.error) {
       setError(result.error.message || 'Gagal memuat data supplier');
-      showToast('Gagal memuat data supplier', 'error');
+      toast.error('Gagal memuat data supplier');
     } else {
       setSuppliers(result.data || []);
     }
     setLoading(false);
-  }, [showToast]);
+  }, []);
 
   useEffect(() => {
     fetchSuppliers();
@@ -179,9 +177,9 @@ export default function SupplierPage() {
         const msg = result.error.message?.includes('duplicate')
           ? 'Nama supplier sudah terdaftar'
           : result.error.message || 'Gagal mengubah data supplier';
-        showToast(msg, 'error');
+        toast.error(msg);
       } else if (result.data) {
-        showToast('Supplier berhasil diperbarui', 'success');
+        toast.success('Supplier berhasil diperbarui');
         setSuppliers((prev) =>
           prev.map((s) => (s.id === selectedSupplier.id ? result.data! : s))
         );
@@ -194,9 +192,9 @@ export default function SupplierPage() {
         const msg = result.error.message?.includes('duplicate')
           ? 'Nama supplier sudah terdaftar'
           : result.error.message || 'Gagal menambahkan supplier';
-        showToast(msg, 'error');
+        toast.error(msg);
       } else if (result.data) {
-        showToast('Supplier berhasil ditambahkan', 'success');
+        toast.success('Supplier berhasil ditambahkan');
         setSuppliers((prev) => [result.data!, ...prev]);
         setModalOpen(false);
       }
@@ -216,9 +214,9 @@ export default function SupplierPage() {
     
     const result = await supplierApi.delete(supplierToDelete.id);
     if (result.error) {
-      showToast(result.error.message || 'Gagal menghapus supplier', 'error');
+      toast.error(result.error.message || 'Gagal menghapus supplier');
     } else {
-      showToast('Supplier berhasil dihapus', 'success');
+      toast.success('Supplier berhasil dihapus');
       setSuppliers((prev) => prev.filter((s) => s.id !== supplierToDelete.id));
       // Adjust page if page becomes empty
       const updatedTotalItems = filteredAndSorted.length - 1;

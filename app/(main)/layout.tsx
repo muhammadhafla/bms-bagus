@@ -8,7 +8,7 @@ import { useAuthStore, useIsAdmin } from '@/lib/auth';
 import { usePresenceStore } from '@/lib/presence';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useDarkMode } from '@/components/DarkModeProvider';
-import { useToast } from '@/components/ui/Toast';
+import { toast } from "sonner";
 import Tooltip from '@/components/ui/Tooltip';
 import {
   IconLayoutDashboard,
@@ -112,9 +112,7 @@ export default function MainLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { theme, toggleTheme } = useDarkMode();
-  const { showToast } = useToast();
-
-   const {
+  const {
      sidebarCollapsed, setSidebarCollapsed,
      inventoryExpanded, setInventoryExpanded,
      purchasingExpanded, setPurchasingExpanded,

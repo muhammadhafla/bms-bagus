@@ -7,7 +7,7 @@ import { StockOpname, StockOpnameWithProfile, stockOpnameApi } from '@/lib/api';
 import { IconPlus, IconEye, IconCheck, IconX, IconTrash, IconClipboardCheck, IconSearch, IconChevronRight } from '@tabler/icons-react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Breadcrumb, Button, Badge, AmbientLayout } from '@/components/ui';
-import { useToast } from '@/components/ui/Toast';
+import { toast } from "sonner";
 import { API_ERROR_MESSAGES, UI_MESSAGES, STOCK_OPNAME_MESSAGES } from '@/lib/constants';
 import { formatDateWIB } from '@/lib/utils';
 
@@ -29,7 +29,6 @@ const statusLabels: Record<string, string> = {
 
 export default function StockOpnameListPage() {
   const router = useRouter();
-  const { showToast } = useToast();
   const [opnames, setOpnames] = useState<StockOpnameWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -58,7 +57,7 @@ export default function StockOpnameListPage() {
     if (!result.error && result.data && 'id' in result.data) {
       router.push(`/inventory/stock-opname/${result.data.id}`);
     } else if (result.error) {
-      showToast(result.error.message || API_ERROR_MESSAGES.SAVE_FAILED, 'error');
+      toast.error(result.error.message || API_ERROR_MESSAGES.SAVE_FAILED);
     }
     setCreating(false);
   };
@@ -71,9 +70,9 @@ export default function StockOpnameListPage() {
     if (deleteId) {
       const result = await stockOpnameApi.delete(deleteId);
       if (result.error) {
-        showToast(result.error.message || 'Gagal menghapus stock opname', 'error');
+        toast.error(result.error.message || 'Gagal menghapus stock opname');
       } else {
-        showToast('Stock opname berhasil dihapus', 'success');
+        toast.success('Stock opname berhasil dihapus');
         fetchOpnames();
       }
       setDeleteId(null);

@@ -4,14 +4,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { AmbientLayout } from '@/components/ui';
-import { useToast } from '@/components/ui/Toast';
+import { toast } from "sonner";
 import { IconUser, IconCamera, IconDeviceFloppy } from '@tabler/icons-react';
 import Image from 'next/image';
 
 export default function ProfilePage() {
   const { user, profile, refreshSession } = useAuthStore();
-  const { showToast } = useToast();
-  
   const [nama, setNama] = useState('');
   const [username, setUsername] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -45,9 +43,9 @@ export default function ProfilePage() {
       const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
       
       setAvatarUrl(data.publicUrl);
-      showToast('Avatar berhasil diunggah', 'success');
+      toast.success('Avatar berhasil diunggah');
     } catch (error: any) {
-      showToast(error.message || 'Gagal mengunggah avatar', 'error');
+      toast.error(error.message || 'Gagal mengunggah avatar');
     } finally {
       setIsUploading(false);
     }
@@ -83,10 +81,10 @@ export default function ProfilePage() {
 
       if (error) throw error;
 
-      showToast('Profil berhasil diperbarui', 'success');
+      toast.success('Profil berhasil diperbarui');
       await refreshSession();
     } catch (error: any) {
-      showToast(error.message || 'Gagal memperbarui profil', 'error');
+      toast.error(error.message || 'Gagal memperbarui profil');
     } finally {
       setIsSaving(false);
     }

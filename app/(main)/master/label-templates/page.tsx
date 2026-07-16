@@ -6,6 +6,7 @@ import { AmbientLayout, Button } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
 import { AdminOnly } from '@/components/role';
 import { supabase } from '@/lib/supabase';
+import { fetchApi } from '@/lib/fetchApi';
 import { formatDateWIB } from '@/lib/utils';
 
 interface LabelTemplate {
@@ -37,11 +38,7 @@ export default function LabelTemplatesPage() {
 
   const fetchTemplates = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      const res = await fetch('/api/templates', {
-        headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
-      });
+      const res = await fetchApi('/api/templates');
       const data = await res.json();
       if (data.templates) {
         setTemplates(data.templates);
@@ -69,13 +66,10 @@ export default function LabelTemplatesPage() {
       const url = editingId ? `/api/templates/${editingId}` : '/api/templates';
       const method = editingId ? 'PUT' : 'POST';
 
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      const res = await fetch(url, {
+      const res = await fetchApi(url, {
         method,
         headers: { 
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           name: formData.name,
@@ -119,11 +113,8 @@ export default function LabelTemplatesPage() {
     }
     
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      const res = await fetch(`/api/templates/${id}`, {
-        method: 'DELETE',
-        headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+      const res = await fetchApi(`/api/templates/${id}`, {
+        method: 'DELETE'
       });
       
       if (res.ok) {

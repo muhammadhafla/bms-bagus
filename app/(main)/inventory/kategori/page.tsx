@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { IconTags, IconEdit, IconTrash, IconSearch, IconPlus, IconDeviceFloppy, IconX, IconDotsVertical } from '@tabler/icons-react';
 import { AdminOnly } from '@/components/role';
-import { useToast } from '@/components/ui/Toast';
+import { toast } from "sonner";
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { AmbientLayout } from '@/components/ui';
 import { kategoriApi, Kategori } from '@/lib/api';
@@ -33,18 +33,16 @@ export default function KategoriPage() {
     nama: null
   });
   
-  const { showToast } = useToast();
-
   const fetchKategoris = useCallback(async () => {
     setLoading(true);
     const result = await kategoriApi.getAll();
     if (result.error) {
-      showToast('Gagal memuat data kategori', 'error');
+      toast.error('Gagal memuat data kategori');
     } else {
       setKategoris(result.data || []);
     }
     setLoading(false);
-  }, [showToast]);
+  }, []);
 
   useEffect(() => {
     fetchKategoris();
@@ -69,25 +67,25 @@ export default function KategoriPage() {
 
   const handleSave = async () => {
     if (!formNama.trim()) {
-      showToast('Nama kategori tidak boleh kosong', 'error');
+      toast.error('Nama kategori tidak boleh kosong');
       return;
     }
 
     if (editingId) {
       const result = await kategoriApi.update(editingId, formNama);
       if (result.error) {
-        showToast('Gagal memperbarui kategori', 'error');
+        toast.error('Gagal memperbarui kategori');
       } else {
-        showToast('Kategori berhasil diperbarui', 'success');
+        toast.success('Kategori berhasil diperbarui');
         setKategoris(prev => prev.map(k => k.id === editingId ? { ...k, nama: formNama } : k));
         handleCloseModal();
       }
     } else {
       const result = await kategoriApi.create(formNama);
       if (result.error) {
-        showToast('Gagal menambahkan kategori', 'error');
+        toast.error('Gagal menambahkan kategori');
       } else if (result.data) {
-        showToast('Kategori berhasil ditambahkan', 'success');
+        toast.success('Kategori berhasil ditambahkan');
         setKategoris(prev => [...prev, result.data as Kategori]);
         handleCloseModal();
       }
@@ -99,9 +97,9 @@ export default function KategoriPage() {
 
     const result = await kategoriApi.delete(deleteConfirm.id);
     if (result.error) {
-      showToast('Gagal menghapus kategori', 'error');
+      toast.error('Gagal menghapus kategori');
     } else {
-      showToast('Kategori berhasil dihapus', 'success');
+      toast.success('Kategori berhasil dihapus');
       setKategoris(prev => prev.filter(k => k.id !== deleteConfirm.id));
     }
     setDeleteConfirm({ isOpen: false, id: null, nama: null });

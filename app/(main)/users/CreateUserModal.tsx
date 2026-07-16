@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { fetchApi } from '@/lib/fetchApi';
 import { Modal } from '@/components/ui';
 import { useAuthStore } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
-import { useToast } from '@/components/ui/Toast';
+
+import { toast } from "sonner";
 import { IconUserPlus, IconLoader2 } from '@tabler/icons-react';
 
 interface CreateUserModalProps {
@@ -12,7 +13,6 @@ interface CreateUserModalProps {
 }
 
 export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
-  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -31,13 +31,10 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
     setLoading(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await fetch('/api/users', {
+      const response = await fetchApi('/api/users', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(formData),
       });
@@ -48,12 +45,12 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
         throw new Error(data.error || 'Gagal membuat user');
       }
 
-      showToast('User berhasil dibuat', 'success');
+      toast.success('User berhasil dibuat');
       setFormData({ email: '', username: '', nama: '', password: '', role: 'staff' });
       onSuccess();
       onClose();
     } catch (error: unknown) {
-      showToast(error instanceof Error ? error.message : 'Terjadi kesalahan', 'error');
+      toast.error(error instanceof Error ? error.message : 'Terjadi kesalahan');
     } finally {
       setLoading(false);
     }

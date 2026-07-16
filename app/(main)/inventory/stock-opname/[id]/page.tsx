@@ -8,7 +8,7 @@ import { stockAdjustmentApi } from '@/lib/api/stockAdjustment';
 import { inventoryApi } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { IconArrowLeft, IconCheck, IconX, IconSend, IconLoader2, IconDeviceFloppy, IconRefresh, IconPlus, IconMinus, IconSearch, IconTrash, IconBarcode, IconBox } from '@tabler/icons-react';
-import { useToast } from '@/components/ui/Toast';
+import { toast } from "sonner";
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Portal } from '@/components/ui/Portal';
 import SelectInput from '@/components/ui/SelectInput';
@@ -54,10 +54,8 @@ export default function StockOpnameDetailPage() {
       return res.data || [];
     },
   });
-  const { toasts, showToast, removeToast } = useToast();
-
   const addToast = ({ type, message }: { type: 'success' | 'error' | 'info', message: string }) => {
-    showToast(message, type);
+    toast(message);
   };
   const addSearchRef = useRef<HTMLInputElement>(null);
 

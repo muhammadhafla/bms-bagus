@@ -3,9 +3,11 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { IconPackage, IconDotsVertical, IconDeviceFloppy, IconTrash, IconPrinter, IconChevronRight, IconChevronLeft, IconBan, IconCheck, IconHistory } from '@tabler/icons-react';
 import { InventoryItem } from '@/types/inventory';
+import { supabase } from '@/lib/supabase';
+import { fetchApi } from '@/lib/fetchApi';
 import { formatCurrency } from '@/lib/utils';
 import { inventoryApi, kategoriApi } from '@/lib/api';
-import { useToast } from '@/components/ui/Toast';
+import { toast } from "sonner";
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { AdminOnly } from '@/components/role';
 import { useAuthStore, useIsAdmin } from '@/lib/auth';
@@ -61,7 +63,6 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
   const [printForm, setPrintForm] = useState({ template_id: '', qty: 1 });
   const [isPrinting, setIsPrinting] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
-  const { showToast } = useToast();
   const isAdminUser = useIsAdmin();
 
   const openSlideOver = useCallback((item: InventoryItem) => {
@@ -109,36 +110,36 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
         id_kategori: result.data.id_kategori || result.data.kategori,
       };
       onUpdate(selectedItem.id, updatedItem);
-      showToast('Perubahan disimpan', 'success');
+      toast.success('Perubahan disimpan');
     } else {
-      showToast('Gagal menyimpan perubahan', 'error');
+      toast.error('Gagal menyimpan perubahan');
     }
     setSaveConfirm(false);
     closeSlideOver();
-  }, [selectedItem, editForm, onUpdate, showToast, closeSlideOver]);
+  }, [selectedItem, editForm, onUpdate, closeSlideOver]);
 
   const handleDelete = useCallback(async () => {
     if (!selectedItem || !onDelete) return;
     
     await onDelete(selectedItem.id);
-    showToast('Barang dihapus', 'success');
+    toast.success('Barang dihapus');
     setDeleteConfirm(false);
     closeSlideOver();
-  }, [selectedItem, onDelete, showToast, closeSlideOver]);
+  }, [selectedItem, onDelete, closeSlideOver]);
 
   const handleToggleDiscontinue = useCallback(async () => {
     if (!selectedItem) return;
     
     const result = await inventoryApi.toggleDiscontinued(selectedItem.id);
     if (!result.error && result.data) {
-      showToast(`Barang berhasil ${selectedItem.is_discontinued ? 'diaktifkan' : 'dihentikan'}`, 'success');
+      toast.success(`Barang berhasil ${selectedItem.is_discontinued ? 'diaktifkan' : 'dihentikan'}`);
       onUpdate(selectedItem.id, result.data);
     } else {
-      showToast('Gagal mengubah status', 'error');
+      toast.error('Gagal mengubah status');
     }
     setDiscontinueConfirm(false);
     closeSlideOver();
-  }, [selectedItem, onUpdate, showToast, closeSlideOver]);
+  }, [selectedItem, onUpdate, closeSlideOver]);
 
   useKeyboardShortcuts(
     isSlideOverOpen ? [
@@ -159,7 +160,7 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
     setPrintModalOpen(true);
     setPrintForm({ template_id: '', qty: 1 });
     try {
-      const res = await fetch('/api/templates');
+      const res = await fetchApi('/api/templates');
       const data = await res.json();
       if (data.templates) {
         setTemplates(data.templates);
@@ -186,7 +187,7 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
       };
       const payload_json = Array(printForm.qty).fill(itemData);
 
-      const res = await fetch('/api/print', {
+      const res = await fetchApi('/api/print', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -196,15 +197,15 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
       });
 
       if (res.ok) {
-        showToast('Antrean cetak berhasil dibuat', 'success');
+        toast.success('Antrean cetak berhasil dibuat');
         setPrintModalOpen(false);
       } else {
         const errorData = await res.json();
-        showToast(errorData.error || 'Gagal membuat antrean cetak', 'error');
+        toast.error(errorData.error || 'Gagal membuat antrean cetak');
       }
     } catch (err) {
       console.error(err);
-      showToast('Terjadi kesalahan sistem', 'error');
+      toast.error('Terjadi kesalahan sistem');
     } finally {
       setIsPrinting(false);
     }
@@ -238,7 +239,7 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
-            {items.map((item) => {
+            {(Array.isArray(items) ? items : []).map((item) => {
               const isLowStock = item.stok <= (item.minimum_stock || 0);
 
               return (
@@ -294,7 +295,7 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
 
       {/* Mobile Card Layout */}
       <div className="block lg:hidden space-y-3">
-        {items.map((item) => {
+        {(Array.isArray(items) ? items : []).map((item) => {
           const isLowStock = item.stok <= (item.minimum_stock || 0);
           return (
             <div 

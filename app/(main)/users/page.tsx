@@ -5,7 +5,7 @@ import { useAuthStore } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { IconUsers, IconEdit, IconDotsVertical, IconUserPlus, IconTrash } from '@tabler/icons-react';
 import { usePresenceStore } from '@/lib/presence';
-import { useToast } from '@/components/ui/Toast';
+import { toast } from "sonner";
 import { AmbientLayout, DropdownMenu, ModernPagination } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 import { AdminOnly } from '@/components/role';
@@ -35,7 +35,6 @@ export default function UsersPage() {
   });
   const [page, setPage] = useState(1);
   const LIMIT = 10;
-  const { showToast } = useToast();
   const { isAdmin, initialized } = useAuthStore();
   const router = useRouter();
   const { onlineUsers } = usePresenceStore();
@@ -54,12 +53,12 @@ export default function UsersPage() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      showToast('Gagal memuat data user', 'error');
+      toast.error('Gagal memuat data user');
     } else {
       setUsers(data || []);
     }
     setLoading(false);
-  }, [showToast]);
+  }, []);
 
   useEffect(() => {
     if (initialized && isAdmin()) {

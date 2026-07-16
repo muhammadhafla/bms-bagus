@@ -101,8 +101,14 @@ export async function middleware(request: NextRequest) {
     error
   } = await supabase.auth.getUser();
 
-  // Tidak ada session → redirect ke login
+  // Tidak ada session → redirect ke login atau return 401
   if (error || !user) {
+    if (pathname.startsWith('/api/')) {
+      const response = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      response.headers.set('Content-Security-Policy', cspHeader);
+      return response;
+    }
+
     const loginUrl = new URL('/login', request.url);
     // Validasi path sebelum set ke param (cegah open redirect)
     const safeRedirect = pathname.startsWith('/') && !pathname.startsWith('//')

@@ -6,6 +6,7 @@ import DateInput from '@/components/ui/DateInput';
 import { IconHistory, IconRefresh, IconPrinter, IconChevronLeft, IconChevronRight, IconFilter, IconX } from '@tabler/icons-react';
 import { formatDateTimeWIB } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
+import { fetchApi } from '@/lib/fetchApi';
 
 interface PrintJob {
   id: string;
@@ -42,11 +43,7 @@ export default function PrintHistoryPage() {
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      const res = await fetch(`/api/print/history?${params.toString()}`, {
-        headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
-      });
+      const res = await fetchApi(`/api/print/history?${params.toString()}`);
       const data = await res.json();
       
       if (data.history) {

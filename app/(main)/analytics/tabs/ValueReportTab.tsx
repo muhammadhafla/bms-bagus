@@ -3,13 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { reportApi, InventoryValue } from '@/lib/api';
 import { formatCurrency, exportToCSV } from '@/lib/utils';
 import { Button } from '@/components/ui';
-import { useToast } from '@/components/ui/Toast';
+import { toast } from "sonner";
 import { IconCash, IconDownload } from '@tabler/icons-react';
 import { ReportState } from '@/components/analytics/ReportState';
 import { ReportPagination } from '@/components/analytics/ReportPagination';
 
 export function ValueReportTab() {
-  const { showToast } = useToast();
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
@@ -28,7 +27,7 @@ export function ValueReportTab() {
       // Ideally, there should be an export method. Let's just fetch page 1 with limit 10000 for simplicity.
       const result = await reportApi.getInventoryValue({ page: 1, limit: 10000 });
       if (result.error || !result.data) {
-        showToast('Gagal mengekspor data', 'error');
+        toast.error('Gagal mengekspor data');
         return;
       }
       
@@ -48,7 +47,7 @@ export function ValueReportTab() {
         `report_inventory_value_${new Date().toISOString().split('T')[0]}.csv`
       );
     } catch (err) {
-      showToast('Terjadi kesalahan saat mengekspor', 'error');
+      toast.error('Terjadi kesalahan saat mengekspor');
     }
   };
 

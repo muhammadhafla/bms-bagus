@@ -5,7 +5,7 @@ import { InventoryItem } from '@/types/inventory';
 import { inventoryApi, kategoriApi } from '@/lib/api';
 import { debounce } from '@/lib/utils';
 import { InventoryTable } from '@/components/inventory/InventoryTable';
-import { Button, DataTable, Badge, SelectInput, Tooltip, AmbientLayout, FilterButton, useToast } from '@/components/ui';
+import { Button, DataTable, Badge, SelectInput, Tooltip, AmbientLayout, FilterButton } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
 import { IconPackage, IconSearch, IconFilter, IconUpload, IconX } from '@tabler/icons-react';
 import { SlideOver } from '@/components/ui';
@@ -47,8 +47,6 @@ export default function InventoryPage() {
   
   const searchInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
-  const { showToast } = useToast();
-
   // Debounce search
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -254,7 +252,7 @@ export default function InventoryPage() {
             <SelectInput
               value={kategori}
               onChange={setKategori}
-              options={kategoriList.map(k => ({ value: k, label: k }))}
+              options={(Array.isArray(kategoriList) ? kategoriList : []).map(k => ({ value: k, label: k }))}
               placeholder="Semua Kategori"
               className="w-full"
             />

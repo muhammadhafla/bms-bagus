@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { InventoryItem } from '@/types/inventory';
 
 export interface CartItem extends InventoryItem {
@@ -27,7 +28,9 @@ interface PembelianStore {
   getSelisih: () => number;
 }
 
-export const usePembelianStore = create<PembelianStore>((set, get) => ({
+export const usePembelianStore = create<PembelianStore>()(
+  persist(
+    (set, get) => ({
   items: [],
   supplierId: null,
   tanggal: new Date().toISOString().split('T')[0],
@@ -112,7 +115,11 @@ export const usePembelianStore = create<PembelianStore>((set, get) => ({
   getSelisih: () => {
     return get().totalSupplier - get().getTotalSistem();
   },
-}));
+}),
+  {
+    name: 'pembelian-draft-storage',
+  }
+));
 
 export interface PrintItem extends InventoryItem {
   qty: number;

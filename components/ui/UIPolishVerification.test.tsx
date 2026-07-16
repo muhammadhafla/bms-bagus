@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import Tooltip from './Tooltip';
 import { ConfirmDialog } from './ConfirmDialog';
-import { ToastProvider, useToast } from './Toast';
+import { toast } from "sonner";
 import MainLayout from '@/app/(main)/layout';
 import { useSidebarState } from '@/hooks/useSidebarState';
 
@@ -185,18 +185,17 @@ describe('UI Polish Verification Tests', () => {
   describe('3. Toast Close Button Icon', () => {
     it('has SVG icon content inside the close button', async () => {
       const TriggerComponent = () => {
-        const { showToast } = useToast();
         return (
-          <button onClick={() => showToast('Toast Message', 'success')}>
+          <button onClick={() => toast.success('Toast Message')}>
             Show Toast
           </button>
         );
       };
 
       render(
-        <ToastProvider>
+        
           <TriggerComponent />
-        </ToastProvider>
+        
       );
 
       // Trigger the toast
@@ -236,11 +235,11 @@ describe('UI Polish Verification Tests', () => {
       });
 
       render(
-        <ToastProvider>
+        
           <MainLayout>
             <div>Main Content</div>
           </MainLayout>
-        </ToastProvider>
+        
       );
 
       const dashboardLink = screen.getByRole('link', { name: 'Dashboard' });
@@ -274,11 +273,11 @@ describe('UI Polish Verification Tests', () => {
       });
 
       render(
-        <ToastProvider>
+        
           <MainLayout>
             <div>Main Content</div>
           </MainLayout>
-        </ToastProvider>
+        
       );
 
       const dashboardLink = screen.getByRole('link', { name: 'Dashboard' });

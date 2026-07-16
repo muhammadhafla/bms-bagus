@@ -2,7 +2,7 @@ import type { Viewport } from "next";
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
-import { ToastProvider } from "@/components/ui/Toast";
+import { Toaster } from "sonner";
 import { AuthProvider } from "@/components/AuthProvider";
 import { DarkModeProvider } from "@/components/DarkModeProvider";
 import { QueryProvider } from "@/components/QueryProvider";
@@ -59,7 +59,8 @@ export default async function RootLayout({
         <QueryProvider>
           <AuthProvider>
             <DarkModeProvider>
-              <ToastProvider>{children}</ToastProvider>
+              {children}
+              <Toaster richColors position="bottom-right" />
             </DarkModeProvider>
           </AuthProvider>
         </QueryProvider>

@@ -1,5 +1,5 @@
 'use client';
-
+import { toast } from 'sonner';
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePembelianStore, useBulkPrintStore } from '@/lib/store';
@@ -11,7 +11,7 @@ import { IconShoppingCart, IconCamera, IconFileImport, IconX, IconCheck, IconDev
 import { PriceInput } from '@/components/ui/PriceInput';
 import DateInput from '@/components/ui/DateInput';
 import SelectInput from '@/components/ui/SelectInput';
-import { Button, AmbientLayout, Badge, Banner, useToast, Modal } from '@/components/ui';
+import { Button, AmbientLayout, Badge, Banner , Modal } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Portal } from '@/components/ui/Portal';
 import { AdminOnly } from '@/components/role';
@@ -37,8 +37,6 @@ export default function PembelianPage() {
   const addBulkPrintItem = useBulkPrintStore((state) => state.addItem);
 
   const { items, addItem, updateQty, updateHargaBeli, updateHargaJual, removeItem, reset, getTotalSistem, getSelisih, setTotalSupplier, setTanggal, totalSupplier, tanggal } = usePembelianStore();
-  const { showToast } = useToast();
-
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [lastPurchaseItems, setLastPurchaseItems] = useState<typeof items>([]);
 
@@ -299,7 +297,7 @@ export default function PembelianPage() {
     try {
       const supplierId = selectedSupplierId;
 
-      const pembelianItems: PembelianItem[] = items.map(item => ({
+      const pembelianItems: PembelianItem[] = (Array.isArray(items) ? items : []).map(item => ({
         inventory_id: item.id,
         barcode: item.barcode,
         nama_barang: item.nama_barang,
@@ -327,10 +325,10 @@ export default function PembelianPage() {
           || result.error 
           || 'Gagal menyimpan pembelian';
         setError(String(errorMsg));
-        showToast(String(errorMsg), 'error');
+        toast.error(String(errorMsg));
       } else {
         setSuccess('Pembelian berhasil disimpan');
-        showToast('Pembelian berhasil disimpan', 'success');
+        toast.success('Pembelian berhasil disimpan');
         setLastPurchaseItems([...items]);
         setShowSuccessDialog(true);
         reset();
@@ -343,11 +341,11 @@ export default function PembelianPage() {
       console.error('Error submitting:', err);
       const msg = err instanceof Error ? err.message : 'Terjadi kesalahan';
       setError(msg);
-      showToast(msg, 'error');
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
-  }, [items, tanggal, totalSupplier, submitting, reset, setTotalSupplier, focusInput, selectedSupplierId, supplier, showToast]);
+  }, [items, tanggal, totalSupplier, submitting, reset, setTotalSupplier, focusInput, selectedSupplierId, supplier]);
 
   const handleEditSubmit = useCallback(() => {
     if (selectedIndex === null || !editMode) return;
@@ -456,7 +454,7 @@ export default function PembelianPage() {
               />
               {showAddDropdown && barcodeInput.length >= 2 && (
                 <div className="absolute z-20 w-full mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl max-h-[40vh] md:max-h-80 overflow-auto">
-                  {inventorySearchResults.map((inventory, idx) => (
+                  {(Array.isArray(inventorySearchResults) ? inventorySearchResults : []).map((inventory, idx) => (
                     <button
                       key={inventory.id}
                       type="button"
@@ -506,7 +504,7 @@ export default function PembelianPage() {
                   setSelectedSupplierId(id || null);
                   setSupplier(s ? s.nama : '');
                 }}
-                options={supplierList.map(s => ({
+                options={(Array.isArray(supplierList) ? supplierList : []).map(s => ({
                   value: s.id,
                   label: s.nama + (s.kontak ? ` (${s.kontak})` : '')
                 }))}
@@ -656,7 +654,7 @@ export default function PembelianPage() {
                     setSelectedSupplierId(id || null);
                     setSupplier(s ? s.nama : '');
                   }}
-                  options={supplierList.map(s => ({
+                  options={(Array.isArray(supplierList) ? supplierList : []).map(s => ({
                     value: s.id,
                     label: s.nama + (s.kontak ? ` (${s.kontak})` : '')
                   }))}

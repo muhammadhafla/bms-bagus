@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { IconPackage, IconDotsVertical, IconDeviceFloppy, IconTrash, IconPrinter, IconChevronRight, IconChevronLeft, IconBan, IconCheck } from '@tabler/icons-react';
+import { IconPackage, IconDotsVertical, IconDeviceFloppy, IconTrash, IconPrinter, IconChevronRight, IconChevronLeft, IconBan, IconCheck, IconHistory } from '@tabler/icons-react';
 import { InventoryItem } from '@/types/inventory';
 import { formatCurrency } from '@/lib/utils';
 import { inventoryApi, kategoriApi } from '@/lib/api';
@@ -15,6 +15,7 @@ import SelectInput from '@/components/ui/SelectInput';
 import Button from '@/components/ui/Button';
 import { ModernPagination } from '@/components/ui';
 import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
+import { PurchaseHistoryModal } from './PurchaseHistoryModal';
 
 interface PaginationProps {
   page: number;
@@ -59,6 +60,7 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
   const [templates, setTemplates] = useState<any[]>([]);
   const [printForm, setPrintForm] = useState({ template_id: '', qty: 1 });
   const [isPrinting, setIsPrinting] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const { showToast } = useToast();
   const isAdminUser = useIsAdmin();
 
@@ -491,6 +493,14 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
             >
               Cetak Label
             </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setHistoryModalOpen(true)}
+              className="w-full"
+              leftIcon={<IconHistory size={18} />}
+            >
+              Riwayat Harga Beli
+            </Button>
           </div>
         </AdminOnly>
       </Modal>
@@ -574,6 +584,13 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
           </div>
         </div>
       </Modal>
+
+      <PurchaseHistoryModal
+        isOpen={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        inventoryId={selectedItem?.id || null}
+        itemName={selectedItem?.nama_barang}
+      />
     </>
   );
 });

@@ -252,6 +252,56 @@ export const inventoryApi = {
     });
   },
 
+  async getPurchaseHistory(inventory_id: string, options: { page?: number; limit?: number } = {}) {
+    const page = Math.max(1, options.page || 1);
+    const limit = Math.min(100, Math.max(1, options.limit || 10));
+    const offset = (page - 1) * limit;
+
+    return safeQuery<{ data: any[], count: number, page: number, totalPages: number }>(async () => {
+      const query = supabase
+        .from('pembelian_items')
+        .select(`
+          id,
+          qty,
+          harga_beli,
+          pembelian!inner (
+            tanggal,
+            supplier_nama
+          )
+        `, { count: 'exact' })
+        .eq('inventory_id', inventory_id)
+        .range(offset, offset + limit - 1);
+
+      // Using foreignTable for ordering if supported, fallback applied if error
+      const result = await (query as any).order('tanggal', { referencedTable: 'pembelian', ascending: false });
+
+      const totalPages = Math.ceil((result.count || 0) / limit);
+
+      const formattedData = (result.data || []).map((item: any) => ({
+        id: item.id,
+        qty: item.qty,
+        harga_beli: item.harga_beli,
+        tanggal: item.pembelian?.tanggal,
+        supplier_nama: item.pembelian?.supplier_nama
+      }));
+
+      // In case ordering by foreign table doesn't work perfectly, we ensure it's sorted here
+      formattedData.sort((a: any, b: any) => {
+        return new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime();
+      });
+
+      return { 
+        data: {
+          data: formattedData,
+          count: result.count || 0,
+          page,
+          totalPages
+        }, 
+        error: result.error as Error | null 
+      };
+    });
+  },
+
   async checkBatchExistence(names: string[], inventoryList: InventoryItem[]): Promise<{ existing: InventoryItem[], missing: string[], error: Error | null }> {
     if (!names || names.length === 0) return { existing: [], missing: [], error: null };
     if (!inventoryList || inventoryList.length === 0) return { existing: [], missing: names, error: null };

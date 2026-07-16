@@ -134,7 +134,7 @@ export default function LabelTemplatesPage() {
       <AdminOnly>
       <div className="mb-4 lg:mb-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
-          <div className="flex items-center gap-4 animate-fade-in-up pl-12 lg:pl-0">
+          <div className="flex items-center gap-4 animate-fade-in-up">
             <IconTemplate className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
             <div>
               <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Label Templates</h1>

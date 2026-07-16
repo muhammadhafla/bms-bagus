@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useDarkMode } from '@/components/DarkModeProvider';
 import { toast } from "sonner";
 import Tooltip from '@/components/ui/Tooltip';
+import BottomNav from '@/components/ui/BottomNav';
 import {
   IconLayoutDashboard,
   IconPackage,
@@ -248,23 +249,10 @@ export default function MainLayout({
       />
 
       {/* Mobile Menu Overlay */}
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-          onKeyDown={(e) => e.key === 'Escape' && setMobileMenuOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+      {/* Removed overlay since mobile uses BottomNav */}
 
       {/* Mobile Menu Toggle Button (fixed, only visible on mobile) */}
-      <button
-        onClick={() => setMobileMenuOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-40 p-2 rounded-lg bg-white dark:bg-neutral-800 shadow-md border border-neutral-200 dark:border-neutral-700"
-        aria-label="Open menu"
-      >
-        <IconMenu className="w-5 h-5" />
-      </button>
+      {/* Removed hamburger since mobile uses BottomNav */}
 
       {/* Sidebar - Responsive */}
       <aside
@@ -573,12 +561,15 @@ export default function MainLayout({
       </aside>
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${contentMargin} p-1 sm:p-2 lg:p-3 pt-16 lg:pt-3`}>
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${contentMargin} p-0 lg:p-3`}>
         {/* Page content */}
-        <main className="flex-1 overflow-auto bg-white dark:bg-neutral-900 rounded-[1.5rem] lg:rounded-[2rem] shadow-sm border border-neutral-200/50 dark:border-neutral-800/50 p-1.5 sm:p-4 lg:p-6 relative">
+        <main className="flex-1 overflow-auto bg-white dark:bg-neutral-900 rounded-none lg:rounded-[2rem] shadow-none lg:shadow-sm border-0 lg:border border-neutral-200/50 dark:border-neutral-800/50 p-4 lg:p-6 relative pb-24 lg:pb-6">
           {children}
         </main>
       </div>
+
+      {/* Bottom Navigation for Mobile */}
+      <BottomNav />
     </div>
   );
 }

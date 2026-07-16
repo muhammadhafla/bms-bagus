@@ -12,9 +12,10 @@ interface ModalProps {
   title?: string;
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  isBottomSheetOnMobile?: boolean;
 }
 
-export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, size = 'md', isBottomSheetOnMobile = false }: ModalProps) {
   const titleId = useId();
 
   const handleEscape = useCallback((e: KeyboardEvent) => {
@@ -47,7 +48,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
 
   return (
     <Portal>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+      <div className={`fixed inset-0 z-[100] flex ${isBottomSheetOnMobile ? 'items-end sm:items-center' : 'items-center'} justify-center p-0 sm:p-4 animate-fade-in`}>
         <div 
           className="absolute inset-0 bg-black/50"
           onClick={onClose}
@@ -58,10 +59,15 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
           role="dialog"
           aria-modal="true"
           aria-labelledby={title ? titleId : undefined}
-          className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-neutral-950 shadow-xl flex flex-col rounded-2xl max-h-full animate-scale-in`}
+          className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-neutral-950 shadow-xl flex flex-col max-h-[90vh] sm:max-h-full ${isBottomSheetOnMobile ? 'rounded-t-2xl sm:rounded-2xl animate-slide-up sm:animate-scale-in pb-[env(safe-area-inset-bottom)]' : 'rounded-2xl animate-scale-in'}`}
         >
+          {isBottomSheetOnMobile && (
+            <div className="sm:hidden w-full flex justify-center pt-3 pb-1 shrink-0 bg-transparent">
+              <div className="w-12 h-1.5 bg-neutral-300 dark:bg-neutral-700 rounded-full" />
+            </div>
+          )}
           {title && (
-            <div className="flex items-center justify-between p-5 border-b border-neutral-200 dark:border-neutral-800 shrink-0">
+            <div className={`flex items-center justify-between px-5 ${isBottomSheetOnMobile ? 'pt-2 pb-4 sm:p-5' : 'p-5'} border-b border-neutral-200 dark:border-neutral-800 shrink-0`}>
               <h2 id={titleId} className="text-xl font-bold text-neutral-900 dark:text-white">{title}</h2>
               <button
                 onClick={onClose}

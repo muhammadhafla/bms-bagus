@@ -86,7 +86,7 @@ export default function UsersPage() {
       <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)] lg:min-h-0">
         <div className="mb-4 lg:mb-6 flex-shrink-0 animate-fade-in-up">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
-            <div className="flex items-center gap-4 pl-12 lg:pl-0">
+            <div className="flex items-center gap-4">
               <IconUsers className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
               <div>
                 <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Manajemen User</h1>

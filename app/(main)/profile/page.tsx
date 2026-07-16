@@ -5,17 +5,38 @@ import { useAuthStore } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { AmbientLayout } from '@/components/ui';
 import { toast } from "sonner";
-import { IconUser, IconCamera, IconDeviceFloppy } from '@tabler/icons-react';
+import { 
+  IconUser, IconCamera, IconDeviceFloppy, IconSettings, IconSun, IconMoon, 
+  IconLogout, IconChevronRight, IconUsers, IconTags, IconHistory, IconReport 
+} from '@tabler/icons-react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useIsAdmin } from '@/lib/auth';
+import { useDarkMode } from '@/components/DarkModeProvider';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
-  const { user, profile, refreshSession } = useAuthStore();
+  const { user, profile, refreshSession, signOut } = useAuthStore();
+  const isAdminUser = useIsAdmin();
+  const { theme, toggleTheme } = useDarkMode();
+  const router = useRouter();
+
   const [nama, setNama] = useState('');
   const [username, setUsername] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Mobile specific states
+  const [showMobileEditForm, setShowMobileEditForm] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+
+  const handleSignOut = () => {
+    setLogoutConfirmOpen(false);
+    signOut();
+  };
 
   useEffect(() => {
     if (profile) {
@@ -90,13 +111,17 @@ export default function ProfilePage() {
     }
   };
 
-  return (
-    <AmbientLayout>
-      <div className="max-w-2xl mx-auto py-8 px-4">
-        <div className="flex items-center gap-4 mb-8">
-          <IconUser className="w-8 h-8 text-brand-500" />
-          <div>
-            <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">Edit Profil</h1>
+  const renderEditForm = (isMobile: boolean = false) => (
+    <div className={`max-w-2xl mx-auto py-8 px-4 ${isMobile ? 'block lg:hidden' : 'hidden lg:block'}`}>
+      <div className="flex items-center gap-4 mb-8">
+        {isMobile && (
+          <button onClick={() => setShowMobileEditForm(false)} className="p-2 -ml-2 rounded-lg bg-neutral-100 dark:bg-neutral-800">
+            <IconChevronRight className="w-5 h-5 rotate-180 text-neutral-600 dark:text-neutral-400" />
+          </button>
+        )}
+        {!isMobile && <IconUser className="w-8 h-8 text-brand-500" />}
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">Edit Profil</h1>
             <p className="text-neutral-500 dark:text-neutral-400 text-sm">Sesuaikan informasi akun Anda</p>
           </div>
         </div>
@@ -197,6 +222,126 @@ export default function ProfilePage() {
             </div>
           </form>
         </div>
+      </div>
+  );
+
+  return (
+    <AmbientLayout>
+      <ConfirmDialog
+        isOpen={logoutConfirmOpen}
+        title="Keluar dari Sistem"
+        message="Apakah Anda yakin ingin keluar dari sistem?"
+        confirmLabel="Ya, Keluar"
+        cancelLabel="Batal"
+        onConfirm={handleSignOut}
+        onCancel={() => setLogoutConfirmOpen(false)}
+        danger
+      />
+
+      {/* Desktop View: Always show the edit form */}
+      {renderEditForm(false)}
+
+      {/* Mobile View */}
+      <div className="block lg:hidden h-full pb-6">
+        {showMobileEditForm ? (
+          renderEditForm(true)
+        ) : (
+          <div className="flex flex-col h-full space-y-4">
+            {/* Header: User Profile Card */}
+            <div 
+              className="bg-brand-600 p-4 rounded-2xl flex items-center gap-4 shadow-sm text-white active:scale-95 transition-transform cursor-pointer"
+              onClick={() => setShowMobileEditForm(true)}
+            >
+              <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-white/20 bg-brand-500 flex-shrink-0">
+                {profile?.avatar_url ? (
+                  <Image src={profile.avatar_url} alt="Avatar" fill sizes="56px" className="object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center font-bold text-xl">
+                    {profile?.nama?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-bold truncate">{profile?.nama || 'User'}</h2>
+                <p className="text-xs text-brand-100 truncate mb-1">{user?.email}</p>
+                <span className="inline-block px-2 py-0.5 bg-white/20 rounded-md text-[10px] font-semibold uppercase tracking-wide">
+                  {profile?.role || 'Staff'}
+                </span>
+              </div>
+              <IconSettings className="w-6 h-6 text-white/80" />
+            </div>
+
+            {/* General Settings */}
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-sm overflow-hidden">
+              <button 
+                onClick={toggleTheme}
+                className="w-full flex items-center gap-4 p-4 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                  {theme === 'dark' ? <IconSun className="w-5 h-5 text-blue-600 dark:text-blue-400" /> : <IconMoon className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-semibold text-neutral-900 dark:text-white">Tema Aplikasi</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">{theme === 'dark' ? 'Mode Gelap' : 'Mode Terang'}</p>
+                </div>
+              </button>
+            </div>
+
+            {/* Secondary Menus */}
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-sm overflow-hidden flex flex-col">
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Manajemen & Sistem</p>
+              </div>
+              
+              {isAdminUser && (
+                <>
+                  <Link href="/users" className="flex items-center gap-4 p-4 border-b border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+                      <IconUsers className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div className="flex-1 text-sm font-semibold text-neutral-900 dark:text-white">Kelola Pengguna</div>
+                    <IconChevronRight className="w-4 h-4 text-neutral-400" />
+                  </Link>
+
+                  <Link href="/master/label-templates" className="flex items-center gap-4 p-4 border-b border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center">
+                      <IconTags className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                    </div>
+                    <div className="flex-1 text-sm font-semibold text-neutral-900 dark:text-white">Template Label</div>
+                    <IconChevronRight className="w-4 h-4 text-neutral-400" />
+                  </Link>
+
+                  <Link href="/print-history" className="flex items-center gap-4 p-4 border-b border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-900/30 flex items-center justify-center">
+                      <IconHistory className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                    </div>
+                    <div className="flex-1 text-sm font-semibold text-neutral-900 dark:text-white">Riwayat Cetak</div>
+                    <IconChevronRight className="w-4 h-4 text-neutral-400" />
+                  </Link>
+                </>
+              )}
+
+              <Link href="/finance/cash-flow" className={`flex items-center gap-4 p-4 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors`}>
+                <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
+                  <IconReport className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div className="flex-1 text-sm font-semibold text-neutral-900 dark:text-white">Arus Kas (Cash Flow)</div>
+                <IconChevronRight className="w-4 h-4 text-neutral-400" />
+              </Link>
+            </div>
+
+            {/* Logout Button */}
+            <div className="pt-2">
+              <button 
+                onClick={() => setLogoutConfirmOpen(true)}
+                className="w-full flex items-center justify-center gap-2 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-500 font-bold active:scale-95 transition-transform"
+              >
+                <IconLogout className="w-5 h-5" />
+                Keluar Aplikasi
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </AmbientLayout>
   );

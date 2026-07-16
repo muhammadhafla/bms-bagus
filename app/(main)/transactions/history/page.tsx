@@ -94,7 +94,7 @@ function TransactionsHistoryContent() {
     <AmbientLayout>
       <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)] lg:min-h-0">
         <div>
-          <div className="flex flex-row items-start justify-between gap-3 mb-5 animate-fade-in-up pl-12 lg:pl-0">
+          <div className="flex flex-row items-start justify-between gap-3 mb-5 animate-fade-in-up">
             <div className="flex items-start lg:items-center gap-3 lg:gap-4">
               <IconHistory className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0 mt-0.5 lg:mt-0" stroke={1.5} />
               <div>

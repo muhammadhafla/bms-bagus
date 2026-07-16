@@ -1,3 +1,5 @@
+'use client';
+
 import { create } from 'zustand';
 import { User } from '@supabase/supabase-js';
 import { safeQuery } from '@/lib/api/utils';

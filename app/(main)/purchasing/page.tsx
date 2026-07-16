@@ -7,7 +7,7 @@ import { inventoryApi, PembelianItem, purchaseApi, kategoriApi, supplierApi, Sup
 import { useQuery } from '@tanstack/react-query';
 import { InventoryItem } from '@/types/inventory';
 import { formatCurrency, normalizeBarcode, generateIdempotencyKey, generateAutoBarcode, debounce } from '@/lib/utils';
-import { IconShoppingCart, IconCamera, IconFileImport, IconX, IconCheck, IconDeviceFloppy, IconRefresh, IconSearch, IconPlus, IconPrinter, IconChevronUp, IconArrowRight, IconScan } from '@tabler/icons-react';
+import { IconShoppingCart, IconCamera, IconFileImport, IconX, IconCheck, IconDeviceFloppy, IconRefresh, IconSearch, IconPlus, IconPrinter, IconChevronUp, IconArrowRight, IconScan, IconArrowLeft } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
 import DateInput from '@/components/ui/DateInput';
 import SelectInput from '@/components/ui/SelectInput';
@@ -384,8 +384,14 @@ export default function PembelianPage() {
         {/* Header Section */}
         <div className="mb-4 lg:mb-6 flex-shrink-0">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
-            <div className="flex items-center gap-4 pl-12 lg:pl-0">
-              <IconShoppingCart className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
+            <div className="flex items-center gap-3 lg:gap-4 pl-2 lg:pl-0">
+              <button 
+                onClick={() => router.back()}
+                className="lg:hidden p-2 -ml-2 rounded-xl text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 active:scale-95 transition-all"
+              >
+                <IconArrowLeft className="w-6 h-6" />
+              </button>
+              <IconShoppingCart className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0 hidden lg:block" stroke={1.5} />
               <div>
                 <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Pembelian</h1>
                 <p className="text-xs lg:text-base text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 font-medium">Input data barang masuk</p>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useBulkPrintStore } from '@/lib/store';
 import { inventoryApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
@@ -9,7 +10,7 @@ import { InventoryItem } from '@/types/inventory';
 import { Template } from '@/types';
 import { fetchApi } from '@/lib/fetchApi';
 import { formatCurrency, normalizeBarcode, debounce } from '@/lib/utils';
-import { IconPrinter, IconCamera, IconDeviceFloppy, IconRefresh, IconSearch } from '@tabler/icons-react';
+import { IconPrinter, IconCamera, IconDeviceFloppy, IconRefresh, IconSearch, IconArrowLeft } from '@tabler/icons-react';
 import SelectInput from '@/components/ui/SelectInput';
 import { Button, AmbientLayout } from '@/components/ui';
 import { toast } from 'sonner';
@@ -17,6 +18,7 @@ import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
 import { ItemCart } from './ItemCart';
 
 export default function BulkPrintPage() {
+  const router = useRouter();
   const { items, addItem, updateQty, removeItem, reset } = useBulkPrintStore();
   const { data: inventoryData } = useQuery({
     queryKey: ['inventory', 'all'],
@@ -306,8 +308,14 @@ export default function BulkPrintPage() {
         {/* Header Section */}
         <div className="mb-4 lg:mb-6 flex-shrink-0">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
-            <div className="flex items-center gap-4 pl-12 lg:pl-0">
-              <IconPrinter className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
+            <div className="flex items-center gap-3 lg:gap-4 pl-2 lg:pl-0">
+              <button 
+                onClick={() => router.push('/dashboard')}
+                className="lg:hidden p-2 -ml-2 rounded-xl text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 active:scale-95 transition-all"
+              >
+                <IconArrowLeft className="w-6 h-6" />
+              </button>
+              <IconPrinter className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0 hidden lg:block" stroke={1.5} />
               <div>
                 <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Cetak Massal</h1>
                 <p className="text-xs lg:text-base text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 font-medium">Scan barang untuk cetak label sekaligus</p>

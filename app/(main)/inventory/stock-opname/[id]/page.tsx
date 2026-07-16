@@ -321,9 +321,15 @@ return (
         className="mb-4"
       />
       
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-4 animate-fade-in-up pl-12 lg:pl-0">
-        <div className="flex items-center gap-3 lg:gap-4">
-          <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-brand-600 to-brand-700 rounded-xl flex items-center justify-center shadow-brand shrink-0">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-4 animate-fade-in-up">
+        <div className="flex items-center gap-3 lg:gap-4 pl-2 lg:pl-0">
+          <button 
+            onClick={() => router.push('/dashboard')}
+            className="lg:hidden p-2 -ml-2 rounded-xl text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 active:scale-95 transition-all"
+          >
+            <IconArrowLeft className="w-6 h-6" />
+          </button>
+          <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-brand-600 to-brand-700 rounded-xl items-center justify-center shadow-brand shrink-0 hidden lg:flex">
             <IconSearch className="w-5 h-5 lg:w-6 lg:h-6 text-white" stroke={1.5} />
           </div>
           <div>
@@ -396,7 +402,7 @@ return (
 
       {/* Mobile Sticky Action Bar */}
       <div className="flex lg:hidden gap-2 justify-between items-center fixed bottom-4 left-4 right-4 z-50 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-neutral-200/50 dark:border-neutral-700/50 rounded-2xl p-2.5 shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] pb-[max(env(safe-area-inset-bottom),0.625rem)]">
-        <Button variant="secondary" className="!px-3 h-10 rounded-xl" onClick={() => router.push('/inventory/stock-opname')}>
+        <Button variant="secondary" className="!px-3 h-10 rounded-xl" onClick={() => router.push('/dashboard')}>
           <IconArrowLeft size={18} />
         </Button>
         <div className="flex gap-2 flex-1 justify-end">

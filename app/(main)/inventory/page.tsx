@@ -14,6 +14,7 @@ import CheckboxInput from '@/components/ui/CheckboxInput';
 import { API_ERROR_MESSAGES, UI_MESSAGES, INVENTORY_MESSAGES } from '@/lib/constants';
 import dynamic from 'next/dynamic';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useKategoris } from '@/lib/hooks/useKategoris';
 
 const ImportInventoryCSVWizard = dynamic(
   () => import('@/components/inventory/ImportInventoryCSVWizard'),
@@ -77,15 +78,12 @@ export default function InventoryPage() {
     queryFn: () => inventoryApi.getLowStockCount({ search: debouncedSearch, categoryName: kategori }),
   });
 
-  const { data: kategoriResponse } = useQuery({
-    queryKey: ['kategoris'],
-    queryFn: () => kategoriApi.getAll(),
-  });
+  const { data: kategoriResponse } = useKategoris();
 
   const items = inventoryData?.data || [];
   const totalPages = Math.ceil((inventoryData?.total || 0) / ITEMS_PER_PAGE) || 1;
   const error = queryError ? queryError.message : (inventoryData?.error?.message || null);
-  const kategoriList = (kategoriResponse?.data || []).map(k => k.nama);
+  const kategoriList = (kategoriResponse || []).map(k => k.nama);
 
   const handleUpdate = useCallback((id: string, data: Partial<InventoryItem>) => {
     // InventoryTable already handles the API call, we just need to invalidate the cache
@@ -158,7 +156,7 @@ export default function InventoryPage() {
       
       <div className="mb-4 lg:mb-6">
         <div className="flex flex-row items-start lg:items-center justify-between gap-4 mb-4 lg:mb-5">
-          <div className="flex items-center gap-3 lg:gap-4 animate-fade-in-up pl-12 lg:pl-0">
+          <div className="flex items-center gap-3 lg:gap-4 animate-fade-in-up">
             <IconPackage className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
             <div>
               <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Stok</h1>

@@ -98,7 +98,7 @@ export default function PrintHistoryPage() {
           return (
             <div className="flex flex-col gap-3">
               <div className="flex flex-row items-start justify-between gap-4">
-                <div className="flex items-center gap-4 animate-fade-in-up pl-12 lg:pl-0">
+                <div className="flex items-center gap-4 animate-fade-in-up">
                   <IconHistory className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
                   <div>
                     <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Riwayat Cetak</h1>
@@ -118,7 +118,7 @@ export default function PrintHistoryPage() {
               
               {/* Active Filters Display */}
               {activeFilters.length > 0 && (
-                <div className="flex overflow-x-auto whitespace-nowrap gap-2 items-center py-1 pl-12 lg:pl-0 w-full no-scrollbar animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+                <div className="flex overflow-x-auto whitespace-nowrap gap-2 items-center py-1 w-full no-scrollbar animate-fade-in-up" style={{ animationDelay: '100ms' }}>
                   <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mr-1">Filter aktif:</span>
                   {activeFilters.map(badge => (
                     <div key={badge.id} className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 dark:bg-brand-900/20 border border-brand-100 dark:border-brand-800/30 px-3 py-1.5 text-xs font-medium text-brand-700 dark:text-brand-300 shadow-sm">

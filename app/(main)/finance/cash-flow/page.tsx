@@ -105,7 +105,7 @@ export default function CashFlowPage() {
       <AmbientLayout>
       <div className="mb-4 lg:mb-6">
         <div className="flex flex-row items-start lg:items-center justify-between gap-4 mb-4 lg:mb-5">
-          <div className="flex items-center gap-3 lg:gap-4 animate-fade-in-up pl-12 lg:pl-0">
+          <div className="flex items-center gap-3 lg:gap-4 animate-fade-in-up">
             <IconWallet className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
             <div>
               <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">

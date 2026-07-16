@@ -12,9 +12,10 @@ interface TransactionModalProps {
   onClose: () => void;
   transactionId: string | null;
   transactionType: 'penjualan' | 'pembelian' | null;
+  isBottomSheet?: boolean;
 }
 
-export function TransactionModal({ isOpen, onClose, transactionId, transactionType }: TransactionModalProps) {
+export function TransactionModal({ isOpen, onClose, transactionId, transactionType, isBottomSheet }: TransactionModalProps) {
   const { data, isLoading, error } = useQuery({
     queryKey: ['transactionDetail', transactionType, transactionId],
     queryFn: async () => {
@@ -38,7 +39,7 @@ export function TransactionModal({ isOpen, onClose, transactionId, transactionTy
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Detail ${transactionType === 'penjualan' ? 'Penjualan' : 'Pembelian'}`} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={`Detail ${transactionType === 'penjualan' ? 'Penjualan' : 'Pembelian'}`} size="lg" isBottomSheetOnMobile={isBottomSheet}>
       <div className="space-y-6">
         {isLoading ? (
           <div className="flex justify-center items-center py-10">

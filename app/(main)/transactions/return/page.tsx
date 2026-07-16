@@ -247,7 +247,7 @@ export default function ReturnPage() {
         {/* Header Section */}
         <div className="mb-4 lg:mb-6 flex-shrink-0 animate-fade-in-up transition-all duration-300">
           <div className="flex flex-col gap-2 lg:gap-4 lg:flex-row lg:items-center lg:justify-between mb-4">
-            <div className="flex items-center gap-3 lg:gap-4 pl-12 lg:pl-0">
+            <div className="flex items-center gap-3 lg:gap-4">
               <IconArrowBack className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0 cursor-pointer hover:text-brand-600 transition-colors" stroke={1.5} onClick={() => window.history.back()} />
               <div>
                 <h1 className="text-xl lg:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-brand-400 dark:from-brand-400 dark:to-brand-200 tracking-tight">Retur Barang</h1>

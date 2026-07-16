@@ -86,7 +86,7 @@ return (
         {/* Header Area */}
         <div className="mb-2 lg:mb-4 flex-shrink-0 animate-fade-in-up">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-2">
-            <div className="flex items-center gap-4 pl-12 lg:pl-0">
+            <div className="flex items-center gap-4">
               <IconClipboardCheck className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0" stroke={1.5} />
               <div>
                 <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Stock Opname</h1>

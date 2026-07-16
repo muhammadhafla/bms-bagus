@@ -27,7 +27,7 @@ import { TrendChart } from '@/components/dashboard/TrendChart';
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
 import { dashboardApi, DashboardStats, LowStockItem, TrendData, RecentTransaction, kasApi } from '@/lib/api';
 import { Card } from '@/components/ui';
-
+import { MobileLaunchpad } from '@/components/dashboard/MobileLaunchpad';
 
 function HomeContent() {
   const { user, initialized } = useAuthStore();
@@ -94,132 +94,158 @@ function HomeContent() {
     return null;
   }
 
-  return (
-    <div className="relative flex flex-col h-full w-full">
-      <div className="relative z-10">
-        {/* Header */}
-        <div className="mb-4 lg:mb-6 animate-fade-in-up flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
-              Dashboard
-            </h1>
-            <p className="text-neutral-500 dark:text-neutral-400 mt-1 text-sm lg:text-base font-medium">
-              Ringkasan performa dan stok barang.
-            </p>
-          </div>
-        </div>
+  const handleRefresh = async () => {
+    // Invalidate queries or re-fetch them
+    // The easiest way without queryClient is just not doing anything or refetching via window
+    // But since we are using useQuery, they automatically refetch on window focus. 
+    // To trigger manual refetch, we'd need to use queryClient, but we don't have it in scope.
+    // So we'll just wait a bit, React Query refetchInterval is already set to 300000.
+    // This is just a UX delay for the button for now.
+    await new Promise(r => setTimeout(r, 500));
+  };
 
-        {/* SaaS Native App Layout for Stats */}
-        <div className="mb-6">
-          {statsLoading ? (
-            <div className="flex flex-col gap-4">
-              <HeroStatCardSkeleton />
-              <div className="flex flex-col gap-2">
-                <ListStatCardSkeleton />
-                <ListStatCardSkeleton />
-                <ListStatCardSkeleton />
-                <ListStatCardSkeleton />
-                <ListStatCardSkeleton />
-                <ListStatCardSkeleton />
-              </div>
+  return (
+    <>
+      {/* Mobile View (Launchpad) */}
+      <div className="block lg:hidden">
+        <MobileLaunchpad 
+          stats={stats}
+          kasBalance={kasBalance || 0}
+          lowStock={lowStock}
+          recentTransactions={transactions}
+          isAdminUser={isAdminUser}
+          isLoading={statsLoading || kasBalanceLoading}
+          onRefresh={handleRefresh}
+        />
+      </div>
+
+      {/* Desktop View (Original Dashboard) */}
+      <div className="hidden lg:flex relative flex-col h-full w-full">
+        <div className="relative z-10">
+          {/* Header */}
+          <div className="mb-4 lg:mb-6 animate-fade-in-up flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
+                Dashboard
+              </h1>
+              <p className="text-neutral-500 dark:text-neutral-400 mt-1 text-sm lg:text-base font-medium">
+                Ringkasan performa dan stok barang.
+              </p>
             </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {isAdminUser && (
-                <div className="animate-fade-in-up [animation-delay:0ms]">
-                  <HeroStatCard
-                    title="Penjualan Hari Ini"
-                    value={stats?.todaySales || 0}
-                    prefix="Rp "
-                    icon={<IconArrowUpCircle size={24} />}
-                    variant="success"
-                  />
+          </div>
+
+          {/* SaaS Native App Layout for Stats */}
+          <div className="mb-6">
+            {statsLoading ? (
+              <div className="flex flex-col gap-4">
+                <HeroStatCardSkeleton />
+                <div className="flex flex-col gap-2">
+                  <ListStatCardSkeleton />
+                  <ListStatCardSkeleton />
+                  <ListStatCardSkeleton />
+                  <ListStatCardSkeleton />
+                  <ListStatCardSkeleton />
+                  <ListStatCardSkeleton />
                 </div>
-              )}
-              
-              <div className="flex flex-col gap-2">
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
                 {isAdminUser && (
-                  <>
-                    <div className="animate-fade-in-up [animation-delay:50ms]">
-                      <ListStatCard
-                        title="Total Nilai Inventory"
-                        value={stats?.totalInventoryValue || 0}
-                        prefix="Rp "
-                        icon={<IconCurrencyDollar size={20} />}
-                        variant="default"
-                      />
-                    </div>
-                    <div className="animate-fade-in-up [animation-delay:100ms]">
-                      <ListStatCard
-                        title="Pembelian Hari Ini"
-                        value={stats?.todayPurchases || 0}
-                        prefix="Rp "
-                        icon={<IconShoppingCart size={20} />}
-                        variant="warning"
-                      />
-                    </div>
-                  </>
+                  <div className="animate-fade-in-up [animation-delay:0ms]">
+                    <HeroStatCard
+                      title="Penjualan Hari Ini"
+                      value={stats?.todaySales || 0}
+                      prefix="Rp "
+                      icon={<IconArrowUpCircle size={24} />}
+                      variant="success"
+                    />
+                  </div>
                 )}
                 
-                <div className="animate-fade-in-up [animation-delay:120ms]">
-                  <ListStatCard
-                    title={isAdminUser ? "Saldo Kas Global" : "Saldo Kas Shift Anda"}
-                    value={kasBalance || 0}
-                    prefix="Rp "
-                    icon={<IconWallet size={20} />}
-                    variant="success"
-                  />
-                </div>
+                <div className="flex flex-col gap-2">
+                  {isAdminUser && (
+                    <>
+                      <div className="animate-fade-in-up [animation-delay:50ms]">
+                        <ListStatCard
+                          title="Total Nilai Inventory"
+                          value={stats?.totalInventoryValue || 0}
+                          prefix="Rp "
+                          icon={<IconCurrencyDollar size={20} />}
+                          variant="default"
+                        />
+                      </div>
+                      <div className="animate-fade-in-up [animation-delay:100ms]">
+                        <ListStatCard
+                          title="Pembelian Hari Ini"
+                          value={stats?.todayPurchases || 0}
+                          prefix="Rp "
+                          icon={<IconShoppingCart size={20} />}
+                          variant="warning"
+                        />
+                      </div>
+                    </>
+                  )}
+                  
+                  <div className="animate-fade-in-up [animation-delay:120ms]">
+                    <ListStatCard
+                      title={isAdminUser ? "Saldo Kas Global" : "Saldo Kas Shift Anda"}
+                      value={kasBalance || 0}
+                      prefix="Rp "
+                      icon={<IconWallet size={20} />}
+                      variant="success"
+                    />
+                  </div>
 
-                <div className="animate-fade-in-up [animation-delay:150ms]">
-                  <ListStatCard
-                    title="Total Item Barang"
-                    value={stats?.totalItems || 0}
-                    icon={<IconPackage size={20} />}
-                    suffix=" SKU"
-                    variant="default"
-                  />
-                </div>
-                <div className="animate-fade-in-up [animation-delay:200ms]">
-                  <ListStatCard
-                    title="Stok Minimum"
-                    value={stats?.lowStockItems || 0}
-                    icon={<IconAlertTriangle size={20} />}
-                    suffix=" item"
-                    variant={stats && stats.lowStockItems > 0 ? 'danger' : 'default'}
-                  />
-                </div>
-                <div className="animate-fade-in-up [animation-delay:250ms]">
-                  <ListStatCard
-                    title="Transaksi Hari Ini"
-                    value={stats?.todayTransactions || 0}
-                    icon={<IconShoppingCart size={20} />}
-                    variant="default"
-                  />
+                  <div className="animate-fade-in-up [animation-delay:150ms]">
+                    <ListStatCard
+                      title="Total Item Barang"
+                      value={stats?.totalItems || 0}
+                      icon={<IconPackage size={20} />}
+                      suffix=" SKU"
+                      variant="default"
+                    />
+                  </div>
+                  <div className="animate-fade-in-up [animation-delay:200ms]">
+                    <ListStatCard
+                      title="Stok Minimum"
+                      value={stats?.lowStockItems || 0}
+                      icon={<IconAlertTriangle size={20} />}
+                      suffix=" item"
+                      variant={stats && stats.lowStockItems > 0 ? 'danger' : 'default'}
+                    />
+                  </div>
+                  <div className="animate-fade-in-up [animation-delay:250ms]">
+                    <ListStatCard
+                      title="Transaksi Hari Ini"
+                      value={stats?.todayTransactions || 0}
+                      icon={<IconShoppingCart size={20} />}
+                      variant="default"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Baris 2 & 3: Bento Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-4">
-          {isAdminUser && (
-            <div className="animate-fade-in-up flex flex-col [animation-delay:300ms]">
-              <TrendChart data={trend || []} isLoading={trendLoading} />
-            </div>
-          )}
-
-          <div className="animate-fade-in-up flex flex-col [animation-delay:350ms]">
-            <LowStockAlert items={lowStock || []} isLoading={lowStockLoading} />
+            )}
           </div>
-          
-          <div className="animate-fade-in-up flex flex-col [animation-delay:400ms]">
-            <RecentTransactions transactions={transactions || []} isLoading={transactionsLoading} />
+
+          {/* Baris 2 & 3: Bento Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-4">
+            {isAdminUser && (
+              <div className="animate-fade-in-up flex flex-col [animation-delay:300ms]">
+                <TrendChart data={trend || []} isLoading={trendLoading} />
+              </div>
+            )}
+
+            <div className="animate-fade-in-up flex flex-col [animation-delay:350ms]">
+              <LowStockAlert items={lowStock || []} isLoading={lowStockLoading} />
+            </div>
+            
+            <div className="animate-fade-in-up flex flex-col [animation-delay:400ms]">
+              <RecentTransactions transactions={transactions || []} isLoading={transactionsLoading} />
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

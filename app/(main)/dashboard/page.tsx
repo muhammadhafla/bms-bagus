@@ -10,7 +10,9 @@ import {
   IconCurrencyDollar,
   IconAlertTriangle,
   IconWallet,
+  IconArrowDown,
 } from '@tabler/icons-react';
+import PullToRefresh from 'react-simple-pull-to-refresh';
 import { useQuery } from '@tanstack/react-query';
 import { 
   StatCard, 
@@ -23,42 +25,52 @@ import {
   ListStatCardSkeleton
 } from '@/components/dashboard/StatCard';
 import { LowStockAlert } from '@/components/dashboard/LowStockAlert';
-import { TrendChart } from '@/components/dashboard/TrendChart';
+import dynamic from 'next/dynamic';
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
 import { dashboardApi, DashboardStats, LowStockItem, TrendData, RecentTransaction, kasApi } from '@/lib/api';
 import { Card } from '@/components/ui';
 import { MobileLaunchpad } from '@/components/dashboard/MobileLaunchpad';
+
+const TrendChart = dynamic(
+  () => import('@/components/dashboard/TrendChart').then((mod) => mod.TrendChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[350px] rounded-3xl bg-white/50 dark:bg-neutral-900/40 backdrop-blur border border-white/20 dark:border-white/5 animate-pulse" />
+    ),
+  }
+);
 
 function HomeContent() {
   const { user, initialized } = useAuthStore();
   const isAdminUser = useIsAdmin();
   const router = useRouter();
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
     queryKey: ['dashboard', 'stats'],
     queryFn: () => dashboardApi.getStats().then(res => res.data),
     refetchInterval: 300000,
   });
 
-  const { data: lowStock, isLoading: lowStockLoading } = useQuery({
+  const { data: lowStock, isLoading: lowStockLoading, refetch: refetchLowStock } = useQuery({
     queryKey: ['dashboard', 'lowStock'],
     queryFn: () => dashboardApi.getLowStockItems().then(res => res.data),
     refetchInterval: 300000,
   });
 
-  const { data: trend, isLoading: trendLoading } = useQuery({
+  const { data: trend, isLoading: trendLoading, refetch: refetchTrend } = useQuery({
     queryKey: ['dashboard', 'trend'],
     queryFn: () => dashboardApi.get7DayTrend().then(res => res.data),
     refetchInterval: 300000,
   });
 
-  const { data: transactions, isLoading: transactionsLoading } = useQuery({
+  const { data: transactions, isLoading: transactionsLoading, refetch: refetchTx } = useQuery({
     queryKey: ['dashboard', 'transactions'],
     queryFn: () => dashboardApi.getRecentTransactions().then(res => res.data),
     refetchInterval: 300000,
   });
 
-  const { data: kasBalance, isLoading: kasBalanceLoading } = useQuery({
+  const { data: kasBalance, isLoading: kasBalanceLoading, refetch: refetchKas } = useQuery({
     queryKey: ['dashboard', 'kasBalance', isAdminUser ? 'global' : user?.id],
     queryFn: async () => {
       if (isAdminUser) {
@@ -95,17 +107,29 @@ function HomeContent() {
   }
 
   const handleRefresh = async () => {
-    // Invalidate queries or re-fetch them
-    // The easiest way without queryClient is just not doing anything or refetching via window
-    // But since we are using useQuery, they automatically refetch on window focus. 
-    // To trigger manual refetch, we'd need to use queryClient, but we don't have it in scope.
-    // So we'll just wait a bit, React Query refetchInterval is already set to 300000.
-    // This is just a UX delay for the button for now.
-    await new Promise(r => setTimeout(r, 500));
+    await Promise.all([
+      refetchStats(),
+      refetchLowStock(),
+      refetchTrend(),
+      refetchTx(),
+      refetchKas()
+    ]);
   };
 
   return (
-    <>
+    <PullToRefresh
+      onRefresh={handleRefresh}
+      pullingContent={
+        <div className="flex items-center justify-center py-4 text-neutral-400">
+          <IconArrowDown className="w-5 h-5 animate-bounce" />
+        </div>
+      }
+      refreshingContent={
+        <div className="flex items-center justify-center py-4">
+          <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
       {/* Mobile View (Launchpad) */}
       <div className="block lg:hidden">
         <MobileLaunchpad 
@@ -245,7 +269,7 @@ function HomeContent() {
           </div>
         </div>
       </div>
-    </>
+    </PullToRefresh>
   );
 }
 

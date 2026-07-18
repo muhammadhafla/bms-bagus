@@ -29,33 +29,13 @@ function isPublicPath(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
-  const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
-    ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
-    : '*.supabase.co';
-
-  const cspHeader = `
-    default-src 'self';
-    base-uri 'none';
-    object-src 'none';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval';
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' data: https:;
-    connect-src 'self' https://${supabaseHost} wss://${supabaseHost};
-  `.replace(/\s{2,}/g, ' ').trim();
-
-  request.headers.set('x-nonce', nonce);
-  request.headers.set('Content-Security-Policy', cspHeader);
-
   // Lewati path publik — tidak perlu cek session
   if (isPublicPath(pathname)) {
-    const response = NextResponse.next({
+    return NextResponse.next({
       request: {
         headers: request.headers,
       },
     });
-    response.headers.set('Content-Security-Policy', cspHeader);
-    return response;
   }
 
   // Buat response baru untuk menangani cookie refresh
@@ -64,7 +44,6 @@ export async function middleware(request: NextRequest) {
       headers: request.headers,
     },
   });
-  response.headers.set('Content-Security-Policy', cspHeader);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -85,7 +64,6 @@ export async function middleware(request: NextRequest) {
               headers: request.headers,
             }
           });
-          response.headers.set('Content-Security-Policy', cspHeader);
           
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
@@ -104,9 +82,7 @@ export async function middleware(request: NextRequest) {
   // Tidak ada session → redirect ke login atau return 401
   if (error || !user) {
     if (pathname.startsWith('/api/')) {
-      const response = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      response.headers.set('Content-Security-Policy', cspHeader);
-      return response;
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const loginUrl = new URL('/login', request.url);
@@ -116,7 +92,6 @@ export async function middleware(request: NextRequest) {
       : '/dashboard';
     loginUrl.searchParams.set('redirectTo', safeRedirect);
     const redirectResponse = NextResponse.redirect(loginUrl);
-    redirectResponse.headers.set('Content-Security-Policy', cspHeader);
     return redirectResponse;
   }
 

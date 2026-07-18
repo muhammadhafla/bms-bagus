@@ -50,14 +50,20 @@ export function DataTable<T>({
   if (loading) {
     return (
       <div className="overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-        <div className="animate-pulse">
-          <div className="h-12 bg-neutral-100 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-800" />
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-16 border-b border-neutral-100 dark:border-neutral-800 px-4">
-              <div className="h-4 bg-neutral-100 dark:bg-neutral-800 rounded w-full mt-4" />
-            </div>
+        {/* Skeleton header */}
+        <div className="h-12 border-b border-neutral-200 dark:border-neutral-800 px-4 flex items-center gap-4">
+          {[40, 25, 20, 15].map((w, i) => (
+            <div key={i} className={`h-3 rounded-full skeleton-shimmer`} style={{ width: `${w}%` }} />
           ))}
         </div>
+        {/* Skeleton rows */}
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="h-14 border-b border-neutral-100 dark:border-neutral-800 px-4 flex items-center gap-4">
+            <div className="h-3 rounded-full skeleton-shimmer" style={{ width: `${30 + (i * 7) % 40}%` }} />
+            <div className="h-3 rounded-full skeleton-shimmer" style={{ width: `${15 + (i * 11) % 25}%` }} />
+            <div className="h-3 rounded-full skeleton-shimmer ml-auto" style={{ width: '12%' }} />
+          </div>
+        ))}
       </div>
     );
   }

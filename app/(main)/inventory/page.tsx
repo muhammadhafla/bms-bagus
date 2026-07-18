@@ -7,8 +7,9 @@ import { debounce } from '@/lib/utils';
 import { InventoryTable } from '@/components/inventory/InventoryTable';
 import { Button, DataTable, Badge, SelectInput, Tooltip, AmbientLayout, FilterButton } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
-import { IconPackage, IconSearch, IconFilter, IconUpload, IconX } from '@tabler/icons-react';
-import { SlideOver } from '@/components/ui';
+import { IconPackage, IconSearch, IconFilter, IconUpload, IconX, IconArrowDown } from '@tabler/icons-react';
+import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
+import PullToRefresh from 'react-simple-pull-to-refresh';
 import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
 import CheckboxInput from '@/components/ui/CheckboxInput';
 import { API_ERROR_MESSAGES, UI_MESSAGES, INVENTORY_MESSAGES } from '@/lib/constants';
@@ -131,7 +132,22 @@ export default function InventoryPage() {
 
   return (
     <ErrorBoundary>
-      <AmbientLayout>
+      <PullToRefresh
+        onRefresh={async () => {
+          await refetch();
+        }}
+        pullingContent={
+          <div className="flex items-center justify-center py-4 text-neutral-400">
+            <IconArrowDown className="w-5 h-5 animate-bounce" />
+          </div>
+        }
+        refreshingContent={
+          <div className="flex items-center justify-center py-4">
+            <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
+        <AmbientLayout>
       {showShortcutsHelp && (
         <Portal>
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-neutral-900/60 animate-fade-in" onClick={() => setShowShortcutsHelp(false)}>
@@ -243,7 +259,7 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      <SlideOver isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filter Inventory">
+      <ResponsivePanel isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filter Inventory">
         <div className="space-y-6">
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Kategori:</label>
@@ -297,7 +313,7 @@ export default function InventoryPage() {
             </Button>
           </div>
         </div>
-      </SlideOver>
+      </ResponsivePanel>
 
       <div className="flex-1">
         {loading ? (
@@ -374,7 +390,8 @@ export default function InventoryPage() {
           refetch();
         }}
       />
-      </AmbientLayout>
+        </AmbientLayout>
+      </PullToRefresh>
     </ErrorBoundary>
   );
 }

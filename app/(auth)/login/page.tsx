@@ -1,102 +1,18 @@
-'use client';
-
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
-import { IconLock, IconMail, IconMoon, IconSun, IconEye, IconEyeOff, IconUser } from '@tabler/icons-react';
-import { useDarkMode } from '@/components/DarkModeProvider';
 import Image from 'next/image';
-import TextInput from '@/components/ui/TextInput';
-import { Button } from '@/components/ui';
+import { LoginForm } from './LoginForm';
+import { ThemeToggle } from './ThemeToggle';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Login',
+  description: 'Masuk ke BMS Bagus Management System',
+};
 
 export default function LoginPage() {
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [identifierError, setIdentifierError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const { signIn, loading, user } = useAuthStore();
-  const router = useRouter();
-  const identifierInputRef = useRef<HTMLInputElement>(null);
-  const { theme, toggleTheme } = useDarkMode();
-
-  useEffect(() => {
-    if (user) {
-      router.push('/dashboard');
-    }
-  }, [user, router]);
-
-  useEffect(() => {
-    identifierInputRef.current?.focus();
-  }, []);
-
-  const validateForm = () => {
-    let isValid = true;
-    setIdentifierError('');
-    setPasswordError('');
-
-    if (!identifier) {
-      setIdentifierError('Email atau Username wajib diisi');
-      isValid = false;
-    } else if (identifier.includes('@') && !/\S+@\S+\.\S+/.test(identifier)) {
-      setIdentifierError('Format email tidak valid');
-      isValid = false;
-    }
-
-    if (!password) {
-      setPasswordError('Password wajib diisi');
-      isValid = false;
-    } else if (password.length < 6) {
-      setPasswordError('Password minimal 6 karakter');
-      isValid = false;
-    }
-
-    return isValid;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!validateForm()) {
-      return;
-    }
-
-    let loginEmail = identifier.trim();
-
-    // Resolve username to email if it's not an email
-    if (!loginEmail.includes('@')) {
-      const { data, error: resolveError } = await supabase.rpc('resolve_username', {
-        p_username: loginEmail.toLowerCase()
-      });
-
-      if (resolveError || !data) {
-        setError('Email/username atau password salah');
-        return;
-      }
-      loginEmail = data;
-    }
-
-    const result = await signIn(loginEmail, password);
-    if (result.success) {
-      router.push('/dashboard');
-    } else {
-      setError(result.error?.includes('Invalid') ? 'Email/username atau password salah' : result.error || 'Login gagal');
-    }
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
       {/* Theme Toggle */}
-      <button
-        onClick={toggleTheme}
-        className="absolute top-4 right-4 p-2.5 rounded-xl bg-white dark:bg-neutral-900 shadow-elevated border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:border-neutral-300 dark:hover:border-neutral-700 transition-all btn-press z-10"
-        aria-label={theme === 'light' ? 'Aktifkan Mode Gelap' : 'Aktifkan Mode Terang'}
-      >
-        {theme === 'light' ? <IconMoon className="w-5 h-5" /> : <IconSun className="w-5 h-5" />}
-      </button>
+      <ThemeToggle />
       
       {/* Background pattern */}
       <div className="absolute inset-0 bg-gradient-to-br from-neutral-50 via-neutral-100 to-neutral-50 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950" />
@@ -107,97 +23,17 @@ export default function LoginPage() {
       <div className="relative w-full max-w-md px-4">
         <div className="bg-white dark:bg-neutral-900 rounded-3xl shadow-elevated border border-neutral-200 dark:border-neutral-800 p-8 animate-scale-in">
           <div className="text-center mb-8">
-            <div className="relative inline-flex items-center justify-center w-24 h-24 mb-3 dark:bg-white dark:rounded-3xl dark:shadow-md transition-all">
-              <Image src="/images/logo.png" alt="BMS Logo" fill className="object-contain dark:p-3" />
-            </div>
+            <div className="relative inline-flex items-center justify-center mx-auto w-24 h-24 mb-3 dark:bg-white dark:rounded-3xl dark:shadow-md transition-all p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src="/images/logo.svg" 
+              alt="BMS Bagus" 
+              className="w-full h-full object-contain"
+            />
+          </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <div className="bg-accent-rose-50 dark:bg-accent-rose-950/50 text-accent-rose-600 dark:text-accent-rose-400 p-4 rounded-xl text-sm border border-accent-rose-200 dark:border-accent-rose-800 animate-fade-in" role="alert">
-                {error}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <label htmlFor="identifier" className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                Email atau Username
-              </label>
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
-                  <IconUser size={18} />
-                </div>
-                <input
-                  ref={identifierInputRef}
-                  id="identifier"
-                  type="text"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  className={`w-full pl-11 pr-4 py-3.5 rounded-xl border-2 outline-none transition-all btn-press ${
-                    identifierError 
-                      ? 'border-accent-rose-400 focus:border-accent-rose-500 focus:shadow-[0_0_0_4px_rgba(244,63,94,0.15)]' 
-                      : 'border-neutral-200 dark:border-neutral-700 focus:border-brand-500 focus:shadow-brand'
-                  } bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400`}
-                  placeholder="email atau username"
-                  required
-                  autoComplete="username"
-                  aria-invalid={!!identifierError}
-                  aria-describedby={identifierError ? 'identifier-error' : undefined}
-                />
-              </div>
-              {identifierError && (
-                <p id="identifier-error" className="text-sm text-accent-rose-600 dark:text-accent-rose-400">{identifierError}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="password" className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
-                  <IconLock size={18} />
-                </div>
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full pl-11 pr-12 py-3.5 rounded-xl border-2 outline-none transition-all btn-press ${
-                    passwordError 
-                      ? 'border-accent-rose-400 focus:border-accent-rose-500 focus:shadow-[0_0_0_4px_rgba(244,63,94,0.15)]' 
-                      : 'border-neutral-200 dark:border-neutral-700 focus:border-brand-500 focus:shadow-brand'
-                  } bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400`}
-                  placeholder="••••••••"
-                  required
-                  autoComplete="current-password"
-                  aria-invalid={!!passwordError}
-                  aria-describedby={passwordError ? 'password-error' : undefined}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
-                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
-                >
-                  {showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}
-                </button>
-              </div>
-              {passwordError && (
-                <p id="password-error" className="text-sm text-accent-rose-600 dark:text-accent-rose-400">{passwordError}</p>
-              )}
-            </div>
-
-            <Button
-              type="submit"
-              disabled={loading}
-              fullWidth
-              size="lg"
-              variant="primary"
-            >
-              {loading ? 'Memuat...' : 'Masuk'}
-            </Button>
-          </form>
+          <LoginForm />
         </div>
       </div>
     </div>

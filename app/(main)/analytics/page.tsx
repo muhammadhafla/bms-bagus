@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { analyticsApi, kategoriApi } from '@/lib/api';
@@ -9,18 +10,96 @@ import { DateRangePicker, Tabs, SelectInput, SlideOver, Button, FilterButton } f
 import { AdminOnly } from '@/components/role';
 import { formatDateForInputWIB } from '@/lib/utils';
 
-import { BusiestTimeChart } from '@/components/analytics/BusiestTimeChart';
-import { CategoryPieChart } from '@/components/analytics/CategoryPieChart';
-import { PaymentMethodChart } from '@/components/analytics/PaymentMethodChart';
-import { StockVelocityTable } from '@/components/analytics/StockVelocityTable';
-import { ProfitabilityAndAtvCards } from '@/components/analytics/ProfitabilityAndAtvCards';
+const BusiestTimeChart = dynamic(
+  () => import('@/components/analytics/BusiestTimeChart').then((mod) => mod.BusiestTimeChart),
+  {
+    ssr: false,
+    loading: () => <div className="h-72 md:h-[420px] rounded-3xl bg-white/70 dark:bg-neutral-900/60 border border-white/40 dark:border-white/10 animate-pulse" />,
+  }
+);
 
-import { StockReportTab } from './tabs/StockReportTab';
-import { SalesReportTab } from './tabs/SalesReportTab';
-import { ProfitReportTab } from './tabs/ProfitReportTab';
-import { TopItemsReportTab } from './tabs/TopItemsReportTab';
-import { ValueReportTab } from './tabs/ValueReportTab';
-import { ReturnsReportTab } from './tabs/ReturnsReportTab';
+const CategoryPieChart = dynamic(
+  () => import('@/components/analytics/CategoryPieChart').then((mod) => mod.CategoryPieChart),
+  {
+    ssr: false,
+    loading: () => <div className="h-[280px] md:h-[360px] rounded-3xl bg-white/70 dark:bg-neutral-900/60 border border-white/40 dark:border-white/10 animate-pulse" />,
+  }
+);
+
+const PaymentMethodChart = dynamic(
+  () => import('@/components/analytics/PaymentMethodChart').then((mod) => mod.PaymentMethodChart),
+  {
+    ssr: false,
+    loading: () => <div className="h-[280px] md:h-[360px] rounded-3xl bg-white/70 dark:bg-neutral-900/60 border border-white/40 dark:border-white/10 animate-pulse" />,
+  }
+);
+
+const StockVelocityTable = dynamic(
+  () => import('@/components/analytics/StockVelocityTable').then((mod) => mod.StockVelocityTable),
+  {
+    ssr: false,
+    loading: () => <div className="h-[300px] rounded-3xl bg-white/70 dark:bg-neutral-900/60 border border-white/40 dark:border-white/10 animate-pulse" />,
+  }
+);
+
+const ProfitabilityAndAtvCards = dynamic(
+  () => import('@/components/analytics/ProfitabilityAndAtvCards').then((mod) => mod.ProfitabilityAndAtvCards),
+  {
+    ssr: false,
+    loading: () => <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
+      <div className="h-40 rounded-3xl bg-white/70 dark:bg-neutral-900/60 border border-white/40 dark:border-white/10" />
+      <div className="h-40 rounded-3xl bg-white/70 dark:bg-neutral-900/60 border border-white/40 dark:border-white/10" />
+    </div>,
+  }
+);
+
+const StockReportTab = dynamic(
+  () => import('./tabs/StockReportTab').then((mod) => mod.StockReportTab),
+  {
+    ssr: false,
+    loading: () => <div className="p-8 text-center text-neutral-500">Memuat laporan stock...</div>,
+  }
+);
+
+const SalesReportTab = dynamic(
+  () => import('./tabs/SalesReportTab').then((mod) => mod.SalesReportTab),
+  {
+    ssr: false,
+    loading: () => <div className="p-8 text-center text-neutral-500">Memuat laporan penjualan...</div>,
+  }
+);
+
+const ProfitReportTab = dynamic(
+  () => import('./tabs/ProfitReportTab').then((mod) => mod.ProfitReportTab),
+  {
+    ssr: false,
+    loading: () => <div className="p-8 text-center text-neutral-500">Memuat laporan profit...</div>,
+  }
+);
+
+const TopItemsReportTab = dynamic(
+  () => import('./tabs/TopItemsReportTab').then((mod) => mod.TopItemsReportTab),
+  {
+    ssr: false,
+    loading: () => <div className="p-8 text-center text-neutral-500">Memuat laporan top items...</div>,
+  }
+);
+
+const ValueReportTab = dynamic(
+  () => import('./tabs/ValueReportTab').then((mod) => mod.ValueReportTab),
+  {
+    ssr: false,
+    loading: () => <div className="p-8 text-center text-neutral-500">Memuat laporan nilai...</div>,
+  }
+);
+
+const ReturnsReportTab = dynamic(
+  () => import('./tabs/ReturnsReportTab').then((mod) => mod.ReturnsReportTab),
+  {
+    ssr: false,
+    loading: () => <div className="p-8 text-center text-neutral-500">Memuat laporan retur...</div>,
+  }
+);
 
 type ReportType = 'overview' | 'stock' | 'sales' | 'profit' | 'top_items' | 'value' | 'returns';
 

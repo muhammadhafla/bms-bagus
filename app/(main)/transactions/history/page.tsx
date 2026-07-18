@@ -2,13 +2,33 @@
 
 import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { IconHistory, IconFilter, IconX, IconShoppingCart, IconPackage, IconArrowBackUp } from '@tabler/icons-react';
-import { AmbientLayout, DateRangePicker, Tabs, SlideOver, Button, FilterButton } from '@/components/ui';
+import { IconHistory, IconFilter, IconX, IconShoppingCart, IconPackage, IconArrowBackUp, IconArrowDown } from '@tabler/icons-react';
+import { AmbientLayout, DateRangePicker, Tabs, Button, FilterButton } from '@/components/ui';
+import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
+import PullToRefresh from 'react-simple-pull-to-refresh';
+import { useQueryClient } from '@tanstack/react-query';
 
-import { RiwayatPenjualanTab } from '@/components/transactions/RiwayatPenjualanTab';
-import { RiwayatPembelianTab } from '@/components/transactions/RiwayatPembelianTab';
-import { RiwayatReturPenjualanTab } from '@/components/transactions/RiwayatReturPenjualanTab';
-import { RiwayatReturPembelianTab } from '@/components/transactions/RiwayatReturPembelianTab';
+import dynamic from 'next/dynamic';
+
+const RiwayatPenjualanTab = dynamic(
+  () => import('@/components/transactions/RiwayatPenjualanTab').then(m => m.RiwayatPenjualanTab),
+  { ssr: false, loading: () => <div className="h-[400px] rounded-2xl bg-neutral-100 dark:bg-neutral-900 animate-pulse" /> }
+);
+
+const RiwayatPembelianTab = dynamic(
+  () => import('@/components/transactions/RiwayatPembelianTab').then(m => m.RiwayatPembelianTab),
+  { ssr: false, loading: () => <div className="h-[400px] rounded-2xl bg-neutral-100 dark:bg-neutral-900 animate-pulse" /> }
+);
+
+const RiwayatReturPenjualanTab = dynamic(
+  () => import('@/components/transactions/RiwayatReturPenjualanTab').then(m => m.RiwayatReturPenjualanTab),
+  { ssr: false, loading: () => <div className="h-[400px] rounded-2xl bg-neutral-100 dark:bg-neutral-900 animate-pulse" /> }
+);
+
+const RiwayatReturPembelianTab = dynamic(
+  () => import('@/components/transactions/RiwayatReturPembelianTab').then(m => m.RiwayatReturPembelianTab),
+  { ssr: false, loading: () => <div className="h-[400px] rounded-2xl bg-neutral-100 dark:bg-neutral-900 animate-pulse" /> }
+);
 import { useAuthStore, useIsAdmin } from '@/lib/auth';
 
 type HistoryType = 'penjualan' | 'pembelian' | 'retur_penjualan' | 'retur_pembelian';
@@ -26,6 +46,7 @@ function TransactionsHistoryContent() {
   const router = useRouter();
   const pathname = usePathname();
   const historyType = (searchParams.get('type') as HistoryType) || 'penjualan';
+  const queryClient = useQueryClient();
 
   const setHistoryType = (type: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -91,7 +112,22 @@ function TransactionsHistoryContent() {
   const activeFilters = getActiveFilters();
 
   return (
-    <AmbientLayout>
+    <PullToRefresh
+      onRefresh={async () => {
+        await queryClient.invalidateQueries();
+      }}
+      pullingContent={
+        <div className="flex items-center justify-center py-4 text-neutral-400">
+          <IconArrowDown className="w-5 h-5 animate-bounce" />
+        </div>
+      }
+      refreshingContent={
+        <div className="flex items-center justify-center py-4">
+          <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <AmbientLayout>
       <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)] lg:min-h-0">
         <div>
           <div className="flex flex-row items-start justify-between gap-3 mb-5 animate-fade-in-up">
@@ -132,7 +168,7 @@ function TransactionsHistoryContent() {
           ))}
         </div>
 
-        <SlideOver isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filter Riwayat">
+        <ResponsivePanel isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filter Riwayat">
           <div className="space-y-6">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Pencarian</label>
@@ -171,7 +207,7 @@ function TransactionsHistoryContent() {
               </Button>
             </div>
           </div>
-        </SlideOver>
+        </ResponsivePanel>
 
         <div className="flex-1 min-h-0 flex flex-col animate-fade-in-up">
           {historyType === 'penjualan' ? (
@@ -186,5 +222,6 @@ function TransactionsHistoryContent() {
         </div>
       </div>
     </AmbientLayout>
+    </PullToRefresh>
   );
 }

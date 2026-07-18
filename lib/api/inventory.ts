@@ -2,8 +2,10 @@ import { supabase } from './client';
 import { safeQuery } from './utils';
 import { stringSimilarity } from '@/lib/utils';
 import { InventoryItem } from '@/types/inventory';
+import Fuse from 'fuse.js';
 
-
+let cachedFuse: Fuse<InventoryItem> | null = null;
+let cachedInventoryList: InventoryItem[] | null = null;
 
 export const inventoryApi = {
   async getAll() {
@@ -132,35 +134,36 @@ export const inventoryApi = {
 
     if (!inventoryList || inventoryList.length === 0) return { data: [], error: null };
     
-    const scoredItems: Array<InventoryItem & { similarity: number }> = inventoryList
-      .map((item: InventoryItem) => {
-        const nameLower = item.nama_barang.toLowerCase();
-        const barcodeLower = (item.kode_barcode || '').toLowerCase();
-        
-        let similarity = Math.max(
-          stringSimilarity(queryLower, nameLower),
-          stringSimilarity(queryLower, barcodeLower)
-        );
-        
-        // Bonus for substring matches to fix "1 word no result" issue
-        if (nameLower.includes(queryLower) || barcodeLower.includes(queryLower)) {
-          similarity = Math.max(similarity, 85);
-        }
-        
-        // Bonus for exact startsWith
-        if (nameLower.startsWith(queryLower) || barcodeLower.startsWith(queryLower)) {
-          similarity = Math.max(similarity, 95);
-        }
-        
-        return {
-          ...item,
-          similarity
-        };
-      })
-      .filter((item: InventoryItem & { similarity: number }) => item.similarity >= 50)
-      .sort((a, b) => b.similarity - a.similarity);
+    const options = {
+      keys: [
+        { name: 'kode_barcode', weight: 2.0 },
+        { name: 'nama_barang', weight: 1.0 }
+      ],
+      includeScore: true,
+      threshold: 0.4,
+      ignoreLocation: true,
+    };
     
-    return { data: scoredItems.slice(0, limit), error: null };
+    let fuse: Fuse<InventoryItem>;
+    if (cachedFuse && cachedInventoryList === inventoryList) {
+      fuse = cachedFuse;
+    } else {
+      fuse = new Fuse(inventoryList, options);
+      cachedFuse = fuse;
+      cachedInventoryList = inventoryList;
+    }
+    
+    const results = fuse.search(queryLower);
+    
+    const scoredItems: Array<InventoryItem & { similarity: number }> = results
+      .map(result => ({
+        ...result.item,
+        // fuse.js score is 0 for perfect match, 1 for complete mismatch
+        similarity: Math.round((1 - (result.score || 0)) * 100)
+      }))
+      .slice(0, limit);
+    
+    return { data: scoredItems, error: null };
   },
 
   async getByExactBarcode(barcode: string) {

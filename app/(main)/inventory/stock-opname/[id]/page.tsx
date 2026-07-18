@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { debounce, formatDateWIB } from '@/lib/utils';
+import { debounce, formatDateWIB, normalizeBarcode } from '@/lib/utils';
 import { StockOpname, StockOpnameItem, stockOpnameApi } from '@/lib/api/stockOpname';
 import { stockAdjustmentApi } from '@/lib/api/stockAdjustment';
 import { inventoryApi } from '@/lib/api';
@@ -175,6 +175,45 @@ export default function StockOpnameDetailPage() {
     () => debounce((query: string, currentItems: StockOpnameItem[], allInventory: import('@/types/inventory').InventoryItem[]) => handleSearchInventory(query, currentItems, allInventory), 300),
     []
   );
+
+  useEffect(() => {
+    if (searchSelectedIndex >= 0) {
+      const el = document.getElementById(`search-item-${searchSelectedIndex}`);
+      if (el) {
+        el.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [searchSelectedIndex]);
+
+  const handleBarcodeSubmit = async (input: string) => {
+    const normalized = normalizeBarcode(input);
+    if (!normalized) return;
+    
+    const existingIds = items.map(i => i.inventory_id);
+    
+    // Check exact barcode
+    const exactResult = await inventoryApi.getByExactBarcode(normalized);
+    if (exactResult.data && !existingIds.includes(exactResult.data.id)) {
+      addItemToOpname(exactResult.data);
+      return;
+    } else if (exactResult.data && existingIds.includes(exactResult.data.id)) {
+      addToast({ type: 'info', message: 'Barang sudah ada di daftar opname' });
+      return;
+    }
+    
+    // Check fuzzy match for 100% similarity (e.g. exact name match)
+    const fuzzyResult = await inventoryApi.fuzzySearch(normalized, inventoryData || []);
+    if (fuzzyResult.data && fuzzyResult.data.length > 0) {
+      const fuzzyItems = fuzzyResult.data as Array<import('@/types/inventory').InventoryItem & { similarity: number }>;
+      const exactMatch = fuzzyItems.find(item => item.similarity === 100 && !existingIds.includes(item.id));
+      if (exactMatch) {
+        addItemToOpname(exactMatch);
+        return;
+      }
+    }
+    
+    addToast({ type: 'error', message: 'Barang tidak ditemukan atau sudah ditambahkan.' });
+  };
 
   const addItemToOpname = async (inventory: import('@/types/inventory').InventoryItem) => {
     // Segera tutup dropdown dan reset input untuk mencegah race condition
@@ -444,12 +483,10 @@ return (
           <div className="sticky top-[72px] z-40 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl p-2 rounded-2xl border border-white/40 dark:border-white/10 shadow-sm flex flex-col lg:flex-row gap-3 lg:gap-4 mb-6">
             <form onSubmit={(e) => {
               e.preventDefault();
-              if (inventorySearchResults.length > 0) {
-                addItemToOpname(inventorySearchResults[0]);
-              }
+              handleBarcodeSubmit(searchAdd);
             }} className="relative flex-1 max-w-xl">
-              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 p-1.5 rounded-lg">
-                <IconBarcode size={20} />
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 z-10 pointer-events-none">
+                <IconBarcode size={22} />
               </div>
               <input
                 ref={addSearchRef}
@@ -461,7 +498,9 @@ return (
                   setSearchSelectedIndex(-1);
                   debouncedSearch(e.target.value, items, inventoryData || []);
                 }}
-                onFocus={() => searchAdd.length >= 2 && debouncedSearch(searchAdd, items, inventoryData || [])}
+                onFocus={() => {
+                  if (searchAdd.length >= 2 && inventorySearchResults.length > 0) setShowAddDropdown(true);
+                }}
                 onBlur={() => setTimeout(() => setShowAddDropdown(false), 200)}
                 onKeyDown={(e) => {
                   if (!showAddDropdown) return;
@@ -475,26 +514,27 @@ return (
                     e.preventDefault();
                     if (searchSelectedIndex >= 0 && searchSelectedIndex < inventorySearchResults.length) {
                       addItemToOpname(inventorySearchResults[searchSelectedIndex]);
-                    } else if (inventorySearchResults.length > 0) {
-                      addItemToOpname(inventorySearchResults[0]);
+                    } else {
+                      handleBarcodeSubmit(searchAdd);
                     }
                   }
                 }}
-                className="w-full pl-12 pr-4 py-3 bg-white dark:bg-neutral-900 border-2 border-brand-200 dark:border-brand-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-brand-500/20 focus:border-brand-500 shadow-sm text-sm sm:text-base transition-all font-medium placeholder:font-normal"
+                className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-neutral-900 backdrop-blur-md border border-neutral-200 dark:border-neutral-700 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 transition-all text-base lg:text-lg"
               />
-              {showAddDropdown && inventorySearchResults.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg max-h-[40vh] md:max-h-64 overflow-auto">
+              {showAddDropdown && searchAdd.length >= 2 && inventorySearchResults.length > 0 && (
+                <div className="absolute z-20 w-full mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl max-h-[40vh] md:max-h-64 overflow-auto">
                   {inventorySearchResults.map((inventory, idx) => (
                     <button
                       key={inventory.id}
+                      id={`search-item-${idx}`}
                       onClick={() => addItemToOpname(inventory)}
                       className={`w-full px-4 py-2 text-left hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex justify-between items-center ${searchSelectedIndex === idx ? 'bg-neutral-50 dark:bg-neutral-800' : ''}`}
                     >
                       <div>
                         <div className="font-medium text-neutral-900 dark:text-neutral-100">{inventory.nama_barang}</div>
-                        <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">{inventory.kode_barcode || 'Tanpa barcode'} | Stok: {inventory.stok}</div>
+                        <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono mt-0.5">{inventory.kode_barcode || 'Tanpa barcode'} | Stok Sistem: {inventory.stok}</div>
                       </div>
-                      <div className="text-xs bg-success-100 dark:bg-success-900/40 text-success-700 dark:text-success-300 px-2 py-1 rounded-full">
+                      <div className="text-xs bg-success-100 dark:bg-success-900/40 text-success-700 dark:text-success-300 px-2 py-1 rounded-full whitespace-nowrap ml-2">
                         {inventory.similarity}% cocok
                       </div>
                     </button>
@@ -502,6 +542,8 @@ return (
                 </div>
               )}
             </form>
+            
+            <div className="flex gap-2 w-full lg:w-auto mt-3 lg:mt-0 lg:ml-auto">
             
             {items.length > 0 && (
               <div className="relative flex-1 max-w-md">
@@ -518,6 +560,7 @@ return (
               </div>
             )}
           </div>
+        </div>
         )}
 
           {hasInvalidItems && (

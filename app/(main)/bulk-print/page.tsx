@@ -156,6 +156,15 @@ export default function BulkPrintPage() {
   }, [focusInput]);
 
   useEffect(() => {
+    if (searchSelectedIndex >= 0) {
+      const el = document.getElementById(`search-item-${searchSelectedIndex}`);
+      if (el) {
+        el.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [searchSelectedIndex]);
+
+  useEffect(() => {
     if (error) {
       const timer = setTimeout(() => setError(null), 3000);
       return () => clearTimeout(timer);
@@ -186,11 +195,6 @@ export default function BulkPrintPage() {
         return;
       }
       
-      if (inventorySearchResults.length > 0) {
-        handleAddResolvedItem(inventorySearchResults[0]);
-        return;
-      }
-      
       const fuzzyResult = await inventoryApi.fuzzySearch(normalized, inventoryData || []);
       
       if (fuzzyResult.data && fuzzyResult.data.length > 0) {
@@ -199,11 +203,6 @@ export default function BulkPrintPage() {
         
         if (exactMatch) {
           handleAddResolvedItem(exactMatch);
-          return;
-        }
-        
-        if (fuzzyItems[0].similarity >= 80) {
-          handleAddResolvedItem(fuzzyItems[0]);
           return;
         }
       }
@@ -216,7 +215,7 @@ export default function BulkPrintPage() {
       setError('Terjadi kesalahan saat memproses barcode');
       setLoading(false);
     }
-  }, [loading, submitting, handleAddResolvedItem, inventoryData, inventorySearchResults]);
+  }, [loading, submitting, handleAddResolvedItem, inventoryData]);
 
   const handleSubmit = useCallback(async () => {
     if (items.length === 0) return;
@@ -354,7 +353,7 @@ export default function BulkPrintPage() {
                   debouncedSearch(e.target.value, inventoryData || []);
                 }}
                 onFocus={() => {
-                  if (inventorySearchResults.length > 0) setShowAddDropdown(true);
+                  if (barcodeInput.length >= 2 && inventorySearchResults.length > 0) setShowAddDropdown(true);
                 }}
                 onBlur={() => {
                   setTimeout(() => setShowAddDropdown(false), 200);
@@ -380,11 +379,12 @@ export default function BulkPrintPage() {
                 className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-neutral-900 backdrop-blur-md border border-neutral-200 dark:border-neutral-700 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 transition-all text-base lg:text-lg"
                 autoFocus
               />
-              {showAddDropdown && inventorySearchResults.length > 0 && (
+              {showAddDropdown && barcodeInput.length >= 2 && inventorySearchResults.length > 0 && (
                 <div className="absolute z-20 w-full mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl max-h-[40vh] md:max-h-64 overflow-auto">
                   {inventorySearchResults.map((inventory, idx) => (
                     <button
                       key={inventory.id}
+                      id={`search-item-${idx}`}
                       type="button"
                       onClick={() => handleAddResolvedItem(inventory)}
                       className={`w-full px-4 py-3 text-left hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex justify-between items-center border-b border-neutral-100 dark:border-neutral-800 last:border-0 ${searchSelectedIndex === idx ? 'bg-neutral-50 dark:bg-neutral-800' : ''}`}

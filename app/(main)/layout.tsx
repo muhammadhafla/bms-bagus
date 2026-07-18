@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, Suspense } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -8,9 +8,13 @@ import { useAuthStore, useIsAdmin } from '@/lib/auth';
 import { usePresenceStore } from '@/lib/presence';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useDarkMode } from '@/components/DarkModeProvider';
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 import Tooltip from '@/components/ui/Tooltip';
 import BottomNav from '@/components/ui/BottomNav';
+import { InstallBanner } from '@/components/ui/InstallBanner';
+import { UpdateBanner } from '@/components/ui/UpdateBanner';
+import { AuthProvider } from "@/components/AuthProvider";
+import { QueryProvider } from "@/components/QueryProvider";
 import {
   IconLayoutDashboard,
   IconPackage,
@@ -103,7 +107,7 @@ function SidebarLink({ href, title, icon: Icon, isActive, sidebarCollapsed }: Si
   return link;
 }
 
-export default function MainLayout({
+export function MainLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -220,20 +224,7 @@ export default function MainLayout({
     setAutoHideEnabled((prev: boolean) => !prev);
   }, [setAutoHideEnabled]);
 
-   if (!initialized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-950 dark:to-neutral-900">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-neutral-500 dark:text-neutral-400">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
-  if (!user) {
-    return null;
-  }
 
   return (
     <div className="flex min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
@@ -269,7 +260,7 @@ export default function MainLayout({
           <div className={`p-4 flex items-center ${isSidebarVisible ? 'justify-between' : 'justify-center'}`}>
             <Link href="/" className={`flex items-center ${isSidebarVisible ? 'gap-3' : 'gap-0'} ${!isSidebarVisible ? 'lg:justify-center' : ''}`}>
               <div className={`relative flex items-center justify-center transition-all ${!isSidebarVisible && autoHideEnabled ? 'lg:w-6 lg:h-6' : 'w-10 h-10'} dark:bg-white dark:rounded-xl`}>
-                <Image src="/images/logo.png" alt="BMS Logo" fill className="object-contain dark:p-1.5" />
+                <Image src="/images/logo.svg" alt="BMS Logo" fill sizes="(max-width: 1023px) 24px, 40px" priority className="object-contain dark:p-1.5" />
               </div>
 
             </Link>
@@ -564,12 +555,51 @@ export default function MainLayout({
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${contentMargin} p-0 lg:p-3`}>
         {/* Page content */}
         <main className="flex-1 overflow-auto bg-white dark:bg-neutral-900 rounded-none lg:rounded-[2rem] shadow-none lg:shadow-sm border-0 lg:border border-neutral-200/50 dark:border-neutral-800/50 p-4 lg:p-6 relative pb-24 lg:pb-6">
-          {children}
+          <UpdateBanner />
+          <InstallBanner />
+          <Suspense fallback={
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+              <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+              <p className="text-neutral-500 dark:text-neutral-400">Memuat halaman...</p>
+            </div>
+          }>
+            {children}
+          </Suspense>
         </main>
       </div>
 
       {/* Bottom Navigation for Mobile */}
       <BottomNav />
+      {/* Mobile: top-center */}
+      <Toaster
+        richColors
+        position="top-center"
+        toastOptions={{
+          classNames: {
+            toast: 'lg:hidden',
+          }
+        }}
+      />
+      {/* Desktop: bottom-right */}
+      <Toaster
+        richColors
+        position="bottom-right"
+        toastOptions={{
+          classNames: {
+            toast: 'hidden lg:flex',
+          }
+        }}
+      />
     </div>
+  );
+}
+
+export default function MainLayoutWithProviders({ children }: { children: React.ReactNode }) {
+  return (
+    <QueryProvider>
+      <AuthProvider>
+        <MainLayout>{children}</MainLayout>
+      </AuthProvider>
+    </QueryProvider>
   );
 }

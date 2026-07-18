@@ -1,0 +1,1 @@
+(()=>{"use strict";self.addEventListener("message",function(e){e.data&&"SKIP_WAITING"===e.data.type&&self.skipWaiting()})})();

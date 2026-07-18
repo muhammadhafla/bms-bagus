@@ -1,7 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useViewTransition } from '@/hooks/useViewTransition';
+import { useHaptic } from '@/hooks/useHaptic';
 import { useIsAdmin } from '@/lib/auth';
 import { 
   IconHome, 
@@ -16,6 +17,8 @@ import {
 export default function BottomNav() {
   const pathname = usePathname();
   const isAdminUser = useIsAdmin();
+  const { navigate } = useViewTransition();
+  const haptic = useHaptic();
 
   // Hide BottomNav on specific pages that have their own bottom action areas or need full screen
   const isPurchasing = pathname === '/purchasing';
@@ -71,9 +74,12 @@ export default function BottomNav() {
           const Icon = item.icon;
           
           return (
-            <Link
+            <button
               key={item.title}
-              href={item.href}
+              onClick={() => {
+                haptic.light();
+                navigate(item.href);
+              }}
               className={`flex flex-col items-center justify-center w-full h-full space-y-1 select-none active:scale-95 transition-transform ${
                 isActive 
                   ? 'text-brand-600 dark:text-brand-400' 
@@ -86,7 +92,7 @@ export default function BottomNav() {
               <span className={`text-[10px] ${isActive ? 'font-semibold' : 'font-medium'}`}>
                 {item.title}
               </span>
-            </Link>
+            </button>
           );
         })}
       </div>

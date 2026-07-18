@@ -2,11 +2,9 @@ import type { Viewport } from "next";
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "sonner";
-import { AuthProvider } from "@/components/AuthProvider";
 import { DarkModeProvider } from "@/components/DarkModeProvider";
-import { QueryProvider } from "@/components/QueryProvider";
 import { headers } from "next/headers";
+import { OfflineIndicator } from "@/components/ui/OfflineIndicator";
 
 const poppins = Poppins({
   weight: ['400', '500', '600', '700'],
@@ -18,6 +16,7 @@ const poppins = Poppins({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
     { media: '(prefers-color-scheme: dark)', color: '#121212' },
@@ -25,11 +24,22 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "BMS - Bagus Management System",
-  description: "Admin aplikasi manajemen inventory",
+  title: {
+    template: '%s | BMS Bagus',
+    default: 'BMS - Bagus Management System',
+  },
+  description: "Aplikasi manajemen inventory yang komprehensif, efisien, dan mudah digunakan untuk memonitor stok barang, melacak riwayat transaksi, serta menghasilkan laporan bisnis secara real-time.",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon.ico' }
+    ],
     apple: "/icon-192x192.png",
+  },
+  robots: {
+    index: false,
+    follow: false,
   },
 };
 
@@ -44,6 +54,9 @@ export default async function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning className="light">
       <head>
+        {process.env.NEXT_PUBLIC_SUPABASE_URL && (
+          <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} crossOrigin="anonymous" />
+        )}
         <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{
           __html: `
             try {
@@ -56,14 +69,10 @@ export default async function RootLayout({
         }} />
       </head>
       <body className={`${poppins.className} min-h-screen transition-colors`}>
-        <QueryProvider>
-          <AuthProvider>
-            <DarkModeProvider>
-              {children}
-              <Toaster richColors position="bottom-right" />
-            </DarkModeProvider>
-          </AuthProvider>
-        </QueryProvider>
+        <DarkModeProvider>
+          {children}
+          <OfflineIndicator />
+        </DarkModeProvider>
       </body>
     </html>
   );

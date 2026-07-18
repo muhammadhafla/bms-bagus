@@ -121,8 +121,8 @@
   
   /* Typography Scale */
   --font-size-display: 3.5rem;
-  --font-size-h1: 2.25rem;
-  --font-size-h2: 1.875rem;
+  --font-size-h1: 2.5rem;
+  --font-size-h2: 2rem;
   --font-size-h3: 1.5rem;
   --font-size-h4: 1.25rem;
   --font-size-body: 1rem;
@@ -135,8 +135,8 @@
   :root {
     font-size: 16px;
     --font-size-display: 3.5rem;
-    --font-size-h1: 2.25rem;
-    --font-size-h2: 1.875rem;
+    --font-size-h1: 2.5rem;
+    --font-size-h2: 2rem;
     --font-size-h3: 1.5rem;
     --font-size-h4: 1.25rem;
     --font-size-body: 1rem;
@@ -198,8 +198,24 @@
   }
 }
 
+/* Touch optimization */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
 html {
+  touch-action: manipulation;
   transition: background-color 200ms ease, color 200ms ease;
+}
+
+/* Prevent text selection on interactive UI elements */
+nav a,
+nav button,
+[role="navigation"] a,
+[role="navigation"] button,
+.select-none-interactive {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 body {
@@ -360,7 +376,7 @@ body {
 }
 .focus-ring:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 112, 67, 0.3);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35); /* indigo-500 */
 }
 
 /* Skeleton loading shimmer */
@@ -405,5 +421,32 @@ input[type="number"] {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* View Transitions API — page transition animation */
+@keyframes vt-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes vt-fade-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-6px); }
+}
+
+::view-transition-old(root) {
+  animation: 150ms ease-in vt-fade-out;
+}
+
+::view-transition-new(root) {
+  animation: 180ms ease-out vt-fade-in;
+}
+
+/* Disable di reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
   }
 }

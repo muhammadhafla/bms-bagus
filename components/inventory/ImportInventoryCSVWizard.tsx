@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Papa from 'papaparse';
+
 import { IconUpload, IconArrowRight, IconCheck, IconX, IconAlertCircle, IconAlertTriangle } from '@tabler/icons-react';
 import { Button } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
@@ -62,11 +62,13 @@ export default function ImportInventoryCSVWizard({ open, onClose, onComplete }: 
     }
   }, [open]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
     setFile(selectedFile);
     setError(null);
+
+    const { default: Papa } = await import('papaparse');
 
     Papa.parse(selectedFile, {
       header: true,

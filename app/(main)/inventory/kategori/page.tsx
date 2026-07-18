@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import Fuse from 'fuse.js';
 import { IconTags, IconEdit, IconTrash, IconSearch, IconPlus, IconDeviceFloppy, IconX, IconDotsVertical } from '@tabler/icons-react';
 import { AdminOnly } from '@/components/role';
 import { toast } from "sonner";
@@ -105,9 +106,11 @@ export default function KategoriPage() {
     setDeleteConfirm({ isOpen: false, id: null, nama: null });
   };
 
-  const filteredKategoris = kategoris.filter(k => 
-    k.nama.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredKategoris = useMemo(() => {
+    if (!searchQuery) return kategoris;
+    const fuse = new Fuse(kategoris, { keys: ['nama'], threshold: 0.4 });
+    return fuse.search(searchQuery).map(result => result.item);
+  }, [kategoris, searchQuery]);
 
   return (
     <AmbientLayout>

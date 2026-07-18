@@ -4,6 +4,8 @@ import { useEffect, useRef } from 'react';
 import { IconAlertTriangle, IconInfoCircle } from '@tabler/icons-react';
 import { Button } from './Button';
 import { Portal } from './Portal';
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
+import { useHaptic } from '@/hooks/useHaptic';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -26,7 +28,8 @@ export function ConfirmDialog({
   onCancel,
   danger = false,
 }: ConfirmDialogProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const focusTrapRef = useFocusTrap(isOpen);
+  const haptic = useHaptic();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -37,7 +40,6 @@ export function ConfirmDialog({
 
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
-      dialogRef.current?.focus();
     }
 
     return () => {
@@ -62,7 +64,7 @@ export function ConfirmDialog({
         />
         
         <div 
-          ref={dialogRef}
+          ref={focusTrapRef}
           tabIndex={-1}
           className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-scale-in border border-neutral-200 dark:border-neutral-800 focus:outline-none"
         >
@@ -91,7 +93,10 @@ export function ConfirmDialog({
           <div className="p-4 bg-neutral-50 dark:bg-neutral-950/50 flex gap-3 justify-end border-t border-neutral-200 dark:border-neutral-800">
             <Button
               variant="secondary"
-              onClick={onCancel}
+              onClick={() => {
+                haptic.light();
+                onCancel();
+              }}
               className="px-5 font-medium"
             >
               {cancelLabel}
@@ -99,6 +104,8 @@ export function ConfirmDialog({
             <Button
               variant={danger ? 'danger' : 'primary'}
               onClick={() => {
+                if (danger) haptic.heavy();
+                else haptic.medium();
                 onConfirm();
               }}
               className="px-5 font-medium shadow-sm"

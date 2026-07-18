@@ -176,6 +176,15 @@ export default function PembelianPage() {
     focusInput();
   }, [focusInput]);
 
+  useEffect(() => {
+    if (searchSelectedIndex >= 0) {
+      const el = document.getElementById(`search-item-${searchSelectedIndex}`);
+      if (el) {
+        el.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [searchSelectedIndex]);
+
 
 
 
@@ -210,11 +219,6 @@ export default function PembelianPage() {
         return;
       }
       
-      if (inventorySearchResults.length > 0) {
-        handleAddResolvedItem(inventorySearchResults[0]);
-        return;
-      }
-      
       const fuzzyResult = await inventoryApi.fuzzySearch(normalized, inventoryData || []);
       
       if (fuzzyResult.data && fuzzyResult.data.length > 0) {
@@ -223,11 +227,6 @@ export default function PembelianPage() {
         
         if (exactMatch) {
           handleAddResolvedItem(exactMatch);
-          return;
-        }
-        
-        if (fuzzyItems[0].similarity >= 80) {
-          handleAddResolvedItem(fuzzyItems[0]);
           return;
         }
       }
@@ -244,7 +243,7 @@ export default function PembelianPage() {
       setError('Terjadi kesalahan saat memproses barcode');
       setLoading(false);
     }
-  }, [loading, submitting, handleAddResolvedItem, inventoryData, inventorySearchResults]);
+  }, [loading, submitting, handleAddResolvedItem, inventoryData]);
 
   const handleCreateNewFromInput = useCallback(() => {
     setShowAddDropdown(false);
@@ -445,7 +444,9 @@ export default function PembelianPage() {
                     setSearchSelectedIndex(prev => Math.max(prev - 1, -1));
                   } else if (e.key === 'Enter') {
                     e.preventDefault();
-                    if (searchSelectedIndex >= 0 && searchSelectedIndex < inventorySearchResults.length) {
+                    if (e.shiftKey) {
+                      handleCreateNewFromInput();
+                    } else if (searchSelectedIndex >= 0 && searchSelectedIndex < inventorySearchResults.length) {
                       handleAddResolvedItem(inventorySearchResults[searchSelectedIndex]);
                     } else if (searchSelectedIndex === inventorySearchResults.length) {
                       handleCreateNewFromInput();
@@ -459,10 +460,11 @@ export default function PembelianPage() {
                 autoFocus
               />
               {showAddDropdown && barcodeInput.length >= 2 && (
-                <div className="absolute z-20 w-full mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl max-h-[40vh] md:max-h-80 overflow-auto">
+                <div className="absolute z-20 w-full mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl max-h-[40vh] md:max-h-80 overflow-auto scroll-pb-16">
                   {(Array.isArray(inventorySearchResults) ? inventorySearchResults : []).map((inventory, idx) => (
                     <button
                       key={inventory.id}
+                      id={`search-item-${idx}`}
                       type="button"
                       onClick={() => handleAddResolvedItem(inventory)}
                       className={`w-full px-4 py-3 text-left hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex justify-between items-center border-b border-neutral-100 dark:border-neutral-800 last:border-0 ${searchSelectedIndex === idx ? 'bg-neutral-50 dark:bg-neutral-800' : ''}`}
@@ -480,12 +482,14 @@ export default function PembelianPage() {
                   {/* Tambah Baru Action */}
                   <div className="p-2 border-t border-neutral-100 dark:border-neutral-800 sticky bottom-0 bg-white dark:bg-neutral-900">
                     <button
+                      id={`search-item-${inventorySearchResults.length}`}
                       type="button"
                       onClick={handleCreateNewFromInput}
                       className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-900/20 dark:hover:bg-brand-900/40 dark:text-brand-300 rounded-lg transition-colors font-medium text-sm ${searchSelectedIndex === inventorySearchResults.length ? 'ring-2 ring-brand-500' : ''}`}
                     >
                       <IconPlus size={18} />
-                      Tambah &quot;{barcodeInput}&quot; sebagai barang baru
+                      <span className="flex-1 text-left">Tambah &quot;{barcodeInput}&quot; sebagai barang baru</span>
+                      <kbd className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-semibold bg-brand-100 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 rounded-md border border-brand-200 dark:border-brand-800">Shift + Enter</kbd>
                     </button>
                   </div>
                 </div>

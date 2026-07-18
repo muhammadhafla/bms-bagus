@@ -557,14 +557,7 @@ export function MainLayout({
         <main className="flex-1 overflow-auto bg-white dark:bg-neutral-900 rounded-none lg:rounded-[2rem] shadow-none lg:shadow-sm border-0 lg:border border-neutral-200/50 dark:border-neutral-800/50 p-4 lg:p-6 relative pb-24 lg:pb-6">
           <UpdateBanner />
           <InstallBanner />
-          <Suspense fallback={
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-              <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-neutral-500 dark:text-neutral-400">Memuat halaman...</p>
-            </div>
-          }>
-            {children}
-          </Suspense>
+          {children}
         </main>
       </div>
 

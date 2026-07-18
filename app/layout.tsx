@@ -5,6 +5,7 @@ import "./globals.css";
 import { DarkModeProvider } from "@/components/DarkModeProvider";
 import { headers } from "next/headers";
 import { OfflineIndicator } from "@/components/ui/OfflineIndicator";
+import NextTopLoader from 'nextjs-toploader';
 
 const poppins = Poppins({
   weight: ['400', '500', '600', '700'],
@@ -69,6 +70,7 @@ export default async function RootLayout({
         }} />
       </head>
       <body className={`${poppins.className} min-h-screen transition-colors`}>
+        <NextTopLoader color="#0ea5e9" showSpinner={false} />
         <DarkModeProvider>
           {children}
           <OfflineIndicator />

@@ -238,6 +238,7 @@ export default function KategoriPage() {
         onClose={handleCloseModal}
         title={editingId ? 'Edit Kategori' : 'Tambah Kategori'}
         size="sm"
+        isBottomSheetOnMobile
       >
         <div className="space-y-4">
           <TextInput
@@ -248,19 +249,11 @@ export default function KategoriPage() {
             required
             autoFocus
           />
-          <div className="flex gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-800">
-            <Button
-              variant="secondary"
-              onClick={handleCloseModal}
-              className="flex-1"
-              leftIcon={<IconX size={18} />}
-            >
-              Batal
-            </Button>
+          <div className="pt-4 border-t border-neutral-200 dark:border-neutral-800">
             <Button
               variant="primary"
               onClick={handleSave}
-              className="flex-1"
+              className="w-full"
               leftIcon={<IconDeviceFloppy size={18} />}
             >
               Simpan

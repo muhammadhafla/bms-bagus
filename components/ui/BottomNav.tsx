@@ -1,7 +1,6 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import { useViewTransition } from '@/hooks/useViewTransition';
+import { usePathname, useRouter } from 'next/navigation';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useIsAdmin } from '@/lib/auth';
 import { 
@@ -16,8 +15,8 @@ import {
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const isAdminUser = useIsAdmin();
-  const { navigate } = useViewTransition();
   const haptic = useHaptic();
 
   // Hide BottomNav on specific pages that have their own bottom action areas or need full screen
@@ -78,7 +77,7 @@ export default function BottomNav() {
               key={item.title}
               onClick={() => {
                 haptic.light();
-                navigate(item.href);
+                router.push(item.href);
               }}
               className={`flex flex-col items-center justify-center w-full h-full space-y-1 select-none active:scale-95 transition-transform ${
                 isActive 

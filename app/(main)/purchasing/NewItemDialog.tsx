@@ -3,8 +3,8 @@ import { kategoriApi } from '@/lib/api';
 import { generateAutoBarcode } from '@/lib/utils';
 import { IconCheck, IconX, IconBarcode, IconSearch, IconAlertCircle } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
-import { Button } from '@/components/ui';
-import { Portal } from '@/components/ui/Portal';
+import { Button, Modal, MobileAutocompleteSheet, TextInput } from '@/components/ui';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
 import { useKategoris } from '@/lib/hooks/useKategoris';
 
@@ -29,6 +29,8 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
   const [filteredKategori, setFilteredKategori] = useState<string[]>([]);
   const [kategoriSelectedIndex, setKategoriSelectedIndex] = useState<number>(-1);
   const [marginWarning, setMarginWarning] = useState(false);
+  const [showMobileKategori, setShowMobileKategori] = useState(false);
+  const isDesktop = useMediaQuery('(min-width: 640px)');
 
   useEffect(() => {
     if (harga_beli > 0 && harga_jual > 0 && harga_beli >= harga_jual) {
@@ -132,34 +134,24 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
   if (!open) return null;
 
   return (
-    <Portal>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-neutral-900/60" onClick={onClose} />
-        <div className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-elevated w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-800">
-        <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-4">Barang Baru</h2>
-        
+    <Modal isOpen={open} onClose={onClose} title="Barang Baru" size="md" isBottomSheetOnMobile>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Nama Barang</label>
-            <input
-              type="text"
+            <TextInput
+              label="Nama Barang"
               value={nama_barang}
               onChange={(e) => setNamaBarang(e.target.value)}
-              className="w-full px-4 py-3.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-neutral-900 dark:text-neutral-100"
               autoFocus
             />
           </div>
           
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
-              Barcode 
-              <span className="text-xs text-neutral-400 dark:text-neutral-500 ml-2">(kosongkan untuk auto generate)</span>
-            </label>
-            <input
-              type="text"
+            <TextInput
+              label="Barcode"
+              helperText="(kosongkan untuk auto generate)"
               value={barcode}
               onChange={handleBarcodeChange}
-              className="w-full px-4 py-3.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all font-mono text-neutral-900 dark:text-neutral-100"
+              className="font-mono"
             />
             {barcode.startsWith('AUTO-') && (
               <p className="text-xs text-brand-600 dark:text-brand-400 mt-1.5 flex items-center gap-1">
@@ -169,21 +161,23 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
           </div>
           
           <div className="mb-5 relative">
-            <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Kategori</label>
-            <input
-              type="text"
+            <TextInput
+              label="Kategori"
+              placeholder="Masukkan nama kategori"
               value={kategori}
-              onChange={handleKategoriChange}
+              onChange={isDesktop ? handleKategoriChange : undefined}
+              onClick={() => { if (!isDesktop) setShowMobileKategori(true); }}
+              readOnly={!isDesktop}
               onFocus={() => {
-                if (kategoriList.length > 0) {
+                if (isDesktop && kategoriList.length > 0) {
                   setShowKategoriSuggestions(true);
                   if (kategori.trim().length === 0) {
                     setFilteredKategori(kategoriList.slice(0, 5));
                   }
                 }
               }}
-              onBlur={() => setTimeout(() => setShowKategoriSuggestions(false), 200)}
-              onKeyDown={(e) => {
+              onBlur={isDesktop ? () => setTimeout(() => setShowKategoriSuggestions(false), 200) : undefined}
+              onKeyDown={isDesktop ? (e) => {
                 if (!showKategoriSuggestions) return;
                 if (e.key === 'ArrowDown') {
                   e.preventDefault();
@@ -197,13 +191,12 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
                     handleSelectKategori(filteredKategori[kategoriSelectedIndex]);
                   }
                 }
-              }}
-              className="w-full px-4 py-3.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-neutral-900 dark:text-neutral-100"
-              placeholder="Masukkan nama kategori"
+              } : undefined}
+              className={!isDesktop ? 'cursor-pointer' : ''}
               autoComplete="off"
             />
             
-            {showKategoriSuggestions && (
+            {isDesktop && showKategoriSuggestions && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-xl shadow-lg z-10 overflow-hidden">
                 {filteredKategori.map((nama, idx) => (
                   <button
@@ -217,9 +210,20 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
                 ))}
               </div>
             )}
+
+            {!isDesktop && (
+              <MobileAutocompleteSheet
+                isOpen={showMobileKategori}
+                onClose={() => setShowMobileKategori(false)}
+                options={kategoriList}
+                onSelect={(selected) => {
+                  setKategori(selected);
+                }}
+              />
+            )}
           </div>
 
-          <div className="grid grid-cols-3 gap-3 mb-5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
             <div>
               <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Harga Beli</label>
               <PriceInput
@@ -265,8 +269,6 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
             </Button>
           </div>
         </form>
-      </div>
-      </div>
-    </Portal>
+    </Modal>
   );
 }

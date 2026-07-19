@@ -15,7 +15,7 @@ interface TransactionModalProps {
   isBottomSheet?: boolean;
 }
 
-export function TransactionModal({ isOpen, onClose, transactionId, transactionType, isBottomSheet }: TransactionModalProps) {
+export function TransactionModal({ isOpen, onClose, transactionId, transactionType, isBottomSheet = true }: TransactionModalProps) {
   const { data, isLoading, error } = useQuery({
     queryKey: ['transactionDetail', transactionType, transactionId],
     queryFn: async () => {

@@ -71,7 +71,7 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
   const isSubmitting = mutation.isPending;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Catat ${tipe === 'SETOR' ? 'Pemasukan' : 'Pengeluaran'} Manual`}>
+    <Modal isOpen={isOpen} onClose={onClose} title={`Catat ${tipe === 'SETOR' ? 'Pemasukan' : 'Pengeluaran'} Manual`} isBottomSheetOnMobile>
       <form onSubmit={handleSubmit} className="space-y-4">
         
         <SelectInput
@@ -113,11 +113,8 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
           required={tipe === 'TARIK'} // Pengeluaran wajib ada catatan
         />
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
-            Batal
-          </Button>
-          <Button type="submit" disabled={isSubmitting} className={tipe === 'SETOR' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}>
+        <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800">
+          <Button type="submit" disabled={isSubmitting} className={`w-full ${tipe === 'SETOR' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>
             {isSubmitting ? 'Menyimpan...' : 'Simpan'}
           </Button>
         </div>

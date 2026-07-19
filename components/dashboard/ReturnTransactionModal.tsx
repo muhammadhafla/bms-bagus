@@ -11,9 +11,10 @@ interface ReturnTransactionModalProps {
   onClose: () => void;
   transactionId: string | null;
   transactionType: 'penjualan_return' | 'pembelian_return' | null;
+  isBottomSheet?: boolean;
 }
 
-export function ReturnTransactionModal({ isOpen, onClose, transactionId, transactionType }: ReturnTransactionModalProps) {
+export function ReturnTransactionModal({ isOpen, onClose, transactionId, transactionType, isBottomSheet = true }: ReturnTransactionModalProps) {
   const { data, isLoading, error } = useQuery({
     queryKey: ['returnDetail', transactionType, transactionId],
     queryFn: async () => {
@@ -40,7 +41,7 @@ export function ReturnTransactionModal({ isOpen, onClose, transactionId, transac
   const totalReturn = data?.items?.reduce((sum: number, item: any) => sum + (item.harga_final * item.qty), 0) || 0;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Detail ${transactionType === 'penjualan_return' ? 'Retur Penjualan' : 'Retur Pembelian'}`} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={`Detail ${transactionType === 'penjualan_return' ? 'Retur Penjualan' : 'Retur Pembelian'}`} size="lg" isBottomSheetOnMobile={isBottomSheet}>
       <div className="space-y-6">
         {isLoading ? (
           <div className="flex justify-center items-center py-10">

@@ -563,26 +563,8 @@ export function MainLayout({
 
       {/* Bottom Navigation for Mobile */}
       <BottomNav />
-      {/* Mobile: top-center */}
-      <Toaster
-        richColors
-        position="top-center"
-        toastOptions={{
-          classNames: {
-            toast: 'lg:hidden',
-          }
-        }}
-      />
-      {/* Desktop: bottom-right */}
-      <Toaster
-        richColors
-        position="bottom-right"
-        toastOptions={{
-          classNames: {
-            toast: 'hidden lg:flex',
-          }
-        }}
-      />
+      {/* Global Toaster */}
+      <Toaster richColors position="top-center" />
     </div>
   );
 }

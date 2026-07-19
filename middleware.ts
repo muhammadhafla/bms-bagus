@@ -45,6 +45,9 @@ export async function middleware(request: NextRequest) {
     },
   });
 
+  // Array to capture cookies that need to be updated or deleted
+  let supabaseCookies: { name: string; value: string; options: any }[] = [];
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -54,6 +57,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
+          supabaseCookies = cookiesToSet;
           // Set cookie di request untuk downstream
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
@@ -82,7 +86,11 @@ export async function middleware(request: NextRequest) {
   // Tidak ada session → redirect ke login atau return 401
   if (error || !user) {
     if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      const apiResponse = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      supabaseCookies.forEach(({ name, value, options }) =>
+        apiResponse.cookies.set(name, value, options)
+      );
+      return apiResponse;
     }
 
     const loginUrl = new URL('/login', request.url);
@@ -91,7 +99,11 @@ export async function middleware(request: NextRequest) {
       ? pathname
       : '/dashboard';
     loginUrl.searchParams.set('redirectTo', safeRedirect);
+    
     const redirectResponse = NextResponse.redirect(loginUrl);
+    supabaseCookies.forEach(({ name, value, options }) =>
+      redirectResponse.cookies.set(name, value, options)
+    );
     return redirectResponse;
   }
 

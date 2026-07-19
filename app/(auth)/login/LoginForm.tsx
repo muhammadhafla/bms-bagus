@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { IconLock, IconEye, IconEyeOff, IconUser } from '@tabler/icons-react';
-import { Button } from '@/components/ui';
+import { Button, TextInput } from '@/components/ui';
 
 export function LoginForm() {
   const [identifier, setIdentifier] = useState('');
@@ -92,74 +92,42 @@ export function LoginForm() {
         </div>
       )}
 
-      <div className="space-y-1.5">
-        <div className="relative group">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within:text-brand-500 transition-colors">
-            <IconUser size={20} />
-          </div>
-          <input
-            ref={identifierInputRef}
-            id="identifier"
-            type="text"
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-            className={`peer w-full pl-12 pr-4 pt-6 pb-2 rounded-xl border-2 outline-none transition-all ${
-              identifierError 
-                ? 'border-accent-rose-400 focus:border-accent-rose-500 focus:shadow-[0_0_0_4px_rgba(244,63,94,0.15)] bg-accent-rose-50/30' 
-                : 'border-neutral-200 dark:border-neutral-800 focus:border-brand-500 focus:shadow-[0_0_0_4px_rgba(99,102,241,0.1)] bg-neutral-50 dark:bg-neutral-900 focus:bg-white dark:focus:bg-neutral-950'
-            } text-neutral-900 dark:text-neutral-100 placeholder-transparent`}
-            placeholder="email atau username"
-            required
-            autoComplete="username"
-            aria-invalid={!!identifierError}
-            aria-describedby={identifierError ? 'identifier-error' : undefined}
-          />
-          <label htmlFor="identifier" className="absolute left-12 top-2 text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 transition-all peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-base peer-placeholder-shown:font-normal peer-focus:top-2 peer-focus:-translate-y-0 peer-focus:text-[11px] peer-focus:font-semibold peer-focus:text-brand-500 pointer-events-none uppercase tracking-wide">
-            Email atau Username
-          </label>
-        </div>
-        {identifierError && (
-          <p id="identifier-error" className="text-sm text-accent-rose-600 dark:text-accent-rose-400 pl-1 animate-fade-in-up">{identifierError}</p>
-        )}
-      </div>
+      <TextInput
+        ref={identifierInputRef}
+        id="identifier"
+        type="text"
+        label="Email atau Username"
+        placeholder="email atau username"
+        value={identifier}
+        onChange={(e) => setIdentifier(e.target.value)}
+        error={identifierError}
+        icon={<IconUser size={20} />}
+        required
+        autoComplete="username"
+      />
 
-      <div className="space-y-1.5">
-        <div className="relative group">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within:text-brand-500 transition-colors">
-            <IconLock size={20} />
-          </div>
-          <input
-            id="password"
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={`peer w-full pl-12 pr-12 pt-6 pb-2 rounded-xl border-2 outline-none transition-all ${
-              passwordError 
-                ? 'border-accent-rose-400 focus:border-accent-rose-500 focus:shadow-[0_0_0_4px_rgba(244,63,94,0.15)] bg-accent-rose-50/30' 
-                : 'border-neutral-200 dark:border-neutral-800 focus:border-brand-500 focus:shadow-[0_0_0_4px_rgba(99,102,241,0.1)] bg-neutral-50 dark:bg-neutral-900 focus:bg-white dark:focus:bg-neutral-950'
-            } text-neutral-900 dark:text-neutral-100 placeholder-transparent`}
-            placeholder="password"
-            required
-            autoComplete="current-password"
-            aria-invalid={!!passwordError}
-            aria-describedby={passwordError ? 'password-error' : undefined}
-          />
-          <label htmlFor="password" className="absolute left-12 top-2 text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 transition-all peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-base peer-placeholder-shown:font-normal peer-focus:top-2 peer-focus:-translate-y-0 peer-focus:text-[11px] peer-focus:font-semibold peer-focus:text-brand-500 pointer-events-none uppercase tracking-wide">
-            Password
-          </label>
+      <TextInput
+        id="password"
+        type={showPassword ? 'text' : 'password'}
+        label="Password"
+        placeholder="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        error={passwordError}
+        icon={<IconLock size={20} />}
+        rightElement={
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors p-1"
+            className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors p-3"
             aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
           >
             {showPassword ? <IconEyeOff size={20} /> : <IconEye size={20} />}
           </button>
-        </div>
-        {passwordError && (
-          <p id="password-error" className="text-sm text-accent-rose-600 dark:text-accent-rose-400 pl-1 animate-fade-in-up">{passwordError}</p>
-        )}
-      </div>
+        }
+        required
+        autoComplete="current-password"
+      />
 
       <Button
         type="submit"

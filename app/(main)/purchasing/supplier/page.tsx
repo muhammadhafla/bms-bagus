@@ -15,6 +15,7 @@ import {
   IconX,
   IconDeviceFloppy,
   IconDotsVertical,
+  IconPhone,
 } from '@tabler/icons-react';
 import {
   AmbientLayout,
@@ -478,6 +479,7 @@ export default function SupplierPage() {
         onClose={() => setModalOpen(false)}
         title={selectedSupplier ? 'Ubah Data Supplier' : 'Tambah Supplier Baru'}
         size="md"
+        isBottomSheetOnMobile
       >
         <form onSubmit={handleSaveSupplier} className="space-y-5">
           <TextInput
@@ -488,6 +490,7 @@ export default function SupplierPage() {
             error={formError.nama}
             required
             disabled={isSaving}
+            autoFocus
           />
           <TextInput
             label="Kontak"
@@ -495,6 +498,7 @@ export default function SupplierPage() {
             value={formKontak}
             onChange={(e) => setFormKontak(e.target.value)}
             disabled={isSaving}
+            icon={<IconPhone size={18} />}
           />
           <TextareaInput
             label="Alamat"
@@ -505,25 +509,15 @@ export default function SupplierPage() {
             disabled={isSaving}
           />
 
-          <div className="flex gap-3 justify-end pt-3 border-t border-neutral-100 dark:border-neutral-800">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setModalOpen(false)}
-              disabled={isSaving}
-              className="rounded-xl"
-              leftIcon={<IconX size={18} />}
-            >
-              <span className="hidden sm:inline">Batal</span>
-            </Button>
+          <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800">
             <Button
               type="submit"
               variant="primary"
               loading={isSaving}
-              className="rounded-xl px-5"
+              className="rounded-xl w-full"
               leftIcon={<IconDeviceFloppy size={18} />}
             >
-              <span className="hidden sm:inline">Simpan</span>
+              Simpan Supplier
             </Button>
           </div>
         </form>

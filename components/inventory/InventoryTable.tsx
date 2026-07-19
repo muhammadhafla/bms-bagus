@@ -369,6 +369,7 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
         onClose={closeSlideOver}
         title={selectedItem ? `Edit ${selectedItem.nama_barang}` : ''}
         size="md"
+        isFullScreenOnMobile
       >
         <AdminOnly
           fallback={

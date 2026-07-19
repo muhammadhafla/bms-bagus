@@ -178,19 +178,13 @@ export const PriceInput = ({
     setDisplayValue(formatNumber(numericValue));
   }, [parseInput, formatNumber, onChange]);
 
+  const actualPlaceholder = placeholder || label || ' ';
+
   return (
-    <div>
-      {label && (
-        <label 
-          htmlFor={inputId}
-          className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2"
-        >
-          {label}
-        </label>
-      )}
-      <div className="relative">
+    <div className="space-y-1.5 w-full">
+      <div className="relative group w-full">
         {prefix && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400 text-sm">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400 text-sm font-medium pointer-events-none z-10 group-focus-within:text-brand-500 transition-colors">
             {prefix}
           </span>
         )}
@@ -204,35 +198,36 @@ export const PriceInput = ({
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          placeholder={placeholder}
+          placeholder={actualPlaceholder}
           id={inputId}
           name={name}
           disabled={disabled}
-          className={`
-            w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100
-            transition-colors
-            focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent focus:bg-white dark:focus:bg-neutral-900
-            placeholder:text-neutral-400 dark:placeholder:text-neutral-500
-            ${prefix ? 'pl-10' : ''}
-            ${suffix ? 'pr-10' : ''}
-            ${!isValid || error ? 'border-accent-rose-500 focus:ring-accent-rose-200 dark:focus:ring-accent-rose-900' : ''}
-            ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-            text-right font-mono
-            ${className}
-          `}
+          className={`peer w-full ${prefix ? 'pl-10' : 'pl-4'} ${suffix ? 'pr-10' : 'pr-4'} ${label ? 'pt-6 pb-2' : 'py-3'} rounded-xl border-2 outline-none transition-all ${
+            (!isValid || error) 
+              ? 'border-accent-rose-400 focus:border-accent-rose-500 focus:shadow-[0_0_0_4px_rgba(244,63,94,0.15)] bg-accent-rose-50/30' 
+              : 'border-neutral-200 dark:border-neutral-800 focus:border-brand-500 focus:shadow-[0_0_0_4px_rgba(99,102,241,0.1)] bg-neutral-50 dark:bg-neutral-900 focus:bg-white dark:focus:bg-neutral-950'
+          } text-neutral-900 dark:text-neutral-100 ${label ? 'placeholder-transparent' : 'placeholder:text-neutral-400 dark:placeholder:text-neutral-500'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} text-right font-mono ${className}`}
           style={{ 
             MozAppearance: 'textfield',
             appearance: 'textfield'
           }}
         />
+        {label && (
+          <label 
+            htmlFor={inputId}
+            className={`absolute ${prefix ? 'left-10' : 'left-4'} top-2 text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 transition-all peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-base peer-placeholder-shown:font-normal peer-focus:top-2 peer-focus:-translate-y-0 peer-focus:text-[11px] peer-focus:font-semibold peer-focus:text-brand-500 pointer-events-none uppercase tracking-wide truncate max-w-[calc(100%-4rem)]`}
+          >
+            {label}
+          </label>
+        )}
         {suffix && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400 text-sm">
+          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400 text-sm font-medium pointer-events-none z-10">
             {suffix}
           </span>
         )}
       </div>
       {error && (
-        <p className="mt-1 text-sm text-accent-rose-600 dark:text-accent-rose-400">
+        <p className="text-sm text-accent-rose-600 dark:text-accent-rose-400 pl-1 animate-fade-in-up">
           {error}
         </p>
       )}

@@ -89,7 +89,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, userId, init
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={(loading || isDeleting) ? () => {} : onClose} title="Edit User">
+    <Modal isOpen={isOpen} onClose={(loading || isDeleting) ? () => {} : onClose} title="Edit User" isBottomSheetOnMobile>
       <form onSubmit={handleUpdate} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
@@ -151,35 +151,24 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, userId, init
           </div>
         </div>
 
-        <div className="pt-4 flex justify-between items-center border-t border-neutral-100 dark:border-neutral-800">
+        <div className="pt-4 flex items-center gap-3 border-t border-neutral-100 dark:border-neutral-800">
           <button
             type="button"
             onClick={handleDelete}
             disabled={loading || isDeleting}
-            className="flex items-center gap-1.5 px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors font-medium text-sm disabled:opacity-50"
+            className="flex items-center justify-center min-w-[44px] min-h-[44px] text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors shrink-0 disabled:opacity-50"
             title="Hapus Pengguna"
           >
-            {isDeleting ? <IconLoader2 className="w-4 h-4 animate-spin" /> : <IconTrash className="w-4 h-4" />}
-            <span className="hidden sm:inline">Hapus Akun</span>
+            {isDeleting ? <IconLoader2 className="w-5 h-5 animate-spin" /> : <IconTrash className="w-5 h-5" />}
           </button>
           
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading || isDeleting}
-              className="px-4 py-2 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors font-medium text-sm disabled:opacity-50"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={loading || isDeleting}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-xl hover:bg-brand-600 transition-colors font-medium text-sm disabled:opacity-50 min-w-[100px]"
-            >
-              {loading ? <IconLoader2 className="w-4 h-4 animate-spin" /> : 'Simpan'}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={loading || isDeleting}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-xl hover:bg-brand-600 transition-colors font-semibold disabled:opacity-50 min-h-[44px]"
+          >
+            {loading ? <IconLoader2 className="w-5 h-5 animate-spin" /> : 'Simpan'}
+          </button>
         </div>
       </form>
     </Modal>

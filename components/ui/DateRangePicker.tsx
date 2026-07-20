@@ -2,9 +2,11 @@
 
 import React, { useState, useRef, useEffect, useId } from 'react';
 import { IconCalendar, IconX } from '@tabler/icons-react';
-import DateInput from './DateInput';
 import { Button } from './Button';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
+import { DayPicker, DateRange } from 'react-day-picker';
+import 'react-day-picker/style.css';
+import { id as idLocale } from 'date-fns/locale';
 
 export interface DateRangePickerProps {
   startDate: string;
@@ -148,18 +150,40 @@ export function DateRangePicker({ startDate, endDate, onChange, label, className
             </div>
 
             <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-2 gap-3" role="group" aria-label="Input tanggal kustom">
-                <DateInput
-                  value={startDate}
-                  onChange={(v) => onChange(v, endDate)}
-                  label="Dari"
-                  inputSize="sm"
-                />
-                <DateInput
-                  value={endDate}
-                  onChange={(v) => onChange(startDate, v)}
-                  label="Sampai"
-                  inputSize="sm"
+              <div className="flex justify-center overflow-x-auto" role="group" aria-label="Pilih rentang kalender">
+                <style dangerouslySetInnerHTML={{__html: `
+                  .rdp-root {
+                    --rdp-accent-color: #6366f1;
+                    --rdp-accent-background-color: #eef2ff;
+                    --rdp-day-height: 36px;
+                    --rdp-day-width: 36px;
+                    margin: 0;
+                  }
+                  .dark .rdp-root {
+                    --rdp-accent-background-color: rgba(99, 102, 241, 0.2);
+                    --rdp-background-color: #262626;
+                  }
+                  .rdp-root * {
+                    color: inherit;
+                  }
+                `}} />
+                <DayPicker
+                  mode="range"
+                  selected={{
+                    from: startDate ? new Date(startDate) : undefined,
+                    to: endDate ? new Date(endDate) : undefined
+                  }}
+                  onSelect={(range) => {
+                    const formatLocal = (d: Date | undefined) => {
+                      if (!d) return '';
+                      const year = d.getFullYear();
+                      const month = String(d.getMonth() + 1).padStart(2, '0');
+                      const day = String(d.getDate()).padStart(2, '0');
+                      return `${year}-${month}-${day}`;
+                    };
+                    onChange(formatLocal(range?.from), formatLocal(range?.to));
+                  }}
+                  locale={idLocale}
                 />
               </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { AmbientLayout, Button, SlideOver, ModernPagination, FilterButton } from '@/components/ui';
+import { AmbientLayout, Button, SlideOver, ModernPagination, FilterButton, DateRangePicker } from '@/components/ui';
 import DateInput from '@/components/ui/DateInput';
 import { IconHistory, IconRefresh, IconPrinter, IconChevronLeft, IconChevronRight, IconFilter, IconX } from '@tabler/icons-react';
 import { formatDateTimeWIB } from '@/lib/utils';
@@ -140,20 +140,15 @@ export default function PrintHistoryPage() {
           <div className="flex flex-col gap-3">
             <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Periode Tanggal:</label>
             <div className="flex items-center gap-2">
-              <DateInput
-                value={startDate}
-                onChange={(val) => { setStartDate(val); handleDateChange(); }}
-                placeholder="Dari"
-                className="w-full text-sm"
-                showClearButton
-              />
-              <span className="text-neutral-400">-</span>
-              <DateInput
-                value={endDate}
-                onChange={(val) => { setEndDate(val); handleDateChange(); }}
-                placeholder="Sampai"
-                className="w-full text-sm"
-                showClearButton
+              <DateRangePicker
+                startDate={startDate}
+                endDate={endDate}
+                onChange={(start, end) => {
+                  setStartDate(start);
+                  setEndDate(end);
+                  handleDateChange();
+                }}
+                className="w-full"
               />
             </div>
           </div>

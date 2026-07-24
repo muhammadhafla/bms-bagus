@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Modal } from '@/components/ui/Modal';
 import { ModernPagination } from '@/components/ui';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDateWIB } from '@/lib/utils';
 import { inventoryApi } from '@/lib/api';
 import { IconHistory, IconCalendar, IconBuildingStore, IconHash, IconCash } from '@tabler/icons-react';
 
@@ -32,12 +32,7 @@ export function PurchaseHistoryModal({ isOpen, onClose, inventoryId, itemName }:
   const totalPages = data?.data?.totalPages || 1;
 
   const formatDate = (dateString: string) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+    return formatDateWIB(dateString, { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
   return (

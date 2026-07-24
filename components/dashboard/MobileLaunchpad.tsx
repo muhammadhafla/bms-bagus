@@ -19,6 +19,7 @@ import { DashboardStats, LowStockItem, RecentTransaction } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth';
 import { useState } from 'react';
 import { TransactionModal } from './TransactionModal';
+import { formatTimeWIB, formatDateWIB } from '@/lib/utils';
 
 interface MobileLaunchpadProps {
   stats?: DashboardStats | null;
@@ -72,7 +73,7 @@ export function MobileLaunchpad({
 
   const menus = isAdminUser ? adminMenus : staffMenus;
 
-  const todayStr = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' });
+  const todayStr = formatDateWIB(new Date(), { weekday: 'long', day: 'numeric', month: 'short' });
 
   const filteredTransactions = recentTransactions?.filter(trx => isAdminUser ? true : trx.type === 'penjualan') || [];
 
@@ -202,7 +203,7 @@ export function MobileLaunchpad({
               >
                 <div>
                   <p className="text-xs font-semibold text-neutral-900 dark:text-white uppercase">{trx.id.split('-')[0]}</p>
-                  <p className="text-[10px] text-neutral-500">{new Date(trx.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</p>
+                  <p className="text-[10px] text-neutral-500">{formatTimeWIB(trx.created_at, { hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
                 <div className="text-right">
                   <p className={`text-xs font-bold ${trx.type === 'pembelian' ? 'text-rose-600' : 'text-emerald-600'}`}>

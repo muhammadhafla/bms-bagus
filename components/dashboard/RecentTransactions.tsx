@@ -5,6 +5,7 @@ import { RecentTransaction } from '@/lib/api/dashboard';
 import { IconArrowDown, IconArrowUp, IconChevronRight } from '@tabler/icons-react';
 import { TransactionModal } from './TransactionModal';
 import Link from 'next/link';
+import { formatTimeWIB } from '@/lib/utils';
 
 interface RecentTransactionsProps {
   transactions: RecentTransaction[];
@@ -34,13 +35,7 @@ export function RecentTransactions({ transactions, isLoading }: RecentTransactio
     );
   }
 
-  const formatTime = (date: string) => {
-    return new Date(date).toLocaleTimeString('id-ID', {
-      timeZone: 'Asia/Jakarta',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+
 
   return (
     <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl rounded-2xl border border-white/40 dark:border-white/10 p-5 shadow-elevated h-full">
@@ -72,7 +67,7 @@ export function RecentTransactions({ transactions, isLoading }: RecentTransactio
                     {tx.type}
                   </p>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                    {formatTime(tx.created_at)}
+                    {formatTimeWIB(tx.created_at, { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
               </div>

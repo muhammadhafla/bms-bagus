@@ -1,6 +1,7 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useIsAdmin } from '@/lib/auth';
 import { 
@@ -15,7 +16,6 @@ import {
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const router = useRouter();
   const isAdminUser = useIsAdmin();
   const haptic = useHaptic();
 
@@ -73,11 +73,11 @@ export default function BottomNav() {
           const Icon = item.icon;
           
           return (
-            <button
+            <Link
               key={item.title}
+              href={item.href}
               onClick={() => {
                 haptic.light();
-                router.push(item.href);
               }}
               className={`flex flex-col items-center justify-center w-full h-full space-y-1 select-none active:scale-95 transition-transform ${
                 isActive 
@@ -91,7 +91,7 @@ export default function BottomNav() {
               <span className={`text-[10px] ${isActive ? 'font-semibold' : 'font-medium'}`}>
                 {item.title}
               </span>
-            </button>
+            </Link>
           );
         })}
       </div>

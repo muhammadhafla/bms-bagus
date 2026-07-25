@@ -133,11 +133,28 @@ export const inventoryApi = {
     if (queryLower.length < 2) return { data: [], error: null };
 
     if (!inventoryList || inventoryList.length === 0) return { data: [], error: null };
+    // Tier 1 & 2: Exact matches and Starts With
+    const exactMatches: Array<InventoryItem & { similarity: number }> = [];
+    const startsWithMatches: Array<InventoryItem & { similarity: number }> = [];
     
+    for (const item of inventoryList) {
+      const barcodeLower = (item.kode_barcode || '').toLowerCase();
+      const nameLower = (item.nama_barang || '').toLowerCase();
+      
+      if (barcodeLower === queryLower) {
+        exactMatches.push({ ...item, similarity: 100 });
+      } else if (nameLower === queryLower) {
+        exactMatches.push({ ...item, similarity: 99 });
+      } else if (nameLower.startsWith(queryLower)) {
+        startsWithMatches.push({ ...item, similarity: 95 });
+      }
+    }
+
+    // Tier 3: Fuzzy Search
     const options = {
       keys: [
-        { name: 'kode_barcode', weight: 2.0 },
-        { name: 'nama_barang', weight: 1.0 }
+        { name: 'nama_barang', weight: 2.5 },
+        { name: 'kode_barcode', weight: 1.0 }
       ],
       includeScore: true,
       threshold: 0.4,
@@ -155,15 +172,28 @@ export const inventoryApi = {
     
     const results = fuse.search(queryLower);
     
-    const scoredItems: Array<InventoryItem & { similarity: number }> = results
-      .map(result => ({
-        ...result.item,
-        // fuse.js score is 0 for perfect match, 1 for complete mismatch
-        similarity: Math.round((1 - (result.score || 0)) * 100)
-      }))
-      .slice(0, limit);
+    const fuseMatches = results.map(result => ({
+      ...result.item,
+      similarity: Math.round((1 - (result.score || 0)) * 100)
+    }));
+
+    // Combine all tiers and deduplicate
+    const combined = [...exactMatches, ...startsWithMatches, ...fuseMatches];
     
-    return { data: scoredItems, error: null };
+    const seen = new Set();
+    const uniqueResults: Array<InventoryItem & { similarity: number }> = [];
+    
+    for (const item of combined) {
+      if (!seen.has(item.id)) {
+        seen.add(item.id);
+        uniqueResults.push(item);
+      }
+    }
+    
+    // Sort strictly by similarity (Tier 1 > Tier 2 > Tier 3)
+    uniqueResults.sort((a, b) => b.similarity - a.similarity);
+    
+    return { data: uniqueResults.slice(0, limit), error: null };
   },
 
   async getByExactBarcode(barcode: string) {

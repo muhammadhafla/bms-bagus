@@ -11,7 +11,9 @@ import {
   IconPrinter,
   IconHistory,
   IconBell,
-  IconRefresh
+  IconRefresh,
+  IconSwitch,
+  IconEye
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -20,6 +22,9 @@ import { useAuthStore } from '@/lib/auth';
 import { useState } from 'react';
 import { TransactionModal } from './TransactionModal';
 import { formatTimeWIB, formatDateWIB } from '@/lib/utils';
+import { Modal } from '@/components/ui/Modal';
+import { inventoryApi } from '@/lib/api/inventory';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface MobileLaunchpadProps {
   stats?: DashboardStats | null;
@@ -44,11 +49,29 @@ export function MobileLaunchpad({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null);
   const [selectedTxType, setSelectedTxType] = useState<'penjualan' | 'pembelian' | null>(null);
+  const [selectedLowStock, setSelectedLowStock] = useState<LowStockItem | null>(null);
+  const [isDiscontinuing, setIsDiscontinuing] = useState(false);
+  
+  const queryClient = useQueryClient();
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await onRefresh();
     setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  const handleDiscontinue = async (itemId: string) => {
+    setIsDiscontinuing(true);
+    try {
+      await inventoryApi.toggleDiscontinued(itemId);
+      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      onRefresh(); 
+    } catch (error) {
+      console.error('Failed to discontinue item:', error);
+    } finally {
+      setIsDiscontinuing(false);
+      setSelectedLowStock(null);
+    }
   };
 
   const adminMenus = [
@@ -164,10 +187,10 @@ export function MobileLaunchpad({
           </div>
           <div className="flex overflow-x-auto gap-3 pb-2 -mx-1 px-1 snap-x scrollbar-hide">
             {lowStock.map((item) => (
-              <Link 
+              <button 
                 key={item.id} 
-                href={`/inventory?search=${encodeURIComponent(item.nama_barang)}`}
-                className="flex-none w-32 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/50 rounded-xl p-2 snap-center active:scale-95 transition-transform"
+                onClick={() => setSelectedLowStock(item)}
+                className="flex-none w-32 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/50 rounded-xl p-2 snap-center active:scale-95 transition-transform text-left"
               >
                 <div className="w-10 h-10 flex-shrink-0 bg-rose-100 dark:bg-rose-900/30 rounded-lg flex items-center justify-center mb-2">
                   <IconPackage className="w-5 h-5 text-rose-600 dark:text-rose-400" />
@@ -176,7 +199,7 @@ export function MobileLaunchpad({
                   <p className="text-[10px] font-semibold text-neutral-900 dark:text-white truncate mb-0.5">{item.nama_barang}</p>
                   <p className="text-[10px] font-bold text-red-600 dark:text-red-400">Sisa {item.stok}</p>
                 </div>
-              </Link>
+              </button>
             ))}
           </div>
         </div>
@@ -227,6 +250,67 @@ export function MobileLaunchpad({
         transactionType={selectedTxType}
         isBottomSheet={true}
       />
+
+      <Modal
+        isOpen={!!selectedLowStock}
+        onClose={() => setSelectedLowStock(null)}
+        title={selectedLowStock?.nama_barang || "Detail Stok"}
+        isBottomSheetOnMobile={true}
+      >
+        <div className="flex flex-col gap-3 pb-2 pt-2">
+          <p className="text-sm text-neutral-500 mb-2">
+            Pilih tindakan untuk barang ini. Sisa stok saat ini adalah <span className="font-bold text-red-600 dark:text-red-400">{selectedLowStock?.stok}</span>.
+          </p>
+          
+          <Link
+            href={selectedLowStock ? `/inventory?search=${encodeURIComponent(selectedLowStock.nama_barang)}` : '/inventory'}
+            onClick={() => setSelectedLowStock(null)}
+            className="flex items-center gap-3 p-3 rounded-xl bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition-colors border border-neutral-200 dark:border-neutral-700 w-full"
+          >
+            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+              <IconEye className="w-5 h-5" />
+            </div>
+            <div className="text-left flex-1">
+              <p className="text-sm font-semibold text-neutral-900 dark:text-white">Lihat di Stok (Inventory)</p>
+              <p className="text-xs text-neutral-500">Tampilkan detail lengkap di tabel</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/purchasing"
+            onClick={() => setSelectedLowStock(null)}
+            className="flex items-center gap-3 p-3 rounded-xl bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition-colors border border-neutral-200 dark:border-neutral-700 w-full"
+          >
+            <div className="w-10 h-10 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400">
+              <IconShoppingCart className="w-5 h-5" />
+            </div>
+            <div className="text-left flex-1">
+              <p className="text-sm font-semibold text-neutral-900 dark:text-white">Tambah Stok Pembelian</p>
+              <p className="text-xs text-neutral-500">Buat transaksi pembelian baru</p>
+            </div>
+          </Link>
+          
+          {isAdminUser && (
+            <button
+              onClick={() => selectedLowStock && handleDiscontinue(selectedLowStock.id)}
+              disabled={isDiscontinuing}
+              className="flex items-center gap-3 p-3 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/30 transition-colors border border-rose-200 dark:border-rose-900/50 w-full disabled:opacity-50"
+            >
+              <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/50 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                {isDiscontinuing ? (
+                  <IconRefresh className="w-5 h-5 animate-spin" />
+                ) : (
+                  <IconSwitch className="w-5 h-5" />
+                )}
+              </div>
+              <div className="text-left flex-1">
+                <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">Tandai Discontinue</p>
+                <p className="text-xs text-rose-500 dark:text-rose-400/70">Nonaktifkan barang dari daftar aktif</p>
+              </div>
+            </button>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

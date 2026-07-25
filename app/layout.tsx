@@ -6,6 +6,7 @@ import { DarkModeProvider } from "@/components/DarkModeProvider";
 import { headers } from "next/headers";
 import { OfflineIndicator } from "@/components/ui/OfflineIndicator";
 import NextTopLoader from 'nextjs-toploader';
+import { Analytics } from '@vercel/analytics/next';
 
 const poppins = Poppins({
   weight: ['400', '500', '600', '700'],
@@ -75,6 +76,7 @@ export default async function RootLayout({
           {children}
           <OfflineIndicator />
         </DarkModeProvider>
+        <Analytics />
       </body>
     </html>
   );

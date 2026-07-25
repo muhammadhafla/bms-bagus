@@ -6,7 +6,7 @@ import { DarkModeProvider } from "@/components/DarkModeProvider";
 import { headers } from "next/headers";
 import { OfflineIndicator } from "@/components/ui/OfflineIndicator";
 import NextTopLoader from 'nextjs-toploader';
-import { Analytics } from '@vercel/analytics/next';
+import { Analytics } from '@vercel/analytics/react';
 
 const poppins = Poppins({
   weight: ['400', '500', '600', '700'],

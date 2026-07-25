@@ -1,21 +1,23 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { InventoryItem } from '@/types/inventory';
 import { inventoryApi, kategoriApi } from '@/lib/api';
 import { debounce } from '@/lib/utils';
-import { InventoryTable } from '@/components/inventory/InventoryTable';
 import { Button, DataTable, Badge, SelectInput, Tooltip, AmbientLayout, FilterButton } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
 import { IconPackage, IconSearch, IconFilter, IconUpload, IconX, IconArrowDown } from '@tabler/icons-react';
 import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
-import PullToRefresh from 'react-simple-pull-to-refresh';
-import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
-import CheckboxInput from '@/components/ui/CheckboxInput';
-import { API_ERROR_MESSAGES, UI_MESSAGES, INVENTORY_MESSAGES } from '@/lib/constants';
-import dynamic from 'next/dynamic';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useKategoris } from '@/lib/hooks/useKategoris';
+const InventoryTable = dynamic(
+  () => import('@/components/inventory/InventoryTable').then(mod => mod.InventoryTable),
+  { ssr: false }
+);
+
+const PullToRefresh = dynamic(
+  () => import('react-simple-pull-to-refresh'),
+  { ssr: false }
+);
 
 const ImportInventoryCSVWizard = dynamic(
   () => import('@/components/inventory/ImportInventoryCSVWizard'),
@@ -24,6 +26,11 @@ const ImportInventoryCSVWizard = dynamic(
     ssr: false,
   }
 );
+import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
+import CheckboxInput from '@/components/ui/CheckboxInput';
+import { API_ERROR_MESSAGES, UI_MESSAGES, INVENTORY_MESSAGES } from '@/lib/constants';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useKategoris } from '@/lib/hooks/useKategoris';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface Shortcut {

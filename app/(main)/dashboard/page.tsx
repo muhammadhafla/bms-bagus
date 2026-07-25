@@ -12,7 +12,6 @@ import {
   IconWallet,
   IconArrowDown,
 } from '@tabler/icons-react';
-import PullToRefresh from 'react-simple-pull-to-refresh';
 import { useQuery } from '@tanstack/react-query';
 import { 
   StatCard, 
@@ -24,12 +23,29 @@ import {
   ListStatCard,
   ListStatCardSkeleton
 } from '@/components/dashboard/StatCard';
-import { LowStockAlert } from '@/components/dashboard/LowStockAlert';
 import dynamic from 'next/dynamic';
-import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
 import { dashboardApi, DashboardStats, LowStockItem, TrendData, RecentTransaction, kasApi } from '@/lib/api';
 import { Card } from '@/components/ui';
-import { MobileLaunchpad } from '@/components/dashboard/MobileLaunchpad';
+
+const PullToRefresh = dynamic(
+  () => import('react-simple-pull-to-refresh'),
+  { ssr: false }
+);
+
+const LowStockAlert = dynamic(
+  () => import('@/components/dashboard/LowStockAlert').then(m => m.LowStockAlert),
+  { ssr: false, loading: () => <div className="h-[350px] rounded-3xl bg-white/50 dark:bg-neutral-900/40 backdrop-blur border border-white/20 dark:border-white/5 animate-pulse" /> }
+);
+
+const RecentTransactions = dynamic(
+  () => import('@/components/dashboard/RecentTransactions').then(m => m.RecentTransactions),
+  { ssr: false, loading: () => <div className="h-[350px] rounded-3xl bg-white/50 dark:bg-neutral-900/40 backdrop-blur border border-white/20 dark:border-white/5 animate-pulse" /> }
+);
+
+const MobileLaunchpad = dynamic(
+  () => import('@/components/dashboard/MobileLaunchpad').then(m => m.MobileLaunchpad),
+  { ssr: false }
+);
 
 const TrendChart = dynamic(
   () => import('@/components/dashboard/TrendChart').then((mod) => mod.TrendChart),

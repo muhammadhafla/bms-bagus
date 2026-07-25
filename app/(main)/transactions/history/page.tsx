@@ -5,10 +5,13 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { IconHistory, IconFilter, IconX, IconShoppingCart, IconPackage, IconArrowBackUp, IconArrowDown } from '@tabler/icons-react';
 import { AmbientLayout, DateRangePicker, Tabs, Button, FilterButton } from '@/components/ui';
 import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
-import PullToRefresh from 'react-simple-pull-to-refresh';
 import { useQueryClient } from '@tanstack/react-query';
-
 import dynamic from 'next/dynamic';
+
+const PullToRefresh = dynamic(
+  () => import('react-simple-pull-to-refresh'),
+  { ssr: false }
+);
 
 const RiwayatPenjualanTab = dynamic(
   () => import('@/components/transactions/RiwayatPenjualanTab').then(m => m.RiwayatPenjualanTab),

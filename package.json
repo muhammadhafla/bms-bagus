@@ -67,9 +67,12 @@
     "source-map": "^0.7.4"
   },
   "browserslist": [
-    "last 2 Chrome versions",
-    "last 2 Firefox versions",
-    "last 2 Safari versions",
-    "last 2 Edge versions"
+    "defaults",
+    "not IE 11",
+    "not dead",
+    "chrome >= 100",
+    "firefox >= 100",
+    "safari >= 15",
+    "edge >= 100"
   ]
 }

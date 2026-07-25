@@ -77,14 +77,15 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Cek session — ini juga akan refresh session token jika mendekati expiry
+  // Cek session via cookie secara lokal tanpa HTTP request untuk mempercepat TTFB
+  // PERINGATAN: Ini hanya fast gate. Untuk security mutlak, gunakan getUser() di Server Action/API Route.
   const {
-    data: { user },
+    data: { session },
     error
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getSession();
 
   // Tidak ada session → redirect ke login atau return 401
-  if (error || !user) {
+  if (error || !session) {
     if (pathname.startsWith('/api/')) {
       const apiResponse = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       supabaseCookies.forEach(({ name, value, options }) =>

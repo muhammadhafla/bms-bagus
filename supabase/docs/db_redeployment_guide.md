@@ -28,6 +28,7 @@ Skrip ini akan menambahkan tabel khusus kasir (`kas_log`, `receipt_templates`), 
 Langkah terakhir menambahkan pengamanan *idempotency* untuk memastikan transaksi kasir bersifat *atomic* agar tidak *double payment*, dan menimpa fungsi return dengan perbaikan terbaru.
 5. Eksekusi file: `C:\project\native pos\database\migration_v2.sql`
 6. Eksekusi file: `C:\project\native pos\database\fix_rpc_return.sql`
+7. Eksekusi file: `C:\project\native pos\database\enable_realtime_print_jobs.sql`
 
 ---
 

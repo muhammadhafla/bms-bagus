@@ -342,23 +342,23 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
                 )}
               </div>
 
-              <div className="flex justify-end pt-4 border-t border-neutral-200 dark:border-neutral-800">
+              <div className="flex flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-800">
                 <Button
                   variant="secondary"
-                  className="flex-1"
+                  className="flex-1 sm:flex-none whitespace-nowrap !px-2 sm:!px-4 !text-xs sm:!text-sm"
                   onClick={() => {
                     handleCloseSlideOver();
                     router.push(`/purchasing?editId=${detail.id}`);
                   }}
-                  leftIcon={<IconEdit className="w-4 h-4" />}
+                  leftIcon={<IconEdit className="w-3 h-3 sm:w-4 sm:h-4" />}
                 >
                   Revisi Transaksi
                 </Button>
                 <Button
                   onClick={handleCetakLabel}
                   variant="primary"
-                  leftIcon={<IconPrinter className="w-5 h-5" />}
-                  className="w-full sm:w-auto"
+                  leftIcon={<IconPrinter className="w-3 h-3 sm:w-5 sm:h-5" />}
+                  className="flex-1 sm:flex-none whitespace-nowrap !px-2 sm:!px-4 !text-xs sm:!text-sm"
                 >
                   Cetak Label Bulk
                 </Button>

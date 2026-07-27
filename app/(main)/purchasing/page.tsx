@@ -1,9 +1,9 @@
 'use client';
 import { toast } from 'sonner';
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useCallback, useEffect, useRef, useMemo, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { usePembelianStore, useBulkPrintStore } from '@/lib/store';
-import { inventoryApi, PembelianItem, purchaseApi, kategoriApi, supplierApi, Supplier } from '@/lib/api';
+import { inventoryApi, PembelianItem, purchaseApi, purchasesApi, kategoriApi, supplierApi, Supplier } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { InventoryItem } from '@/types/inventory';
 import { formatCurrency, normalizeBarcode, generateIdempotencyKey, generateAutoBarcode, debounce } from '@/lib/utils';
@@ -31,14 +31,37 @@ const ImportCSVWizard = dynamic(
 
 import { useSuppliers } from '@/lib/hooks/useSuppliers';
 
-export default function PembelianPage() {
+function PembelianPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editIdParam = searchParams.get('editId');
+  
   const resetBulkPrint = useBulkPrintStore((state) => state.reset);
   const addBulkPrintItem = useBulkPrintStore((state) => state.addItem);
 
-  const { items, addItem, updateQty, updateHargaBeli, updateHargaJual, removeItem, reset, getTotalSistem, getSelisih, setTotalSupplier, setTanggal, totalSupplier, tanggal } = usePembelianStore();
+  const { items, addItem, updateQty, updateHargaBeli, updateHargaJual, removeItem, reset, getTotalSistem, getSelisih, setTotalSupplier, setTanggal, totalSupplier, tanggal, nomorNota, setNomorNota, editId, loadPembelian } = usePembelianStore();
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [lastPurchaseItems, setLastPurchaseItems] = useState<typeof items>([]);
+
+  // Load existing purchase if editId is provided
+  useEffect(() => {
+    if (editIdParam) {
+      setLoading(true);
+      purchasesApi.getById(editIdParam).then((res: any) => {
+        if (res.data) {
+          loadPembelian(res.data);
+        } else {
+          toast.error('Gagal memuat data transaksi');
+        }
+        setLoading(false);
+      });
+    } else {
+      // Clear store if not editing (just in case they navigated from edit to new)
+      if (editId) {
+        reset();
+      }
+    }
+  }, [editIdParam, editId, loadPembelian, reset]);
 
   const { data: inventoryData } = useQuery({
     queryKey: ['inventory', 'all'],
@@ -279,72 +302,80 @@ export default function PembelianPage() {
     }
   }, [handleAddResolvedItem]);
 
-  const handleSubmit = useCallback(async () => {
-    if (items.length === 0) return;
-    if (submitting) return;
-
-    const invalidItem = items.find(item => !item.qty || item.qty <= 0);
-    if (invalidItem) {
-      setError(`Qty untuk barang ${invalidItem.nama_barang} harus lebih dari 0`);
+  const handleSimpan = async () => {
+    if (items.length === 0) {
+      toast.error('Keranjang belanja kosong');
       return;
     }
 
     setSubmitting(true);
-    setError(null);
-    setSuccess(null);
-
+    
     try {
-      const supplierId = selectedSupplierId;
+      if (editId) {
+        const result = await purchaseApi.updateBatch({
+          pembelian_id: editId,
+          supplier_id: selectedSupplierId,
+          tanggal,
+          nomor_nota: nomorNota,
+          items: items.map(item => ({
+            id: item.id,
+            nama_barang: item.nama_barang,
+            qty: item.qty,
+            harga_final: item.harga_beli,
+            harga_jual: item.harga_jual,
+            diskon: item.diskon
+          }))
+        });
 
-      const pembelianItems: PembelianItem[] = (Array.isArray(items) ? items : []).map(item => ({
-        inventory_id: item.id,
-        barcode: item.barcode,
-        nama_barang: item.nama_barang,
-        qty: item.qty,
-        harga_beli: item.harga_beli || 0,
-        diskon: item.diskon,
-        harga_final: item.harga_final,
-        subtotal: item.subtotal,
-      }));
+        if (result.error) {
+          throw new Error(result.error.message || 'Gagal merevisi transaksi');
+        }
 
-      const idempotencyKey = generateIdempotencyKey();
-      
-      const result = await purchaseApi.submit({
-        supplier_id: supplierId,
-        supplier_nama: supplier.trim() || null,
-        tanggal,
-        items: pembelianItems,
-        total_supplier: totalSupplier,
-        idempotency_key: idempotencyKey,
-      });
-
-      if (result.error) {
-        console.error('Pembelian error:', result.error);
-        const errorMsg = result.error.message 
-          || result.error 
-          || 'Gagal menyimpan pembelian';
-        setError(String(errorMsg));
-        toast.error(String(errorMsg));
+        toast.success('Revisi transaksi berhasil disimpan');
+        setLastPurchaseItems([...items]);
+        reset();
+        setSelectedSupplierId(null);
+        setSupplier('');
+        
+        router.push('/transactions/history?type=pembelian');
       } else {
-        setSuccess('Pembelian berhasil disimpan');
-        toast.success('Pembelian berhasil disimpan');
+        const pembelianItems = items.map(item => ({
+          inventory_id: item.id,
+          barcode: item.barcode,
+          nama_barang: item.nama_barang,
+          qty: item.qty,
+          harga_beli: item.harga_beli,
+          harga_jual: item.harga_jual,
+          diskon: item.diskon,
+          harga_final: item.harga_final,
+          subtotal: item.subtotal
+        }));
+        
+        const result = await purchaseApi.submit({
+          supplier_id: selectedSupplierId,
+          tanggal,
+          nomor_nota: nomorNota,
+          items: pembelianItems as any[], // cast to any[] or PembelianItem[] if needed
+          total_supplier: totalSupplier
+        });
+
+        if (result.error) {
+          throw new Error(result.error.message || 'Gagal menyimpan transaksi');
+        }
+
+        toast.success('Transaksi berhasil disimpan');
         setLastPurchaseItems([...items]);
         setShowSuccessDialog(true);
         reset();
-        setTotalSupplier(0);
         setSelectedSupplierId(null);
         setSupplier('');
-        focusInput();
       }
-    } catch (err: unknown) {
-      console.error('Error submitting:', err);
-      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan';
-      setError(msg);
-      toast.error(msg);
+    } catch (err: any) {
+      toast.error(err.message || 'Terjadi kesalahan saat menyimpan transaksi');
     } finally {
       setSubmitting(false);
     }
-  }, [items, tanggal, totalSupplier, submitting, reset, setTotalSupplier, focusInput, selectedSupplierId, supplier]);
+  };
 
   const handleEditSubmit = useCallback(() => {
     if (selectedIndex === null || !editMode) return;
@@ -392,18 +423,32 @@ export default function PembelianPage() {
               </button>
               <IconShoppingCart className="w-6 h-6 lg:w-8 lg:h-8 text-brand-500 shrink-0 hidden lg:block" stroke={1.5} />
               <div>
-                <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Pembelian</h1>
-                <p className="text-xs lg:text-base text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 font-medium">Input data barang masuk</p>
+                <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
+                  {editId ? 'Revisi Transaksi' : 'Transaksi Baru'}
+                </h1>
+                <p className="text-xs lg:text-base text-neutral-500 dark:text-neutral-400 mt-0.5 lg:mt-2 font-medium">
+                  {editId ? 'Ubah detail barang, supplier, dan faktur untuk transaksi pembelian' : 'Catat pembelian barang dari supplier (barang masuk)'}
+                </p>
               </div>
             </div>
             
             <div className="hidden xl:flex items-end gap-3 lg:gap-4">
-              <div className="flex-1 min-w-[140px] max-w-[200px]">
+              <div className="flex-1 min-w-[140px]">
                 <DateInput
                   value={tanggal}
                   onChange={setTanggal}
                   label="Tanggal:"
                   inputSize="md"
+                />
+              </div>
+              <div className="flex-1 min-w-[140px]">
+                <label className="text-sm text-neutral-600 dark:text-neutral-300 font-semibold mb-1 block">Nota:</label>
+                <input
+                  type="text"
+                  value={nomorNota}
+                  onChange={(e) => setNomorNota(e.target.value)}
+                  placeholder="Nomor nota..."
+                  className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-brand-500/50"
                 />
               </div>
             </div>
@@ -589,14 +634,14 @@ export default function PembelianPage() {
                   <span className="hidden sm:inline">Reset</span>
                 </Button>
                 <Button
-                  onClick={handleSubmit}
+                  onClick={handleSimpan}
                   disabled={items.length === 0 || submitting}
                   variant="primary"
                   size="lg"
                   className="shadow-brand px-8"
                   leftIcon={<IconDeviceFloppy className="w-5 h-5" />}
                 >
-                  <span className="hidden sm:inline">{submitting ? 'Menyimpan...' : 'Simpan Pembelian'}</span>
+                  <span className="hidden sm:inline">{submitting ? 'Menyimpan...' : (editId ? 'Simpan Revisi' : 'Simpan Pembelian')}</span>
                 </Button>
               </div>
             </div>
@@ -641,6 +686,17 @@ export default function PembelianPage() {
                 onChange={setTanggal}
                 inputSize="md"
               />
+
+              <div>
+                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5 block">Nomor Nota (Opsional)</label>
+                <input
+                  type="text"
+                  value={nomorNota}
+                  onChange={(e) => setNomorNota(e.target.value)}
+                  placeholder="Contoh: INV-2023001"
+                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-shadow"
+                />
+              </div>
 
               <SelectInput
                 label="Supplier"
@@ -687,15 +743,13 @@ export default function PembelianPage() {
                 Reset
               </Button>
               <Button
-                onClick={(e) => {
-                  handleSubmit();
-                }}
+                onClick={handleSimpan}
                 disabled={items.length === 0 || submitting}
                 variant="primary"
                 className="flex-1 shadow-brand"
                 leftIcon={<IconDeviceFloppy size={18} />}
               >
-                Simpan
+                {editId ? 'Simpan Revisi' : 'Simpan'}
               </Button>
             </div>
           </div>
@@ -790,5 +844,17 @@ export default function PembelianPage() {
       </AdminOnly>
       </AmbientLayout>
     </ErrorBoundary>
+  );
+}
+
+export default function PembelianPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <PembelianPageContent />
+    </Suspense>
   );
 }

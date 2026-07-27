@@ -12,8 +12,11 @@ interface PembelianStore {
   items: CartItem[];
   supplierId: string | null;
   tanggal: string;
+  nomorNota: string;
   totalSupplier: number;
+  editId: string | null;
   
+  loadPembelian: (pembelian: any) => void;
   addItem: (item: InventoryItem, initialQty?: number) => void;
   updateQty: (id: string, qty: number) => void;
   updateHargaBeli: (id: string, harga: number) => void;
@@ -21,6 +24,7 @@ interface PembelianStore {
   removeItem: (id: string) => void;
   setSupplier: (id: string | null) => void;
   setTanggal: (tanggal: string) => void;
+  setNomorNota: (nota: string) => void;
   setTotalSupplier: (total: number) => void;
   reset: () => void;
   
@@ -34,7 +38,26 @@ export const usePembelianStore = create<PembelianStore>()(
   items: [],
   supplierId: null,
   tanggal: new Date().toISOString().split('T')[0],
+  nomorNota: '',
   totalSupplier: 0,
+  editId: null,
+
+  loadPembelian: (pembelian) => set({
+    items: pembelian.items.map((item: any) => ({
+      id: item.inventory_id,
+      nama_barang: item.nama_barang,
+      qty: item.qty,
+      harga_beli: item.harga_beli,
+      diskon: item.diskon || 0,
+      harga_final: item.harga_final,
+      subtotal: item.harga_final * item.qty,
+    })),
+    supplierId: pembelian.supplier_id,
+    tanggal: pembelian.tanggal,
+    nomorNota: pembelian.nomor_nota || '',
+    totalSupplier: pembelian.total_supplier || 0,
+    editId: pembelian.id
+  }),
 
   addItem: (item, initialQty = 1) => set((state) => {
     const existingIndex = state.items.findIndex(
@@ -99,13 +122,16 @@ export const usePembelianStore = create<PembelianStore>()(
 
   setSupplier: (id) => set({ supplierId: id }),
   setTanggal: (tanggal) => set({ tanggal }),
+  setNomorNota: (nota) => set({ nomorNota: nota }),
   setTotalSupplier: (total) => set({ totalSupplier: total }),
 
-  reset: () => set({
-    items: [],
-    supplierId: null,
+  reset: () => set({ 
+    items: [], 
+    supplierId: null, 
     tanggal: new Date().toISOString().split('T')[0],
+    nomorNota: '',
     totalSupplier: 0,
+    editId: null
   }),
 
   getTotalSistem: () => {

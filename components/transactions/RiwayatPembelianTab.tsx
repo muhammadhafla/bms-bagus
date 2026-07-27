@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { purchasesApi, PembelianItem } from '@/lib/api/pembelian';
+import { purchasesApi, purchaseApi, PembelianItem } from '@/lib/api/pembelian';
 import { inventoryApi } from '@/lib/api';
 import { useBulkPrintStore } from '@/lib/store';
 import { formatCurrency, formatDateWIB, formatDateTimeWIB } from '@/lib/utils';
-import { IconSearch, IconEye, IconChevronLeft, IconChevronRight, IconPrinter } from '@tabler/icons-react';
+import { IconSearch, IconEye, IconChevronLeft, IconChevronRight, IconPrinter, IconEdit, IconTrash, IconCheck, IconX as IconClose } from '@tabler/icons-react';
 import { Button, ModernPagination } from '@/components/ui';
 import { SlideOver } from '@/components/ui/SlideOver';
 import { TransactionHistoryTable } from './TransactionHistoryTable';
@@ -44,6 +44,7 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [slideOverOpen, setSlideOverOpen] = useState(false);
+  
   const abortControllerRef = useRef<AbortController | null>(null);
   const router = useRouter();
   const resetBulkPrint = useBulkPrintStore((state) => state.reset);
@@ -314,15 +315,25 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-                        {detail.items.map((item: any, idx: number) => (
-                          <tr key={idx} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
-                            <td className="px-4 py-3 font-medium text-neutral-900 dark:text-neutral-100">{item.nama_barang}</td>
-                            <td className="px-4 py-3 text-right">{item.qty}</td>
-                            <td className="px-4 py-3 text-right">{formatCurrency(item.harga_beli || 0)}</td>
-                            <td className="px-4 py-3 text-right text-neutral-500">{item.diskon ? formatCurrency(item.diskon) : '-'}</td>
-                            <td className="px-4 py-3 text-right font-semibold text-neutral-900 dark:text-neutral-100">{formatCurrency((item.harga_final || 0) * (item.qty || 0))}</td>
-                          </tr>
-                        ))}
+                        {detail.items.map((item: any, idx: number) => {
+                          return (
+                            <tr key={idx} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
+                              <td className="px-4 py-3 font-medium text-neutral-900 dark:text-neutral-100">{item.nama_barang}</td>
+                              <td className="px-4 py-3 text-right">
+                                  {item.qty}
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                  {formatCurrency(item.harga_beli || 0)}
+                              </td>
+                              <td className="px-4 py-3 text-right text-neutral-500">
+                                  {item.diskon ? formatCurrency(item.diskon) : '-'}
+                              </td>
+                              <td className="px-4 py-3 text-right font-semibold text-neutral-900 dark:text-neutral-100">
+                                {formatCurrency((item.harga_final || 0) * (item.qty || 0))}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -332,6 +343,17 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
               </div>
 
               <div className="flex justify-end pt-4 border-t border-neutral-200 dark:border-neutral-800">
+                <Button
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => {
+                    handleCloseSlideOver();
+                    router.push(`/purchasing?editId=${detail.id}`);
+                  }}
+                  leftIcon={<IconEdit className="w-4 h-4" />}
+                >
+                  Revisi Transaksi
+                </Button>
                 <Button
                   onClick={handleCetakLabel}
                   variant="primary"
@@ -345,6 +367,7 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
           )}
         </div>
       </SlideOver>
+
     </>
   );
 }

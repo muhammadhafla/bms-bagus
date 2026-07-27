@@ -151,13 +151,10 @@ export const purchasesApi = {
     }
   },
 
-  async getCount(options?: {
-    search?: string;
-    startDate?: string;
-    endDate?: string;
-  }) {
-    try {
-      let query = supabase.from('pembelian').select('*', { count: 'exact', head: true });
+  async getCount(options?: { search?: string, startDate?: string, endDate?: string }) {
+    let query = supabase
+      .from('pembelian')
+      .select('*', { count: 'exact', head: true });
 
       if (options?.search) {
         query = query.or(`nomor_nota.ilike.%${options.search}%,supplier_nama.ilike.%${options.search}%`);
@@ -177,9 +174,6 @@ export const purchasesApi = {
       }
 
       return { data: count ?? 0, error: null };
-    } catch (err: any) {
-      return { data: 0, error: { message: err.message || 'Terjadi kesalahan' } };
-    }
   },
 };
 
@@ -233,7 +227,8 @@ export const purchaseApi = {
         p_supplier_id: data.supplier_id,
         p_tanggal: data.tanggal,
         p_user: userId,
-        p_idempotency_key: data.idempotency_key
+        p_idempotency_key: data.idempotency_key,
+        p_nomor_nota: data.nomor_nota || null
       });
 
       if (result.error) {
@@ -246,5 +241,41 @@ export const purchaseApi = {
       console.error('Error submitting pembelian:', err);
       return { data: null, error: { message: err.message || 'Terjadi kesalahan' } };
     }
-  }
+  },
+
+
+
+  updateBatch: async (data: any) => {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('User not authenticated');
+
+      const itemsPayload = data.items.map((item: any) => ({
+        inventory_id: item.id,
+        nama_barang: item.nama_barang,
+        qty: item.qty,
+        harga: item.harga_final || 0,
+        harga_jual: item.harga_jual,
+        diskon: item.diskon
+      }));
+
+      const { data: response, error } = await supabase.rpc('update_pembelian_batch', {
+        p_pembelian_id: data.pembelian_id,
+        p_items: itemsPayload,
+        p_supplier_id: data.supplier_id || null,
+        p_tanggal: data.tanggal,
+        p_nomor_nota: data.nomor_nota || null,
+        p_user: user.id
+      });
+
+      if (error) throw error;
+      return { data: response, error: null };
+    } catch (error) {
+      console.error('Error updating purchase batch:', error);
+      return { data: null, error: error as Error };
+    }
+  },
+
+
 };

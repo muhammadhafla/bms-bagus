@@ -4,6 +4,8 @@
 
 -- ============================================
 
+CREATE SCHEMA IF NOT EXISTS rpc;
+
 -- 4.1 rpc.create_penjualan(p_user UUID, p_id UUID DEFAULT NULL) → UUID
 CREATE OR REPLACE FUNCTION rpc.create_penjualan(
   p_user UUID,
@@ -747,161 +749,161 @@ $$;
 
 
 -- Fix RPC
-��- -   4 . 4   p u b l i c . c r e a t e _ p e n j u a l a n _ r e t u r n ( . . . )   �      U U I D  
- C R E A T E   O R   R E P L A C E   F U N C T I O N   p u b l i c . c r e a t e _ p e n j u a l a n _ r e t u r n (  
-     p _ p e n j u a l a n _ i d   U U I D ,  
-     p _ t a n g g a l   D A T E ,  
-     p _ n o t e   T E X T ,  
-     p _ c r e a t e d _ b y   U U I D ,  
-     p _ i t e m s   J S O N B  
- )  
- R E T U R N S   U U I D  
- L A N G U A G E   p l p g s q l  
- A S   $ $  
- D E C L A R E  
-     v _ r e t u r n _ i d   U U I D ;  
-     v _ i t e m   J S O N B ;  
-     v _ p e n j u a l a n _ i t e m _ i d   U U I D ;  
-     v _ i n v e n t o r y _ i d   U U I D ;  
-     v _ q t y   I N T ;  
-     v _ h a r g a _ j u a l   N U M E R I C ;  
-     v _ d i s k o n   N U M E R I C ;  
-     v _ h a r g a _ f i n a l   N U M E R I C ;  
-     v _ c o s t _ a t _ s a l e   N U M E R I C ;  
-     v _ o r i g i n a l _ q t y   I N T ;  
-     v _ r e t u r n _ q t y   I N T ;  
- B E G I N  
-     - -   o r i g i n a l   p e n j u a l a n   m u s t   b e   p a i d  
-     I F   N O T   E X I S T S   (  
-         S E L E C T   1   F R O M   p u b l i c . p e n j u a l a n  
-         W H E R E   i d   =   p _ p e n j u a l a n _ i d   A N D   s t a t u s   =   ' p a i d '  
-     )   T H E N  
-         R A I S E   E X C E P T I O N   ' P e n j u a l a n   n o t   f o u n d   o r   n o t   p a i d ' ;  
-     E N D   I F ;  
-  
-     I N S E R T   I N T O   p u b l i c . p e n j u a l a n _ r e t u r n   (  
-         i d ,  
-         p e n j u a l a n _ i d ,  
-         t a n g g a l ,  
-         n o t e ,  
-         c r e a t e d _ b y  
-     )  
-     V A L U E S   (  
-         g e n _ r a n d o m _ u u i d ( ) ,  
-         p _ p e n j u a l a n _ i d ,  
-         p _ t a n g g a l ,  
-         p _ n o t e ,  
-         p _ c r e a t e d _ b y  
-     )  
-     R E T U R N I N G   i d   I N T O   v _ r e t u r n _ i d ;  
-  
-     F O R   v _ i t e m   I N   S E L E C T   *   F R O M   j s o n b _ a r r a y _ e l e m e n t s ( p _ i t e m s )  
-     L O O P  
-         v _ p e n j u a l a n _ i t e m _ i d   : =   ( v _ i t e m - > > ' p e n j u a l a n _ i t e m _ i d ' ) : : U U I D ;  
-         v _ q t y   : =   ( v _ i t e m - > > ' q t y ' ) : : I N T ;  
-         v _ h a r g a _ j u a l   : =   ( v _ i t e m - > > ' h a r g a _ j u a l ' ) : : N U M E R I C ;  
-         v _ d i s k o n   : =   C O A L E S C E ( ( v _ i t e m - > > ' d i s k o n ' ) : : N U M E R I C ,   0 ) ;  
-  
-         I F   v _ q t y   I S   N U L L   O R   v _ q t y   < =   0   T H E N  
-             R A I S E   E X C E P T I O N   ' q t y   r e t u r n   h a r u s   >   0 .   p e n j u a l a n _ i t e m _ i d = % ' ,   v _ p e n j u a l a n _ i t e m _ i d ;  
-         E N D   I F ;  
-  
-         v _ h a r g a _ f i n a l   : =   N U L L I F ( ( v _ i t e m - > > ' h a r g a _ f i n a l ' ) : : T E X T ,   ' ' ) : : N U M E R I C ;  
-         I F   v _ h a r g a _ f i n a l   I S   N U L L   T H E N  
-             R A I S E   E X C E P T I O N   ' h a r g a _ f i n a l   w a j i b   d i k i r i m   u n t u k   p e n j u a l a n _ i t e m _ i d = % ' ,   v _ p e n j u a l a n _ i t e m _ i d ;  
-         E N D   I F ;  
-  
-         v _ c o s t _ a t _ s a l e   : =   C O A L E S C E ( ( v _ i t e m - > > ' c o s t _ a t _ s a l e ' ) : : N U M E R I C ,   0 ) ;  
-  
-         - -   a m b i l   i n v e n t o r y _ i d   d a n   q t y   d a r i   p e n j u a l a n _ i t e m s  
-         S E L E C T   i n v e n t o r y _ i d ,   q t y   I N T O   v _ i n v e n t o r y _ i d ,   v _ o r i g i n a l _ q t y  
-         F R O M   p u b l i c . p e n j u a l a n _ i t e m s  
-         W H E R E   i d   =   v _ p e n j u a l a n _ i t e m _ i d ;  
-  
-         S E L E C T   C O A L E S C E ( S U M ( p r i . q t y ) ,   0 )   I N T O   v _ r e t u r n _ q t y  
-         F R O M   p u b l i c . p e n j u a l a n _ r e t u r n   p r  
-         J O I N   p u b l i c . p e n j u a l a n _ r e t u r n _ i t e m s   p r i  
-             O N   p r i . p e n j u a l a n _ r e t u r n _ i d   =   p r . i d  
-         W H E R E   p r . p e n j u a l a n _ i d   =   p _ p e n j u a l a n _ i d  
-             A N D   p r i . p e n j u a l a n _ i t e m _ i d   =   v _ p e n j u a l a n _ i t e m _ i d ;  
-  
-         I F   v _ o r i g i n a l _ q t y   I S   N U L L   T H E N  
-             R A I S E   E X C E P T I O N   ' I t e m   t i d a k   a d a   d i   t r a n s a k s i   o r i g i n a l ' ;  
-         E N D   I F ;  
-  
-         I F   v _ q t y   >   ( v _ o r i g i n a l _ q t y   -   v _ r e t u r n _ q t y )   T H E N  
-             R A I S E   E X C E P T I O N   ' Q t y   r e t u r n   m e l e b i h i   y a n g   b i s a   d i k e m b a l i k a n .   M a k s :   % ' ,   v _ o r i g i n a l _ q t y   -   v _ r e t u r n _ q t y ;  
-         E N D   I F ;  
-  
-         - -   I n s e r t   r e t u r n   i t e m   ( a m b i l   d a t a   n a m a _ b a r a n g   &   i n v e n t o r y _ i d   d a r i   p e n j u a l a n _ i t e m s   a g a r   k o n s i s t e n )  
-         I N S E R T   I N T O   p u b l i c . p e n j u a l a n _ r e t u r n _ i t e m s   (  
-             i d ,  
-             p e n j u a l a n _ r e t u r n _ i d ,  
-             p e n j u a l a n _ i t e m _ i d ,  
-             i n v e n t o r y _ i d ,  
-             n a m a _ b a r a n g ,  
-             q t y ,  
-             h a r g a _ j u a l ,  
-             d i s k o n ,  
-             h a r g a _ f i n a l ,  
-             c o s t _ a t _ s a l e  
-         )  
-         S E L E C T  
-             g e n _ r a n d o m _ u u i d ( ) ,  
-             v _ r e t u r n _ i d ,  
-             v _ p e n j u a l a n _ i t e m _ i d ,  
-             p i . i n v e n t o r y _ i d ,  
-             p i . n a m a _ b a r a n g ,  
-             v _ q t y ,  
-             v _ h a r g a _ j u a l ,  
-             v _ d i s k o n ,  
-             v _ h a r g a _ f i n a l ,  
-             v _ c o s t _ a t _ s a l e  
-         F R O M   p u b l i c . p e n j u a l a n _ i t e m s   p i  
-         W H E R E   p i . i d   =   v _ p e n j u a l a n _ i t e m _ i d ;  
-  
-         - -   r e s t o r e   s t o c k  
-         U P D A T E   p u b l i c . i n v e n t o r y  
-         S E T   s t o k   =   s t o k   +   v _ q t y ,  
-                 u p d a t e d _ a t   =   N O W ( )  
-         W H E R E   i d   =   v _ i n v e n t o r y _ i d ;  
-  
-         - -   s t o c k   m o v e m e n t   I N   ( p a k a i   q t y   &   r e f e r e n s i )  
-         I N S E R T   I N T O   p u b l i c . s t o c k _ m o v e m e n t s   (  
-             i d ,  
-             i n v e n t o r y _ i d ,  
-             t i p e ,  
-             q t y ,  
-             r e f e r e n s i ,  
-             c r e a t e d _ a t  
-         )  
-         V A L U E S   (  
-             g e n _ r a n d o m _ u u i d ( ) ,  
-             v _ i n v e n t o r y _ i d ,  
-             ' I N ' ,  
-             v _ q t y ,  
-             v _ r e t u r n _ i d : : t e x t ,  
-             N O W ( )  
-         ) ;  
-     E N D   L O O P ;  
-  
-     - -   k a s   l o g  
-     I N S E R T   I N T O   p u b l i c . k a s _ l o g   ( i d ,   t i p e ,   j u m l a h ,   r e f e r e n s i _ i d ,   c a t a t a n ,   c r e a t e d _ a t )  
-     V A L U E S   (  
-         g e n _ r a n d o m _ u u i d ( ) ,  
-         ' R E T U R N ' ,  
-         ( S E L E C T   C O A L E S C E ( S U M ( q t y   *   h a r g a _ f i n a l ) ,   0 )  
-           F R O M   p u b l i c . p e n j u a l a n _ r e t u r n _ i t e m s  
-           W H E R E   p e n j u a l a n _ r e t u r n _ i d   =   v _ r e t u r n _ i d ) ,  
-         v _ r e t u r n _ i d ,  
-         p _ n o t e ,  
-         N O W ( )  
-     ) ;  
-  
-     R E T U R N   v _ r e t u r n _ i d ;  
- E N D ;  
- $ $ ;  
- 
+-- 4.4 public.create_penjualan_return(...) UUID
+CREATE OR REPLACE FUNCTION public.create_penjualan_return(
+  p_penjualan_id UUID,
+  p_tanggal DATE,
+  p_note TEXT,
+  p_created_by UUID,
+  p_items JSONB
+)
+RETURNS UUID
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_return_id UUID;
+  v_item JSONB;
+  v_penjualan_item_id UUID;
+  v_inventory_id UUID;
+  v_qty INT;
+  v_harga_jual NUMERIC;
+  v_diskon NUMERIC;
+  v_harga_final NUMERIC;
+  v_cost_at_sale NUMERIC;
+  v_original_qty INT;
+  v_return_qty INT;
+BEGIN
+  -- original penjualan must be paid
+  IF NOT EXISTS (
+    SELECT 1 FROM public.penjualan
+    WHERE id = p_penjualan_id AND status = 'paid'
+  ) THEN
+    RAISE EXCEPTION 'Penjualan not found or not paid';
+  END IF;
+
+  INSERT INTO public.penjualan_return (
+    id,
+    penjualan_id,
+    tanggal,
+    note,
+    created_by
+  )
+  VALUES (
+    gen_random_uuid(),
+    p_penjualan_id,
+    p_tanggal,
+    p_note,
+    p_created_by
+  )
+  RETURNING id INTO v_return_id;
+
+  FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
+  LOOP
+    v_penjualan_item_id := (v_item->>'penjualan_item_id')::UUID;
+    v_qty := (v_item->>'qty')::INT;
+    v_harga_jual := (v_item->>'harga_jual')::NUMERIC;
+    v_diskon := COALESCE((v_item->>'diskon')::NUMERIC, 0);
+
+    IF v_qty IS NULL OR v_qty <= 0 THEN
+      RAISE EXCEPTION 'qty return harus > 0. penjualan_item_id=%', v_penjualan_item_id;
+    END IF;
+
+    v_harga_final := NULLIF((v_item->>'harga_final')::TEXT, '')::NUMERIC;
+    IF v_harga_final IS NULL THEN
+      RAISE EXCEPTION 'harga_final wajib dikirim untuk penjualan_item_id=%', v_penjualan_item_id;
+    END IF;
+
+    v_cost_at_sale := COALESCE((v_item->>'cost_at_sale')::NUMERIC, 0);
+
+    -- ambil inventory_id dan qty dari penjualan_items
+    SELECT inventory_id, qty INTO v_inventory_id, v_original_qty
+    FROM public.penjualan_items
+    WHERE id = v_penjualan_item_id;
+
+    SELECT COALESCE(SUM(pri.qty), 0) INTO v_return_qty
+    FROM public.penjualan_return pr
+    JOIN public.penjualan_return_items pri
+      ON pri.penjualan_return_id = pr.id
+    WHERE pr.penjualan_id = p_penjualan_id
+      AND pri.penjualan_item_id = v_penjualan_item_id;
+
+    IF v_original_qty IS NULL THEN
+      RAISE EXCEPTION 'Item tidak ada di transaksi original';
+    END IF;
+
+    IF v_qty > (v_original_qty - v_return_qty) THEN
+      RAISE EXCEPTION 'Qty return melebihi yang bisa dikembalikan. Maks: %', v_original_qty - v_return_qty;
+    END IF;
+
+    -- Insert return item (ambil data nama_barang & inventory_id dari penjualan_items agar konsisten)
+    INSERT INTO public.penjualan_return_items (
+      id,
+      penjualan_return_id,
+      penjualan_item_id,
+      inventory_id,
+      nama_barang,
+      qty,
+      harga_jual,
+      diskon,
+      harga_final,
+      cost_at_sale
+    )
+    SELECT
+      gen_random_uuid(),
+      v_return_id,
+      v_penjualan_item_id,
+      pi.inventory_id,
+      pi.nama_barang,
+      v_qty,
+      v_harga_jual,
+      v_diskon,
+      v_harga_final,
+      v_cost_at_sale
+    FROM public.penjualan_items pi
+    WHERE pi.id = v_penjualan_item_id;
+
+    -- restore stock
+    UPDATE public.inventory
+    SET stok = stok + v_qty,
+        updated_at = NOW()
+    WHERE id = v_inventory_id;
+
+    -- stock movement IN (pakai qty & referensi)
+    INSERT INTO public.stock_movements (
+      id,
+      inventory_id,
+      tipe,
+      qty,
+      referensi,
+      created_at
+    )
+    VALUES (
+      gen_random_uuid(),
+      v_inventory_id,
+      'IN',
+      v_qty,
+      v_return_id::text,
+      NOW()
+    );
+  END LOOP;
+
+  -- kas log
+  INSERT INTO public.kas_log (id, tipe, jumlah, referensi_id, catatan, created_at)
+  VALUES (
+    gen_random_uuid(),
+    'RETURN',
+    (SELECT COALESCE(SUM(qty * harga_final), 0)
+     FROM public.penjualan_return_items
+     WHERE penjualan_return_id = v_return_id),
+    v_return_id,
+    p_note,
+    NOW()
+  );
+
+  RETURN v_return_id;
+END;
+$$;
+
 -- Inventory Functions
 -- SQL Functions: Dashboard Stats & 7-Day Trend (Server-side aggregation)
 -- Mengganti logika client-side yang salah hitung profit (penjualan - pembelian)
@@ -1777,8 +1779,9 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION tambah_pembelian_batch(jsonb, uuid, date, uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION tambah_pembelian_batch(jsonb, uuid, date, uuid, uuid) TO authenticated;
+
+DROP FUNCTION IF EXISTS public.void_pembelian_return_item(uuid, text, uuid);
 CREATE OR REPLACE FUNCTION public.void_pembelian_return_item(
   p_pembelian_return_item_id uuid,
   p_note text default null,

@@ -6,6 +6,7 @@
 -- Enable UUID extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- Profiles table (for users)
 CREATE TABLE IF NOT EXISTS profiles (
@@ -92,7 +93,8 @@ CREATE TABLE IF NOT EXISTS penjualan (
   tanggal DATE NOT NULL,
   created_by UUID REFERENCES profiles(id),
   created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
-  total NUMERIC DEFAULT 0
+  total NUMERIC DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'draft'
 );
 
 -- Penjualan items
@@ -955,7 +957,7 @@ ALTER TABLE public.receipt_templates ALTER COLUMN id SET DEFAULT gen_random_uuid
 ALTER TABLE public.receipt_templates ADD COLUMN IF NOT EXISTS name text;
 ALTER TABLE public.receipt_templates ALTER COLUMN name SET NOT NULL;
 ALTER TABLE public.receipt_templates ALTER COLUMN name DROP DEFAULT;
-ALTER TABLE public.receipt_templates ADD COLUMN IF NOT EXISTS type USER-DEFINED;
+ALTER TABLE public.receipt_templates ADD COLUMN IF NOT EXISTS type receipt_type;
 ALTER TABLE public.receipt_templates ALTER COLUMN type SET NOT NULL;
 ALTER TABLE public.receipt_templates ALTER COLUMN type DROP DEFAULT;
 ALTER TABLE public.receipt_templates ADD COLUMN IF NOT EXISTS template jsonb;

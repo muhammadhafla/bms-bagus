@@ -16,6 +16,8 @@ import {
   IconReport,
   IconClipboardCheck,
   IconUsers,
+  IconUsersGroup,
+  IconSettings,
   IconLogout,
   IconSun,
   IconMoon,
@@ -151,12 +153,13 @@ export function Sidebar() {
     setMobileMenuOpen(false);
   }, [pathname, setMobileMenuOpen]);
 
-  // Memoize computed values
   const navItems = useMemo(() => {
     const items = [...NAV_ITEMS];
     if (isAdminUser) {
       items.push({ href: '/analytics', title: 'Analisis & Laporan', icon: IconChartBar });
       items.push({ href: '/users', title: 'Pengguna', icon: IconUsers });
+      items.push({ href: '/members', title: 'Master Member', icon: IconUsersGroup });
+      items.push({ href: '/members/tiers', title: 'Konfigurasi Tier', icon: IconSettings });
     }
     return items;
   }, [isAdminUser]);

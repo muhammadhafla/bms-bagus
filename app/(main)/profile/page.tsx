@@ -7,7 +7,7 @@ import { AmbientLayout } from '@/components/ui';
 import { toast } from "sonner";
 import { 
   IconUser, IconCamera, IconDeviceFloppy, IconSettings, IconSun, IconMoon, 
-  IconLogout, IconChevronRight, IconUsers, IconTags, IconHistory, IconReport 
+  IconLogout, IconChevronRight, IconUsers, IconUsersGroup, IconTags, IconHistory, IconReport 
 } from '@tabler/icons-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -300,6 +300,22 @@ export default function ProfilePage() {
                       <IconUsers className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                     </div>
                     <div className="flex-1 text-sm font-semibold text-neutral-900 dark:text-white">Kelola Pengguna</div>
+                    <IconChevronRight className="w-4 h-4 text-neutral-400" />
+                  </Link>
+
+                  <Link href="/members" className="flex items-center gap-4 p-4 border-b border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center">
+                      <IconUsersGroup className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <div className="flex-1 text-sm font-semibold text-neutral-900 dark:text-white">Master Member</div>
+                    <IconChevronRight className="w-4 h-4 text-neutral-400" />
+                  </Link>
+
+                  <Link href="/members/tiers" className="flex items-center gap-4 p-4 border-b border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
+                      <IconSettings className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div className="flex-1 text-sm font-semibold text-neutral-900 dark:text-white">Konfigurasi Tier</div>
                     <IconChevronRight className="w-4 h-4 text-neutral-400" />
                   </Link>
 

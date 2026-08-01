@@ -13,7 +13,8 @@ import {
   IconBell,
   IconRefresh,
   IconSwitch,
-  IconEye
+  IconEye,
+  IconUsersGroup
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import Image from 'next/image';

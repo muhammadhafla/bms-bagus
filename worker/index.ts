@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-export default null;
+export {};
 declare const self: ServiceWorkerGlobalScope;
 
 // Mendengarkan pesan dari aplikasi (client)

@@ -336,4 +336,3 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.shift_sessions TO authentic
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.shift_sessions TO service_role;
 
 -- Label Policies
-undefined

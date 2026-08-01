@@ -1,25 +1,31 @@
-# Inventory Management System
+# BMS Inventory Management System
 
-A full-stack Inventory Management System built with modern web technologies.
+A robust, modern, and offline-capable Inventory Management System and Point of Sale (POS) application built for high performance and excellent user experience.
 
-## Tech Stack
+## ✨ Core Features
 
-- **Framework**: [Next.js](https://nextjs.org/)
-- **Backend/Database**: [Supabase](https://supabase.com/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **State Management**: [Zustand](https://github.com/pmndrs/zustand)
-- **Data Fetching**: [React Query](https://tanstack.com/query/latest)
-- **Testing**: [Vitest](https://vitest.dev/)
-- **Data Visualization**: [Recharts](https://recharts.org/)
-- **PDF Generation**: [pdfmake](http://pdfmake.org/)
-- **CSV Parsing**: [PapaParse](https://www.papaparse.com/)
-- **Icons**: [Tabler Icons](https://tabler.io/icons)
+- **Inventory Management**: Track stock levels, categories, and manage item master data.
+- **Point of Sale (POS) / Transactions**: Process sales quickly with an optimized interface.
+- **Purchasing**: Manage suppliers, purchase orders, and inbound stock.
+- **Finance & Analytics**: Track revenue, calculate profit (Revenue - COGS), and view sales trends via interactive charts (Recharts).
+- **Bulk Print & Barcode**: Generate and print multiple barcodes efficiently using built-in PDF generation (pdfmake).
+- **Role-Based Access Control**: Securely isolate data and features between different roles (Finance, Purchasing, Cashier).
+- **Progressive Web App (PWA)**: Installable on mobile and desktop devices with offline indicators and robust caching.
 
-## Getting Started
+## 🛠️ Architecture & Tech Stack
+
+- **Framework**: [Next.js 15](https://nextjs.org/) (App Router & Server Components where applicable)
+- **Backend & Auth**: [Supabase](https://supabase.com/) (PostgreSQL with strict Row Level Security & SSR Auth)
+- **State Management**: [Zustand](https://github.com/pmndrs/zustand) (Global state) & [React Query](https://tanstack.com/query/latest) (Server state & caching)
+- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/) with a custom comprehensive UI component system in `components/ui/`.
+- **Testing**: [Vitest](https://vitest.dev/) for unit, component, and strict accessibility (A11y) testing.
+- **Data Utilities**: [PapaParse](https://www.papaparse.com/) for CSV export, [Zod](https://zod.dev/) for strong schema validation.
+
+## 🚀 Getting Started
 
 ### Prerequisites
-
-Ensure you have Node.js and npm installed on your local machine. You will also need a Supabase project set up for the database backend.
+- Node.js (v20+) and npm
+- A Supabase project
 
 ### Installation
 
@@ -34,8 +40,8 @@ Ensure you have Node.js and npm installed on your local machine. You will also n
    npm install
    ```
 
-3. Set up environment variables:
-   Copy `.env.example` to `.env.local` and add your Supabase connection details:
+3. Environment Variables:
+   Copy `.env.example` to `.env.local` and configure your Supabase URL and Anon Key:
    ```bash
    cp .env.example .env.local
    ```
@@ -44,13 +50,13 @@ Ensure you have Node.js and npm installed on your local machine. You will also n
    ```bash
    npm run dev
    ```
+   Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-5. Open [http://localhost:3000](http://localhost:3000) with your browser to see the app.
+## 🧪 Development Scripts
 
-## Available Scripts
-
-- `npm run dev` - Starts the Next.js development server
-- `npm run build` - Builds the application for production
-- `npm run start` - Starts the Next.js production server
-- `npm run lint` - Runs ESLint to check for code issues
-- `npm run test` - Runs Vitest for unit testing
+- `npm run dev` - Starts the development server
+- `npm run build` - Builds for production
+- `npm run start` - Starts production server
+- `npm run lint` - Runs ESLint
+- `npm run tsc` - Runs TypeScript type checking
+- `npm run test` - Runs all Vitest test suites (Unit & Accessibility)

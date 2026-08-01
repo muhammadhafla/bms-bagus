@@ -19,8 +19,8 @@
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
 | 1 | M1: Accessibility Enhancements (R1) | Add ARIA properties, fix HTML link tags, and update layout viewport properties | None | DONE |
-| 2 | M2: UI Polish (R2) | Replace characters with SVG icons, fix conflicting focuses, fix z-index layering, implement tooltips | M1 | IN_PROGRESS |
-| 3 | M3: Build & Static Verification | Run eslint, tsc, and next build, run forensic audit checks | M2 | PLANNED |
+| 2 | M2: UI Polish (R2) | Replace characters with SVG icons, fix conflicting focuses, fix z-index layering, implement tooltips | M1 | DONE |
+| 3 | M3: Build & Static Verification | Run eslint, tsc, and next build, run forensic audit checks | M2 | IN_PROGRESS |
 
 ## Code Layout
 - Foundational UI controls: `components/ui/*`

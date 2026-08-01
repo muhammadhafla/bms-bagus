@@ -28,14 +28,15 @@ export default function MemberTiersPage() {
     tier: null,
   });
   
-  const { isAdmin, initialized } = useAuthStore();
+  const { isAdmin, initialized, user, profile } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
-    if (initialized && !isAdmin()) {
+    const isAuthFullyLoaded = initialized && (!user || profile !== null);
+    if (isAuthFullyLoaded && !isAdmin()) {
       router.push('/');
     }
-  }, [initialized, isAdmin, router]);
+  }, [initialized, isAdmin, router, user, profile]);
 
   const fetchTiers = useCallback(async () => {
     setLoading(true);

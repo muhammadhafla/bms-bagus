@@ -35,15 +35,16 @@ export default function UsersPage() {
   });
   const [page, setPage] = useState(1);
   const LIMIT = 10;
-  const { isAdmin, initialized } = useAuthStore();
+  const { isAdmin, initialized, user, profile } = useAuthStore();
   const router = useRouter();
   const { onlineUsers } = usePresenceStore();
 
   useEffect(() => {
-    if (initialized && !isAdmin()) {
+    const isAuthFullyLoaded = initialized && (!user || profile !== null);
+    if (isAuthFullyLoaded && !isAdmin()) {
       router.push('/');
     }
-  }, [initialized, isAdmin, router]);
+  }, [initialized, isAdmin, router, user, profile]);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);

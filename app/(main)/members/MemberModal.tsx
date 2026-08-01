@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { TextInput, SelectInput } from '@/components/ui';
+import { TextInput, SelectInput, Modal } from '@/components/ui';
 
 interface Tier {
   id: string;
@@ -126,22 +126,18 @@ export default function MemberModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div 
-        className="absolute inset-0 bg-neutral-900/40 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      />
-      
-      <div className="relative bg-white dark:bg-neutral-900 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-neutral-900 dark:text-white mb-1">
-            {isEditMode ? 'Edit Member' : 'Daftar Member Baru'}
-          </h2>
-          <p className="text-sm text-neutral-500 mb-6">
-            Lengkapi data pelanggan di bawah ini.
-          </p>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditMode ? 'Edit Member' : 'Daftar Member Baru'}
+      size="lg"
+      isBottomSheetOnMobile={true}
+    >
+      <p className="text-sm text-neutral-500 mb-6 -mt-2">
+        Lengkapi data pelanggan di bawah ini.
+      </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+      <form onSubmit={handleSubmit} className="space-y-4">
             <TextInput
               label="Nama Lengkap"
               type="text"
@@ -187,7 +183,7 @@ export default function MemberModal({
                 className="w-5 h-5 text-brand-500 rounded focus:ring-brand-500"
               />
               <span className="text-sm text-neutral-700 dark:text-neutral-300 font-medium">
-                Pilih Struk Digital via WhatsApp (Persiapan Fase 2)
+                Kirim Struk Digital via WhatsApp
               </span>
             </label>
 
@@ -211,9 +207,7 @@ export default function MemberModal({
                 )}
               </button>
             </div>
-          </form>
-        </div>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 }

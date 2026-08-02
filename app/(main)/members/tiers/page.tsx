@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { IconSettings, IconChevronRight, IconShieldLock } from '@tabler/icons-react';
+import { IconSettings, IconChevronRight, IconShieldLock, IconArrowDown } from '@tabler/icons-react';
+import dynamic from 'next/dynamic';
 import { toast } from "sonner";
 import { AmbientLayout } from '@/components/ui';
 import { useRouter } from 'next/navigation';
@@ -11,6 +12,10 @@ import { AdminOnly } from '@/components/role';
 import EditTierModal from './EditTierModal';
 import { formatDateWIB } from '@/lib/utils';
 
+const PullToRefresh = dynamic(
+  () => import('react-simple-pull-to-refresh'),
+  { ssr: false }
+);
 interface MemberTier {
   id: string;
   name: string;
@@ -59,7 +64,9 @@ export default function MemberTiersPage() {
     }
   }, [fetchTiers, initialized, isAdmin]);
 
-  if (!initialized) {
+  const isAuthFullyLoaded = initialized && (!user || profile !== null);
+
+  if (!isAuthFullyLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
@@ -81,7 +88,20 @@ export default function MemberTiersPage() {
 
   return (
     <AmbientLayout>
-      <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)] lg:min-h-0">
+      <PullToRefresh
+        onRefresh={fetchTiers}
+        pullingContent={
+          <div className="flex items-center justify-center py-4 text-neutral-400">
+            <IconArrowDown className="w-5 h-5 animate-bounce" />
+          </div>
+        }
+        refreshingContent={
+          <div className="flex items-center justify-center py-4">
+            <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
+        <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)] lg:min-h-0">
         <div className="mb-4 lg:mb-6 flex-shrink-0 animate-fade-in-up">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
             <div className="flex items-center gap-4">
@@ -156,7 +176,8 @@ export default function MemberTiersPage() {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </PullToRefresh>
 
       {editTierModal.tier && (
         <EditTierModal

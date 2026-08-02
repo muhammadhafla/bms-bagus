@@ -25,6 +25,8 @@ export default function ProfilePage() {
   const [nama, setNama] = useState('');
   const [username, setUsername] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -91,6 +93,19 @@ export default function ProfilePage() {
         }
       }
 
+      if (password) {
+        if (password !== confirmPassword) {
+          throw new Error('Konfirmasi password tidak cocok');
+        }
+        if (password.length < 6) {
+          throw new Error('Password minimal 6 karakter');
+        }
+        const { error: passwordError } = await supabase.auth.updateUser({
+          password: password
+        });
+        if (passwordError) throw passwordError;
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -102,6 +117,8 @@ export default function ProfilePage() {
 
       if (error) throw error;
 
+      setPassword('');
+      setConfirmPassword('');
       toast.success('Profil berhasil diperbarui');
       await refreshSession();
     } catch (error: any) {
@@ -204,6 +221,38 @@ export default function ProfilePage() {
                   className="w-full px-4 py-2.5 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500/20 focus:border-brand-500 transition-all text-neutral-900 dark:text-white"
                 />
               </div>
+
+              <hr className="border-neutral-200 dark:border-neutral-800 my-4" />
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                  Password Baru <span className="text-neutral-400 font-normal">(Opsional)</span>
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Kosongkan jika tidak ingin ganti password"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500/20 focus:border-brand-500 transition-all text-neutral-900 dark:text-white"
+                  minLength={6}
+                />
+              </div>
+
+              {password && (
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                    Konfirmasi Password Baru
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Masukkan ulang password baru"
+                    className="w-full px-4 py-2.5 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500/20 focus:border-brand-500 transition-all text-neutral-900 dark:text-white"
+                    required={!!password}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="pt-4 flex justify-end">

@@ -12,11 +12,13 @@ interface EditUserModalProps {
   onSuccess: () => void;
   userId: string;
   initialName: string;
+  initialUsername?: string | null;
   initialRole: 'admin' | 'staff';
 }
 
-export default function EditUserModal({ isOpen, onClose, onSuccess, userId, initialName, initialRole }: EditUserModalProps) {
+export default function EditUserModal({ isOpen, onClose, onSuccess, userId, initialName, initialUsername, initialRole }: EditUserModalProps) {
   const [nama, setNama] = useState(initialName);
+  const [username, setUsername] = useState(initialUsername || '');
   const [role, setRole] = useState<'admin' | 'staff'>(initialRole);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,10 +26,11 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, userId, init
   useEffect(() => {
     if (isOpen) {
       setNama(initialName);
+      setUsername(initialUsername || '');
       setRole(initialRole);
       setPassword('');
     }
-  }, [isOpen, initialName, initialRole]);
+  }, [isOpen, initialName, initialUsername, initialRole]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +47,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, userId, init
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ nama, role, password })
+        body: JSON.stringify({ nama, username, role, password })
       });
 
       const data = await response.json();
@@ -106,6 +109,25 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, userId, init
               className="w-full pl-10 pr-4 py-2 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-inset focus:ring-brand-500/20 focus:border-brand-500 transition-shadow outline-none"
               placeholder="Nama pengguna"
               required
+              disabled={loading || isDeleting}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+            Username
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
+              <IconUser size={18} />
+            </div>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
+              className="w-full pl-10 pr-4 py-2 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-inset focus:ring-brand-500/20 focus:border-brand-500 transition-shadow outline-none"
+              placeholder="Opsional, untuk login tanpa email"
               disabled={loading || isDeleting}
             />
           </div>

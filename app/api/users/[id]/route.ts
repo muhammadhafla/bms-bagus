@@ -52,15 +52,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (adminRes.error) return NextResponse.json({ error: adminRes.error }, { status: adminRes.status });
 
     const body = await request.json();
-    const { nama, role, password } = body;
+    const { nama, role, password, username } = body;
     const userId = (await params).id;
 
     if (!userId) return NextResponse.json({ error: 'User ID tidak ditemukan' }, { status: 400 });
     if (!nama) return NextResponse.json({ error: 'Nama wajib diisi' }, { status: 400 });
 
+    const updatePayload: any = { nama, role: role?.toLowerCase() === 'admin' ? 'admin' : 'staff' };
+    if (username !== undefined) {
+      updatePayload.username = username ? username.toLowerCase().replace(/[^a-z0-9_.]/g, '') : null;
+    }
+
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .update({ nama, role: role?.toLowerCase() === 'admin' ? 'admin' : 'staff' })
+      .update(updatePayload)
       .eq('id', userId);
 
     if (profileError) {

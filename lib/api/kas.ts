@@ -37,7 +37,7 @@ export const kasApi = {
         .from('kas_log')
         .select(`
           *,
-          profiles (nama)
+          profiles!kas_log_created_by_fkey (nama)
         `, { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -133,7 +133,7 @@ export const kasApi = {
         .from('kas_log')
         .select(`
           tipe, jumlah, created_by, created_at,
-          profiles (nama)
+          profiles!kas_log_created_by_fkey (nama)
         `)
         .gte('created_at', date + 'T00:00:00+07:00')
         .lte('created_at', date + 'T23:59:59+07:00')

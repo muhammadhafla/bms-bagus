@@ -2,13 +2,18 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import dynamic from 'next/dynamic';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { analyticsApi, kategoriApi } from '@/lib/api';
-import { IconDashboard, IconPackage, IconShoppingCart, IconTrendingUp, IconChartBar, IconFilter, IconX, IconLock, IconRotateClockwise2 } from '@tabler/icons-react';
+import { IconDashboard, IconPackage, IconShoppingCart, IconTrendingUp, IconChartBar, IconFilter, IconX, IconLock, IconRotateClockwise2, IconArrowDown } from '@tabler/icons-react';
 import { DateRangePicker, Tabs, SelectInput, SlideOver, Button, FilterButton } from '@/components/ui';
 import { AdminOnly } from '@/components/role';
 import { formatDateForInputWIB } from '@/lib/utils';
+
+const PullToRefresh = dynamic(
+  () => import('react-simple-pull-to-refresh'),
+  { ssr: false }
+);
 
 const BusiestTimeChart = dynamic(
   () => import('@/components/analytics/BusiestTimeChart').then((mod) => mod.BusiestTimeChart),
@@ -124,6 +129,7 @@ export default function AnalyticsPage() {
 }
 
 function AnalyticsContent() {
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -217,10 +223,27 @@ function AnalyticsContent() {
   const activeFilters = getActiveFilters();
   const showFilterButton = ['sales', 'profit', 'top_items'].includes(activeTab);
 
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries();
+  };
+
   return (
-    <div className="flex flex-col h-full w-full max-w-7xl mx-auto pb-8">
-      {/* Header */}
-      <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in-up">
+    <PullToRefresh
+      onRefresh={handleRefresh}
+      pullingContent={
+        <div className="flex items-center justify-center py-4 text-neutral-400">
+          <IconArrowDown className="w-5 h-5 animate-bounce" />
+        </div>
+      }
+      refreshingContent={
+        <div className="flex items-center justify-center py-4">
+          <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <div className="flex flex-col h-full w-full max-w-7xl mx-auto pb-8">
+        {/* Header */}
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in-up">
         <div>
           <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
             Analisis & Laporan
@@ -365,6 +388,7 @@ function AnalyticsContent() {
         { activeTab === 'value' && <ValueReportTab /> }
         { activeTab === 'returns' && <ReturnsReportTab startDate={startDate} endDate={endDate} /> }
       </div>
-    </div>
+      </div>
+    </PullToRefresh>
   );
 }

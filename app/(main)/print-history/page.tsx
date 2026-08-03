@@ -3,7 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AmbientLayout, Button, SlideOver, ModernPagination, FilterButton, DateRangePicker } from '@/components/ui';
 import DateInput from '@/components/ui/DateInput';
-import { IconHistory, IconRefresh, IconPrinter, IconChevronLeft, IconChevronRight, IconFilter, IconX } from '@tabler/icons-react';
+import { IconHistory, IconRefresh, IconPrinter, IconChevronLeft, IconChevronRight, IconFilter, IconX, IconArrowDown } from '@tabler/icons-react';
+import dynamic from 'next/dynamic';
+
+const PullToRefresh = dynamic(
+  () => import('react-simple-pull-to-refresh'),
+  { ssr: false }
+);
 import { formatDateTimeWIB } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { fetchApi } from '@/lib/fetchApi';
@@ -77,8 +83,45 @@ export default function PrintHistoryPage() {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+      
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+
+      const res = await fetchApi(`/api/print/history?${params.toString()}`);
+      const data = await res.json();
+      
+      if (data.history) {
+        setJobs(data.history);
+      }
+      if (data.pagination) {
+        setTotalPages(data.pagination.totalPages || 1);
+      }
+    } catch (err) {
+      console.error('Failed to refresh print history', err);
+    }
+  };
+
   return (
     <AmbientLayout>
+      <PullToRefresh
+        onRefresh={handleRefresh}
+        pullingContent={
+          <div className="flex items-center justify-center py-4 text-neutral-400">
+            <IconArrowDown className="w-5 h-5 animate-bounce" />
+          </div>
+        }
+        refreshingContent={
+          <div className="flex items-center justify-center py-4">
+            <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
       <div className="mb-4 lg:mb-6">
         {(() => {
           const activeFilters = [];
@@ -178,7 +221,7 @@ export default function PrintHistoryPage() {
           <div className="block md:hidden flex-1 p-4 space-y-4">
             {loading ? (
               [...Array(5)].map((_, i) => (
-                <div key={i} className="bg-white/50 dark:bg-neutral-800/50 rounded-2xl p-4 space-y-3 animate-pulse border border-neutral-100 dark:border-neutral-800/50">
+                <div key={i} className="bg-white/50 dark:bg-neutral-800/50 rounded-2xl p-3 space-y-3 animate-pulse border border-neutral-100 dark:border-neutral-800/50">
                    <div className="flex justify-between items-center">
                      <div className="h-4 w-32 bg-neutral-200 dark:bg-neutral-700 rounded" />
                      <div className="h-6 w-20 bg-neutral-200 dark:bg-neutral-700 rounded-full" />
@@ -201,7 +244,7 @@ export default function PrintHistoryPage() {
                 const itemPrice = isArrayPayload ? '' : (job.payload_json?.price || '');
 
                 return (
-                  <div key={job.id} className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl p-4 flex flex-col gap-3 shadow-sm border border-neutral-100 dark:border-neutral-800/50 relative overflow-hidden">
+                  <div key={job.id} className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl p-3 flex flex-col gap-3 shadow-sm border border-neutral-100 dark:border-neutral-800/50 relative overflow-hidden">
                     <div className="flex justify-between items-start">
                       <span className="font-semibold text-neutral-800 dark:text-neutral-200 text-sm">
                         {formatDateTimeWIB(job.created_at)}
@@ -318,6 +361,7 @@ export default function PrintHistoryPage() {
           )}
         </div>
       </div>
+      </PullToRefresh>
     </AmbientLayout>
   );
 }

@@ -29,6 +29,7 @@ import {
   IconTags,
   IconPrinter,
   IconChartBar,
+  IconTicket,
 } from '@tabler/icons-react';
 
 import { useSidebarContext } from './SidebarProvider';
@@ -42,6 +43,8 @@ const INVENTORY_ITEMS = [
   { href: '/inventory', title: 'Stok', icon: IconPackage },
   { href: '/inventory/kategori', title: 'Kategori', icon: IconTags },
   { href: '/inventory/stock-opname', title: 'Stok Opname', icon: IconClipboardCheck },
+  { href: '/inventory/promo', title: 'Manajemen Promo', icon: IconTicket },
+  { href: '/inventory/reports/difference', title: 'Laporan Selisih', icon: IconReport },
 ];
 
 const PURCHASING_ITEMS = [

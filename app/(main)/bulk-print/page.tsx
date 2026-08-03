@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBulkPrintStore } from '@/lib/store';
-import { inventoryApi } from '@/lib/api';
+import { inventoryApi, promoApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import { InventoryItem } from '@/types/inventory';
@@ -25,6 +25,13 @@ export default function BulkPrintPage() {
     queryFn: async () => {
       const res = await inventoryApi.getAll();
       return res.data || [];
+    },
+  });
+  
+  const { data: activePromosMap } = useQuery({
+    queryKey: ['activePromos'],
+    queryFn: async () => {
+      return await promoApi.getActivePromosMap();
     },
   });
 
@@ -98,13 +105,16 @@ export default function BulkPrintPage() {
   }, []);
 
   const handleAddResolvedItem = useCallback((item: InventoryItem & { barcode?: string }) => {
+    const activePromoDiskon = activePromosMap?.[item.id];
+    const appliedDiskon = activePromoDiskon !== undefined ? activePromoDiskon : (item.diskon || 0);
+
     addItem({
       id: item.id,
       kode_barcode: item.kode_barcode || item.barcode,
       nama_barang: item.nama_barang,
       harga_jual: item.harga_jual,
       harga_beli_terakhir: item.harga_beli_terakhir || 0,
-      diskon: item.diskon || 0,
+      diskon: appliedDiskon,
       stok: item.stok,
       minimum_stock: item.minimum_stock,
       kategori: item.kategori,
@@ -114,7 +124,7 @@ export default function BulkPrintPage() {
     setInventorySearchResults([]);
     focusInput();
     setLoading(false);
-  }, [addItem, focusInput]);
+  }, [addItem, focusInput, activePromosMap]);
 
   useKeyboardShortcuts([
     {

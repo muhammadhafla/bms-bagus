@@ -48,6 +48,8 @@ export default function InventoryPageClient() {
   const [kategori, setKategori] = useState('');
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [activeStatus, setActiveStatus] = useState<'all' | 'active' | 'discontinued'>('all');
+  const [sortBy, setSortBy] = useState('nama_barang');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
@@ -67,10 +69,10 @@ export default function InventoryPageClient() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, kategori, lowStockOnly, activeStatus]);
+  }, [debouncedSearch, kategori, lowStockOnly, activeStatus, sortBy, sortDir]);
 
   const { data: inventoryData, isLoading: loading, error: queryError, refetch } = useQuery({
-    queryKey: ['inventory', { page, search: debouncedSearch, categoryName: kategori, lowStockOnly, activeStatus }],
+    queryKey: ['inventory', { page, search: debouncedSearch, categoryName: kategori, lowStockOnly, activeStatus, sortBy, sortDir }],
     queryFn: () => inventoryApi.getPaginated({
       page,
       limit: ITEMS_PER_PAGE,
@@ -78,6 +80,8 @@ export default function InventoryPageClient() {
       categoryName: kategori,
       lowStockOnly,
       activeStatus,
+      sortBy,
+      sortDir,
     }),
   });
 
@@ -130,6 +134,8 @@ export default function InventoryPageClient() {
         setKategori('');
         setLowStockOnly(false);
         setActiveStatus('all');
+        setSortBy('nama_barang');
+        setSortDir('asc');
       },
       description: 'Reset filter',
     },
@@ -232,7 +238,7 @@ export default function InventoryPageClient() {
             
             <FilterButton 
               onClick={() => setIsFilterOpen(true)}
-              activeCount={(kategori ? 1 : 0) + (lowStockOnly ? 1 : 0) + (activeStatus !== 'all' ? 1 : 0)}
+              activeCount={(kategori ? 1 : 0) + (lowStockOnly ? 1 : 0) + (activeStatus !== 'all' ? 1 : 0) + (sortBy !== 'nama_barang' || sortDir !== 'asc' ? 1 : 0)}
               className="sm:h-[46px]" // override desktop height to match the search bar height
             />
           </div>
@@ -303,6 +309,34 @@ export default function InventoryPageClient() {
             />
           </div>
 
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Urutkan Berdasarkan:</label>
+            <SelectInput
+              value={sortBy}
+              onChange={setSortBy}
+              options={[
+                { value: 'nama_barang', label: 'Nama Barang' },
+                { value: 'stok', label: 'Sisa Stok' },
+                { value: 'harga_jual', label: 'Harga Jual' },
+                { value: 'created_at', label: 'Waktu Ditambahkan' }
+              ]}
+              className="w-full"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Arah Urutan:</label>
+            <SelectInput
+              value={sortDir}
+              onChange={(val) => setSortDir(val as 'asc' | 'desc')}
+              options={[
+                { value: 'asc', label: sortBy === 'nama_barang' ? 'A - Z' : 'Terendah ke Tertinggi / Terlama' },
+                { value: 'desc', label: sortBy === 'nama_barang' ? 'Z - A' : 'Tertinggi ke Terendah / Terbaru' }
+              ]}
+              className="w-full"
+            />
+          </div>
+
           <div className="pt-4 mt-6 border-t border-neutral-200 dark:border-neutral-800 flex gap-3">
             <Button 
               variant="secondary" 
@@ -311,6 +345,8 @@ export default function InventoryPageClient() {
                 setKategori('');
                 setLowStockOnly(false);
                 setActiveStatus('all');
+                setSortBy('nama_barang');
+                setSortDir('asc');
               }}
             >
               Reset Filter

@@ -3,6 +3,8 @@
 import React from 'react';
 import { IconLoader2 } from '@tabler/icons-react';
 
+import { useHaptic } from '@/hooks/useHaptic';
+
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
@@ -38,16 +40,36 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   rightIcon,
   children,
   className = '',
+  onClick,
   ...props
 }, ref) => {
   const isDisabled = disabled || loading;
+  const haptic = useHaptic();
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (isDisabled) return;
+    
+    // Berikan efek haptic berdasarkan varian tombol
+    if (variant === 'danger') {
+      haptic.heavy();
+    } else if (variant === 'primary') {
+      haptic.medium();
+    } else {
+      haptic.light();
+    }
+
+    if (onClick) {
+      onClick(e);
+    }
+  };
 
   return (
     <button
       ref={ref}
       disabled={isDisabled}
+      onClick={handleClick}
       className={[
-        'inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-200 btn-press focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-neutral-900',
+        'inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-200 btn-press focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900',
         variantStyles[variant],
         sizeStyles[size],
         fullWidth && 'w-full',

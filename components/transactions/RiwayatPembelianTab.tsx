@@ -32,13 +32,11 @@ interface RiwayatPembelianTabProps {
   search: string;
   startDate: string;
   endDate: string;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
 }
 
-export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembelianTabProps) {
-  const [records, setRecords] = useState<PembelianRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
+export function RiwayatPembelianTab({ search, startDate, endDate, sortBy, sortDir }: RiwayatPembelianTabProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<PembelianDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -49,33 +47,6 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
   const router = useRouter();
   const resetBulkPrint = useBulkPrintStore((state) => state.reset);
   const addBulkPrintItem = useBulkPrintStore((state) => state.addItem);
-  const limit = 10;
-
-  // Reset page when filters change
-  useEffect(() => {
-    setPage(1);
-  }, [search, startDate, endDate]);
-
-  const fetchRecords = useCallback(async () => {
-    setLoading(true);
-    const offset = (page - 1) * limit;
-    const result = await purchasesApi.getAll({ 
-      limit, 
-      offset, 
-      search: search || undefined,
-      startDate: startDate || undefined,
-      endDate: endDate || undefined
-    });
-    if (!result.error && result.data) {
-      setRecords(result.data as PembelianRecord[]);
-      setTotal(result.total || 0);
-    }
-    setLoading(false);
-  }, [page, search, startDate, endDate]);
-
-  useEffect(() => {
-    fetchRecords();
-  }, [fetchRecords]);
 
   useEffect(() => {
     return () => {
@@ -164,7 +135,7 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
     <div
       key={record.id}
       onClick={() => handleViewDetail(record.id)}
-      className="bg-white dark:bg-neutral-900 rounded-2xl p-4 shadow-sm border border-neutral-100 dark:border-neutral-800 cursor-pointer active:scale-[0.98] transition-transform"
+      className="bg-white dark:bg-neutral-900 rounded-2xl p-3 shadow-sm border border-neutral-100 dark:border-neutral-800 cursor-pointer active:scale-[0.98] transition-transform"
     >
       <div className="flex justify-between items-start mb-3">
         <div>
@@ -245,6 +216,8 @@ export function RiwayatPembelianTab({ search, startDate, endDate }: RiwayatPembe
         search={search}
         startDate={startDate}
         endDate={endDate}
+        sortBy={sortBy}
+        sortDir={sortDir}
         renderMobileCard={renderMobileCard}
         renderTableHeader={renderTableHeader}
         renderTableRow={renderTableRow}

@@ -77,7 +77,7 @@ export default function UsersPage() {
     if (initialized && isAdmin()) {
       fetchUsers();
     }
-  }, [fetchUsers, initialized, isAdmin]);
+  }, [fetchUsers, initialized, isAdmin, profile]);
 
   const filteredUsers = useMemo(() => {
     return users.filter(user => {

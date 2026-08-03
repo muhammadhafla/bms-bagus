@@ -22,7 +22,6 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
   const [barcode, setBarcode] = useState('');
   const [harga_beli, setHargaBeli] = useState(0);
   const [harga_jual, setHargaJual] = useState(0);
-  const [diskon, setDiskon] = useState(0);
   const { data: kategoriResponse } = useKategoris();
   const kategoriList = kategoriResponse?.map(k => k.nama) || [];
   const [showKategoriSuggestions, setShowKategoriSuggestions] = useState(false);
@@ -46,7 +45,6 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
       setKategori('Umum');
       setHargaBeli(0);
       setHargaJual(0);
-      setDiskon(0);
       
       if (initialBarcode && initialBarcode.trim()) {
         setBarcode(initialBarcode);
@@ -102,7 +100,7 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
         id_kategori,
         harga_beli,
         harga_jual,
-        diskon
+        diskon: 0
       });
     }
   };
@@ -238,15 +236,6 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
               <PriceInput
                 value={harga_jual}
                 onChange={setHargaJual}
-                className="w-full px-3 py-2.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 transition-all"
-                min={0}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Diskon (Rp)</label>
-              <PriceInput
-                value={diskon}
-                onChange={setDiskon}
                 className="w-full px-3 py-2.5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-sm border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 transition-all"
                 min={0}
               />

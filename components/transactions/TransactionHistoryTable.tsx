@@ -10,6 +10,8 @@ export interface PaginationOptions {
   search?: string;
   startDate?: string;
   endDate?: string;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
 }
 
 interface TransactionHistoryTableProps<T> {
@@ -22,6 +24,8 @@ interface TransactionHistoryTableProps<T> {
   renderTableHeader: () => ReactNode;
   renderTableRow: (record: T, index: number, pageOffset: number) => ReactNode;
   limit?: number;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
 }
 
 export function TransactionHistoryTable<T extends { id: string }>({
@@ -34,6 +38,8 @@ export function TransactionHistoryTable<T extends { id: string }>({
   renderTableHeader,
   renderTableRow,
   limit = 10,
+  sortBy,
+  sortDir,
 }: TransactionHistoryTableProps<T>) {
   const [records, setRecords] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,14 +58,16 @@ export function TransactionHistoryTable<T extends { id: string }>({
       offset, 
       search: search || undefined,
       startDate: startDate || undefined,
-      endDate: endDate || undefined
+      endDate: endDate || undefined,
+      sortBy,
+      sortDir
     });
     if (!result.error && result.data) {
       setRecords(result.data);
       setTotal(result.total || 0);
     }
     setLoading(false);
-  }, [fetchFn, page, limit, search, startDate, endDate]);
+  }, [fetchFn, page, limit, search, startDate, endDate, sortBy, sortDir]);
 
   useEffect(() => {
     fetchRecords();

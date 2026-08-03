@@ -4,7 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { StockOpname, StockOpnameWithProfile, stockOpnameApi } from '@/lib/api';
-import { IconPlus, IconEye, IconCheck, IconX, IconTrash, IconClipboardCheck, IconSearch, IconChevronRight } from '@tabler/icons-react';
+import { IconPlus, IconEye, IconCheck, IconX, IconTrash, IconClipboardCheck, IconSearch, IconChevronRight, IconArrowDown } from '@tabler/icons-react';
+import dynamic from 'next/dynamic';
+
+const PullToRefresh = dynamic(
+  () => import('react-simple-pull-to-refresh'),
+  { ssr: false }
+);
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Breadcrumb, Button, Badge, AmbientLayout } from '@/components/ui';
 import { toast } from "sonner";
@@ -79,8 +85,28 @@ export default function StockOpnameListPage() {
     }
   };
 
+  const handleRefresh = async () => {
+    const result = await stockOpnameApi.getAll();
+    if (!result.error && result.data) {
+      setOpnames(result.data);
+    }
+  };
+
 return (
     <AmbientLayout>
+      <PullToRefresh
+        onRefresh={handleRefresh}
+        pullingContent={
+          <div className="flex items-center justify-center py-4 text-neutral-400">
+            <IconArrowDown className="w-5 h-5 animate-bounce" />
+          </div>
+        }
+        refreshingContent={
+          <div className="flex items-center justify-center py-4">
+            <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
       <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)] lg:min-h-0">
         
         {/* Header Area */}
@@ -135,7 +161,7 @@ return (
                   <Link 
                     key={opname.id} 
                     href={`/inventory/stock-opname/${opname.id}`}
-                    className="block bg-white/50 dark:bg-neutral-950/50 rounded-2xl p-4 shadow-sm border border-neutral-200/50 dark:border-neutral-800/50 transition-colors hover:bg-white dark:hover:bg-neutral-900 active:scale-[0.98]"
+                    className="block bg-white/50 dark:bg-neutral-950/50 rounded-2xl p-3 shadow-sm border border-neutral-200/50 dark:border-neutral-800/50 transition-colors hover:bg-white dark:hover:bg-neutral-900 active:scale-[0.98]"
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
@@ -252,6 +278,7 @@ return (
         onConfirm={confirmDelete}
         onCancel={() => setDeleteId(null)}
       />
+      </PullToRefresh>
     </AmbientLayout>
   );
 }

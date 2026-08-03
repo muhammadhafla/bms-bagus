@@ -429,7 +429,7 @@ export default function ReturnPage() {
                       const returnSubtotal = (item.return_qty || 0) * harga;
 
                       return (
-                        <div key={item.pembelian_item_id} className={`relative bg-white/90 dark:bg-neutral-900/90 rounded-2xl p-4 shadow-sm border transition-all duration-200 ${item.selected ? 'border-brand-400 ring-1 ring-brand-400/50 bg-brand-50/20 dark:bg-brand-900/10' : 'border-neutral-200/70 dark:border-neutral-800/70'}`}>
+                        <div key={item.pembelian_item_id} className={`relative bg-white/90 dark:bg-neutral-900/90 rounded-2xl p-3 shadow-sm border transition-all duration-200 ${item.selected ? 'border-brand-400 ring-1 ring-brand-400/50 bg-brand-50/20 dark:bg-brand-900/10' : 'border-neutral-200/70 dark:border-neutral-800/70'}`}>
                           <div className="flex gap-3">
                             <label className="relative flex items-start pt-1 cursor-pointer shrink-0">
                               <input

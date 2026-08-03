@@ -19,9 +19,11 @@ interface RiwayatReturPenjualanTabProps {
   search: string;
   startDate: string;
   endDate: string;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
 }
 
-export function RiwayatReturPenjualanTab({ search, startDate, endDate }: RiwayatReturPenjualanTabProps) {
+export function RiwayatReturPenjualanTab({ search, startDate, endDate, sortBy, sortDir }: RiwayatReturPenjualanTabProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -43,7 +45,7 @@ export function RiwayatReturPenjualanTab({ search, startDate, endDate }: Riwayat
     <div
       key={record.id}
       onClick={() => handleViewDetail(record.id)}
-      className="bg-white dark:bg-neutral-900 rounded-2xl p-4 shadow-sm border border-neutral-100 dark:border-neutral-800 cursor-pointer active:scale-[0.98] transition-transform"
+      className="bg-white dark:bg-neutral-900 rounded-2xl p-3 shadow-sm border border-neutral-100 dark:border-neutral-800 cursor-pointer active:scale-[0.98] transition-transform"
     >
       <div className="flex justify-between items-start mb-3">
         <div>
@@ -114,6 +116,8 @@ export function RiwayatReturPenjualanTab({ search, startDate, endDate }: Riwayat
         search={search}
         startDate={startDate}
         endDate={endDate}
+        sortBy={sortBy}
+        sortDir={sortDir}
         renderMobileCard={renderMobileCard}
         renderTableHeader={renderTableHeader}
         renderTableRow={renderTableRow}

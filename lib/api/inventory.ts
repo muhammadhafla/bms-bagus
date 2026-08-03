@@ -23,10 +23,13 @@ export const inventoryApi = {
     });
   },
 
-  async getPaginated(options: { page?: number; limit?: number; search?: string; categoryName?: string; lowStockOnly?: boolean; activeStatus?: 'all' | 'active' | 'discontinued' }) {
+  async getPaginated(options: { page?: number; limit?: number; search?: string; categoryName?: string; lowStockOnly?: boolean; activeStatus?: 'all' | 'active' | 'discontinued'; sortBy?: string; sortDir?: 'asc' | 'desc' }) {
     const page = Math.max(1, options.page || 1);
     const limit = Math.min(100, Math.max(1, options.limit || 20));
     const offset = (page - 1) * limit;
+
+    const sortBy = options.sortBy || 'nama_barang';
+    const isAscending = options.sortDir !== 'desc'; // default is ascending
 
     let countQuery;
     let dataQuery;
@@ -34,10 +37,10 @@ export const inventoryApi = {
     if (options.lowStockOnly) {
       const p_search = options.search ? options.search.replace(/%/g, '').toLowerCase() : null;
       countQuery = supabase.rpc('get_low_stock_items', { p_search }, { count: 'exact', head: true });
-      dataQuery = supabase.rpc('get_low_stock_items', { p_search }).select('*, id_kategori:id_kategori(*)').range(offset, offset + limit - 1);
+      dataQuery = supabase.rpc('get_low_stock_items', { p_search }).select('*, id_kategori:id_kategori(*)').order(sortBy, { ascending: isAscending }).range(offset, offset + limit - 1);
     } else {
       countQuery = supabase.from('inventory').select('*', { count: 'exact', head: true });
-      dataQuery = supabase.from('inventory').select('*, id_kategori:id_kategori(*)').order('nama_barang').range(offset, offset + limit - 1);
+      dataQuery = supabase.from('inventory').select('*, id_kategori:id_kategori(*)').order(sortBy, { ascending: isAscending }).range(offset, offset + limit - 1);
 
       if (options.search) {
         const safeQueryString = options.search.replace(/%/g, '').toLowerCase();

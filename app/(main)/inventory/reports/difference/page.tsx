@@ -2,8 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { stockAdjustmentApi, StockAdjustment } from '@/lib/api/stockAdjustment';
-import { IconAlertCircle } from '@tabler/icons-react';
+import { IconAlertCircle, IconArrowDown } from '@tabler/icons-react';
 import { AmbientLayout, ModernPagination } from '@/components/ui';
+import dynamic from 'next/dynamic';
+
+const PullToRefresh = dynamic(
+  () => import('react-simple-pull-to-refresh'),
+  { ssr: false }
+);
 import { formatDateWIB } from '@/lib/utils';
 
 const reasonLabels: Record<string, string> = {
@@ -60,8 +66,32 @@ export default function DifferenceReportPage() {
   const totalPages = Math.ceil(filteredAdjustments.length / LIMIT) || 1;
   const pagedAdjustments = filteredAdjustments.slice((page - 1) * LIMIT, page * LIMIT);
 
+  const handleRefresh = async () => {
+    try {
+      const result = await stockAdjustmentApi.getAll();
+      if (!result.error && result.data) {
+        setAdjustments(result.data);
+      }
+    } catch (err: any) {
+      // Ignore error on refresh
+    }
+  };
+
 return (
     <AmbientLayout>
+      <PullToRefresh
+        onRefresh={handleRefresh}
+        pullingContent={
+          <div className="flex items-center justify-center py-4 text-neutral-400">
+            <IconArrowDown className="w-5 h-5 animate-bounce" />
+          </div>
+        }
+        refreshingContent={
+          <div className="flex items-center justify-center py-4">
+            <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
       <div className="mb-4 lg:mb-6 flex-shrink-0 animate-fade-in-up">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
           <div className="flex items-center gap-4">
@@ -184,6 +214,7 @@ return (
           )}
         </div>
       )}
+      </PullToRefresh>
     </AmbientLayout>
   );
 }

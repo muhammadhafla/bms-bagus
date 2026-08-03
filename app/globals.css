@@ -358,7 +358,7 @@ body {
   transition: transform 0.1s ease, box-shadow 0.15s ease;
 }
 .btn-press:active {
-  transform: scale(0.97);
+  transform: scale(0.95);
 }
 
 /* Micro-interaction: Card hover lift */

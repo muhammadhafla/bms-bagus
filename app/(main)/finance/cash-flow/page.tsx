@@ -1,17 +1,25 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { kasApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth';
 import { DateRangePicker, Button, SelectInput, DataTable, Badge, FilterButton, AmbientLayout, ModernPagination } from '@/components/ui';
+import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { IconReportMoney, IconArrowUpRight, IconArrowDownRight, IconWallet, IconChevronRight } from '@tabler/icons-react';
+import { IconReportMoney, IconArrowUpRight, IconArrowDownRight, IconWallet, IconChevronRight, IconFilter, IconX, IconArrowDown } from '@tabler/icons-react';
 import { formatCurrency, formatDateTimeWIB, formatDateForInputWIB } from '@/lib/utils';
 import { ManualKasModal } from './components/ManualKasModal';
 import { TransactionModal } from '@/components/dashboard/TransactionModal';
+import dynamic from 'next/dynamic';
+
+const PullToRefresh = dynamic(
+  () => import('react-simple-pull-to-refresh'),
+  { ssr: false }
+);
 
 export default function CashFlowPage() {
+  const queryClient = useQueryClient();
   const { profile } = useAuthStore();
   const isAdmin = profile?.role === 'admin';
   const currentUserId = profile?.id;
@@ -23,6 +31,15 @@ export default function CashFlowPage() {
   const [startDate, setStartDate] = useState(formatDateForInputWIB(thirtyDaysAgo));
   const [endDate, setEndDate] = useState(formatDateForInputWIB(today));
   const [typeFilter, setTypeFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [tempStartDate, setTempStartDate] = useState(formatDateForInputWIB(thirtyDaysAgo));
+  const [tempEndDate, setTempEndDate] = useState(formatDateForInputWIB(today));
+  const [tempTypeFilter, setTempTypeFilter] = useState('all');
+  const [tempSortBy, setTempSortBy] = useState('created_at');
+  const [tempSortDir, setTempSortDir] = useState<'asc' | 'desc'>('desc');
   
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [manualType, setManualType] = useState<'SETOR' | 'TARIK'>('SETOR');
@@ -37,11 +54,11 @@ export default function CashFlowPage() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [startDate, endDate, typeFilter]);
+  }, [startDate, endDate, typeFilter, sortBy, sortDir]);
 
   // Fetch paginated log
   const { data: kasLogData, isLoading: isLoadingLog } = useQuery({
-    queryKey: ['kas_log', page, isAdmin ? startDate : null, isAdmin ? endDate : null, typeFilter, isAdmin ? null : currentUserId],
+    queryKey: ['kas_log', page, isAdmin ? startDate : null, isAdmin ? endDate : null, typeFilter, isAdmin ? null : currentUserId, sortBy, sortDir],
     queryFn: () => kasApi.getPaginated({
       page,
       limit: LIMIT,
@@ -49,6 +66,8 @@ export default function CashFlowPage() {
       endDate: isAdmin ? endDate : undefined,
       type: typeFilter,
       userId: isAdmin ? undefined : currentUserId,
+      sortBy,
+      sortDir
     }),
     enabled: !!currentUserId
   });
@@ -85,6 +104,54 @@ export default function CashFlowPage() {
     }
   };
 
+  const handleOpenFilter = () => {
+    setTempStartDate(startDate);
+    setTempEndDate(endDate);
+    setTempTypeFilter(typeFilter);
+    setTempSortBy(sortBy);
+    setTempSortDir(sortDir);
+    setIsFilterOpen(true);
+  };
+
+  const handleApplyFilter = () => {
+    setStartDate(tempStartDate);
+    setEndDate(tempEndDate);
+    setTypeFilter(tempTypeFilter);
+    setSortBy(tempSortBy);
+    setSortDir(tempSortDir);
+    setIsFilterOpen(false);
+  };
+
+  const handleResetFilter = () => {
+    const defaultStart = formatDateForInputWIB(thirtyDaysAgo);
+    const defaultEnd = formatDateForInputWIB(today);
+    
+    setTempStartDate(defaultStart);
+    setTempEndDate(defaultEnd);
+    setTempTypeFilter('all');
+    setTempSortBy('created_at');
+    setTempSortDir('desc');
+    
+    setStartDate(defaultStart);
+    setEndDate(defaultEnd);
+    setTypeFilter('all');
+    setSortBy('created_at');
+    setSortDir('desc');
+  };
+
+  const getActiveFilters = () => {
+    const badges = [];
+    if (startDate && endDate) {
+      badges.push({ id: 'date', label: `${startDate} - ${endDate}`, onRemove: () => { setStartDate(''); setEndDate(''); } });
+    }
+    if (typeFilter !== 'all') {
+      badges.push({ id: 'type', label: `Tipe: ${typeFilter}`, onRemove: () => setTypeFilter('all') });
+    }
+    return badges;
+  };
+
+  const activeFilters = getActiveFilters();
+
   const getTypeBadge = (tipe: string, className?: string) => {
     switch (tipe) {
       case 'JUAL':
@@ -100,9 +167,26 @@ export default function CashFlowPage() {
     }
   };
 
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries();
+  };
+
   return (
     <ErrorBoundary>
       <AmbientLayout>
+        <PullToRefresh
+          onRefresh={handleRefresh}
+          pullingContent={
+            <div className="flex items-center justify-center py-4 text-neutral-400">
+              <IconArrowDown className="w-5 h-5 animate-bounce" />
+            </div>
+          }
+          refreshingContent={
+            <div className="flex items-center justify-center py-4">
+              <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          }
+        >
       <div className="mb-4 lg:mb-6">
         <div className="flex flex-row items-start lg:items-center justify-between gap-4 mb-4 lg:mb-5">
           <div className="flex items-center gap-3 lg:gap-4 animate-fade-in-up">
@@ -194,28 +278,53 @@ export default function CashFlowPage() {
       <div className="flex flex-col-reverse xl:flex-row gap-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
         {/* Main Log Table */}
         <div className="flex-1 flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row gap-3 items-center">
+          <div className="flex flex-row items-center justify-between gap-3 mb-2 sm:mb-0">
             <h2 className="text-lg font-bold text-neutral-800 dark:text-neutral-100 flex-1">
               Riwayat Transaksi Kas
             </h2>
-            <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="shrink-0">
+               <FilterButton onClick={handleOpenFilter} activeCount={activeFilters.length} />
+            </div>
+          </div>
+
+          <div className="flex overflow-x-auto whitespace-nowrap gap-2 items-center py-1 mb-1 w-full no-scrollbar">
+            {activeFilters.length === 0 && (
+              <span className="text-sm text-neutral-500 dark:text-neutral-400 italic">Menampilkan data default</span>
+            )}
+            {activeFilters.map(badge => (
+              <div key={badge.id} className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300 shadow-sm border border-neutral-200/50 dark:border-neutral-700/50">
+                {badge.label}
+                {badge.onRemove && (
+                  <button onClick={badge.onRemove} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
+                    <IconX size={14} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          
+          <ResponsivePanel isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filter Riwayat Kas">
+            <div className="space-y-6">
               {isAdmin && (
-                <div className="w-full sm:w-[260px]">
+                <div>
                   <DateRangePicker
-                    startDate={startDate}
-                    endDate={endDate}
+                    startDate={tempStartDate}
+                    endDate={tempEndDate}
                     onChange={(start, end) => {
-                      setStartDate(start);
-                      setEndDate(end);
+                      setTempStartDate(start);
+                      setTempEndDate(end);
                     }}
+                    label="Periode Tanggal"
+                    className="w-full"
                   />
                 </div>
               )}
-              <div className="w-full sm:w-48">
+
+              <div>
                 <SelectInput
-                  value={typeFilter}
-                  onChange={(val) => setTypeFilter(val)}
-                  inputSize="sm"
+                  label="Tipe Transaksi"
+                  value={tempTypeFilter}
+                  onChange={(val) => setTempTypeFilter(val)}
                   options={[
                     { label: 'Semua Tipe', value: 'all' },
                     { label: 'Penjualan (JUAL)', value: 'JUAL' },
@@ -226,8 +335,46 @@ export default function CashFlowPage() {
                   ]}
                 />
               </div>
+
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <SelectInput
+                    label="Urutkan Berdasarkan"
+                    value={tempSortBy}
+                    onChange={(val) => setTempSortBy(val)}
+                    options={[
+                      { label: 'Tanggal & Waktu', value: 'created_at' },
+                      { label: 'Nominal', value: 'jumlah' }
+                    ]}
+                  />
+                </div>
+                <div className="w-1/3">
+                  <SelectInput
+                    label="Arah Urutan"
+                    value={tempSortDir}
+                    onChange={(val) => setTempSortDir(val as 'asc' | 'desc')}
+                    options={[
+                      { label: 'Turun', value: 'desc' },
+                      { label: 'Naik', value: 'asc' }
+                    ]}
+                  />
+                </div>
+              </div>
+              
+              <div className="pt-4 mt-6 border-t border-neutral-200 dark:border-neutral-800 flex gap-3">
+                <Button 
+                  variant="secondary" 
+                  className="w-1/2" 
+                  onClick={handleResetFilter}
+                >
+                  Reset
+                </Button>
+                <Button variant="primary" className="w-1/2" onClick={handleApplyFilter}>
+                  Terapkan
+                </Button>
+              </div>
             </div>
-          </div>
+          </ResponsivePanel>
 
           <div className="hidden md:flex bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl overflow-hidden shadow-sm flex-1 flex-col min-h-[400px]">
             <div className="overflow-x-auto flex-1">
@@ -454,6 +601,7 @@ export default function CashFlowPage() {
         transactionId={selectedTransactionId}
         transactionType="penjualan"
       />
+        </PullToRefresh>
       </AmbientLayout>
     </ErrorBoundary>
   );

@@ -210,12 +210,17 @@ export const returnApi = {
     search?: string;
     startDate?: string;
     endDate?: string;
+    sortBy?: string;
+    sortDir?: 'asc' | 'desc';
   }) {
     try {
+      const sortBy = options?.sortBy || 'created_at';
+      const isAscending = options?.sortDir === 'asc';
+
       let query = supabase
         .from('penjualan_return')
         .select('*, items:penjualan_return_items(harga_final, qty)', { count: 'exact' })
-        .order('created_at', { ascending: false });
+        .order(sortBy, { ascending: isAscending });
 
       if (options?.limit) query = query.limit(options.limit);
       if (options?.offset) query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
@@ -247,12 +252,17 @@ export const returnApi = {
     search?: string;
     startDate?: string;
     endDate?: string;
+    sortBy?: string;
+    sortDir?: 'asc' | 'desc';
   }) {
     try {
+      const sortBy = options?.sortBy || 'created_at';
+      const isAscending = options?.sortDir === 'asc';
+
       let query = supabase
         .from('pembelian_return')
         .select('*, items:pembelian_return_items(harga_final, qty)', { count: 'exact' })
-        .order('created_at', { ascending: false });
+        .order(sortBy, { ascending: isAscending });
 
       if (options?.limit) query = query.limit(options.limit);
       if (options?.offset) query = query.range(options.offset, options.offset + (options.limit || 10) - 1);

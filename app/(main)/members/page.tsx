@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuthStore } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { IconUsersGroup, IconChevronRight, IconUserPlus, IconShieldLock, IconArrowDown } from '@tabler/icons-react';
+import { IconUsersGroup, IconChevronRight, IconUserPlus, IconShieldLock, IconArrowDown, IconSearch } from '@tabler/icons-react';
 import dynamic from 'next/dynamic';
 import { toast } from "sonner";
 import { AmbientLayout, DropdownMenu, ModernPagination } from '@/components/ui';
@@ -40,6 +40,7 @@ export default function MembersPage() {
   const [editMemberData, setEditMemberData] = useState<Member | undefined>(undefined);
   
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
   const LIMIT = 10;
   
   const { isAdmin, initialized, user, profile } = useAuthStore();
@@ -76,7 +77,20 @@ export default function MembersPage() {
     if (initialized && isAdmin()) {
       fetchMembers();
     }
-  }, [fetchMembers, initialized, isAdmin]);
+  }, [fetchMembers, initialized, isAdmin, profile]);
+
+  const filteredMembers = useMemo(() => {
+    if (!searchQuery) return members;
+    const lowerQuery = searchQuery.toLowerCase();
+    return members.filter(m => 
+      m.name.toLowerCase().includes(lowerQuery) || 
+      m.whatsapp_number.includes(lowerQuery)
+    );
+  }, [members, searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
 
   const isAuthFullyLoaded = initialized && (!user || profile !== null);
 
@@ -100,8 +114,8 @@ export default function MembersPage() {
     );
   }
 
-  const totalPages = Math.ceil(members.length / LIMIT) || 1;
-  const pagedMembers = members.slice((page - 1) * LIMIT, page * LIMIT);
+  const totalPages = Math.ceil(filteredMembers.length / LIMIT) || 1;
+  const pagedMembers = filteredMembers.slice((page - 1) * LIMIT, page * LIMIT);
 
   const openEditModal = (member: Member) => {
     setEditMemberData(member);
@@ -139,14 +153,26 @@ export default function MembersPage() {
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 w-full lg:w-auto">
+              <div className="relative flex-1 lg:w-64">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                  <IconSearch size={18} />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Cari nama atau WhatsApp..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-white/70 dark:bg-neutral-900/60 border border-white/40 dark:border-white/10 shadow-sm rounded-xl focus:outline-none focus:border-brand-500 focus:shadow-brand transition-all text-sm backdrop-blur-md"
+                />
+              </div>
               <AdminOnly>
                 <button
                   onClick={openCreateModal}
-                  className="flex items-center gap-2 px-4 py-2 bg-brand-500 text-white shadow-sm rounded-xl hover:bg-brand-600 transition-colors font-medium text-sm"
+                  className="flex items-center justify-center p-2.5 bg-brand-500 text-white shadow-sm rounded-xl hover:bg-brand-600 transition-colors shrink-0"
+                  title="Daftar Member"
                 >
-                  <IconUserPlus className="w-4 h-4" />
-                  Daftar Member
+                  <IconUserPlus className="w-5 h-5" />
                 </button>
               </AdminOnly>
             </div>
@@ -165,6 +191,7 @@ export default function MembersPage() {
                   <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Tier / Tingkat</th>
                   <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Poin Terkumpul</th>
                   <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Bergabung Sejak</th>
+                  <th className="px-5 py-4 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400">Struk Digital</th>
                   <th className="px-5 py-4 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400">Aksi</th>
                 </tr>
               </thead>
@@ -177,13 +204,14 @@ export default function MembersPage() {
                       <td className="px-5 py-4"><div className="h-6 w-20 bg-neutral-200 dark:bg-neutral-700 rounded-full animate-pulse" /></td>
                       <td className="px-5 py-4"><div className="h-4 w-16 bg-neutral-200 dark:bg-neutral-700 rounded animate-pulse" /></td>
                       <td className="px-5 py-4"><div className="h-4 w-24 bg-neutral-200 dark:bg-neutral-700 rounded animate-pulse" /></td>
+                      <td className="px-5 py-4"><div className="h-6 w-16 bg-neutral-200 dark:bg-neutral-700 rounded-md animate-pulse mx-auto" /></td>
                       <td className="px-5 py-4"><div className="h-8 w-10 bg-neutral-200 dark:bg-neutral-700 rounded animate-pulse mx-auto" /></td>
                     </tr>
                   ))
-                ) : members.length === 0 ? (
+                ) : filteredMembers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-12 text-center text-neutral-500">
-                      Belum ada pelanggan terdaftar.
+                    <td colSpan={7} className="px-5 py-12 text-center text-neutral-500">
+                      {searchQuery ? 'Pelanggan tidak ditemukan.' : 'Belum ada pelanggan terdaftar.'}
                     </td>
                   </tr>
                 ) : (
@@ -215,6 +243,17 @@ export default function MembersPage() {
                         {formatDateWIB(member.created_at)}
                       </td>
                       <td className="px-5 py-4 text-center">
+                        {member.prefer_digital_receipt ? (
+                          <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                            Aktif
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-neutral-50 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">
+                            Tidak
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-4 text-center">
                         <IconChevronRight className="w-5 h-5 text-neutral-400 group-hover:text-brand-500 transition-colors mx-auto" />
                       </td>
                     </tr>
@@ -228,7 +267,7 @@ export default function MembersPage() {
           <div className="block lg:hidden flex-1 overflow-y-auto pb-4 p-4 space-y-4">
             {loading ? (
               [...Array(3)].map((_, i) => (
-                <div key={i} className="bg-white/50 dark:bg-neutral-900/50 rounded-2xl p-4 shadow-sm border border-neutral-100 dark:border-neutral-800 animate-pulse">
+                <div key={i} className="bg-white/50 dark:bg-neutral-900/50 rounded-2xl p-3 shadow-sm border border-neutral-100 dark:border-neutral-800 animate-pulse">
                   <div className="h-5 w-32 bg-neutral-200 dark:bg-neutral-700 rounded mb-2" />
                   <div className="h-4 w-24 bg-neutral-200 dark:bg-neutral-700 rounded mb-3" />
                   <div className="flex justify-between items-center">
@@ -237,15 +276,15 @@ export default function MembersPage() {
                   </div>
                 </div>
               ))
-            ) : members.length === 0 ? (
+            ) : filteredMembers.length === 0 ? (
               <div className="text-center py-12 text-neutral-500 bg-white/50 dark:bg-neutral-900/50 rounded-2xl border border-neutral-100 dark:border-neutral-800">
-                Belum ada pelanggan terdaftar.
+                {searchQuery ? 'Pelanggan tidak ditemukan.' : 'Belum ada pelanggan terdaftar.'}
               </div>
             ) : (
               pagedMembers.map(member => (
                 <div 
                   key={member.id} 
-                  className="bg-white dark:bg-neutral-900 rounded-2xl p-4 shadow-sm border border-neutral-100 dark:border-neutral-800 flex flex-col gap-3 active:scale-[0.98] transition-all cursor-pointer hover:border-brand-500/30 group"
+                  className="bg-white dark:bg-neutral-900 rounded-2xl p-3 shadow-sm border border-neutral-100 dark:border-neutral-800 flex flex-col gap-3 active:scale-[0.98] transition-all cursor-pointer hover:border-brand-500/30 group"
                   onClick={() => openEditModal(member)}
                 >
                   <div className="flex justify-between items-start">
@@ -257,13 +296,21 @@ export default function MembersPage() {
                   </div>
                   
                   <div className="flex items-center justify-between mt-1 pt-3 border-t border-neutral-100 dark:border-neutral-800">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-                      member.member_tiers?.name === 'GOLD' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' :
-                      member.member_tiers?.name === 'SILVER' ? 'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300' :
-                      'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
-                    }`}>
-                      {member.member_tiers?.name || 'UNKNOWN'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
+                        member.member_tiers?.name === 'GOLD' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' :
+                        member.member_tiers?.name === 'SILVER' ? 'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300' :
+                        'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+                      }`}>
+                        {member.member_tiers?.name || 'UNKNOWN'}
+                      </span>
+                      
+                      {member.prefer_digital_receipt && (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                          Digital
+                        </span>
+                      )}
+                    </div>
                     
                     <div className="flex items-center gap-1.5 bg-brand-50 dark:bg-brand-900/20 px-2.5 py-1 rounded-lg">
                       <span className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider">Poin</span>
@@ -276,7 +323,7 @@ export default function MembersPage() {
           </div>
 
           {/* Pagination */}
-          {!loading && members.length > LIMIT && (
+          {!loading && filteredMembers.length > LIMIT && (
             <ModernPagination
               page={page}
               totalPages={totalPages}

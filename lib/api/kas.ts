@@ -27,11 +27,15 @@ export const kasApi = {
     endDate?: string;
     type?: string;
     userId?: string;
+    sortBy?: string;
+    sortDir?: 'asc' | 'desc';
   }) {
     try {
       const page = options.page || 1;
       const limit = options.limit || 50;
       const offset = (page - 1) * limit;
+      const sortBy = options.sortBy || 'created_at';
+      const isAscending = options.sortDir === 'asc';
 
       let query = supabase
         .from('kas_log')
@@ -39,7 +43,7 @@ export const kasApi = {
           *,
           profiles!kas_log_created_by_fkey (nama)
         `, { count: 'exact' })
-        .order('created_at', { ascending: false })
+        .order(sortBy, { ascending: isAscending })
         .range(offset, offset + limit - 1);
 
       if (options.startDate) {

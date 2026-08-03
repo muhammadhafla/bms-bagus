@@ -135,22 +135,16 @@ export function MobileLaunchpad({
       </div>
 
       {/* Info Bar (Split) */}
-      <div className="flex gap-2 mb-5">
-        {isAdminUser && (
+      {isAdminUser && (
+        <div className="flex gap-2 mb-5">
           <Link href="/analytics" className="flex-1 bg-gradient-to-br from-brand-600 to-brand-700 rounded-xl p-3 shadow-sm active:scale-95 transition-transform flex flex-col justify-center">
             <p className="text-brand-100 text-[10px] uppercase font-bold tracking-wider mb-1">Penjualan Hari Ini</p>
             <p className="text-white font-extrabold text-lg">
               {isLoading ? '...' : `Rp ${(stats?.todaySales || 0).toLocaleString('id-ID')}`}
             </p>
           </Link>
-        )}
-        <Link href="/finance/cash-flow" className={`${isAdminUser ? 'w-1/3' : 'flex-1'} bg-white dark:bg-neutral-800 rounded-xl p-3 shadow-sm border border-neutral-100 dark:border-neutral-700 active:scale-95 transition-transform flex flex-col justify-center`}>
-          <p className="text-neutral-500 dark:text-neutral-400 text-[10px] uppercase font-bold tracking-wider mb-1">Saldo Kas</p>
-          <p className="text-neutral-900 dark:text-white font-bold text-sm">
-            {isLoading ? '...' : `Rp ${kasBalance.toLocaleString('id-ID')}`}
-          </p>
-        </Link>
-      </div>
+        </div>
+      )}
 
       {/* Grid Launchpad */}
       <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-sm border border-neutral-100 dark:border-neutral-700 p-4 mb-5">

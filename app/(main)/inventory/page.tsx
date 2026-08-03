@@ -25,7 +25,7 @@ export default async function InventoryPage() {
   );
 
   // Default query parameter yang persis sama dengan InventoryPageClient
-  const queryKey = ['inventory', { page: 1, search: '', categoryName: '', lowStockOnly: false, activeStatus: 'all' }];
+  const queryKey = ['inventory', { page: 1, search: '', categoryName: '', lowStockOnly: false, activeStatus: 'all', sortBy: 'nama_barang', sortDir: 'asc' }];
   
   // Prefetch data inventory halaman pertama menggunakan SSR (tanpa HTTP fetch)
   await queryClient.prefetchQuery({
@@ -34,7 +34,7 @@ export default async function InventoryPage() {
       // Meniru behavior inventoryApi.getPaginated() untuk default state
       const [countResult, dataResult] = await Promise.all([
         supabaseServer.from('inventory').select('*', { count: 'exact', head: true }),
-        supabaseServer.from('inventory').select('*, id_kategori:id_kategori(*)').order('nama_barang').range(0, 19)
+        supabaseServer.from('inventory').select('*, id_kategori:id_kategori(*)').order('nama_barang', { ascending: true }).range(0, 19)
       ]);
 
       return {

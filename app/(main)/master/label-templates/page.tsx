@@ -1,10 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { IconPlus, IconEdit, IconTrash, IconTemplate, IconX } from '@tabler/icons-react';
+import { IconPlus, IconEdit, IconTrash, IconTemplate, IconX, IconArrowDown } from '@tabler/icons-react';
 import { AmbientLayout, Button } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
 import { AdminOnly } from '@/components/role';
+import dynamic from 'next/dynamic';
+
+const PullToRefresh = dynamic(
+  () => import('react-simple-pull-to-refresh'),
+  { ssr: false }
+);
 import { supabase } from '@/lib/supabase';
 import { fetchApi } from '@/lib/fetchApi';
 import { formatDateWIB } from '@/lib/utils';
@@ -129,9 +135,34 @@ export default function LabelTemplatesPage() {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      const res = await fetchApi('/api/templates');
+      const data = await res.json();
+      if (data.templates) {
+        setTemplates(data.templates);
+      }
+    } catch (err) {
+      // ignore
+    }
+  };
+
   return (
     <AmbientLayout>
       <AdminOnly>
+      <PullToRefresh
+        onRefresh={handleRefresh}
+        pullingContent={
+          <div className="flex items-center justify-center py-4 text-neutral-400">
+            <IconArrowDown className="w-5 h-5 animate-bounce" />
+          </div>
+        }
+        refreshingContent={
+          <div className="flex items-center justify-center py-4">
+            <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
       <div className="mb-4 lg:mb-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
           <div className="flex items-center gap-4 animate-fade-in-up">
@@ -237,7 +268,7 @@ export default function LabelTemplatesPage() {
             <div className="md:hidden flex flex-col p-4 gap-4">
               {loading ? (
                 [...Array(3)].map((_, i) => (
-                  <div key={i} className="border border-neutral-100 dark:border-neutral-800/50 rounded-2xl p-4 space-y-3">
+                  <div key={i} className="border border-neutral-100 dark:border-neutral-800/50 rounded-2xl p-3 space-y-3">
                     <div className="flex justify-between items-start gap-2">
                       <div className="h-5 w-40 bg-neutral-200 dark:bg-neutral-800 rounded animate-pulse" />
                       <div className="h-6 w-16 bg-neutral-200 dark:bg-neutral-800 rounded-full animate-pulse" />
@@ -259,7 +290,7 @@ export default function LabelTemplatesPage() {
                 </div>
               ) : (
                 templates.map((t) => (
-                  <div key={t.id} className="bg-white/50 dark:bg-neutral-900/30 border border-neutral-100 dark:border-neutral-800/50 rounded-2xl p-4 flex flex-col gap-3 relative overflow-hidden">
+                  <div key={t.id} className="bg-white/50 dark:bg-neutral-900/30 border border-neutral-100 dark:border-neutral-800/50 rounded-2xl p-3 flex flex-col gap-3 relative overflow-hidden">
                     <div className="absolute top-4 right-4">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold shadow-sm uppercase tracking-wider ${t.active ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800/50' : 'bg-gray-100 text-gray-800 dark:bg-neutral-800 dark:text-neutral-300 border border-gray-200 dark:border-neutral-700'}`}>
                         {t.active ? 'Aktif' : 'Nonaktif'}
@@ -392,6 +423,7 @@ export default function LabelTemplatesPage() {
           </div>
         </Portal>
       )}
+      </PullToRefresh>
       </AdminOnly>
     </AmbientLayout>
   );

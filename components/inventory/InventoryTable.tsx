@@ -446,12 +446,7 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
               value={editForm.harga_jual}
               onChange={(e) => setEditForm(prev => ({ ...prev, harga_jual: parseInt(e.target.value) || 0 }))}
             />
-            <TextInput
-              label="Diskon"
-              type="number"
-              value={editForm.diskon}
-              onChange={(e) => setEditForm(prev => ({ ...prev, diskon: parseInt(e.target.value) || 0 }))}
-            />
+
             <TextInput
               label="Minimum Stock"
               type="number"

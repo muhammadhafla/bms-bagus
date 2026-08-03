@@ -3,7 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { IconHistory, IconFilter, IconX, IconShoppingCart, IconPackage, IconArrowBackUp, IconArrowDown } from '@tabler/icons-react';
-import { AmbientLayout, DateRangePicker, Tabs, Button, FilterButton } from '@/components/ui';
+import { AmbientLayout, DateRangePicker, Tabs, Button, FilterButton, SelectInput } from '@/components/ui';
 import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
 import { useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
@@ -60,11 +60,15 @@ function TransactionsHistoryContent() {
   const [search, setSearch] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   
   // Temporary state for the filter SlideOver
   const [tempSearch, setTempSearch] = useState('');
   const [tempStartDate, setTempStartDate] = useState('');
   const [tempEndDate, setTempEndDate] = useState('');
+  const [tempSortBy, setTempSortBy] = useState('created_at');
+  const [tempSortDir, setTempSortDir] = useState<'asc' | 'desc'>('desc');
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const isAdminUser = useIsAdmin();
@@ -82,6 +86,8 @@ function TransactionsHistoryContent() {
     setTempSearch(search);
     setTempStartDate(startDate);
     setTempEndDate(endDate);
+    setTempSortBy(sortBy);
+    setTempSortDir(sortDir);
     setIsFilterOpen(true);
   };
 
@@ -89,6 +95,8 @@ function TransactionsHistoryContent() {
     setSearch(tempSearch);
     setStartDate(tempStartDate);
     setEndDate(tempEndDate);
+    setSortBy(tempSortBy);
+    setSortDir(tempSortDir);
     setIsFilterOpen(false);
   };
 
@@ -96,9 +104,13 @@ function TransactionsHistoryContent() {
     setTempSearch('');
     setTempStartDate('');
     setTempEndDate('');
+    setTempSortBy('created_at');
+    setTempSortDir('desc');
     setSearch('');
     setStartDate('');
     setEndDate('');
+    setSortBy('created_at');
+    setSortDir('desc');
   };
 
   const getActiveFilters = () => {
@@ -196,6 +208,31 @@ function TransactionsHistoryContent() {
                 className="w-full"
               />
             </div>
+
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <SelectInput
+                  label="Urutkan Berdasarkan"
+                  value={tempSortBy}
+                  onChange={(val) => setTempSortBy(val)}
+                  options={[
+                    { label: 'Tanggal & Waktu', value: 'created_at' },
+                    { label: 'Total Transaksi', value: 'total' }
+                  ]}
+                />
+              </div>
+              <div className="w-1/3">
+                <SelectInput
+                  label="Arah Urutan"
+                  value={tempSortDir}
+                  onChange={(val) => setTempSortDir(val as 'asc' | 'desc')}
+                  options={[
+                    { label: 'Turun', value: 'desc' },
+                    { label: 'Naik', value: 'asc' }
+                  ]}
+                />
+              </div>
+            </div>
             
             <div className="pt-4 mt-6 border-t border-neutral-200 dark:border-neutral-800 flex gap-3">
               <Button 
@@ -214,13 +251,13 @@ function TransactionsHistoryContent() {
 
         <div className="flex-1 min-h-0 flex flex-col animate-fade-in-up">
           {historyType === 'penjualan' ? (
-            <RiwayatPenjualanTab search={search} startDate={startDate} endDate={endDate} />
+            <RiwayatPenjualanTab search={search} startDate={startDate} endDate={endDate} sortBy={sortBy} sortDir={sortDir} />
           ) : historyType === 'pembelian' ? (
-            <RiwayatPembelianTab search={search} startDate={startDate} endDate={endDate} />
+            <RiwayatPembelianTab search={search} startDate={startDate} endDate={endDate} sortBy={sortBy} sortDir={sortDir} />
           ) : historyType === 'retur_penjualan' ? (
-            <RiwayatReturPenjualanTab search={search} startDate={startDate} endDate={endDate} />
+            <RiwayatReturPenjualanTab search={search} startDate={startDate} endDate={endDate} sortBy={sortBy} sortDir={sortDir} />
           ) : historyType === 'retur_pembelian' ? (
-            <RiwayatReturPembelianTab search={search} startDate={startDate} endDate={endDate} />
+            <RiwayatReturPembelianTab search={search} startDate={startDate} endDate={endDate} sortBy={sortBy} sortDir={sortDir} />
           ) : null}
         </div>
       </div>

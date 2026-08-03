@@ -2,8 +2,14 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Fuse from 'fuse.js';
-import { IconTags, IconEdit, IconTrash, IconSearch, IconPlus, IconDeviceFloppy, IconX, IconDotsVertical } from '@tabler/icons-react';
+import { IconTags, IconEdit, IconTrash, IconSearch, IconPlus, IconDeviceFloppy, IconX, IconDotsVertical, IconArrowDown } from '@tabler/icons-react';
 import { AdminOnly } from '@/components/role';
+import dynamic from 'next/dynamic';
+
+const PullToRefresh = dynamic(
+  () => import('react-simple-pull-to-refresh'),
+  { ssr: false }
+);
 import { toast } from "sonner";
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { AmbientLayout } from '@/components/ui';
@@ -112,8 +118,28 @@ export default function KategoriPage() {
     return fuse.search(searchQuery).map(result => result.item);
   }, [kategoris, searchQuery]);
 
+  const handleRefresh = async () => {
+    const result = await kategoriApi.getAll();
+    if (!result.error) {
+      setKategoris(result.data || []);
+    }
+  };
+
   return (
     <AmbientLayout>
+      <PullToRefresh
+        onRefresh={handleRefresh}
+        pullingContent={
+          <div className="flex items-center justify-center py-4 text-neutral-400">
+            <IconArrowDown className="w-5 h-5 animate-bounce" />
+          </div>
+        }
+        refreshingContent={
+          <div className="flex items-center justify-center py-4">
+            <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
       <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)] lg:min-h-0">
         <div className="mb-4 lg:mb-6 flex-shrink-0 animate-fade-in-up">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-4 lg:mb-5">
@@ -272,6 +298,7 @@ export default function KategoriPage() {
         onCancel={() => setDeleteConfirm({ isOpen: false, id: null, nama: null })}
         danger
       />
+      </PullToRefresh>
     </AmbientLayout>
   );
 }

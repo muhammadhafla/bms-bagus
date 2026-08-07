@@ -127,14 +127,19 @@ export function TopItemsReportTab({ startDate, endDate, categoryId, topItemsSort
                     if (name === 'total_qty') return [value, 'Qty Terjual'];
                     return [formatCurrency(Number(value)), name === 'total_sales' ? 'Penjualan' : 'Profit'];
                   }}
-                  labelStyle={{color: '#1f2937', fontWeight: 'bold', marginBottom: '8px'}}
+                  labelStyle={{color: '#1f2937', fontWeight: 'bold', marginBottom: '8px', fontSize: '14px'}}
                   contentStyle={{
                     borderRadius: '12px', 
                     border: '1px solid rgba(229, 231, 235, 0.5)', 
                     boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', 
-                    backgroundColor: 'rgba(255, 255, 255, 0.85)', 
-                    backdropFilter: 'blur(8px)'
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                    backdropFilter: 'blur(8px)',
+                    padding: '8px 12px'
                   }}
+                  cursor={{ fill: 'rgba(156, 163, 175, 0.1)' }}
+                  position={{ x: 0, y: 0 }}
+                  wrapperStyle={{ pointerEvents: 'none', fontSize: '12px' }}
+                  isAnimationActive={false}
                 />
                 <Legend wrapperStyle={{paddingTop: '10px'}} />
                 {topItemsSort === 'qty' ? (

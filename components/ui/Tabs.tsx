@@ -18,7 +18,11 @@ export interface TabsProps {
 export function Tabs({ items, activeId, onChange, className = '' }: TabsProps) {
   return (
     <div className={`w-full border-b border-neutral-200 dark:border-neutral-800 ${className}`}>
-      <div className="flex overflow-x-auto hide-scrollbar snap-x">
+      <div 
+        className="flex overflow-x-auto hide-scrollbar snap-x touch-pan-x"
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+      >
         {items.map((tab) => {
           const isActive = activeId === tab.id;
           return (

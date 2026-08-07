@@ -277,7 +277,11 @@ function AnalyticsContent() {
         <div className="mb-4 md:mb-6 animate-fade-in-up [animation-delay:75ms] flex items-center justify-between w-full gap-2">
           <FilterButton onClick={() => setIsFilterOpen(true)} activeCount={activeFilters.length} />
 
-          <div className="flex-1 min-w-0 flex overflow-x-auto whitespace-nowrap gap-1.5 md:gap-2 items-center py-1 no-scrollbar">
+          <div 
+            className="flex-1 min-w-0 flex overflow-x-auto whitespace-nowrap gap-1.5 md:gap-2 items-center py-1 no-scrollbar touch-pan-x"
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
             {activeFilters.length === 0 ? (
               <span className="text-xs md:text-sm text-neutral-500 dark:text-neutral-400 italic">Tanpa filter tambahan</span>
             ) : (

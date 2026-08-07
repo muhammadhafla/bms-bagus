@@ -57,87 +57,101 @@ export function BusiestTimeChart({ startDate, endDate }: { startDate: string, en
     return `Tren Transaksi & Pendapatan ${groupStr}`;
   };
 
-  // Komponen Synchronized Charts (Tampilan Utama)
+  const renderRevenueChart = () => (
+    <div className="flex-1 min-h-[150px] w-full relative border-b border-neutral-100 dark:border-neutral-800/50 pb-2">
+      <p className="absolute top-0 left-4 text-xs font-bold text-accent-teal-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Pendapatan</p>
+      <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+        <AreaChart data={data} margin={{ top: 20, right: 10, left: 20, bottom: 0 }}>
+          <defs>
+            <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-neutral-200 dark:text-neutral-800" opacity={0.5} />
+          <XAxis dataKey="label_waktu" tick={false} tickLine={false} axisLine={false} height={10} />
+          <YAxis 
+            tick={{ fontSize: '10px', fill: '#888' }} 
+            tickLine={false} 
+            axisLine={false} 
+            tickFormatter={(val) => {
+              if (val >= 1000000) return `${(val / 1000000).toFixed(0)}jt`;
+              if (val >= 1000) return `${(val / 1000).toFixed(0)}k`;
+              return val.toString();
+            }}
+            width={45}
+          />
+          <RechartsTooltip 
+            content={<CustomTooltip groupBy={groupBy} />} 
+            cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5 5' }} 
+            position={{ y: 0 }}
+            wrapperStyle={{ pointerEvents: 'none' }}
+            isAnimationActive={false}
+          />
+          <Area type="monotone" dataKey="total_revenue" name="Pendapatan" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+
+  const renderTransactionChart = () => (
+    <div className="flex-1 min-h-[150px] w-full relative pt-2">
+      <p className="absolute top-0 left-4 text-xs font-bold text-brand-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Transaksi</p>
+      <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+        <AreaChart data={data} margin={{ top: 20, right: 10, left: 20, bottom: 20 }}>
+          <defs>
+            <linearGradient id="colorTx" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
+              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-neutral-200 dark:text-neutral-800" opacity={0.5} />
+          <XAxis 
+            dataKey="label_waktu" 
+            tick={{ fontSize: '10px', fill: '#888' }} 
+            tickLine={false} 
+            axisLine={false} 
+            dy={10} 
+            minTickGap={15}
+            tickFormatter={(val) => {
+              if (groupBy === 'date') {
+                const d = new Date(val);
+                if (!isNaN(d.getTime())) return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+              }
+              return val;
+            }}
+          />
+          <YAxis 
+            tick={{ fontSize: '10px', fill: '#888' }} 
+            tickLine={false} 
+            axisLine={false}
+            width={45}
+          />
+          <RechartsTooltip 
+            content={<CustomTooltip groupBy={groupBy} />} 
+            cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5 5' }} 
+            position={{ y: 0 }}
+            wrapperStyle={{ pointerEvents: 'none' }}
+            isAnimationActive={false}
+          />
+          <Area type="monotone" dataKey="transaction_count" name="Transaksi" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorTx)" />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+
   const renderSynchronizedCharts = () => {
     return (
-      <div className="absolute inset-0 flex flex-col gap-2 md:gap-4 pt-2">
-        <div className={`flex-1 min-h-[100px] md:min-h-[150px] w-full relative border-b border-neutral-100 dark:border-neutral-800/50 pb-2 ${activeTab === 'revenue' ? 'block' : 'hidden md:block'}`}>
-          <p className="absolute top-0 left-4 text-xs font-bold text-accent-teal-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Pendapatan</p>
-          <ResponsiveContainer width="100%" height="100%" minHeight={1} key={`rev-${activeTab}`}>
-            <AreaChart data={data} margin={{ top: 20, right: 10, left: 20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-neutral-200 dark:text-neutral-800" opacity={0.5} />
-              <XAxis dataKey="label_waktu" tick={false} tickLine={false} axisLine={false} height={10} />
-              <YAxis 
-                tick={{ fontSize: '10px', fill: '#888' }} 
-                tickLine={false} 
-                axisLine={false} 
-                tickFormatter={(val) => {
-                  if (val >= 1000000) return `${(val / 1000000).toFixed(0)}jt`;
-                  if (val >= 1000) return `${(val / 1000).toFixed(0)}k`;
-                  return val.toString();
-                }}
-                width={45}
-              />
-              <RechartsTooltip 
-                content={<CustomTooltip groupBy={groupBy} />} 
-                cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5 5' }} 
-                position={{ y: 0 }}
-                wrapperStyle={{ pointerEvents: 'none' }}
-                isAnimationActive={false}
-              />
-              <Area type="monotone" dataKey="total_revenue" name="Pendapatan" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
-            </AreaChart>
-          </ResponsiveContainer>
+      <div className="absolute inset-0 flex flex-col pt-2">
+        {/* Mobile View (Tabbed) */}
+        <div className="flex md:hidden flex-col h-full w-full">
+          {activeTab === 'revenue' ? renderRevenueChart() : renderTransactionChart()}
         </div>
         
-        <div className={`flex-1 min-h-[100px] md:min-h-[150px] w-full relative pt-2 ${activeTab === 'transaction' ? 'block' : 'hidden md:block'}`}>
-          <p className="absolute top-0 left-4 text-xs font-bold text-brand-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Transaksi</p>
-          <ResponsiveContainer width="100%" height="100%" minHeight={1} key={`trx-${activeTab}`}>
-            <AreaChart data={data} margin={{ top: 20, right: 10, left: 20, bottom: 20 }}>
-              <defs>
-                <linearGradient id="colorTx" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-neutral-200 dark:text-neutral-800" opacity={0.5} />
-              <XAxis 
-                dataKey="label_waktu" 
-                tick={{ fontSize: '10px', fill: '#888' }} 
-                tickLine={false} 
-                axisLine={false} 
-                dy={10} 
-                minTickGap={15}
-                tickFormatter={(val) => {
-                  if (groupBy === 'date') {
-                    const d = new Date(val);
-                    if (!isNaN(d.getTime())) return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-                  }
-                  return val;
-                }}
-              />
-              <YAxis 
-                tick={{ fontSize: '10px', fill: '#888' }} 
-                tickLine={false} 
-                axisLine={false}
-                width={45}
-              />
-              <RechartsTooltip 
-                content={<CustomTooltip groupBy={groupBy} />} 
-                cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5 5' }} 
-                position={{ y: 0 }}
-                wrapperStyle={{ pointerEvents: 'none' }}
-                isAnimationActive={false}
-              />
-              <Area type="monotone" dataKey="transaction_count" name="Transaksi" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorTx)" />
-            </AreaChart>
-          </ResponsiveContainer>
+        {/* Desktop View (Stacked) */}
+        <div className="hidden md:flex flex-col h-full w-full gap-4">
+          {renderRevenueChart()}
+          {renderTransactionChart()}
         </div>
       </div>
     );

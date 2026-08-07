@@ -63,6 +63,8 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
       <IconDownload size={18} />
       <span>Export CSV</span>
     </Button>
+  );
+
   const renderSalesChart = () => (
     <div className="flex-1 min-h-[150px] w-full relative border-b border-neutral-100 dark:border-neutral-800/50 pb-2">
       <p className="absolute top-0 left-4 text-xs font-bold text-blue-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Total Penjualan</p>

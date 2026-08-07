@@ -108,8 +108,8 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
             {/* Grafik Atas: Penjualan */}
             <div className={`flex-1 min-h-[100px] md:min-h-[150px] w-full relative border-b border-neutral-100 dark:border-neutral-800/50 pb-2 ${activeTab === 'sales' ? 'block' : 'hidden md:block'}`}>
               <p className="absolute top-0 left-4 text-xs font-bold text-blue-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Total Penjualan</p>
-              <ResponsiveContainer width="100%" height="100%" minHeight={1}>
-                <AreaChart data={chartData} syncId="profitTrend" margin={{ top: 20, right: 20, left: 20, bottom: 0 }}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={1} key={`sales-${activeTab}`}>
+                <AreaChart data={chartData} margin={{ top: 20, right: 20, left: 20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
@@ -150,8 +150,8 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
             {/* Grafik Bawah: Profit */}
             <div className={`flex-1 min-h-[100px] md:min-h-[150px] w-full relative pt-2 ${activeTab === 'profit' ? 'block' : 'hidden md:block'}`}>
               <p className="absolute top-0 left-4 text-xs font-bold text-emerald-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Total Profit</p>
-              <ResponsiveContainer width="100%" height="100%" minHeight={1}>
-                <AreaChart data={chartData} syncId="profitTrend" margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={1} key={`profit-${activeTab}`}>
+                <AreaChart data={chartData} margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
                   <defs>
                     <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>

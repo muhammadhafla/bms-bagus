@@ -63,8 +63,8 @@ export function BusiestTimeChart({ startDate, endDate }: { startDate: string, en
       <div className="absolute inset-0 flex flex-col gap-2 md:gap-4 pt-2">
         <div className={`flex-1 min-h-[100px] md:min-h-[150px] w-full relative border-b border-neutral-100 dark:border-neutral-800/50 pb-2 ${activeTab === 'revenue' ? 'block' : 'hidden md:block'}`}>
           <p className="absolute top-0 left-4 text-xs font-bold text-accent-teal-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Pendapatan</p>
-          <ResponsiveContainer width="100%" height="100%" minHeight={1}>
-            <AreaChart data={data} syncId="busiestTime" margin={{ top: 20, right: 10, left: 20, bottom: 0 }}>
+          <ResponsiveContainer width="100%" height="100%" minHeight={1} key={`rev-${activeTab}`}>
+            <AreaChart data={data} margin={{ top: 20, right: 10, left: 20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
@@ -98,8 +98,8 @@ export function BusiestTimeChart({ startDate, endDate }: { startDate: string, en
         
         <div className={`flex-1 min-h-[100px] md:min-h-[150px] w-full relative pt-2 ${activeTab === 'transaction' ? 'block' : 'hidden md:block'}`}>
           <p className="absolute top-0 left-4 text-xs font-bold text-brand-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Transaksi</p>
-          <ResponsiveContainer width="100%" height="100%" minHeight={1}>
-            <AreaChart data={data} syncId="busiestTime" margin={{ top: 20, right: 10, left: 20, bottom: 20 }}>
+          <ResponsiveContainer width="100%" height="100%" minHeight={1} key={`trx-${activeTab}`}>
+            <AreaChart data={data} margin={{ top: 20, right: 10, left: 20, bottom: 20 }}>
               <defs>
                 <linearGradient id="colorTx" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>

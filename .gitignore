@@ -18,3 +18,17 @@ yarn-error.log*
 *.sln
 .next/
 .kilo/
+
+# PWA files
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map
+public/worker-*.js
+public/worker-*.js.map
+public/fallback-*.js
+public/fallback-*.js.map
+
+# AI Agents & temporary logs
+.agents/
+tmp_safequery_scan.txt

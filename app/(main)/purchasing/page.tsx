@@ -82,6 +82,7 @@ function PembelianPageContent() {
   const [showNewItemDialog, setShowNewItemDialog] = useState(false);
   const [newItemBarcode, setNewItemBarcode] = useState('');
   const [newItemName, setNewItemName] = useState('');
+  const [confirmDiscontinuedItem, setConfirmDiscontinuedItem] = useState<(import('@/types/inventory').InventoryItem & { barcode?: string }) | null>(null);
   
   const [inventorySearchResults, setInventorySearchResults] = useState<(import('@/types/inventory').InventoryItem & { similarity: number })[]>([]);
   const [showAddDropdown, setShowAddDropdown] = useState(false);
@@ -117,7 +118,7 @@ function PembelianPageContent() {
     setTimeout(() => inputRef.current?.focus(), 0);
   }, []);
 
-  const handleAddResolvedItem = useCallback((item: import('@/types/inventory').InventoryItem & { barcode?: string }) => {
+  const performAddItem = useCallback((item: import('@/types/inventory').InventoryItem & { barcode?: string }) => {
     addItem({
       id: item.id,
       barcode: item.kode_barcode,
@@ -135,6 +136,29 @@ function PembelianPageContent() {
     focusInput();
     setLoading(false);
   }, [addItem, focusInput]);
+
+  const handleAddResolvedItem = useCallback((item: import('@/types/inventory').InventoryItem & { barcode?: string }) => {
+    if (item.is_discontinued) {
+      setConfirmDiscontinuedItem(item);
+      return;
+    }
+    performAddItem(item);
+  }, [performAddItem]);
+
+  const handleConfirmDiscontinued = useCallback(async () => {
+    if (!confirmDiscontinuedItem) return;
+    try {
+      setLoading(true);
+      await inventoryApi.update(confirmDiscontinuedItem.id, { is_discontinued: false });
+      performAddItem(confirmDiscontinuedItem);
+    } catch (e) {
+      console.error(e);
+      toast.error('Gagal mengaktifkan barang.');
+      setLoading(false);
+    } finally {
+      setConfirmDiscontinuedItem(null);
+    }
+  }, [confirmDiscontinuedItem, performAddItem]);
 
   useKeyboardShortcuts([
     {
@@ -514,8 +538,15 @@ function PembelianPageContent() {
                       onClick={() => handleAddResolvedItem(inventory)}
                       className={`w-full px-4 py-3 text-left hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex justify-between items-center border-b border-neutral-100 dark:border-neutral-800 last:border-0 ${searchSelectedIndex === idx ? 'bg-neutral-50 dark:bg-neutral-800' : ''}`}
                     >
-                      <div>
-                        <div className="font-medium text-neutral-900 dark:text-neutral-100">{inventory.nama_barang}</div>
+                      <div className="flex flex-col text-left">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-neutral-900 dark:text-neutral-100">{inventory.nama_barang}</span>
+                          {inventory.is_discontinued && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
+                              Discontinue
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono mt-0.5">{inventory.kode_barcode || 'Tanpa barcode'} | Stok: {inventory.stok}</div>
                       </div>
                       <div className="text-xs bg-success-100 dark:bg-success-900/40 text-success-700 dark:text-success-300 px-2 py-1 rounded-full whitespace-nowrap ml-2">
@@ -840,6 +871,19 @@ function PembelianPageContent() {
         }}
         onCancel={() => setShowResetConfirm(false)}
         danger={true}
+      />
+
+      <ConfirmDialog
+        isOpen={!!confirmDiscontinuedItem}
+        title="Aktifkan Barang"
+        message={`Barang "${confirmDiscontinuedItem?.nama_barang}" saat ini berstatus Discontinue. Yakin ingin menambahkannya ke daftar pembelian? (Status barang akan otomatis kembali aktif).`}
+        confirmLabel="Ya, Aktifkan & Tambahkan"
+        cancelLabel="Batal"
+        onConfirm={handleConfirmDiscontinued}
+        onCancel={() => {
+          setConfirmDiscontinuedItem(null);
+          focusInput();
+        }}
       />
       </AdminOnly>
       </AmbientLayout>

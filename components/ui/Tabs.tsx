@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { HorizontalScrollArea } from './HorizontalScrollArea';
 
 export interface TabItem {
   id: string;
@@ -18,11 +19,7 @@ export interface TabsProps {
 export function Tabs({ items, activeId, onChange, className = '' }: TabsProps) {
   return (
     <div className={`w-full border-b border-neutral-200 dark:border-neutral-800 ${className}`}>
-      <div 
-        className="flex overflow-x-auto hide-scrollbar snap-x touch-pan-x"
-        onTouchStart={(e) => e.stopPropagation()}
-        onTouchMove={(e) => e.stopPropagation()}
-      >
+      <HorizontalScrollArea className="flex snap-x">
         {items.map((tab) => {
           const isActive = activeId === tab.id;
           return (
@@ -44,7 +41,7 @@ export function Tabs({ items, activeId, onChange, className = '' }: TabsProps) {
             </button>
           );
         })}
-      </div>
+      </HorizontalScrollArea>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { analyticsApi, kategoriApi } from '@/lib/api';
 import { IconDashboard, IconPackage, IconShoppingCart, IconTrendingUp, IconChartBar, IconFilter, IconX, IconLock, IconRotateClockwise2, IconArrowDown } from '@tabler/icons-react';
-import { DateRangePicker, Tabs, SelectInput, SlideOver, Button, FilterButton } from '@/components/ui';
+import { DateRangePicker, Tabs, SelectInput, SlideOver, Button, FilterButton, HorizontalScrollArea } from '@/components/ui';
 import { AdminOnly } from '@/components/role';
 import { formatDateForInputWIB } from '@/lib/utils';
 
@@ -277,11 +277,7 @@ function AnalyticsContent() {
         <div className="mb-4 md:mb-6 animate-fade-in-up [animation-delay:75ms] flex items-center justify-between w-full gap-2">
           <FilterButton onClick={() => setIsFilterOpen(true)} activeCount={activeFilters.length} />
 
-          <div 
-            className="flex-1 min-w-0 flex overflow-x-auto whitespace-nowrap gap-1.5 md:gap-2 items-center py-1 no-scrollbar touch-pan-x"
-            onTouchStart={(e) => e.stopPropagation()}
-            onTouchMove={(e) => e.stopPropagation()}
-          >
+          <HorizontalScrollArea className="flex-1 min-w-0 flex whitespace-nowrap gap-1.5 md:gap-2 items-center py-1">
             {activeFilters.length === 0 ? (
               <span className="text-xs md:text-sm text-neutral-500 dark:text-neutral-400 italic">Tanpa filter tambahan</span>
             ) : (
@@ -307,7 +303,7 @@ function AnalyticsContent() {
                 </button>
               </>
             )}
-          </div>
+          </HorizontalScrollArea>
         </div>
       )}
 

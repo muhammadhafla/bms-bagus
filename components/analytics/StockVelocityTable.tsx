@@ -1,5 +1,6 @@
 import React from 'react';
 import { StockVelocity } from '@/lib/api/analytics';
+import { HorizontalScrollArea } from '@/components/ui';
 
 export function StockVelocityTable({ data, isLoading }: { data: StockVelocity[], isLoading: boolean }) {
   if (isLoading) {
@@ -20,7 +21,7 @@ export function StockVelocityTable({ data, isLoading }: { data: StockVelocity[],
       {/* Fast Moving */}
       <div className="bg-white dark:bg-neutral-800 rounded-xl p-3 md:p-4 shadow-sm flex flex-col">
         <h3 className="font-semibold text-neutral-900 dark:text-white mb-3 md:mb-4">Fast Moving Items (Cepat Habis)</h3>
-        <div className="overflow-x-auto">
+        <HorizontalScrollArea>
           <table className="w-full text-xs md:text-sm text-left">
             <thead className="text-[10px] md:text-xs text-neutral-500 uppercase bg-neutral-50 dark:bg-neutral-700/50 dark:text-neutral-400">
               <tr>
@@ -39,13 +40,13 @@ export function StockVelocityTable({ data, isLoading }: { data: StockVelocity[],
               ))}
             </tbody>
           </table>
-        </div>
+        </HorizontalScrollArea>
       </div>
 
       {/* Slow Moving */}
       <div className="bg-white dark:bg-neutral-800 rounded-xl p-3 md:p-4 shadow-sm flex flex-col">
         <h3 className="font-semibold text-neutral-900 dark:text-white mb-3 md:mb-4">Slow Moving Items (Lambat Terjual)</h3>
-        <div className="overflow-x-auto">
+        <HorizontalScrollArea>
           <table className="w-full text-xs md:text-sm text-left">
             <thead className="text-[10px] md:text-xs text-neutral-500 uppercase bg-neutral-50 dark:bg-neutral-700/50 dark:text-neutral-400">
               <tr>
@@ -64,7 +65,7 @@ export function StockVelocityTable({ data, isLoading }: { data: StockVelocity[],
               ))}
             </tbody>
           </table>
-        </div>
+        </HorizontalScrollArea>
       </div>
     </div>
   );

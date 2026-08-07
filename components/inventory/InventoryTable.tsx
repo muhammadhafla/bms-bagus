@@ -246,10 +246,19 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
                 <tr 
                   key={item.id} 
                   onClick={() => openSlideOver(item)}
-                  className={`cursor-pointer group transition-colors ${isLowStock ? 'bg-accent-rose-50/30 dark:bg-accent-rose-900/20 hover:bg-accent-rose-100/60 dark:hover:bg-accent-rose-900/50' : 'hover:bg-neutral-50/80 dark:hover:bg-neutral-800/60'}`}
+                  className={`cursor-pointer group transition-colors ${item.is_discontinued ? 'opacity-60 bg-neutral-50/50 dark:bg-neutral-900/30 hover:bg-neutral-100/50 dark:hover:bg-neutral-800/40' : isLowStock ? 'bg-accent-rose-50/30 dark:bg-accent-rose-900/20 hover:bg-accent-rose-100/60 dark:hover:bg-accent-rose-900/50' : 'hover:bg-neutral-50/80 dark:hover:bg-neutral-800/60'}`}
                 >
                   <td className="px-4 py-3 text-sm font-mono text-neutral-900 dark:text-neutral-100">{item.kode_barcode}</td>
-                  <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">{item.nama_barang}</td>
+                  <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">
+                    <div className="flex items-center gap-2">
+                      {item.nama_barang}
+                      {item.is_discontinued && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
+                          Discontinue
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
                       {item.id_kategori?.nama || '-'}
@@ -301,12 +310,17 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
             <div 
               key={item.id} 
               onClick={() => openSlideOver(item)}
-              className={`p-3 rounded-2xl border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm flex flex-col gap-2 cursor-pointer group active:scale-[0.98] transition-all duration-200 ${isLowStock ? 'bg-accent-rose-50/30 dark:bg-accent-rose-900/20 hover:bg-accent-rose-50/80 dark:hover:bg-accent-rose-900/40' : 'bg-white/70 dark:bg-neutral-900/60 hover:bg-neutral-50/90 dark:hover:bg-neutral-800/80 backdrop-blur-xl'}`}
+              className={`p-3 rounded-2xl border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm flex flex-col gap-2 cursor-pointer group active:scale-[0.98] transition-all duration-200 ${item.is_discontinued ? 'opacity-60 bg-neutral-50/50 dark:bg-neutral-900/30 hover:bg-neutral-100/50 dark:hover:bg-neutral-800/40' : isLowStock ? 'bg-accent-rose-50/30 dark:bg-accent-rose-900/20 hover:bg-accent-rose-50/80 dark:hover:bg-accent-rose-900/40' : 'bg-white/70 dark:bg-neutral-900/60 hover:bg-neutral-50/90 dark:hover:bg-neutral-800/80 backdrop-blur-xl'}`}
             >
               <div className="flex justify-between items-start">
                 <div className="flex-1 pr-2">
                   <div className="flex flex-wrap items-center gap-1.5 mb-1">
                     <h3 className="font-semibold text-neutral-900 dark:text-white text-sm leading-tight line-clamp-1">{item.nama_barang}</h3>
+                    {item.is_discontinued && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 whitespace-nowrap shrink-0">
+                        Discontinue
+                      </span>
+                    )}
                     {isLowStock && (
                       <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-accent-rose-100 dark:bg-accent-rose-900/40 text-accent-rose-600 dark:text-accent-rose-400 whitespace-nowrap shrink-0">
                         Low Stock
@@ -465,13 +479,6 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
                 leftIcon={<IconDeviceFloppy size={18} />}
               >
                 <span className="hidden sm:inline">Simpan Perubahan</span>
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => setDeleteConfirm(true)}
-                leftIcon={<IconTrash size={18} />}
-              >
-                <span className="hidden sm:inline">Hapus Barang</span>
               </Button>
             </div>
             <Button

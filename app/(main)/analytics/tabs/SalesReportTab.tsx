@@ -19,6 +19,21 @@ export function SalesReportTab({ startDate, endDate, categoryId }: SalesReportTa
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
+  const [activeSeries, setActiveSeries] = useState<Record<string, boolean>>({
+    total_cash: true,
+    total_qris: true,
+    total_sales: true,
+  });
+
+  const toggleSeries = (e: any) => {
+    if (e.dataKey) {
+      setActiveSeries(prev => ({
+        ...prev,
+        [e.dataKey]: !prev[e.dataKey]
+      }));
+    }
+  };
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['report', 'sales', startDate, endDate, categoryId, page],
     queryFn: () => reportApi.getSalesReport(startDate || undefined, endDate || undefined, categoryId || undefined, { page, limit: ITEMS_PER_PAGE })
@@ -150,10 +165,22 @@ export function SalesReportTab({ startDate, endDate, categoryId }: SalesReportTa
                   labelStyle={{color: '#1f2937', fontWeight: 'bold', marginBottom: '8px'}}
                   contentStyle={{borderRadius: '12px', border: '1px solid rgba(229,231,235,0.5)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', backgroundColor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)'}}
                 />
-                <Legend wrapperStyle={{paddingTop: '20px'}} />
-                <Area type="monotone" dataKey="total_cash" name="Cash" stackId="1" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorCash)" />
-                <Area type="monotone" dataKey="total_qris" name="QRIS" stackId="1" stroke="#8b5cf6" strokeWidth={2} fillOpacity={1} fill="url(#colorQris)" />
-                <Area type="monotone" dataKey="total_sales" name="Penjualan" stroke="#3b82f6" strokeWidth={3} fillOpacity={0} fill="transparent" />
+                <Legend 
+                  wrapperStyle={{paddingTop: '20px'}} 
+                  onClick={toggleSeries}
+                  formatter={(value, entry) => {
+                    const { dataKey } = entry as any;
+                    const isActive = activeSeries[dataKey as string];
+                    return (
+                      <span className={`cursor-pointer transition-colors ${isActive ? 'text-neutral-700 dark:text-neutral-300' : 'text-neutral-400 dark:text-neutral-600 line-through'}`}>
+                        {value}
+                      </span>
+                    );
+                  }}
+                />
+                <Area hide={!activeSeries.total_cash} type="monotone" dataKey="total_cash" name="Cash" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorCash)" />
+                <Area hide={!activeSeries.total_qris} type="monotone" dataKey="total_qris" name="QRIS" stroke="#8b5cf6" strokeWidth={2} fillOpacity={1} fill="url(#colorQris)" />
+                <Area hide={!activeSeries.total_sales} type="monotone" dataKey="total_sales" name="Penjualan" stroke="#3b82f6" strokeWidth={3} fillOpacity={0} fill="transparent" />
               </AreaChart>
             </ResponsiveContainer>
           </div>

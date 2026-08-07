@@ -17,6 +17,7 @@ interface ProfitReportTabProps {
 
 export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReportTabProps) {
   const [page, setPage] = useState(1);
+  const [activeTab, setActiveTab] = useState<'sales' | 'profit'>('sales');
   const ITEMS_PER_PAGE = 50;
 
   const { data, isLoading, error } = useQuery({
@@ -85,10 +86,27 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
 
         <div className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-5 mb-6 shadow-elevated overflow-hidden">
           <h3 className="text-lg font-bold mb-4 text-neutral-800 dark:text-neutral-200">Tren Profit & Penjualan</h3>
+          
+          {/* Mobile Tabs */}
+          <div className="flex md:hidden bg-neutral-100/80 dark:bg-neutral-800/80 backdrop-blur p-1 rounded-xl shadow-inner mb-4 text-xs w-full">
+            <button 
+              onClick={() => setActiveTab('sales')}
+              className={`flex-1 py-1.5 rounded-lg transition-all ${activeTab === 'sales' ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white font-semibold' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+            >
+              Penjualan
+            </button>
+            <button 
+              onClick={() => setActiveTab('profit')}
+              className={`flex-1 py-1.5 rounded-lg transition-all ${activeTab === 'profit' ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white font-semibold' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+            >
+              Profit
+            </button>
+          </div>
+
           <div className="flex flex-col h-[350px] md:h-[450px] w-full gap-2 md:gap-4">
             
             {/* Grafik Atas: Penjualan */}
-            <div className="flex-1 min-h-[100px] md:min-h-[150px] w-full relative border-b border-neutral-100 dark:border-neutral-800/50 pb-2">
+            <div className={`flex-1 min-h-[100px] md:min-h-[150px] w-full relative border-b border-neutral-100 dark:border-neutral-800/50 pb-2 ${activeTab === 'sales' ? 'block' : 'hidden md:block'}`}>
               <p className="absolute top-0 left-4 text-xs font-bold text-blue-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Total Penjualan</p>
               <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                 <AreaChart data={chartData} syncId="profitTrend" margin={{ top: 20, right: 20, left: 20, bottom: 0 }}>
@@ -112,10 +130,17 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
                     axisLine={false}
                   />
                   <Tooltip 
+                    labelFormatter={(label) => {
+                      const d = new Date(label as string);
+                      return !isNaN(d.getTime()) ? d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : label;
+                    }}
                     formatter={(value: any) => [formatCurrency(Number(value)), 'Penjualan']} 
-                    labelStyle={{color: '#1f2937', fontWeight: 'bold', marginBottom: '8px'}}
-                    contentStyle={{borderRadius: '12px', border: '1px solid rgba(229,231,235,0.5)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', backgroundColor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)'}}
+                    labelStyle={{color: '#1f2937', fontWeight: 'bold', marginBottom: '8px', fontSize: '14px'}}
+                    contentStyle={{borderRadius: '12px', border: '1px solid rgba(229,231,235,0.5)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', backgroundColor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', padding: '8px 12px'}}
                     cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5 5' }}
+                    position={{ y: 0 }}
+                    wrapperStyle={{ pointerEvents: 'none', fontSize: '12px' }}
+                    isAnimationActive={false}
                   />
                   <Area type="monotone" dataKey="total_penjualan" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
                 </AreaChart>
@@ -123,7 +148,7 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
             </div>
 
             {/* Grafik Bawah: Profit */}
-            <div className="flex-1 min-h-[100px] md:min-h-[150px] w-full relative pt-2">
+            <div className={`flex-1 min-h-[100px] md:min-h-[150px] w-full relative pt-2 ${activeTab === 'profit' ? 'block' : 'hidden md:block'}`}>
               <p className="absolute top-0 left-4 text-xs font-bold text-emerald-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Total Profit</p>
               <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                 <AreaChart data={chartData} syncId="profitTrend" margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
@@ -158,10 +183,17 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
                     axisLine={false}
                   />
                   <Tooltip 
+                    labelFormatter={(label) => {
+                      const d = new Date(label as string);
+                      return !isNaN(d.getTime()) ? d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : label;
+                    }}
                     formatter={(value: any) => [formatCurrency(Number(value)), 'Profit']} 
-                    labelStyle={{color: '#1f2937', fontWeight: 'bold', marginBottom: '8px'}}
-                    contentStyle={{borderRadius: '12px', border: '1px solid rgba(229,231,235,0.5)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', backgroundColor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)'}}
+                    labelStyle={{color: '#1f2937', fontWeight: 'bold', marginBottom: '8px', fontSize: '14px'}}
+                    contentStyle={{borderRadius: '12px', border: '1px solid rgba(229,231,235,0.5)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', backgroundColor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', padding: '8px 12px'}}
                     cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5 5' }}
+                    position={{ y: 0 }}
+                    wrapperStyle={{ pointerEvents: 'none', fontSize: '12px' }}
+                    isAnimationActive={false}
                   />
                   <Area type="monotone" dataKey="total_profit" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorProfit)" />
                 </AreaChart>

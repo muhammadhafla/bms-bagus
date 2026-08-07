@@ -14,10 +14,14 @@ const CustomTooltip = ({ active, payload, label, groupBy }: any) => {
     let formattedLabel = label;
     if (groupBy === 'hour') formattedLabel = `Pukul ${label}`;
     else if (groupBy === 'day') formattedLabel = `Hari ${label}`;
+    else if (groupBy === 'date') {
+      const d = new Date(label);
+      if (!isNaN(d.getTime())) formattedLabel = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+    }
 
     return (
-      <div className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md p-4 rounded-xl border border-neutral-200/50 dark:border-neutral-700/50 shadow-xl min-w-[200px]" style={{ willChange: 'transform' }}>
-        <p className="font-semibold text-neutral-900 dark:text-white mb-3 text-sm pb-2 border-b border-neutral-100 dark:border-neutral-800">
+      <div className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md p-2 md:p-4 rounded-xl border border-neutral-200/50 dark:border-neutral-700/50 shadow-xl" style={{ willChange: 'transform' }}>
+        <p className="font-semibold text-neutral-900 dark:text-white mb-2 md:mb-3 text-xs md:text-sm pb-1 md:pb-2 border-b border-neutral-100 dark:border-neutral-800">
           {formattedLabel}
         </p>
         <div className="flex flex-col gap-2">
@@ -41,6 +45,7 @@ const CustomTooltip = ({ active, payload, label, groupBy }: any) => {
 
 export function BusiestTimeChart({ startDate, endDate }: { startDate: string, endDate: string }) {
   const [groupBy, setGroupBy] = useState<'hour' | 'day' | 'date'>('hour');
+  const [activeTab, setActiveTab] = useState<'revenue' | 'transaction'>('revenue');
 
   const { data, isLoading } = useQuery({
     queryKey: ['analytics', 'salesTrend', startDate, endDate, groupBy],
@@ -56,7 +61,7 @@ export function BusiestTimeChart({ startDate, endDate }: { startDate: string, en
   const renderSynchronizedCharts = () => {
     return (
       <div className="absolute inset-0 flex flex-col gap-2 md:gap-4 pt-2">
-        <div className="flex-1 min-h-[100px] md:min-h-[150px] w-full relative border-b border-neutral-100 dark:border-neutral-800/50 pb-2">
+        <div className={`flex-1 min-h-[100px] md:min-h-[150px] w-full relative border-b border-neutral-100 dark:border-neutral-800/50 pb-2 ${activeTab === 'revenue' ? 'block' : 'hidden md:block'}`}>
           <p className="absolute top-0 left-4 text-xs font-bold text-accent-teal-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Pendapatan</p>
           <ResponsiveContainer width="100%" height="100%" minHeight={1}>
             <AreaChart data={data} syncId="busiestTime" margin={{ top: 20, right: 10, left: 20, bottom: 0 }}>
@@ -79,13 +84,19 @@ export function BusiestTimeChart({ startDate, endDate }: { startDate: string, en
                 }}
                 width={45}
               />
-              <RechartsTooltip content={<CustomTooltip groupBy={groupBy} />} cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5 5' }} />
+              <RechartsTooltip 
+                content={<CustomTooltip groupBy={groupBy} />} 
+                cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5 5' }} 
+                position={{ y: 0 }}
+                wrapperStyle={{ pointerEvents: 'none' }}
+                isAnimationActive={false}
+              />
               <Area type="monotone" dataKey="total_revenue" name="Pendapatan" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
         
-        <div className="flex-1 min-h-[100px] md:min-h-[150px] w-full relative pt-2">
+        <div className={`flex-1 min-h-[100px] md:min-h-[150px] w-full relative pt-2 ${activeTab === 'transaction' ? 'block' : 'hidden md:block'}`}>
           <p className="absolute top-0 left-4 text-xs font-bold text-brand-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Transaksi</p>
           <ResponsiveContainer width="100%" height="100%" minHeight={1}>
             <AreaChart data={data} syncId="busiestTime" margin={{ top: 20, right: 10, left: 20, bottom: 20 }}>
@@ -96,14 +107,34 @@ export function BusiestTimeChart({ startDate, endDate }: { startDate: string, en
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-neutral-200 dark:text-neutral-800" opacity={0.5} />
-              <XAxis dataKey="label_waktu" tick={{ fontSize: '10px', fill: '#888' }} tickLine={false} axisLine={false} dy={10} minTickGap={15} />
+              <XAxis 
+                dataKey="label_waktu" 
+                tick={{ fontSize: '10px', fill: '#888' }} 
+                tickLine={false} 
+                axisLine={false} 
+                dy={10} 
+                minTickGap={15}
+                tickFormatter={(val) => {
+                  if (groupBy === 'date') {
+                    const d = new Date(val);
+                    if (!isNaN(d.getTime())) return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                  }
+                  return val;
+                }}
+              />
               <YAxis 
                 tick={{ fontSize: '10px', fill: '#888' }} 
                 tickLine={false} 
                 axisLine={false}
                 width={45}
               />
-              <RechartsTooltip content={<CustomTooltip groupBy={groupBy} />} cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5 5' }} />
+              <RechartsTooltip 
+                content={<CustomTooltip groupBy={groupBy} />} 
+                cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5 5' }} 
+                position={{ y: 0 }}
+                wrapperStyle={{ pointerEvents: 'none' }}
+                isAnimationActive={false}
+              />
               <Area type="monotone" dataKey="transaction_count" name="Transaksi" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorTx)" />
             </AreaChart>
           </ResponsiveContainer>
@@ -140,6 +171,22 @@ export function BusiestTimeChart({ startDate, endDate }: { startDate: string, en
               </button>
             </div>
           </div>
+      </div>
+      
+      {/* Mobile Tabs */}
+      <div className="flex md:hidden bg-neutral-100/80 dark:bg-neutral-800/80 backdrop-blur p-1 rounded-xl shadow-inner mb-2 text-xs w-full">
+        <button 
+          onClick={() => setActiveTab('revenue')}
+          className={`flex-1 py-1.5 rounded-lg transition-all ${activeTab === 'revenue' ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white font-semibold' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+        >
+          Pendapatan
+        </button>
+        <button 
+          onClick={() => setActiveTab('transaction')}
+          className={`flex-1 py-1.5 rounded-lg transition-all ${activeTab === 'transaction' ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white font-semibold' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+        >
+          Transaksi
+        </button>
       </div>
 
       <div className="w-full flex-1 relative mt-1">

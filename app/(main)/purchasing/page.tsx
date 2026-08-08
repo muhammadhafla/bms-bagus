@@ -46,8 +46,10 @@ function PembelianPageContent() {
   // Load existing purchase if editId is provided
   useEffect(() => {
     if (editIdParam) {
+      let cancelled = false;
       setLoading(true);
       purchasesApi.getById(editIdParam).then((res: any) => {
+        if (cancelled) return;
         if (res.data) {
           loadPembelian(res.data);
         } else {
@@ -55,6 +57,7 @@ function PembelianPageContent() {
         }
         setLoading(false);
       });
+      return () => { cancelled = true; };
     } else {
       // Clear store if not editing (just in case they navigated from edit to new)
       if (editId) {
@@ -89,7 +92,11 @@ function PembelianPageContent() {
   const [searchSelectedIndex, setSearchSelectedIndex] = useState<number>(-1);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  const handleSearchInventory = async (query: string, allInventory: import('@/types/inventory').InventoryItem[]) => {
+  const searchSeqRef = useRef(0);
+  const isProcessingBarcodeRef = useRef(false);
+
+  const handleSearchInventory = useCallback(async (query: string, allInventory: import('@/types/inventory').InventoryItem[]) => {
+    const seq = ++searchSeqRef.current;
     if (query.length < 2) {
       setInventorySearchResults([]);
       setShowAddDropdown(false);
@@ -97,15 +104,17 @@ function PembelianPageContent() {
       return;
     }
     const result = await inventoryApi.fuzzySearch(query, allInventory);
+    if (seq !== searchSeqRef.current) return;
+    
     if (!result.error && result.data) {
       setInventorySearchResults(result.data as (import('@/types/inventory').InventoryItem & { similarity: number })[]);
       setShowAddDropdown(true); // Always show dropdown if query >= 2, to show the Add New button
     }
-  };
+  }, []);
 
   const debouncedSearch = useMemo(
     () => debounce((query: string, allInventory: import('@/types/inventory').InventoryItem[]) => handleSearchInventory(query, allInventory), 300),
-    []
+    [handleSearchInventory]
   );
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -250,11 +259,12 @@ function PembelianPageContent() {
   }, [success]);
 
   const handleBarcodeSubmit = useCallback(async (input: string) => {
-    if (loading || submitting) return;
+    if (loading || submitting || isProcessingBarcodeRef.current) return;
     
     const normalized = normalizeBarcode(input);
     if (!normalized) return;
 
+    isProcessingBarcodeRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -289,6 +299,8 @@ function PembelianPageContent() {
       console.error('Error:', err);
       setError('Terjadi kesalahan saat memproses barcode');
       setLoading(false);
+    } finally {
+      isProcessingBarcodeRef.current = false;
     }
   }, [loading, submitting, handleAddResolvedItem, inventoryData]);
 
@@ -345,7 +357,7 @@ function PembelianPageContent() {
             id: item.id,
             nama_barang: item.nama_barang,
             qty: item.qty,
-            harga_final: item.harga_beli,
+            harga_final: item.harga_beli || 0,
             harga_jual: item.harga_jual,
             diskon: item.diskon
           }))

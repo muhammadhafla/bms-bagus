@@ -15,24 +15,34 @@ export function usePwaUpdate() {
     ) {
       const wb = window.workbox;
 
-      wb.addEventListener('waiting', (event: any) => {
+      const handleWaiting = (event: any) => {
         // Service worker baru sedang menunggu
         setUpdateAvailable(true);
         // Registrasi diperlukan jika ingin memanggil postMessage
         if (event.sw) {
            // We'll rely on wb.messageSkipWaiting() later
         }
-      });
+      };
 
-      wb.addEventListener('controlling', () => {
+      const handleControlling = () => {
         // Saat SW baru mengambil kendali, reload halaman
         window.location.reload();
-      });
+      };
+
+      wb.addEventListener('waiting', handleWaiting);
+      wb.addEventListener('controlling', handleControlling);
 
       // Anda juga bisa memeriksa pendaftaran
+      let isMounted = true;
       navigator.serviceWorker.ready.then((reg) => {
-        setRegistration(reg);
+        if (isMounted) setRegistration(reg);
       });
+
+      return () => {
+        isMounted = false;
+        wb.removeEventListener('waiting', handleWaiting);
+        wb.removeEventListener('controlling', handleControlling);
+      };
     }
   }, []);
 

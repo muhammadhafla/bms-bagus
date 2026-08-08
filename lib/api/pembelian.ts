@@ -37,6 +37,21 @@ export interface PembelianWithDetails extends Pembelian {
   created_by_nama?: string;
 }
 
+export interface UpdateBatchInput {
+  pembelian_id: string;
+  supplier_id: string | null;
+  tanggal: string;
+  nomor_nota?: string;
+  items: Array<{
+    id: string;
+    nama_barang: string;
+    qty: number;
+    harga_final: number;
+    harga_jual?: number;
+    diskon?: number;
+  }>;
+}
+
 export const purchasesApi = {
   async getAll(options?: {
     limit?: number;
@@ -250,13 +265,13 @@ export const purchaseApi = {
 
 
 
-  updateBatch: async (data: any) => {
+  updateBatch: async (data: UpdateBatchInput) => {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
       if (!user) throw new Error('User not authenticated');
 
-      const itemsPayload = data.items.map((item: any) => ({
+      const itemsPayload = data.items.map((item) => ({
         inventory_id: item.id,
         nama_barang: item.nama_barang,
         qty: item.qty,

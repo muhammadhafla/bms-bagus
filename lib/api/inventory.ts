@@ -218,7 +218,7 @@ export const inventoryApi = {
     return safeQuery<InventoryItem>(async () => {
       const result = await query;
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
   },
 
   async create(data: { nama_barang: string; kode_barcode?: string; id_kategori?: string; kategori?: string; harga_beli_terakhir?: number; harga_jual?: number; diskon?: number }) {
@@ -245,14 +245,14 @@ export const inventoryApi = {
         .select('*, id_kategori:id_kategori(*)')
         .single();
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
   },
 
   async delete(id: string) {
     return safeQuery<void>(async () => {
       const result = await supabase.from('inventory').delete().eq('id', id);
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
   },
 
   async toggleDiscontinued(id: string) {
@@ -261,31 +261,10 @@ export const inventoryApi = {
       return { data: null, error: new Error('User not authenticated') };
     }
 
-    const current = await supabase
-      .from('inventory')
-      .select('is_discontinued')
-      .eq('id', id)
-      .single();
-
-    if (current.error) return { data: null, error: current.error };
-
-    const newStatus = !current.data.is_discontinued;
-
     return safeQuery<InventoryItem>(async () => {
-      const result = await supabase
-        .from('inventory')
-        .update({
-          is_discontinued: newStatus,
-          discontinued_at: newStatus ? new Date().toISOString() : null,
-          discontinued_by: newStatus ? user.id : null,
-          updated_by: user.id,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
-      return { data: result.data, error: result.error as Error | null };
-    });
+      const result = await supabase.rpc('toggle_discontinued', { p_id: id, p_user: user.id }).single();
+      return { data: result.data as InventoryItem, error: result.error as Error | null };
+    }, { isMutation: true });
   },
 
   async getPurchaseHistory(inventory_id: string, options: { page?: number; limit?: number } = {}) {
@@ -389,7 +368,7 @@ export const inventoryApi = {
         .select('*, id_kategori:id_kategori(*)');
         
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
   },
 
   async upsertBatch(items: { 
@@ -430,6 +409,6 @@ export const inventoryApi = {
         .select('*, id_kategori:id_kategori(*)');
         
       return { data: result.data, error: result.error as Error | null };
-    });
+    }, { isMutation: true });
   }
 };

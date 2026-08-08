@@ -5,7 +5,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 interface PresenceState {
   onlineUsers: string[];
   channel: RealtimeChannel | null;
-  initializePresence: (userId: string) => void;
+  initializePresence: (userId: string) => Promise<void>;
   cleanupPresence: () => void;
 }
 
@@ -13,11 +13,12 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
   onlineUsers: [],
   channel: null,
 
-  initializePresence: (userId: string) => {
+  initializePresence: async (userId: string) => {
     // Cleanup existing channel if any
     const existingChannel = get().channel;
     if (existingChannel) {
-      existingChannel.unsubscribe();
+      await existingChannel.unsubscribe();
+      supabase.removeChannel(existingChannel);
     }
 
     const channel = supabase.channel('online-users', {

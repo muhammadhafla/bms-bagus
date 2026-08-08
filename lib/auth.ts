@@ -42,6 +42,7 @@ interface AuthState {
 
 // Module-level fetch ID counter to prevent stale profile overwrites
 let profileFetchSeq = 0;
+let sessionRefreshPromise: Promise<boolean> | null = null;
 
 const fetchProfile = async (userId: string): Promise<Profile | null> => {
   try {
@@ -159,56 +160,54 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   refreshSession: async () => {
-    const { isRefreshing } = get();
-    
-    // If already refreshing, wait a bit and check if it succeeded
-    if (isRefreshing) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const { user } = get();
-      return !!user;
-    }
+    if (sessionRefreshPromise) return sessionRefreshPromise;
 
-    set({ isRefreshing: true });
+    const doRefresh = async () => {
+      set({ isRefreshing: true });
 
-    try {
-      // Use explicit refreshSession instead of getSession
-      const { data, error } = await supabase.auth.refreshSession();
+      try {
+        // Use explicit refreshSession instead of getSession
+        const { data, error } = await supabase.auth.refreshSession();
 
-      if (error || !data.session) {
-        console.error('Session refresh failed:', error);
+        if (error || !data.session) {
+          console.error('Session refresh failed:', error);
+          set({ user: null, profile: null, isRefreshing: false, initialized: true });
+          return false;
+        }
+
+        // Fetch profile with guard
+        const fetchId = ++profileFetchSeq;
+        const profile = await fetchProfile(data.session.user.id);
+        
+        if (fetchId === profileFetchSeq && profile) {
+          set({ 
+            user: data.session.user, 
+            profile,
+            isRefreshing: false,
+            initialized: true 
+          });
+        } else {
+          set({ 
+            user: data.session.user, 
+            isRefreshing: false,
+            initialized: true 
+          });
+        }
+
+        if (data.session.expires_at) {
+          get().setSessionExpiry(data.session.expires_at * 1000);
+        }
+
+        return true;
+      } catch (error) {
+        console.error('Session refresh exception:', error);
         set({ user: null, profile: null, isRefreshing: false, initialized: true });
         return false;
       }
+    };
 
-      // Fetch profile with guard
-      const fetchId = ++profileFetchSeq;
-      const profile = await fetchProfile(data.session.user.id);
-      
-      if (fetchId === profileFetchSeq && profile) {
-        set({ 
-          user: data.session.user, 
-          profile,
-          isRefreshing: false,
-          initialized: true 
-        });
-      } else {
-        set({ 
-          user: data.session.user, 
-          isRefreshing: false,
-          initialized: true 
-        });
-      }
-
-      if (data.session.expires_at) {
-        get().setSessionExpiry(data.session.expires_at * 1000);
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Session refresh exception:', error);
-      set({ user: null, profile: null, isRefreshing: false, initialized: true });
-      return false;
-    }
+    sessionRefreshPromise = doRefresh().finally(() => { sessionRefreshPromise = null; });
+    return sessionRefreshPromise;
   },
 
   checkAndRefreshSession: async () => {

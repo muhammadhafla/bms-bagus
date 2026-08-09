@@ -12,6 +12,7 @@ interface ItemCartProps {
   setEditMode: (mode: 'qty' | 'harga' | 'harga_jual' | null) => void;
   setEditValue: (val: number) => void;
   handleEditSubmit: () => void;
+  handleEditKeyDown: (e: React.KeyboardEvent<HTMLDivElement>, index: number) => void;
   removeItem: (id: string) => void;
 }
 
@@ -24,6 +25,7 @@ export function ItemCart({
   setEditMode,
   setEditValue,
   handleEditSubmit,
+  handleEditKeyDown,
   removeItem,
 }: ItemCartProps) {
   if (items.length === 0) {
@@ -37,7 +39,7 @@ export function ItemCart({
           Gunakan fitur pencarian atau scan barcode untuk mulai menambahkan barang masuk.
         </p>
         <p className="text-xs sm:text-sm text-neutral-400 mt-6 hidden lg:block bg-neutral-100/80 dark:bg-neutral-900/80 px-4 py-2.5 rounded-xl border border-neutral-200/50 dark:border-neutral-800/50">
-          <span className="font-semibold text-neutral-500 dark:text-neutral-300">Shortcut:</span> Tekan F2 (Edit Qty), F3 (Edit Harga), F4 (Edit Harga Jual)
+          <span className="font-semibold text-neutral-500 dark:text-neutral-300">Shortcut:</span> Tekan F2 (Edit Qty), F3 (Edit Harga), F4 (Edit Harga Jual). Gunakan Enter atau Panah Atas/Bawah untuk pindah baris saat edit.
         </p>
       </div>
     );
@@ -69,7 +71,14 @@ export function ItemCart({
               <td className="px-4 py-3 text-sm font-medium text-neutral-900 dark:text-neutral-100">{item.nama_barang}</td>
               <td className="px-4 py-3 text-right">
                 {selectedIndex === index && editMode === 'qty' ? (
-                  <div className="w-24 ml-auto">
+                  <div 
+                    className="w-24 ml-auto"
+                    onKeyDownCapture={(e) => {
+                      if (['Enter', 'ArrowUp', 'ArrowDown', 'Tab'].includes(e.key)) {
+                        handleEditKeyDown(e, index);
+                      }
+                    }}
+                  >
                     <PriceInput
                       value={editValue}
                       onChange={setEditValue}
@@ -97,7 +106,14 @@ export function ItemCart({
               </td>
               <td className="px-4 py-3 text-right">
                 {selectedIndex === index && editMode === 'harga' ? (
-                  <div className="w-32 ml-auto">
+                  <div 
+                    className="w-32 ml-auto"
+                    onKeyDownCapture={(e) => {
+                      if (['Enter', 'ArrowUp', 'ArrowDown', 'Tab'].includes(e.key)) {
+                        handleEditKeyDown(e, index);
+                      }
+                    }}
+                  >
                     <PriceInput
                       value={editValue}
                       onChange={setEditValue}
@@ -124,7 +140,14 @@ export function ItemCart({
               </td>
               <td className="px-4 py-3 text-right">
                 {selectedIndex === index && editMode === 'harga_jual' ? (
-                  <div className="w-32 ml-auto">
+                  <div 
+                    className="w-32 ml-auto"
+                    onKeyDownCapture={(e) => {
+                      if (['Enter', 'ArrowUp', 'ArrowDown', 'Tab'].includes(e.key)) {
+                        handleEditKeyDown(e, index);
+                      }
+                    }}
+                  >
                     <PriceInput
                       value={editValue}
                       onChange={setEditValue}
@@ -184,15 +207,23 @@ export function ItemCart({
               <div>
                 <label className="text-xs text-neutral-500 dark:text-neutral-400 font-medium block mb-1.5">Qty</label>
                 {selectedIndex === index && editMode === 'qty' ? (
-                  <PriceInput
-                    value={editValue}
-                    onChange={setEditValue}
-                    onBlur={handleEditSubmit}
-                    className="w-full !px-3 !py-2.5 !rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
-                    min={1}
-                    autoFocus
-                    prefix=""
-                  />
+                  <div
+                    onKeyDownCapture={(e) => {
+                      if (['Enter', 'ArrowUp', 'ArrowDown', 'Tab'].includes(e.key)) {
+                        handleEditKeyDown(e, index);
+                      }
+                    }}
+                  >
+                    <PriceInput
+                      value={editValue}
+                      onChange={setEditValue}
+                      onBlur={handleEditSubmit}
+                      className="w-full !px-3 !py-2.5 !rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
+                      min={1}
+                      autoFocus
+                      prefix=""
+                    />
+                  </div>
                 ) : (
                   <button
                     onClick={() => {
@@ -209,14 +240,22 @@ export function ItemCart({
               <div>
                 <label className="text-xs text-neutral-500 dark:text-neutral-400 font-medium block mb-1.5">Harga Beli</label>
                 {selectedIndex === index && editMode === 'harga' ? (
-                  <PriceInput
-                    value={editValue}
-                    onChange={setEditValue}
-                    onBlur={handleEditSubmit}
-                    className="w-full !px-3 !py-2.5 !rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
-                    min={0}
-                    autoFocus
-                  />
+                  <div
+                    onKeyDownCapture={(e) => {
+                      if (['Enter', 'ArrowUp', 'ArrowDown', 'Tab'].includes(e.key)) {
+                        handleEditKeyDown(e, index);
+                      }
+                    }}
+                  >
+                    <PriceInput
+                      value={editValue}
+                      onChange={setEditValue}
+                      onBlur={handleEditSubmit}
+                      className="w-full !px-3 !py-2.5 !rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
+                      min={0}
+                      autoFocus
+                    />
+                  </div>
                 ) : (
                   <button
                     onClick={() => {
@@ -233,14 +272,22 @@ export function ItemCart({
               <div>
                 <label className="text-xs text-neutral-500 dark:text-neutral-400 font-medium block mb-1.5">Harga Jual</label>
                 {selectedIndex === index && editMode === 'harga_jual' ? (
-                  <PriceInput
-                    value={editValue}
-                    onChange={setEditValue}
-                    onBlur={handleEditSubmit}
-                    className="w-full !px-3 !py-2.5 !rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
-                    min={0}
-                    autoFocus
-                  />
+                  <div
+                    onKeyDownCapture={(e) => {
+                      if (['Enter', 'ArrowUp', 'ArrowDown', 'Tab'].includes(e.key)) {
+                        handleEditKeyDown(e, index);
+                      }
+                    }}
+                  >
+                    <PriceInput
+                      value={editValue}
+                      onChange={setEditValue}
+                      onBlur={handleEditSubmit}
+                      className="w-full !px-3 !py-2.5 !rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
+                      min={0}
+                      autoFocus
+                    />
+                  </div>
                 ) : (
                   <button
                     onClick={() => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconX, IconCamera } from '@tabler/icons-react';
+import { IconX, IconCamera, IconTrash, IconMinus, IconPlus } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
 import { PrintItem } from '@/lib/store';
 
@@ -12,6 +12,8 @@ interface ItemCartProps {
   setEditMode: (mode: 'qty' | null) => void;
   setEditValue: (val: number) => void;
   handleEditSubmit: () => void;
+  handleEditKeyDown: (e: React.KeyboardEvent<HTMLDivElement>, index: number) => void;
+  updateQty: (id: string, qty: number) => void;
   removeItem: (id: string) => void;
 }
 
@@ -24,6 +26,8 @@ export function ItemCart({
   setEditMode,
   setEditValue,
   handleEditSubmit,
+  handleEditKeyDown,
+  updateQty,
   removeItem,
 }: ItemCartProps) {
   if (items.length === 0) {
@@ -37,7 +41,7 @@ export function ItemCart({
           Gunakan fitur pencarian atau scan barcode untuk menambahkan barang ke daftar cetak massal.
         </p>
         <p className="text-xs sm:text-sm text-neutral-400 mt-6 hidden lg:block bg-neutral-100/80 dark:bg-neutral-900/80 px-4 py-2.5 rounded-xl border border-neutral-200/50 dark:border-neutral-800/50">
-          <span className="font-semibold text-neutral-500 dark:text-neutral-300">Shortcut:</span> Tekan F2 untuk mengedit Qty Cetak baris pertama
+          <span className="font-semibold text-neutral-500 dark:text-neutral-300">Shortcut:</span> Tekan F2 untuk mengedit baris pertama. Gunakan Enter atau Panah Atas/Bawah untuk pindah baris.
         </p>
       </div>
     );
@@ -52,7 +56,7 @@ export function ItemCart({
             <th className="px-4 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Barcode</th>
             <th className="px-4 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Nama Barang</th>
             <th className="px-4 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga (Stlh Diskon)</th>
-            <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Qty Cetak</th>
+            <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-32">Qty Cetak</th>
             <th className="px-4 py-4 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-16">Aksi</th>
           </tr>
         </thead>
@@ -70,7 +74,14 @@ export function ItemCart({
               <td className="px-4 py-3 text-sm text-neutral-600 dark:text-neutral-400">Rp {finalPrice.toLocaleString('id-ID')}</td>
               <td className="px-4 py-3 text-right">
                 {selectedIndex === index && editMode === 'qty' ? (
-                  <div className="w-24 ml-auto">
+                  <div 
+                    className="w-24 ml-auto"
+                    onKeyDownCapture={(e) => {
+                      if (['Enter', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+                        handleEditKeyDown(e, index);
+                      }
+                    }}
+                  >
                     <PriceInput
                       value={editValue}
                       onChange={setEditValue}
@@ -88,7 +99,7 @@ export function ItemCart({
                       setEditMode('qty');
                       setEditValue(item.qty);
                     }}
-                    className="px-3 py-1.5 text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg w-20 block ml-auto transition-colors font-medium"
+                    className="px-3 py-1.5 text-right hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg w-24 block ml-auto transition-colors font-medium"
                   >
                     {item.qty}
                   </button>
@@ -97,9 +108,9 @@ export function ItemCart({
               <td className="px-4 py-3 text-center">
                 <button
                   onClick={() => removeItem(item.id)}
-                  className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 text-lg btn-press p-2 rounded-xl transition-colors"
+                  className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 text-lg btn-press p-2.5 rounded-xl transition-colors"
                 >
-                  <IconX size={18} />
+                  <IconTrash size={18} />
                 </button>
               </td>
             </tr>
@@ -112,43 +123,74 @@ export function ItemCart({
         {items.map((item, index) => {
           const finalPrice = (item.harga_jual || 0) - (item.diskon || 0);
           return (
-          <div key={`${item.id}-${index}-mobile`} className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl p-2.5 sm:p-4 border border-neutral-200/50 dark:border-neutral-800/50 shadow-sm relative transition-all">
+          <div key={`${item.id}-${index}-mobile`} className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-neutral-200/50 dark:border-neutral-800/50 shadow-sm relative transition-all">
             <button
               onClick={() => removeItem(item.id)}
-              className="absolute top-3 right-3 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded-xl transition-colors btn-press"
+              className="absolute top-3 right-3 text-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 p-2.5 rounded-xl transition-colors btn-press"
             >
-              <IconX size={18} />
+              <IconTrash size={18} />
             </button>
-            <div className="pr-10 mb-3">
-              <div className="font-bold text-neutral-900 dark:text-white text-base leading-tight mb-1">{item.nama_barang}</div>
-              <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">{item.kode_barcode || item.barcode}</div>
-              <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">Rp {finalPrice.toLocaleString('id-ID')}</div>
+            <div className="pr-14 mb-4">
+              <div className="font-bold text-neutral-900 dark:text-white text-base leading-tight mb-1.5">{item.nama_barang}</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-xs text-neutral-500 dark:text-neutral-400 font-mono bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded shadow-sm border border-neutral-200/50 dark:border-neutral-700/50">{item.kode_barcode || item.barcode}</div>
+                <div className="text-sm font-bold text-brand-600 dark:text-brand-400">Rp {finalPrice.toLocaleString('id-ID')}</div>
+              </div>
             </div>
 
-            <div>
-              <label className="text-xs text-neutral-500 dark:text-neutral-400 font-medium block mb-1.5">Qty Cetak</label>
-              {selectedIndex === index && editMode === 'qty' ? (
-                <PriceInput
-                  value={editValue}
-                  onChange={setEditValue}
-                  onBlur={handleEditSubmit}
-                  className="w-full !px-3 !py-2.5 !rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
-                  min={1}
-                  autoFocus
-                  prefix=""
-                />
-              ) : (
-                <button
+            <div className="flex items-center justify-between border-t border-neutral-100 dark:border-neutral-800/50 pt-3.5">
+              <label className="text-sm text-neutral-600 dark:text-neutral-400 font-medium">Qty Cetak</label>
+              
+              <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 rounded-xl p-1 border border-neutral-200/50 dark:border-neutral-700/50">
+                <button 
                   onClick={() => {
-                    setSelectedIndex(index);
-                    setEditMode('qty');
-                    setEditValue(item.qty);
+                    const newQty = Math.max(1, item.qty - 1);
+                    updateQty(item.id, newQty);
                   }}
-                  className="w-full px-3 py-2.5 text-left bg-white/70 dark:bg-neutral-900/70 border border-neutral-200/50 dark:border-neutral-700/50 rounded-xl font-medium text-neutral-900 dark:text-white shadow-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                  className="w-10 h-10 flex items-center justify-center text-neutral-600 dark:text-neutral-300 bg-white dark:bg-neutral-900 rounded-lg shadow-sm active:scale-95 transition-all border border-neutral-200/50 dark:border-neutral-700/50"
                 >
-                  {item.qty}
+                  <IconMinus size={18} stroke={2.5} />
                 </button>
-              )}
+                <div className="w-14 text-center font-bold text-neutral-900 dark:text-white">
+                  {selectedIndex === index && editMode === 'qty' ? (
+                    <div
+                      onKeyDownCapture={(e) => {
+                        if (['Enter', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+                          handleEditKeyDown(e, index);
+                        }
+                      }}
+                      className="h-10 flex items-center"
+                    >
+                      <PriceInput
+                        value={editValue}
+                        onChange={setEditValue}
+                        onBlur={handleEditSubmit}
+                        className="w-full !px-1 !py-0 !rounded-none border-none bg-transparent text-center font-bold text-neutral-900 dark:text-white shadow-none focus:ring-0"
+                        min={1}
+                        autoFocus
+                        prefix=""
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setSelectedIndex(index);
+                        setEditMode('qty');
+                        setEditValue(item.qty);
+                      }}
+                      className="w-full h-10 flex items-center justify-center font-bold text-lg"
+                    >
+                      {item.qty}
+                    </button>
+                  )}
+                </div>
+                <button 
+                  onClick={() => updateQty(item.id, item.qty + 1)}
+                  className="w-10 h-10 flex items-center justify-center text-neutral-600 dark:text-neutral-300 bg-white dark:bg-neutral-900 rounded-lg shadow-sm active:scale-95 transition-all border border-neutral-200/50 dark:border-neutral-700/50"
+                >
+                  <IconPlus size={18} stroke={2.5} />
+                </button>
+              </div>
             </div>
           </div>
         )})}

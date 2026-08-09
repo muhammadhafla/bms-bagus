@@ -72,7 +72,7 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
         <div className="flex-1 min-h-[120px] w-full relative border-b border-neutral-100 dark:border-neutral-800/50 pb-2">
           <p className="absolute top-0 left-4 text-xs font-bold text-teal-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Penjualan</p>
           <ResponsiveContainer width="100%" height="100%" minHeight={1}>
-            <AreaChart data={data} syncId="trendDashboard" margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={data} syncId="trendDashboard" margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorPenjualan" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#14B8A6" stopOpacity={0.4}/>
@@ -108,7 +108,7 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
         <div className="flex-1 min-h-[120px] w-full relative pt-2">
           <p className="absolute top-0 left-4 text-xs font-bold text-orange-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Pembelian</p>
           <ResponsiveContainer width="100%" height="100%" minHeight={1}>
-            <AreaChart data={data} syncId="trendDashboard" margin={{ top: 20, right: 10, left: -20, bottom: 20 }}>
+            <AreaChart data={data} syncId="trendDashboard" margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
               <defs>
                 <linearGradient id="colorPembelian" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.4}/>

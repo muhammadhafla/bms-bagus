@@ -111,7 +111,7 @@ export function RiwayatPembelianTab({ search, startDate, endDate, sortBy, sortDi
         
         detail.items.forEach(purchaseItem => {
           const matchedInventory = inventoryData.find(inv => inv.id === purchaseItem.inventory_id);
-          if (matchedInventory && purchaseItem.qty > 0) {
+          if (matchedInventory && purchaseItem.qty > 0 && !matchedInventory.is_discontinued) {
             addBulkPrintItem(matchedInventory, purchaseItem.qty);
           }
         });

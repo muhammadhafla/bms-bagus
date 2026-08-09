@@ -26,6 +26,7 @@ export default function BulkPrintPage() {
       const res = await inventoryApi.getAll();
       return res.data || [];
     },
+    select: (data) => data.filter((item) => !item.is_discontinued),
   });
   
   const { data: activePromosMap } = useQuery({
@@ -151,6 +152,25 @@ export default function BulkPrintPage() {
       allowInInput: true,
     },
     {
+      key: 'F4',
+      handler: () => {
+        reset();
+        focusInput();
+      },
+      description: 'Reset keranjang cetak massal',
+      allowInInput: true,
+    },
+    {
+      key: 'F9',
+      handler: () => {
+        if (items.length > 0 && !submitting) {
+          handleSubmit();
+        }
+      },
+      description: 'Cetak Semua Label',
+      allowInInput: true,
+    },
+    {
       key: 'Escape',
       handler: () => {
         setEditMode(null);
@@ -201,6 +221,11 @@ export default function BulkPrintPage() {
       const exactResult = await inventoryApi.getByExactBarcode(normalized);
       
       if (exactResult.data) {
+        if (exactResult.data.is_discontinued) {
+          setError('Barang ini sudah tidak aktif (discontinue) sehingga tidak dapat dicetak.');
+          setLoading(false);
+          return;
+        }
         handleAddResolvedItem(exactResult.data);
         return;
       }
@@ -311,6 +336,37 @@ export default function BulkPrintPage() {
     focusInput();
   }, [items, selectedIndex, editMode, editValue, updateQty, removeItem, focusInput]);
 
+  const handleEditKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>, index: number) => {
+    if (['Enter', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const nextIndex = e.key === 'ArrowUp' ? Math.max(0, index - 1) : index + 1;
+      
+      if (editMode === 'qty') {
+        const value = editValue;
+        if (!isNaN(value) && value >= 0) {
+          const itemId = items[index].id;
+          if (value === 0) {
+            removeItem(itemId);
+          } else {
+            updateQty(itemId, value);
+          }
+        }
+      }
+      
+      if (items[nextIndex]) {
+        setSelectedIndex(nextIndex);
+        setEditMode('qty');
+        setEditValue(items[nextIndex].qty);
+      } else {
+        setEditMode(null);
+        setSelectedIndex(null);
+        focusInput();
+      }
+    }
+  }, [items, editMode, editValue, updateQty, removeItem, focusInput]);
+
   return (
     <AmbientLayout>
       <div className="flex flex-col min-h-[calc(100vh-2rem)] lg:h-[calc(100vh-2rem)]">
@@ -331,8 +387,8 @@ export default function BulkPrintPage() {
               </div>
             </div>
             
-            <div className="flex items-end gap-3 lg:gap-4">
-              <div className="flex-1 min-w-[200px] max-w-[250px]">
+            <div className="flex items-end gap-3 lg:gap-4 w-full lg:w-auto">
+              <div className="flex-1 w-full lg:min-w-[200px] lg:max-w-[250px]">
                 <SelectInput
                   label="Template Global:"
                   value={selectedTemplate}
@@ -432,6 +488,8 @@ export default function BulkPrintPage() {
             setEditMode={setEditMode}
             setEditValue={setEditValue}
             handleEditSubmit={handleEditSubmit}
+            handleEditKeyDown={handleEditKeyDown}
+            updateQty={updateQty}
             removeItem={removeItem}
           />
         </div>
@@ -447,26 +505,32 @@ export default function BulkPrintPage() {
               </div>
 
               <div className="flex gap-3 justify-end items-center">
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    reset();
-                    focusInput();
-                  }}
-                  className="bg-white/50 dark:bg-neutral-800/50 backdrop-blur-md border-white/40 dark:border-white/10"
-                  leftIcon={<IconRefresh className="w-5 h-5" />}
-                >
-                  Reset
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={items.length === 0 || submitting}
-                  variant="primary"
-                  className="shadow-brand px-8"
-                  leftIcon={<IconPrinter className="w-5 h-5" />}
-                >
-                  {submitting ? 'Memproses...' : 'Cetak Semua'}
-                </Button>
+                <div className="relative group">
+                  <span className="absolute -top-2 -right-1 z-10 hidden group-hover:block sm:block px-1.5 py-0.5 rounded text-[10px] font-bold bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 pointer-events-none transform -translate-y-1/2">F4</span>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      reset();
+                      focusInput();
+                    }}
+                    className="bg-white/50 dark:bg-neutral-800/50 backdrop-blur-md border-white/40 dark:border-white/10"
+                    leftIcon={<IconRefresh className="w-5 h-5" />}
+                  >
+                    Reset
+                  </Button>
+                </div>
+                <div className="relative group">
+                  <span className="absolute -top-2 -right-1 z-10 hidden group-hover:block sm:block px-1.5 py-0.5 rounded text-[10px] font-bold bg-brand-200 dark:bg-brand-900 text-brand-700 dark:text-brand-300 pointer-events-none transform -translate-y-1/2">F9</span>
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={items.length === 0 || submitting}
+                    variant="primary"
+                    className="shadow-brand px-8"
+                    leftIcon={<IconPrinter className="w-5 h-5" />}
+                  >
+                    {submitting ? 'Memproses...' : 'Cetak Semua'}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -483,27 +547,31 @@ export default function BulkPrintPage() {
               </div>
 
               <div className="flex gap-2 justify-end items-center flex-shrink-0">
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    reset();
-                    focusInput();
-                  }}
-                  className="bg-white/50 dark:bg-neutral-800/50 backdrop-blur-md border-neutral-200/50 dark:border-neutral-700/50 !px-4 h-10 rounded-xl"
-                  leftIcon={<IconRefresh className="w-5 h-5" />}
-                >
-                  <span className="hidden sm:inline">Reset</span>
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={items.length === 0 || submitting}
-                  variant="primary"
-                  className="shadow-brand !px-6 h-10 rounded-xl"
-                  leftIcon={<IconPrinter className="w-5 h-5" />}
-                >
-                  <span className="hidden sm:inline">{submitting ? '...' : 'Cetak'}</span>
-                  <span className="sm:hidden">{submitting ? '...' : 'Cetak'}</span>
-                </Button>
+                <div className="relative">
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      reset();
+                      focusInput();
+                    }}
+                    className="bg-white/50 dark:bg-neutral-800/50 backdrop-blur-md border-neutral-200/50 dark:border-neutral-700/50 !px-4 h-10 rounded-xl"
+                    leftIcon={<IconRefresh className="w-5 h-5" />}
+                  >
+                    <span className="hidden sm:inline">Reset</span>
+                  </Button>
+                </div>
+                <div className="relative">
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={items.length === 0 || submitting}
+                    variant="primary"
+                    className="shadow-brand !px-6 h-10 rounded-xl"
+                    leftIcon={<IconPrinter className="w-5 h-5" />}
+                  >
+                    <span className="hidden sm:inline">{submitting ? '...' : 'Cetak'}</span>
+                    <span className="sm:hidden">{submitting ? '...' : 'Cetak'}</span>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

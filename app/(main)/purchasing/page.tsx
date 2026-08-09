@@ -225,6 +225,24 @@ function PembelianPageContent() {
       },
       description: 'Batal edit',
       allowInInput: true,
+    },
+    {
+      key: 'F6',
+      handler: () => {
+        setShowResetConfirm(true);
+      },
+      description: 'Reset form',
+      allowInInput: true,
+    },
+    {
+      key: 'F9',
+      handler: () => {
+        if (items.length > 0 && !submitting) {
+          handleSimpan();
+        }
+      },
+      description: 'Simpan Pembelian',
+      allowInInput: true,
     }
   ]);
 
@@ -438,6 +456,68 @@ function PembelianPageContent() {
     focusInput();
   }, [items, selectedIndex, editMode, editValue, updateQty, updateHargaBeli, updateHargaJual, removeItem, focusInput]);
 
+  const handleEditKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>, index: number) => {
+    if (['Enter', 'ArrowDown', 'ArrowUp', 'Tab'].includes(e.key)) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const value = editValue;
+      if (!isNaN(value) && value >= 0) {
+        const itemId = items[index].id;
+        if (editMode === 'qty') {
+          if (value === 0) removeItem(itemId);
+          else updateQty(itemId, value);
+        } else if (editMode === 'harga') {
+          updateHargaBeli(itemId, value);
+        } else if (editMode === 'harga_jual') {
+          updateHargaJual(itemId, value);
+        }
+      }
+      
+      let nextIndex = index;
+      let nextMode = editMode;
+
+      if (e.key === 'Enter') {
+        setEditMode(null);
+        setSelectedIndex(null);
+        focusInput();
+        return;
+      } else if (e.key === 'ArrowUp') {
+        nextIndex = Math.max(0, index - 1);
+      } else if (e.key === 'ArrowDown') {
+        nextIndex = index + 1;
+      } else if (e.key === 'Tab') {
+        if (e.shiftKey) {
+          if (editMode === 'harga_jual') nextMode = 'harga';
+          else if (editMode === 'harga') nextMode = 'qty';
+          else if (editMode === 'qty') {
+            nextMode = 'harga_jual';
+            nextIndex = Math.max(0, index - 1);
+          }
+        } else {
+          if (editMode === 'qty') nextMode = 'harga';
+          else if (editMode === 'harga') nextMode = 'harga_jual';
+          else if (editMode === 'harga_jual') {
+            nextMode = 'qty';
+            nextIndex = index + 1;
+          }
+        }
+      }
+      
+      if (items[nextIndex] && nextMode) {
+        setSelectedIndex(nextIndex);
+        setEditMode(nextMode);
+        if (nextMode === 'qty') setEditValue(items[nextIndex].qty);
+        else if (nextMode === 'harga') setEditValue(items[nextIndex].harga_beli || 0);
+        else if (nextMode === 'harga_jual') setEditValue(items[nextIndex].harga_jual || 0);
+      } else {
+        setEditMode(null);
+        setSelectedIndex(null);
+        focusInput();
+      }
+    }
+  }, [items, editMode, editValue, updateQty, updateHargaBeli, updateHargaJual, removeItem, focusInput]);
+
   const totalSistem = getTotalSistem();
   const selisih = getSelisih();
   const isValid = selisih === 0;
@@ -642,6 +722,7 @@ function PembelianPageContent() {
             setEditMode={setEditMode}
             setEditValue={setEditValue}
             handleEditSubmit={handleEditSubmit}
+            handleEditKeyDown={handleEditKeyDown}
             removeItem={removeItem}
           />
         </div>
@@ -668,24 +749,30 @@ function PembelianPageContent() {
               </div>
 
               <div className="flex gap-3 justify-end items-center">
-                <Button
-                  variant="secondary"
-                  onClick={() => setShowResetConfirm(true)}
-                  className="bg-white/50 dark:bg-neutral-800/50 backdrop-blur-md border-white/40 dark:border-white/10"
-                  leftIcon={<IconRefresh className="w-5 h-5" />}
-                >
-                  <span className="hidden sm:inline">Reset</span>
-                </Button>
-                <Button
-                  onClick={handleSimpan}
-                  disabled={items.length === 0 || submitting}
-                  variant="primary"
-                  size="lg"
-                  className="shadow-brand px-8"
-                  leftIcon={<IconDeviceFloppy className="w-5 h-5" />}
-                >
-                  <span className="hidden sm:inline">{submitting ? 'Menyimpan...' : (editId ? 'Simpan Revisi' : 'Simpan Pembelian')}</span>
-                </Button>
+                <div className="relative group">
+                  <span className="absolute -top-2 -right-1 z-10 hidden group-hover:block sm:block px-1.5 py-0.5 rounded text-[10px] font-bold bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 pointer-events-none transform -translate-y-1/2">F6</span>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowResetConfirm(true)}
+                    className="bg-white/50 dark:bg-neutral-800/50 backdrop-blur-md border-white/40 dark:border-white/10"
+                    leftIcon={<IconRefresh className="w-5 h-5" />}
+                  >
+                    <span className="hidden sm:inline">Reset</span>
+                  </Button>
+                </div>
+                <div className="relative group">
+                  <span className="absolute -top-2 -right-1 z-10 hidden group-hover:block sm:block px-1.5 py-0.5 rounded text-[10px] font-bold bg-brand-200 dark:bg-brand-900 text-brand-700 dark:text-brand-300 pointer-events-none transform -translate-y-1/2">F9</span>
+                  <Button
+                    onClick={handleSimpan}
+                    disabled={items.length === 0 || submitting}
+                    variant="primary"
+                    size="lg"
+                    className="shadow-brand px-8"
+                    leftIcon={<IconDeviceFloppy className="w-5 h-5" />}
+                  >
+                    <span className="hidden sm:inline">{submitting ? 'Menyimpan...' : (editId ? 'Simpan Revisi' : 'Simpan Pembelian')}</span>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -774,26 +861,30 @@ function PembelianPageContent() {
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                   setIsBottomSheetOpen(false);
-                   setShowResetConfirm(true);
-                }}
-                className="flex-1"
-                leftIcon={<IconRefresh size={18} />}
-              >
-                Reset
-              </Button>
-              <Button
-                onClick={handleSimpan}
-                disabled={items.length === 0 || submitting}
-                variant="primary"
-                className="flex-1 shadow-brand"
-                leftIcon={<IconDeviceFloppy size={18} />}
-              >
-                {editId ? 'Simpan Revisi' : 'Simpan'}
-              </Button>
+              <div className="relative flex-1">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                     setIsBottomSheetOpen(false);
+                     setShowResetConfirm(true);
+                  }}
+                  className="w-full"
+                  leftIcon={<IconRefresh size={18} />}
+                >
+                  Reset
+                </Button>
+              </div>
+              <div className="relative flex-1">
+                <Button
+                  onClick={handleSimpan}
+                  disabled={items.length === 0 || submitting}
+                  variant="primary"
+                  className="w-full shadow-brand"
+                  leftIcon={<IconDeviceFloppy size={18} />}
+                >
+                  {editId ? 'Simpan Revisi' : 'Simpan'}
+                </Button>
+              </div>
             </div>
           </div>
         </Modal>

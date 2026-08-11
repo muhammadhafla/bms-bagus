@@ -13,6 +13,7 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const status = searchParams.get('status');
 
     const from = (page - 1) * limit;
     const to = from + limit - 1;
@@ -27,6 +28,10 @@ export async function GET(request: Request) {
     
     if (endDate) {
       query = query.lte('created_at', `${endDate}T23:59:59.999Z`);
+    }
+
+    if (status) {
+      query = query.eq('status', status);
     }
 
     query = query.order('created_at', { ascending: false }).range(from, to);

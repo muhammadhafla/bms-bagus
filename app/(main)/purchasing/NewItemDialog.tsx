@@ -221,7 +221,7 @@ export function NewItemDialog({ open, initialBarcode, initialName, onClose, onSu
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
             <div>
               <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Harga Beli</label>
               <PriceInput

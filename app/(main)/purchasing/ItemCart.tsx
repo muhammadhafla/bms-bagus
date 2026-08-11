@@ -48,7 +48,7 @@ export function ItemCart({
   return (
     <div className="overflow-x-auto overflow-y-auto h-full custom-scrollbar">
       <table className="w-full min-w-[900px] hidden lg:table">
-        <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md sticky top-0 z-10 border-b border-neutral-200/50 dark:border-neutral-800/50">
+        <thead className="bg-white/90 dark:bg-neutral-950/90 backdrop-blur-xl sticky top-0 z-10 border-b border-neutral-200/50 dark:border-neutral-800/50">
           <tr>
             <th className="px-4 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-12">#</th>
             <th className="px-4 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Barcode</th>

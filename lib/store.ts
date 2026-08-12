@@ -48,6 +48,7 @@ export const usePembelianStore = create<PembelianStore>()(
       nama_barang: item.nama_barang,
       qty: item.qty,
       harga_beli: item.harga_beli,
+      harga_jual: item.harga_jual,
       diskon: item.diskon || 0,
       harga_final: item.harga_final,
       subtotal: item.harga_final * item.qty,

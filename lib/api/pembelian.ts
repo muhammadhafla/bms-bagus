@@ -142,7 +142,7 @@ export const purchasesApi = {
       const itemsResult = await safeQuery<any[]>(async () => {
         const result = await supabase
           .from('pembelian_items')
-          .select('*')
+          .select('*, inventory(harga_jual)')
           .eq('pembelian_id', id)
           .abortSignal(controller.signal);
         return { data: result.data, error: result.error as Error | null };
@@ -154,10 +154,15 @@ export const purchasesApi = {
         console.error('Items fetch error:', itemsResult.error);
       }
 
+      const formattedItems = (itemsResult.data || []).map((item: any) => ({
+        ...item,
+        harga_jual: item.inventory?.harga_jual || 0
+      }));
+
       return {
         data: {
           ...purchaseResult.data,
-          items: itemsResult.data || [],
+          items: formattedItems,
           total: purchaseResult.data?.total_sistem || 0,
           total_supplier: purchaseResult.data?.total_supplier || 0,
           selisih: (purchaseResult.data?.total_sistem || 0) - (purchaseResult.data?.total_supplier || 0),

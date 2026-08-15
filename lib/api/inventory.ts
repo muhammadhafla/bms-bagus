@@ -51,14 +51,9 @@ export const inventoryApi = {
     let dataQuery;
 
     if (options.lowStockOnly) {
-      const p_search = options.search ? options.search.replace(/%/g, '').toLowerCase() : null;
-      countQuery = supabase.rpc(
-        'get_low_stock_items',
-        { p_search },
-        { count: 'exact', head: true },
-      );
+      countQuery = supabase.rpc('get_low_stock_items', {}, { count: 'exact', head: true });
       dataQuery = supabase
-        .rpc('get_low_stock_items', { p_search })
+        .rpc('get_low_stock_items', {})
         .select('*, id_kategori:id_kategori(*)')
         .order(sortBy, { ascending: isAscending })
         .range(offset, offset + limit - 1);
@@ -69,21 +64,21 @@ export const inventoryApi = {
         .select('*, id_kategori:id_kategori(*)')
         .order(sortBy, { ascending: isAscending })
         .range(offset, offset + limit - 1);
+    }
 
-      if (options.search) {
-        const safeQueryString = options.search.replace(/%/g, '').toLowerCase();
-        const orCondition = `nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`;
-        countQuery = countQuery.or(orCondition);
-        dataQuery = dataQuery.or(orCondition);
-      }
+    if (options.search) {
+      const safeQueryString = options.search.replace(/%/g, '').toLowerCase();
+      const orCondition = `nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`;
+      countQuery = countQuery.or(orCondition);
+      dataQuery = dataQuery.or(orCondition);
+    }
 
-      if (options.activeStatus === 'active') {
-        countQuery = countQuery.eq('is_discontinued', false);
-        dataQuery = dataQuery.eq('is_discontinued', false);
-      } else if (options.activeStatus === 'discontinued') {
-        countQuery = countQuery.eq('is_discontinued', true);
-        dataQuery = dataQuery.eq('is_discontinued', true);
-      }
+    if (options.activeStatus === 'active') {
+      countQuery = countQuery.eq('is_discontinued', false);
+      dataQuery = dataQuery.eq('is_discontinued', false);
+    } else if (options.activeStatus === 'discontinued') {
+      countQuery = countQuery.eq('is_discontinued', true);
+      dataQuery = dataQuery.eq('is_discontinued', true);
     }
 
     let categoryId = null;
@@ -121,12 +116,17 @@ export const inventoryApi = {
   },
 
   async getLowStockCount(options: { search?: string; categoryName?: string } = {}) {
-    const p_search = options.search ? options.search.replace(/%/g, '').toLowerCase() : null;
     let countQuery = supabase.rpc(
       'get_low_stock_items',
-      { p_search },
+      {},
       { count: 'exact', head: true },
     );
+
+    if (options.search) {
+      const safeQueryString = options.search.replace(/%/g, '').toLowerCase();
+      const orCondition = `nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`;
+      countQuery = countQuery.or(orCondition);
+    }
 
     if (options.categoryName) {
       const catResult = await supabase

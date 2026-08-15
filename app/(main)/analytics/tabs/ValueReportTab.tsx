@@ -4,7 +4,7 @@ import { reportApi, InventoryValue } from '@/lib/api';
 import { formatCurrency, exportToCSV } from '@/lib/utils';
 import { Button } from '@/components/ui';
 import { toast } from 'sonner';
-import { IconCash, IconDownload } from '@tabler/icons-react';
+import { IconCash, IconDownload, IconPackage } from '@tabler/icons-react';
 import { ReportState } from '@/components/analytics/ReportState';
 import { ReportPagination } from '@/components/analytics/ReportPagination';
 
@@ -84,21 +84,39 @@ export function ValueReportTab() {
         emptyIcon={<IconCash className="h-16 w-16" />}
       >
         <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="shadow-elevated rounded-3xl border border-white/20 bg-gradient-to-br from-emerald-500/90 to-emerald-600/90 p-5 text-white backdrop-blur-md">
-            <p className="text-sm font-medium text-emerald-100">Total Nilai (Halaman Ini)</p>
-            <p className="mt-1 text-3xl font-extrabold tracking-tight md:text-4xl">
-              {formatCurrency(pageTotalValue)}
-            </p>
+          <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-4 md:p-5 dark:border-neutral-800 dark:bg-neutral-900">
+            <div className="mb-2 flex items-center gap-2 md:gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
+                <IconCash className="h-4 w-4 md:h-5 md:w-5" />
+              </div>
+              <h3 className="text-xs font-semibold leading-tight text-neutral-900 md:text-sm dark:text-white">
+                Total Nilai (Halaman Ini)
+              </h3>
+            </div>
+            <div className="mt-2">
+              <div className="text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl dark:text-white">
+                {formatCurrency(pageTotalValue)}
+              </div>
+            </div>
           </div>
-          <div className="from-brand-500/90 to-brand-600/90 shadow-elevated rounded-3xl border border-white/20 bg-gradient-to-br p-5 text-white backdrop-blur-md">
-            <p className="text-brand-100 text-sm font-medium">Total Stok Item (Halaman Ini)</p>
-            <p className="mt-1 text-3xl font-extrabold tracking-tight md:text-4xl">
-              {pageTotalStok}
-            </p>
+          <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-4 md:p-5 dark:border-neutral-800 dark:bg-neutral-900">
+            <div className="mb-2 flex items-center gap-2 md:gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
+                <IconPackage className="h-4 w-4 md:h-5 md:w-5" />
+              </div>
+              <h3 className="text-xs font-semibold leading-tight text-neutral-900 md:text-sm dark:text-white">
+                Total Stok Item (Halaman Ini)
+              </h3>
+            </div>
+            <div className="mt-2">
+              <div className="text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl dark:text-white">
+                {pageTotalStok}
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="shadow-elevated overflow-hidden rounded-3xl border border-white/40 bg-white/70 backdrop-blur-xl dark:border-white/10 dark:bg-neutral-900/60">
+        <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full">
               <thead className="border-b border-neutral-200/50 bg-white/50 backdrop-blur-md dark:border-neutral-800/50 dark:bg-neutral-950/50">

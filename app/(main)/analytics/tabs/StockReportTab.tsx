@@ -96,7 +96,7 @@ export function StockReportTab({ startDate, endDate }: StockReportTabProps) {
         isEmpty={!isLoading && stockMutations.length === 0}
         emptyIcon={<IconPackage className="h-16 w-16" />}
       >
-        <div className="shadow-elevated overflow-hidden rounded-3xl border border-white/40 bg-white/70 backdrop-blur-xl dark:border-white/10 dark:bg-neutral-900/60">
+        <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[900px]">
               <thead className="border-b border-neutral-200/50 bg-white/50 backdrop-blur-md dark:border-neutral-800/50 dark:bg-neutral-950/50">

@@ -9,6 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 interface LowStockAlertProps {
   items: LowStockItem[];
   isLoading: boolean;
+  totalCount?: number;
 }
 
 function LowStockItemRow({ item }: { item: LowStockItem }) {
@@ -84,10 +85,10 @@ function LowStockItemRow({ item }: { item: LowStockItem }) {
   );
 }
 
-export function LowStockAlert({ items, isLoading }: LowStockAlertProps) {
+export function LowStockAlert({ items, isLoading, totalCount }: LowStockAlertProps) {
   if (isLoading) {
     return (
-      <div className="shadow-elevated h-full rounded-2xl border border-white/40 bg-white/70 p-5 backdrop-blur-xl dark:border-white/10 dark:bg-neutral-900/60">
+      <div className="h-full rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="animate-pulse space-y-3">
           <div className="mb-6 h-5 w-48 rounded bg-neutral-200/50 dark:bg-neutral-700/50" />
           {[1, 2, 3, 4].map((i) => (
@@ -99,7 +100,7 @@ export function LowStockAlert({ items, isLoading }: LowStockAlertProps) {
   }
 
   return (
-    <div className="shadow-elevated h-full rounded-2xl border border-white/40 bg-white/70 p-5 backdrop-blur-xl dark:border-white/10 dark:bg-neutral-900/60">
+    <div className="flex h-full flex-col rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
       <h3 className="mb-4 flex items-center gap-2 font-semibold text-neutral-900 dark:text-white">
         <IconAlertTriangle size={18} className="text-accent-amber-500" />
         Peringatan Stok Minimum
@@ -110,17 +111,19 @@ export function LowStockAlert({ items, isLoading }: LowStockAlertProps) {
           Semua stok dalam batas aman
         </p>
       ) : (
-        <div className="space-y-2">
-          {items.slice(0, 4).map((item) => (
-            <LowStockItemRow key={item.id} item={item} />
-          ))}
+        <div className="flex flex-1 flex-col">
+          <div className="space-y-2">
+            {items.slice(0, 6).map((item) => (
+              <LowStockItemRow key={item.id} item={item} />
+            ))}
+          </div>
 
-          {items.length > 4 && (
+          {(totalCount !== undefined ? totalCount > 6 : items.length > 6) && (
             <Link
               href="/inventory"
-              className="text-brand-600 dark:text-brand-400 mt-2 block text-center text-sm hover:underline"
+              className="text-brand-600 dark:text-brand-400 mt-auto block pt-4 text-center text-sm hover:underline"
             >
-              Lihat {items.length - 4} barang lainnya
+              Lihat {(totalCount !== undefined ? totalCount : items.length) - 6} barang lainnya
             </Link>
           )}
         </div>

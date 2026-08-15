@@ -24,7 +24,7 @@ export function RecentTransactions({ transactions, isLoading }: RecentTransactio
   };
   if (isLoading) {
     return (
-      <div className="shadow-elevated h-full rounded-2xl border border-white/40 bg-white/70 p-5 backdrop-blur-xl dark:border-white/10 dark:bg-neutral-900/60">
+      <div className="h-full rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="animate-pulse space-y-3">
           <div className="mb-6 h-5 w-40 rounded bg-neutral-200/50 dark:bg-neutral-700/50" />
           {[1, 2, 3, 4].map((i) => (
@@ -36,7 +36,7 @@ export function RecentTransactions({ transactions, isLoading }: RecentTransactio
   }
 
   return (
-    <div className="shadow-elevated h-full rounded-2xl border border-white/40 bg-white/70 p-5 backdrop-blur-xl dark:border-white/10 dark:bg-neutral-900/60">
+    <div className="flex h-full flex-col rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
       <h3 className="mb-6 font-semibold text-neutral-900 dark:text-white">Transaksi Terakhir</h3>
 
       {transactions.length === 0 ? (
@@ -45,7 +45,7 @@ export function RecentTransactions({ transactions, isLoading }: RecentTransactio
         </p>
       ) : (
         <div className="space-y-3">
-          {transactions.slice(0, 4).map((tx) => (
+          {transactions.slice(0, 5).map((tx) => (
             <button
               key={tx.id}
               onClick={() => handleOpenModal(tx.id, tx.type)}
@@ -83,7 +83,7 @@ export function RecentTransactions({ transactions, isLoading }: RecentTransactio
       )}
 
       {transactions.length > 0 && (
-        <div className="mt-4 border-t border-neutral-100 pt-4 dark:border-neutral-800">
+        <div className="mt-auto border-t border-neutral-100 pt-4 dark:border-neutral-800">
           <Link
             href="/transactions/history"
             className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-900/30 flex w-full items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-colors"

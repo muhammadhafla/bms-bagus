@@ -174,28 +174,22 @@ export function HeroStatCard({
 
   return (
     <div
-      className={`group animate-fade-in-up relative overflow-hidden rounded-3xl ${bgClasses[variant]} text-white shadow-lg`}
+      className={`group animate-fade-in-up relative overflow-hidden rounded-2xl ${bgClasses[variant]} text-white`}
     >
-      {/* Abstract background shapes */}
-      <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-      <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-black/10 blur-xl" />
-
-      <div className="relative flex h-full min-h-[140px] flex-col justify-between p-6 sm:min-h-[160px] sm:p-8">
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm font-medium text-white/90 sm:text-base">{title}</p>
-          <div className="rounded-xl bg-white/20 p-2 text-white backdrop-blur-md sm:p-2.5">
-            <div className="[&>svg]:h-6 [&>svg]:w-6 sm:[&>svg]:h-8 sm:[&>svg]:w-8">{icon}</div>
-          </div>
-        </div>
+      <div className="relative flex items-center justify-between p-5 sm:p-6">
         <div>
+          <p className="text-xs font-semibold tracking-wide text-white/90 uppercase">{title}</p>
           <p
-            className="truncate text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl"
+            className="mt-1 truncate text-2xl font-black tracking-tighter sm:text-3xl"
             title={`${prefix}${formatNumber(value)}${suffix}`}
           >
             {prefix}
             {formatNumber(animatedValue)}
             {suffix}
           </p>
+        </div>
+        <div className="rounded-xl bg-white/20 p-2.5 text-white backdrop-blur-sm sm:p-3">
+          <div className="[&>svg]:h-6 [&>svg]:w-6 sm:[&>svg]:h-7 sm:[&>svg]:w-7">{icon}</div>
         </div>
       </div>
     </div>
@@ -204,12 +198,12 @@ export function HeroStatCard({
 
 export function HeroStatCardSkeleton() {
   return (
-    <div className="relative flex h-[140px] animate-pulse flex-col justify-between overflow-hidden rounded-3xl bg-neutral-200 p-6 sm:h-[160px] sm:p-8 dark:bg-neutral-800">
-      <div className="flex items-center justify-between">
-        <div className="h-4 w-32 rounded bg-neutral-300 sm:h-5 dark:bg-neutral-700" />
-        <div className="h-10 w-10 rounded-xl bg-neutral-300 sm:h-12 sm:w-12 dark:bg-neutral-700" />
+    <div className="relative flex h-[88px] animate-pulse items-center justify-between overflow-hidden rounded-2xl bg-neutral-200 p-5 sm:h-[104px] sm:p-6 dark:bg-neutral-800">
+      <div>
+        <div className="mb-2 h-3 w-32 rounded bg-neutral-300 dark:bg-neutral-700" />
+        <div className="h-8 w-48 rounded bg-neutral-300 sm:h-10 dark:bg-neutral-700" />
       </div>
-      <div className="h-8 w-48 rounded bg-neutral-300 sm:h-10 sm:w-64 lg:h-12 dark:bg-neutral-700" />
+      <div className="h-11 w-11 rounded-xl bg-neutral-300 sm:h-12 sm:w-12 dark:bg-neutral-700" />
     </div>
   );
 }
@@ -237,13 +231,10 @@ export function CompactStatCard({
   };
 
   const bgColors = {
-    default: 'bg-brand-50/50 dark:bg-brand-900/10 border-brand-100/50 dark:border-brand-900/30',
-    success:
-      'bg-accent-teal-50/50 dark:bg-accent-teal-900/10 border-accent-teal-100/50 dark:border-accent-teal-900/30',
-    warning:
-      'bg-accent-amber-50/50 dark:bg-accent-amber-900/10 border-accent-amber-100/50 dark:border-accent-amber-900/30',
-    danger:
-      'bg-accent-rose-50/50 dark:bg-accent-rose-900/10 border-accent-rose-100/50 dark:border-accent-rose-900/30',
+    default: 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800',
+    success: 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800',
+    warning: 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800',
+    danger: 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800',
   };
 
   const finalStringLength = `${prefix}${formatNumber(value)}${suffix}`.length;
@@ -332,19 +323,19 @@ export function ListStatCard({
 
   return (
     <div
-      className={`animate-fade-in-up flex items-center gap-3 rounded-2xl border p-3 transition-colors sm:gap-4 sm:p-4 ${bgColors[variant]}`}
+      className={`animate-fade-in-up flex items-center gap-3 rounded-xl border p-3 transition-colors sm:gap-4 sm:p-4 ${bgColors[variant]}`}
     >
-      <div className={`flex-shrink-0 rounded-xl p-2 sm:p-2.5 ${iconColors[variant]}`}>
+      <div className={`flex-shrink-0 rounded-lg p-2 sm:p-2.5 ${iconColors[variant]}`}>
         <div className="[&>svg]:h-5 [&>svg]:w-5">{icon}</div>
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-neutral-600 sm:text-base dark:text-neutral-300">
+        <p className="truncate text-xs font-semibold text-neutral-600 sm:text-sm uppercase tracking-wide dark:text-neutral-400">
           {title}
         </p>
       </div>
       <div className="flex-shrink-0 text-right">
         <p
-          className="truncate text-base font-bold text-neutral-900 sm:text-lg dark:text-white"
+          className="truncate text-lg font-black tracking-tight text-neutral-900 sm:text-xl dark:text-white"
           title={`${prefix}${formatNumber(value)}${suffix}`}
         >
           {prefix}

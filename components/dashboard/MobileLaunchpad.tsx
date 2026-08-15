@@ -82,56 +82,56 @@ export function MobileLaunchpad({
       title: 'Pembelian',
       icon: IconShoppingCart,
       color: 'text-brand-600',
-      bg: 'bg-brand-50 dark:bg-brand-900/50',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
       href: '/inventory',
       title: 'Stok',
       icon: IconPackage,
       color: 'text-blue-600',
-      bg: 'bg-blue-50 dark:bg-blue-900/50',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
       href: '/inventory/stock-opname',
       title: 'Opname',
       icon: IconClipboardCheck,
       color: 'text-purple-600',
-      bg: 'bg-purple-50 dark:bg-purple-900/50',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
       href: '/transactions/return',
       title: 'Retur',
       icon: IconArrowBack,
       color: 'text-rose-600',
-      bg: 'bg-rose-50 dark:bg-rose-900/50',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
       href: '/finance/cash-flow',
       title: 'Arus Kas',
       icon: IconReport,
       color: 'text-emerald-600',
-      bg: 'bg-emerald-50 dark:bg-emerald-900/50',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
       href: '/inventory/promo',
       title: 'Promo',
       icon: IconTags,
-      color: 'text-orange-600',
-      bg: 'bg-orange-50 dark:bg-orange-900/50',
+      color: 'text-amber-500',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
       href: '/analytics',
       title: 'Laporan',
       icon: IconChartBar,
       color: 'text-indigo-600',
-      bg: 'bg-indigo-50 dark:bg-indigo-900/50',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
       href: '/bulk-print',
       title: 'Cetak',
       icon: IconPrinter,
       color: 'text-slate-600',
-      bg: 'bg-slate-50 dark:bg-slate-900/50',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
   ];
 
@@ -141,28 +141,28 @@ export function MobileLaunchpad({
       title: 'Stok',
       icon: IconPackage,
       color: 'text-blue-600',
-      bg: 'bg-blue-50 dark:bg-blue-900/50',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
       href: '/inventory/stock-opname',
       title: 'Opname',
       icon: IconClipboardCheck,
       color: 'text-purple-600',
-      bg: 'bg-purple-50 dark:bg-purple-900/50',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
       href: '/transactions/return',
       title: 'Retur',
       icon: IconArrowBack,
       color: 'text-rose-600',
-      bg: 'bg-rose-50 dark:bg-rose-900/50',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
-      href: '/bulk-print',
-      title: 'Cetak Lbl',
-      icon: IconPrinter,
+      href: '/transactions/history',
+      title: 'Riwayat',
+      icon: IconHistory,
       color: 'text-slate-600',
-      bg: 'bg-slate-50 dark:bg-slate-900/50',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
   ];
 
@@ -184,14 +184,7 @@ export function MobileLaunchpad({
           <p className="text-xs text-neutral-500 dark:text-neutral-400">{todayStr}</p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleRefresh}
-            className="rounded-full bg-neutral-100 p-2 transition-transform active:scale-95 dark:bg-neutral-800"
-          >
-            <IconRefresh
-              className={`h-5 w-5 text-neutral-600 dark:text-neutral-300 ${isRefreshing ? 'animate-spin' : ''}`}
-            />
-          </button>
+
           <Link href="/profile">
             {profile?.avatar_url ? (
               <div className="border-brand-100 dark:border-brand-900 relative h-9 w-9 overflow-hidden rounded-full border-2">
@@ -216,24 +209,25 @@ export function MobileLaunchpad({
 
       {/* Info Bar (Split) */}
       {isAdminUser && (
-        <div className="mb-5 flex gap-2">
-          <Link
-            href="/analytics"
-            className="from-brand-600 to-brand-700 flex flex-1 flex-col justify-center rounded-xl bg-gradient-to-br p-3 shadow-sm transition-transform active:scale-95"
-          >
-            <p className="text-brand-100 mb-1 text-[10px] font-bold tracking-wider uppercase">
-              Penjualan Hari Ini
-            </p>
-            <p className="text-lg font-extrabold text-white">
+        <div className="mb-6 flex flex-col gap-0.5">
+          <div className="flex items-end gap-3">
+            <p className="text-[2rem] leading-none font-black tracking-tighter text-neutral-900 dark:text-white">
               {isLoading ? '...' : `Rp ${(stats?.todaySales || 0).toLocaleString('id-ID')}`}
             </p>
-          </Link>
+            {stats && stats.todaySales > 0 && (
+              <span className="mb-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                +{(stats.todayTransactions || 0)} Trx
+              </span>
+            )}
+          </div>
+          <p className="text-sm font-bold text-neutral-500 dark:text-neutral-400">Penjualan hari ini</p>
         </div>
       )}
 
       {/* Grid Launchpad */}
-      <div className="mb-5 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-800">
-        <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+      <div className="mb-6">
+        <h2 className="mb-3 text-xs font-bold tracking-widest text-neutral-400 uppercase">Aksi Cepat</h2>
+        <div className="grid grid-cols-4 gap-y-4 gap-x-2">
           {menus.map((item) => {
             const Icon = item.icon;
             return (
@@ -243,11 +237,11 @@ export function MobileLaunchpad({
                 className="group flex flex-col items-center gap-1.5 transition-transform select-none active:scale-90"
               >
                 <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-2xl ${item.bg} transition-all group-hover:brightness-95`}
+                  className={`flex h-11 w-11 items-center justify-center rounded-lg ${item.bg} transition-all group-hover:brightness-95`}
                 >
-                  <Icon className={`h-6 w-6 ${item.color}`} stroke={2} />
+                  <Icon className={`h-6 w-6 ${item.color}`} stroke={2.5} />
                 </div>
-                <span className="text-center text-[10px] leading-tight font-semibold text-neutral-700 dark:text-neutral-300">
+                <span className="text-center text-[10px] font-bold tracking-tight text-neutral-700 dark:text-neutral-300">
                   {item.title}
                 </span>
               </Link>
@@ -256,37 +250,35 @@ export function MobileLaunchpad({
         </div>
       </div>
 
-      {/* Low Stock Alert (Flash Sale style carousel) */}
+      {/* Low Stock Alert */}
       {!isLoading && lowStock && lowStock.length > 0 && (
-        <div className="mb-5">
-          <div className="mb-2 flex items-center justify-between px-1">
-            <h2 className="flex items-center gap-1 text-sm font-extrabold tracking-wide text-red-600 uppercase dark:text-red-400">
-              <IconBell className="h-4 w-4" /> Stok Tipis!
-            </h2>
+        <div className="mb-8">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xs font-bold tracking-widest text-neutral-400 uppercase">Stok Perlu Dicek</h2>
             <Link
               href="/inventory?filter=low-stock"
-              className="text-xs font-semibold text-neutral-500 hover:text-neutral-900"
+              className="text-[10px] font-bold tracking-wider text-brand-600 hover:text-brand-700 uppercase"
             >
-              Lihat Semua &gt;
+              Lihat Semua
             </Link>
           </div>
-          <div className="scrollbar-hide -mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2">
-            {lowStock.map((item) => (
+          <div className="flex flex-col border-y border-neutral-200/60 dark:border-neutral-800">
+            {lowStock.slice(0, 4).map((item) => (
               <button
                 key={item.id}
                 onClick={() => setSelectedLowStock(item)}
-                className="w-32 flex-none snap-center rounded-xl border border-red-100 bg-red-50 p-2 text-left transition-transform active:scale-95 dark:border-red-900/50 dark:bg-red-900/20"
+                className="flex items-center justify-between py-2.5 border-b border-neutral-100/80 last:border-0 dark:border-neutral-800/50 active:bg-neutral-50 dark:active:bg-neutral-800/50 transition-colors"
               >
-                <div className="mb-2 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-rose-100 dark:bg-rose-900/30">
-                  <IconPackage className="h-5 w-5 text-rose-600 dark:text-rose-400" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="mb-0.5 truncate text-[10px] font-semibold text-neutral-900 dark:text-white">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400 flex-shrink-0">
+                    <IconPackage className="h-4 w-4" />
+                  </div>
+                  <p className="truncate text-sm font-bold text-neutral-900 dark:text-white">
                     {item.nama_barang}
                   </p>
-                  <p className="text-[10px] font-bold text-red-600 dark:text-red-400">
-                    Sisa {item.stok}
-                  </p>
+                </div>
+                <div className="ml-3 flex-shrink-0 text-right">
+                  <p className="text-sm font-black text-rose-600 dark:text-rose-400">{item.stok}</p>
                 </div>
               </button>
             ))}
@@ -296,42 +288,40 @@ export function MobileLaunchpad({
 
       {/* Recent Activity */}
       {!isLoading && filteredTransactions.length > 0 && (
-        <div>
-          <div className="mb-2 flex items-center justify-between px-1">
-            <h2 className="text-sm font-bold text-neutral-800 dark:text-neutral-200">
-              Aktivitas Terakhir
-            </h2>
-            <Link href="/transactions/history" className="text-brand-600 text-xs font-semibold">
-              Riwayat &gt;
+        <div className="mb-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xs font-bold tracking-widest text-neutral-400 uppercase">Aktivitas Terakhir</h2>
+            <Link href="/transactions/history" className="text-[10px] font-bold tracking-wider text-brand-600 hover:text-brand-700 uppercase">
+              Riwayat
             </Link>
           </div>
-          <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-100 bg-white shadow-sm dark:divide-neutral-700 dark:border-neutral-700 dark:bg-neutral-800">
-            {filteredTransactions.slice(0, 3).map((trx) => (
+          <div className="flex flex-col border-y border-neutral-200/60 dark:border-neutral-800">
+            {filteredTransactions.slice(0, 4).map((trx) => (
               <button
                 key={trx.id}
                 onClick={() => {
                   setSelectedTxId(trx.id);
                   setSelectedTxType(trx.type as 'penjualan' | 'pembelian');
                 }}
-                className="flex w-full items-center justify-between p-3 text-left transition-colors active:bg-neutral-50 dark:active:bg-neutral-700/50"
+                className="flex w-full items-center justify-between py-2.5 border-b border-neutral-100/80 last:border-0 dark:border-neutral-800/50 active:bg-neutral-50 dark:active:bg-neutral-800/50 transition-colors text-left"
               >
                 <div>
-                  <p className="text-xs font-semibold text-neutral-900 uppercase dark:text-white">
+                  <p className="text-sm font-bold text-neutral-900 dark:text-white">
                     {trx.id.split('-')[0]}
                   </p>
-                  <p className="text-[10px] text-neutral-500">
+                  <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-neutral-400">
                     {formatTimeWIB(trx.created_at, { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex-shrink-0">
                   <p
-                    className={`text-xs font-bold ${trx.type === 'pembelian' ? 'text-rose-600' : 'text-emerald-600'}`}
+                    className={`text-sm font-black ${trx.type === 'pembelian' ? 'text-rose-600' : 'text-emerald-600'}`}
                   >
                     {trx.type === 'pembelian' ? '-' : '+'} Rp{' '}
                     {(trx.total || 0).toLocaleString('id-ID')}
                   </p>
-                  <p className="text-[10px] text-neutral-500">
-                    {trx.type === 'pembelian' ? 'Pembelian' : 'Penjualan'}
+                  <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                    {trx.type === 'pembelian' ? 'Beli' : 'Jual'}
                   </p>
                 </div>
               </button>

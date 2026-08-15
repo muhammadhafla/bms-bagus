@@ -33,7 +33,7 @@ export function StockVelocityTable({
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       {/* Fast Moving */}
-      <div className="flex flex-col rounded-xl bg-white p-3 shadow-sm md:p-4 dark:bg-neutral-800">
+      <div className="flex flex-col rounded-xl border border-neutral-200 bg-white p-3 md:p-4 dark:border-neutral-800 dark:bg-neutral-900">
         <h3 className="mb-3 font-semibold text-neutral-900 md:mb-4 dark:text-white">
           Fast Moving Items (Cepat Habis)
         </h3>
@@ -67,7 +67,7 @@ export function StockVelocityTable({
       </div>
 
       {/* Slow Moving */}
-      <div className="flex flex-col rounded-xl bg-white p-3 shadow-sm md:p-4 dark:bg-neutral-800">
+      <div className="flex flex-col rounded-xl border border-neutral-200 bg-white p-3 md:p-4 dark:border-neutral-800 dark:bg-neutral-900">
         <h3 className="mb-3 font-semibold text-neutral-900 md:mb-4 dark:text-white">
           Slow Moving Items (Lambat Terjual)
         </h3>

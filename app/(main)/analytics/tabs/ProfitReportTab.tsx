@@ -264,7 +264,7 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
         isEmpty={!isLoading && profitSummary.length === 0}
         emptyIcon={<IconTrendingUp className="h-16 w-16" />}
       >
-        <div className="shadow-elevated mb-6 rounded-3xl border border-white/40 bg-white/70 p-5 backdrop-blur-xl md:p-6 dark:border-white/10 dark:bg-neutral-900/60">
+        <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5 md:p-6 dark:border-neutral-800 dark:bg-neutral-900">
           <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
             Total Profit (Halaman Ini)
           </p>
@@ -275,7 +275,7 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
           </p>
         </div>
 
-        <div className="shadow-elevated mb-6 overflow-hidden rounded-3xl border border-white/40 bg-white/70 p-5 backdrop-blur-xl dark:border-white/10 dark:bg-neutral-900/60">
+        <div className="mb-6 overflow-hidden rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
           <h3 className="mb-4 text-lg font-bold text-neutral-800 dark:text-neutral-200">
             Tren Profit & Penjualan
           </h3>
@@ -310,7 +310,7 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
           </div>
         </div>
 
-        <div className="shadow-elevated overflow-hidden rounded-3xl border border-white/40 bg-white/70 backdrop-blur-xl dark:border-white/10 dark:bg-neutral-900/60">
+        <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full">
               <thead className="border-b border-neutral-200/50 bg-white/50 backdrop-blur-md dark:border-neutral-800/50 dark:bg-neutral-950/50">

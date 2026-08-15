@@ -64,7 +64,7 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
       <Card
         padding="lg"
         variant="flat"
-        className="border border-white/20 bg-white/50 backdrop-blur dark:border-white/5 dark:bg-neutral-900/40"
+        className="border border-neutral-200 bg-white rounded-xl dark:border-neutral-800 dark:bg-neutral-900"
       >
         <div className="animate-pulse">
           <div className="mb-4 h-6 w-40 rounded bg-neutral-200/50 dark:bg-neutral-700/50" />
@@ -90,7 +90,7 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
     <Card
       padding="md"
       variant="flat"
-      className="flex h-full flex-col border border-white/40 bg-white/70 backdrop-blur-xl dark:border-white/10 dark:bg-neutral-900/60"
+      className="flex h-full flex-col border border-neutral-200 bg-white rounded-xl dark:border-neutral-800 dark:bg-neutral-900"
     >
       <CardTitle className="mb-4 shrink-0">Trend 7 Hari Terakhir</CardTitle>
 

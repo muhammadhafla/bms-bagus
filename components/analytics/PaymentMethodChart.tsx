@@ -39,7 +39,7 @@ export function PaymentMethodChart({
   ].filter((item) => item.value > 0);
 
   return (
-    <div className="flex h-full flex-col rounded-xl bg-white p-3 shadow-sm md:p-4 dark:bg-neutral-800">
+    <div className="flex h-full flex-col rounded-xl border border-neutral-200 bg-white p-3 md:p-4 dark:border-neutral-800 dark:bg-neutral-900">
       <h3 className="mb-2 text-base font-semibold text-neutral-900 md:mb-4 dark:text-white">
         Distribusi Metode Pembayaran
       </h3>

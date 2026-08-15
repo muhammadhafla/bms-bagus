@@ -31,59 +31,65 @@ export function ProfitabilityAndAtvCards({
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
       {/* ATV Card */}
-      <div className="from-brand-500 to-brand-600 flex flex-col justify-between rounded-xl bg-gradient-to-br p-3 text-white shadow-sm md:p-4">
-        <div className="mb-2 flex items-center gap-1.5 opacity-90 md:gap-2">
-          <IconReceipt className="h-4 w-4 md:h-5 md:w-5" />
-          <h3 className="text-xs leading-tight font-medium md:text-sm">
+      <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-3 md:p-4 dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="mb-2 flex items-center gap-2 md:gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
+            <IconReceipt className="h-4 w-4 md:h-5 md:w-5" />
+          </div>
+          <h3 className="text-xs leading-tight font-semibold text-neutral-900 md:text-sm dark:text-white">
             Avg. Transaction Value (ATV)
           </h3>
         </div>
-        <div>
-          <div className="text-lg font-bold md:text-2xl">
+        <div className="mt-2">
+          <div className="text-lg font-bold tracking-tight text-neutral-900 md:text-2xl dark:text-white">
             {formatCurrency(atvData?.avg_transaction_value || 0)}
           </div>
-          <p className="text-brand-100 mt-0.5 text-[10px] md:mt-1 md:text-xs">
+          <p className="mt-0.5 text-[10px] font-medium text-neutral-500 md:mt-1 md:text-xs dark:text-neutral-400">
             Rata-rata belanja per struk
           </p>
         </div>
       </div>
 
       {/* IPT Card */}
-      <div className="from-accent-teal-500 to-accent-teal-600 flex flex-col justify-between rounded-xl bg-gradient-to-br p-3 text-white shadow-sm md:p-4">
-        <div className="mb-2 flex items-center gap-1.5 opacity-90 md:gap-2">
-          <IconShoppingCart className="h-4 w-4 md:h-5 md:w-5" />
-          <h3 className="text-xs leading-tight font-medium md:text-sm">Items Per Ticket (IPT)</h3>
+      <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-3 md:p-4 dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="mb-2 flex items-center gap-2 md:gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-teal-50 text-accent-teal-600 dark:bg-accent-teal-900/30 dark:text-accent-teal-400">
+            <IconShoppingCart className="h-4 w-4 md:h-5 md:w-5" />
+          </div>
+          <h3 className="text-xs leading-tight font-semibold text-neutral-900 md:text-sm dark:text-white">Items Per Ticket (IPT)</h3>
         </div>
-        <div>
-          <div className="text-lg font-bold md:text-2xl">
+        <div className="mt-2">
+          <div className="text-lg font-bold tracking-tight text-neutral-900 md:text-2xl dark:text-white">
             {atvData?.items_per_ticket || 0}{' '}
             <span className="text-xs font-normal md:text-base">item</span>
           </div>
-          <p className="text-accent-teal-100 mt-0.5 text-[10px] md:mt-1 md:text-xs">
+          <p className="mt-0.5 text-[10px] font-medium text-neutral-500 md:mt-1 md:text-xs dark:text-neutral-400">
             Rata-rata barang per struk
           </p>
         </div>
       </div>
 
       {/* Top Profit Margin Card */}
-      <div className="col-span-2 flex flex-col justify-between rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 p-3 text-white shadow-sm md:col-span-1 md:p-4">
-        <div className="mb-2 flex items-center gap-1.5 opacity-90 md:gap-2">
-          <IconTrendingUp className="h-4 w-4 md:h-5 md:w-5" />
-          <h3 className="text-xs leading-tight font-medium md:text-sm">Margin Tertinggi</h3>
+      <div className="col-span-2 flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-3 md:col-span-1 md:p-4 dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="mb-2 flex items-center gap-2 md:gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+            <IconTrendingUp className="h-4 w-4 md:h-5 md:w-5" />
+          </div>
+          <h3 className="text-xs leading-tight font-semibold text-neutral-900 md:text-sm dark:text-white">Margin Tertinggi</h3>
         </div>
-        <div>
+        <div className="mt-2">
           {topProfitable ? (
             <>
-              <div className="truncate text-base font-bold md:text-lg">
+              <div className="truncate text-base font-bold text-neutral-900 md:text-lg dark:text-white">
                 {topProfitable.nama_barang}
               </div>
-              <p className="mt-0.5 text-[10px] text-amber-100 md:mt-1 md:text-xs">
+              <p className="mt-0.5 text-[10px] font-medium text-neutral-500 md:mt-1 md:text-xs dark:text-neutral-400">
                 Margin: {topProfitable.profit_margin}% • Laba:{' '}
                 {formatCurrency(topProfitable.total_profit)}
               </p>
             </>
           ) : (
-            <p className="text-[10px] text-amber-100 md:text-sm">Belum ada data</p>
+            <p className="text-[10px] font-medium text-neutral-500 md:text-sm dark:text-neutral-400">Belum ada data</p>
           )}
         </div>
       </div>

@@ -149,7 +149,7 @@ export const dashboardApi = {
           .from('penjualan')
           .select('id, total, tanggal, created_at')
           .order('created_at', { ascending: false })
-          .limit(5);
+          .limit(10);
         return { data: result.data, error: result.error as Error | null };
       }),
       safeQuery<{ id: string; total_sistem: number; tanggal: string; created_at: string }[]>(
@@ -158,7 +158,7 @@ export const dashboardApi = {
             .from('pembelian')
             .select('id, total_sistem, tanggal, created_at')
             .order('created_at', { ascending: false })
-            .limit(5);
+            .limit(10);
           return { data: result.data, error: result.error as Error | null };
         },
       ),
@@ -182,7 +182,7 @@ export const dashboardApi = {
     );
 
     return {
-      data: transactions.slice(0, 5),
+      data: transactions.slice(0, 10),
       error: null,
     };
   },

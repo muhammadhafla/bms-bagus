@@ -213,7 +213,7 @@ export function BusiestTimeChart({ startDate, endDate }: { startDate: string; en
   };
 
   return (
-    <div className="shadow-elevated flex h-full min-h-[350px] flex-col overflow-hidden rounded-3xl border border-white/40 bg-white/70 p-3 backdrop-blur-xl md:min-h-[450px] md:p-5 dark:border-white/10 dark:bg-neutral-900/60">
+    <div className="flex h-full min-h-[350px] flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white p-3 md:min-h-[450px] md:p-5 dark:border-neutral-800 dark:bg-neutral-900">
       <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center md:gap-4">
         <h3 className="shrink-0 text-base leading-tight font-bold text-neutral-900 md:text-lg dark:text-white">
           {getTitle()}

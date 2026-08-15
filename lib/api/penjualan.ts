@@ -48,7 +48,7 @@ export const penjualanApi = {
         query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
       }
       if (options?.search) {
-        // Asumsi penjualan memiliki id (atau kolom lain) yang bisa dicari. 
+        // Asumsi penjualan memiliki id (atau kolom lain) yang bisa dicari.
         query = query.ilike('id', `%${options.search}%`);
       }
       if (options?.startDate) {
@@ -58,9 +58,12 @@ export const penjualanApi = {
         query = query.lte('tanggal', options.endDate);
       }
 
-      const result = await safeQuery<{ data: any[], count: number | null }>(async () => {
+      const result = await safeQuery<{ data: any[]; count: number | null }>(async () => {
         const res = await query;
-        return { data: { data: res.data as any[], count: res.count }, error: res.error as Error | null };
+        return {
+          data: { data: res.data as any[], count: res.count },
+          error: res.error as Error | null,
+        };
       });
 
       if (result.error) {
@@ -74,11 +77,7 @@ export const penjualanApi = {
     }
   },
 
-  async getCount(options?: {
-    search?: string;
-    startDate?: string;
-    endDate?: string;
-  }) {
+  async getCount(options?: { search?: string; startDate?: string; endDate?: string }) {
     try {
       let query = supabase.from('penjualan').select('*', { count: 'exact', head: true });
 
@@ -149,14 +148,12 @@ export const penjualanApi = {
     }
   },
 
-  async submit(data: {
-    tanggal: string;
-    items: PenjualanItem[];
-    idempotency_key?: string;
-  }) {
+  async submit(data: { tanggal: string; items: PenjualanItem[]; idempotency_key?: string }) {
     const idempotencyKey = data.idempotency_key || generateIdempotencyKey();
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     const total = data.items.reduce((sum, item) => sum + item.subtotal, 0);
 
     const payload = {
@@ -164,7 +161,7 @@ export const penjualanApi = {
       p_tanggal: data.tanggal,
       p_created_by: user?.id ?? null,
       p_total: total,
-      p_items: data.items.map(item => ({
+      p_items: data.items.map((item) => ({
         inventory_id: item.inventory_id,
         nama_barang: item.nama_barang,
         qty: item.qty,
@@ -175,9 +172,12 @@ export const penjualanApi = {
       })),
     };
 
-    return safeQuery(async () => {
-      const result = await supabase.rpc('create_penjualan', payload);
-      return { data: result.data, error: result.error as Error | null };
-    }, { isMutation: true });
-  }
+    return safeQuery(
+      async () => {
+        const result = await supabase.rpc('create_penjualan', payload);
+        return { data: result.data, error: result.error as Error | null };
+      },
+      { isMutation: true },
+    );
+  },
 };

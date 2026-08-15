@@ -34,7 +34,10 @@ export async function POST(request: Request) {
     const { name, language, content_json, active } = body;
 
     if (!name || !language || !content_json) {
-      return NextResponse.json({ error: 'Name, language, and content_json are required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Name, language, and content_json are required' },
+        { status: 400 },
+      );
     }
 
     const { data, error } = await supabase
@@ -43,7 +46,7 @@ export async function POST(request: Request) {
         name,
         language,
         content_json,
-        active: active !== undefined ? active : true
+        active: active !== undefined ? active : true,
       })
       .select()
       .single();

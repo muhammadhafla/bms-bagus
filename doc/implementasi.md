@@ -8,8 +8,9 @@
 ## Metodologi
 
 Setiap sprint bersifat **independen dan dapat di-deploy secara terpisah**. Prioritas diurutkan berdasarkan:
+
 1. **Risk** — dampak keamanan & integritas data
-2. **Impact** — seberapa banyak user/data yang terpengaruh  
+2. **Impact** — seberapa banyak user/data yang terpengaruh
 3. **Effort** — estimasi waktu pengerjaan
 
 ---
@@ -41,9 +42,10 @@ export function createAdminClient() {
   });
 }
 
-export async function verifyAuth(request: Request): Promise<
-  | { user: { id: string; email?: string }; error: null }
-  | { user: null; error: NextResponse }
+export async function verifyAuth(
+  request: Request,
+): Promise<
+  { user: { id: string; email?: string }; error: null } | { user: null; error: NextResponse }
 > {
   const token = request.headers.get('Authorization')?.split('Bearer ')[1];
   if (!token) {
@@ -51,7 +53,10 @@ export async function verifyAuth(request: Request): Promise<
   }
 
   const admin = createAdminClient();
-  const { data: { user }, error } = await admin.auth.getUser(token);
+  const {
+    data: { user },
+    error,
+  } = await admin.auth.getUser(token);
 
   if (error || !user) {
     return { user: null, error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
@@ -62,6 +67,7 @@ export async function verifyAuth(request: Request): Promise<
 ```
 
 **Acceptance Criteria:**
+
 - [ ] File `lib/api/auth-guard.ts` dibuat
 - [ ] Helper `verifyAuth` mengembalikan union type yang type-safe
 - [ ] Helper `createAdminClient` tidak ekspos service key
@@ -72,8 +78,9 @@ export async function verifyAuth(request: Request): Promise<
 
 **Estimasi:** 2–3 jam  
 **File yang dimodifikasi:**
+
 - `app/api/print/route.ts`
-- `app/api/print/history/route.ts`  
+- `app/api/print/history/route.ts`
 - `app/api/print/jobs/[id]/route.ts`
 - `app/api/print/jobs/pending/route.ts`
 - `app/api/templates/route.ts`
@@ -101,6 +108,7 @@ export async function GET(request: Request) {
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Semua 6 endpoint mengembalikan `401` jika `Authorization` header tidak ada
 - [ ] Semua 6 endpoint mengembalikan `401` jika token tidak valid
 - [ ] Request dengan token valid tetap berfungsi normal
@@ -128,12 +136,18 @@ if (resolveError || !data) {
 ```
 
 Juga samakan pesan error untuk password salah:
+
 ```typescript
 // Di handleSubmit, unifikasi semua error menjadi:
-setError(result.error?.includes('Invalid') ? 'Email/username atau password salah' : result.error || 'Login gagal');
+setError(
+  result.error?.includes('Invalid')
+    ? 'Email/username atau password salah'
+    : result.error || 'Login gagal',
+);
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Pesan error "Username tidak ditemukan" tidak muncul lagi
 - [ ] Semua kegagalan login menampilkan pesan yang sama: "Email/username atau password salah"
 
@@ -162,6 +176,7 @@ default:
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Event Supabase yang tidak dikenal tidak menyebabkan logout paksa
 - [ ] `initialized` tetap di-set `true` jika belum
 
@@ -193,6 +208,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 **Acceptance Criteria:**
+
 - [ ] App throw error informatif jika env variable wajib tidak ada
 - [ ] `.env.example` mendokumentasikan semua 3 variabel yang dibutuhkan
 
@@ -205,7 +221,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 ```typescript
 // SEBELUM:
-`connect-src 'self' https://letxagpmrumwcjuzruyg.supabase.co ...`
+`connect-src 'self' https://letxagpmrumwcjuzruyg.supabase.co ...`;
 
 // SESUDAH:
 const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -213,10 +229,11 @@ const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
   : '';
 
 // Di dalam headers():
-`connect-src 'self' https://${supabaseHost} wss://${supabaseHost};`
+`connect-src 'self' https://${supabaseHost} wss://${supabaseHost};`;
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Project ref Supabase tidak hardcode di source code
 - [ ] CSP masih berfungsi untuk koneksi Supabase
 
@@ -248,13 +265,14 @@ const result = await safeQuery<{ count: number }>(async () => {
   const res = await query;
   return {
     data: { count: res.count ?? 0 },
-    error: res.error as Error | null
+    error: res.error as Error | null,
   };
 });
 return { data: result.data?.count ?? 0, error: null };
 ```
 
 **Acceptance Criteria:**
+
 - [ ] `purchasesApi.getCount()` mengembalikan jumlah transaksi yang benar
 - [ ] `penjualanApi.getCount()` mengembalikan jumlah transaksi yang benar
 - [ ] Pagination di halaman history pembelian/penjualan menampilkan total yang akurat
@@ -337,6 +355,7 @@ async processOpnameAdjustments(opnameId: string) {
 ```
 
 **Acceptance Criteria:**
+
 - [ ] SQL RPC function dibuat dan di-migrate ke Supabase
 - [ ] Proses adjustment berjalan atomic — jika gagal, rollback semua
 - [ ] Error dari DB function ditampilkan ke user dengan pesan yang jelas
@@ -399,6 +418,7 @@ $$;
 ```
 
 **Acceptance Criteria:**
+
 - [ ] `getSalesReport` menggunakan RPC, bukan client-side aggregation
 - [ ] Halaman laporan tetap berfungsi dengan data yang sama
 - [ ] Response time laporan < 2 detik untuk data 1 tahun
@@ -424,6 +444,7 @@ const todayProfit = penjualanItems.reduce((acc, item) => {
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Dashboard menampilkan gross profit (pendapatan - HPP), bukan selisih penjualan-pembelian
 - [ ] Label di UI diperbarui menjadi "Gross Profit" atau "Laba Kotor"
 
@@ -445,7 +466,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Skip public paths
-  if (PUBLIC_PATHS.some(path => pathname.startsWith(path))) {
+  if (PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {
     return NextResponse.next();
   }
 
@@ -459,14 +480,16 @@ export async function middleware(request: NextRequest) {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet) => {
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            response.cookies.set(name, value, options),
           );
         },
       },
-    }
+    },
   );
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   if (!session) {
     return NextResponse.redirect(new URL('/login', request.url));
@@ -484,6 +507,7 @@ export const config = {
 > Perlu install `@supabase/ssr`: `npm install @supabase/ssr`
 
 **Acceptance Criteria:**
+
 - [ ] Akses ke `/dashboard`, `/inventory`, dll. tanpa session → redirect ke `/login`
 - [ ] Akses ke `/login` tanpa session → berfungsi normal (tidak redirect loop)
 - [ ] Session yang valid → bisa akses semua route
@@ -505,8 +529,8 @@ Pindahkan CSS yang di-inject secara manual ke `globals.css`:
 
 ```css
 /* app/globals.css — tambahkan: */
-.price-input-wrapper input[type="text"]::-webkit-outer-spin-button,
-.price-input-wrapper input[type="text"]::-webkit-inner-spin-button {
+.price-input-wrapper input[type='text']::-webkit-outer-spin-button,
+.price-input-wrapper input[type='text']::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
@@ -515,6 +539,7 @@ Pindahkan CSS yang di-inject secara manual ke `globals.css`:
 Hapus seluruh blok `if (typeof document !== 'undefined') { ... document.createElement('style') ... }` dari `PriceInput.tsx`.
 
 **Acceptance Criteria:**
+
 - [ ] Tidak ada `document.createElement('style')` di `PriceInput.tsx`
 - [ ] Styling PriceInput tetap berfungsi
 - [ ] Tidak ada SSR warnings terkait DOM manipulation
@@ -545,12 +570,17 @@ Hapus seluruh blok `if (typeof document !== 'undefined') { ... document.createEl
   animation: toast-shrink linear forwards;
 }
 @keyframes toast-shrink {
-  from { width: 100%; }
-  to { width: 0%; }
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
 }
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Toast tidak mencuri fokus dari elemen yang sedang aktif
 - [ ] Progress bar tetap berfungsi visual
 - [ ] Tidak ada `setInterval` di komponen Toast
@@ -573,42 +603,69 @@ function usePersistentBoolean(key: string, defaultValue: boolean) {
     try {
       const stored = localStorage.getItem(key);
       return stored ? JSON.parse(stored) : defaultValue;
-    } catch { return defaultValue; }
+    } catch {
+      return defaultValue;
+    }
   });
 
   useEffect(() => {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch {}
   }, [key, value]);
 
   return [value, setValue] as const;
 }
 
 export function useSidebarState() {
-  const [sidebarCollapsed, setSidebarCollapsed] = usePersistentBoolean('bms-sidebar-collapsed', false);
-  const [inventoryExpanded, setInventoryExpanded] = usePersistentBoolean('bms-inventory-expanded', true);
-  const [purchasingExpanded, setPurchasingExpanded] = usePersistentBoolean('bms-purchasing-expanded', true);
-  const [transactionsExpanded, setTransactionsExpanded] = usePersistentBoolean('bms-transactions-expanded', true);
-  const [printingExpanded, setPrintingExpanded] = usePersistentBoolean('bms-printing-expanded', true);
+  const [sidebarCollapsed, setSidebarCollapsed] = usePersistentBoolean(
+    'bms-sidebar-collapsed',
+    false,
+  );
+  const [inventoryExpanded, setInventoryExpanded] = usePersistentBoolean(
+    'bms-inventory-expanded',
+    true,
+  );
+  const [purchasingExpanded, setPurchasingExpanded] = usePersistentBoolean(
+    'bms-purchasing-expanded',
+    true,
+  );
+  const [transactionsExpanded, setTransactionsExpanded] = usePersistentBoolean(
+    'bms-transactions-expanded',
+    true,
+  );
+  const [printingExpanded, setPrintingExpanded] = usePersistentBoolean(
+    'bms-printing-expanded',
+    true,
+  );
   const [autoHideEnabled, setAutoHideEnabled] = usePersistentBoolean('bms-autohide-enabled', false); // FIX: persist!
 
   return {
-    sidebarCollapsed, setSidebarCollapsed,
-    inventoryExpanded, setInventoryExpanded,
-    purchasingExpanded, setPurchasingExpanded,
-    transactionsExpanded, setTransactionsExpanded,
-    printingExpanded, setPrintingExpanded,
-    autoHideEnabled, setAutoHideEnabled,
+    sidebarCollapsed,
+    setSidebarCollapsed,
+    inventoryExpanded,
+    setInventoryExpanded,
+    purchasingExpanded,
+    setPurchasingExpanded,
+    transactionsExpanded,
+    setTransactionsExpanded,
+    printingExpanded,
+    setPrintingExpanded,
+    autoHideEnabled,
+    setAutoHideEnabled,
   };
 }
 ```
 
 Juga perbaiki di layout.tsx:
+
 - Tambah click-outside handler untuk `userMenuOpen`
 - Perbaiki active state sidebar (tambah background highlight)
 - Ganti `IconPackage` Dashboard dengan `IconLayoutDashboard`
 - Fix double auth store subscription (baris 123–124)
 
 **Acceptance Criteria:**
+
 - [ ] `layout.tsx` tidak punya 5 `useEffect` terpisah untuk localStorage
 - [ ] `autoHideEnabled` di-persist ke localStorage
 - [ ] Klik di luar dropdown user menu → menu tertutup
@@ -624,8 +681,14 @@ Juga perbaiki di layout.tsx:
 ```css
 /* app/globals.css — tambahkan class yang missing: */
 @keyframes slide-in {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 .animate-slide-in {
   animation: slide-in 0.25s ease-out forwards;
@@ -633,6 +696,7 @@ Juga perbaiki di layout.tsx:
 ```
 
 **Acceptance Criteria:**
+
 - [ ] SlideOver muncul dengan animasi slide-in dari kanan
 - [ ] Class `animate-slide-in` terdefinisi di globals.css
 
@@ -659,6 +723,7 @@ if (openModalCount === 0) document.body.style.overflow = '';
 Atau gunakan custom hook `useBodyScrollLock()` yang lebih bersih.
 
 **Acceptance Criteria:**
+
 - [ ] Membuka 2 modal dan menutup 1 → scroll masih terkunci (modal kedua masih buka)
 - [ ] Menutup modal terakhir → scroll kembali normal
 
@@ -683,6 +748,7 @@ return <>{children}</>;
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Tidak ada flash of protected content sebelum redirect
 - [ ] Loading state tetap ditampilkan saat `initialized = false`
 
@@ -707,6 +773,7 @@ interface TransactionHistoryTableProps<T> {
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Tidak ada duplikasi logic pagination, loading, error state
 - [ ] Kedua tab masih berfungsi identik dengan sebelumnya
 - [ ] Bug `totalPages > 0` diperbaiki menjadi `total > 0`
@@ -725,7 +792,9 @@ interface TransactionHistoryTableProps<T> {
 
 ```css
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -734,6 +803,7 @@ interface TransactionHistoryTableProps<T> {
 ```
 
 **Acceptance Criteria:**
+
 - [ ] `.focus-ring` hanya didefinisikan sekali
 - [ ] Font size konsisten antara Tailwind config dan CSS
 - [ ] Animasi tidak berjalan untuk user dengan `prefers-reduced-motion: reduce`
@@ -766,6 +836,7 @@ const { data: { user } } = await supabase.auth.getUser(); // ← dari Supabase l
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Tidak ada import `useAuthStore` di `lib/api/stockOpname.ts`
 - [ ] Semua fungsi yang butuh userId mengambilnya dari Supabase `auth.getUser()`
 
@@ -799,6 +870,7 @@ return safeQuery(async () => { ... }, { isMutation: true });
 ```
 
 **Acceptance Criteria:**
+
 - [ ] INSERT, UPDATE, DELETE menggunakan `{ isMutation: true }` — tidak di-retry otomatis
 - [ ] SELECT tetap menggunakan retry 3x dengan backoff
 
@@ -838,6 +910,7 @@ import { supabase } from '@/lib/supabase';
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Tidak ada circular dependency antara `auth.ts` dan `api/client.ts`
 - [ ] Supabase client hanya diinstansiasi sekali (singleton) di satu tempat
 
@@ -871,6 +944,7 @@ import { supabase } from '@/lib/supabase';
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Tooltip muncul saat elemen di-focus via keyboard (Tab)
 - [ ] Tooltip hilang saat elemen kehilangan focus
 - [ ] `role="tooltip"` ada untuk screen reader
@@ -883,6 +957,7 @@ import { supabase } from '@/lib/supabase';
 **File:** `package.json`
 
 Pindahkan ke `devDependencies`:
+
 - `@tailwindcss/postcss`
 - `autoprefixer`
 - `postcss`
@@ -893,11 +968,13 @@ Pindahkan ke `devDependencies`:
 - `supabase` (CLI tool)
 
 Pertimbangkan downgrade TypeScript:
+
 ```json
 "typescript": "^5.8.0"  // Stable, bukan 6.x beta
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Build production tidak include dev tools
 - [ ] TypeScript menggunakan versi stable
 
@@ -930,6 +1007,7 @@ tanggal: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-D
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Semua string field punya `.max()` constraint
 - [ ] `createUserSchema` digunakan di `api/users/route.ts`
 - [ ] Tanggal yang tidak valid (`"not-a-date"`) ditolak oleh schema
@@ -938,23 +1016,24 @@ tanggal: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-D
 
 ## 📊 Ringkasan Sprint
 
-| Sprint | Hari | Tasks | Risk | Effort |
-|--------|------|-------|------|--------|
-| **1 — Keamanan** | 1–3 | 1.1–1.6 | 🔴 Kritis | ~8 jam |
-| **2 — Data Bug** | 4–7 | 2.1–2.5 | 🔴 Kritis | ~14 jam |
-| **3 — UI Quality** | 8–14 | 3.1–3.8 | 🟠 Tinggi | ~16 jam |
-| **4 — Refactoring** | 15–21 | 4.1–4.6 | 🟡 Medium | ~8 jam |
-| **Total** | ~3 minggu | 20 tasks | — | **~46 jam** |
+| Sprint              | Hari      | Tasks    | Risk      | Effort      |
+| ------------------- | --------- | -------- | --------- | ----------- |
+| **1 — Keamanan**    | 1–3       | 1.1–1.6  | 🔴 Kritis | ~8 jam      |
+| **2 — Data Bug**    | 4–7       | 2.1–2.5  | 🔴 Kritis | ~14 jam     |
+| **3 — UI Quality**  | 8–14      | 3.1–3.8  | 🟠 Tinggi | ~16 jam     |
+| **4 — Refactoring** | 15–21     | 4.1–4.6  | 🟡 Medium | ~8 jam      |
+| **Total**           | ~3 minggu | 20 tasks | —         | **~46 jam** |
 
 ---
 
 ## ✅ Verification Plan
 
 ### Sprint 1 (Security)
+
 ```bash
 # Test endpoint tanpa auth harus return 401
 curl -X POST http://localhost:3000/api/print -H "Content-Type: application/json" \
-  -d '{"template_id":"test","payload_json":{}}' 
+  -d '{"template_id":"test","payload_json":{}}'
 # Expected: { "error": "Unauthorized" }
 
 # Test endpoint dengan token valid harus berfungsi
@@ -964,11 +1043,13 @@ curl -X GET http://localhost:3000/api/templates \
 ```
 
 ### Sprint 2 (Data Integrity)
+
 - Jalankan `npm run test` — pastikan semua existing test pass
 - Manual test: buat transaksi pembelian, cek pagination total count
 - Manual test: proses stock opname approval, cek stok & adjustment record
 
 ### Sprint 3–4 (UI & Refactoring)
+
 - Audit Lighthouse accessibility score (target: ≥ 90)
 - Visual regression test: screenshot sebelum & sesudah
 - Keyboard navigation test: semua interactive element dapat dicapai via Tab

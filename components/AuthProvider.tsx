@@ -7,7 +7,8 @@ import { useAuthStore } from '@/lib/auth';
 const SESSION_CHECK_INTERVAL = 300000;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { initialize, cleanup, initialized, checkAndRefreshSession, user, profile } = useAuthStore();
+  const { initialize, cleanup, initialized, checkAndRefreshSession, user, profile } =
+    useAuthStore();
   const prevUserIdRef = useRef<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);

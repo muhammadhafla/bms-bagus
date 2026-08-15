@@ -6,7 +6,6 @@ import { DataTable, type Column } from './DataTable/DataTable';
 import { Pagination } from './DataTable/Pagination';
 
 describe('Accessibility Refinements Verification', () => {
-  
   describe('DateRangePicker Refinements', () => {
     it('closes the popover when Escape key is pressed', async () => {
       const handleChange = vi.fn();
@@ -16,13 +15,13 @@ describe('Accessibility Refinements Verification', () => {
           endDate="2026-07-07"
           onChange={handleChange}
           label="Pilih Periode Laporan"
-        />
+        />,
       );
 
       // Open popover
       const trigger = screen.getByRole('button', { name: /Jul/i });
       fireEvent.click(trigger);
-      
+
       // Dialog should be visible
       expect(screen.getByRole('dialog')).toBeInTheDocument();
 
@@ -43,18 +42,18 @@ describe('Accessibility Refinements Verification', () => {
           endDate="2026-07-07"
           onChange={handleChange}
           label="Pilih Periode Laporan"
-        />
+        />,
       );
 
       const trigger = screen.getByRole('button', { name: /Jul/i });
-      
+
       // Initial focus can be anywhere, let's focus trigger
       trigger.focus();
       expect(document.activeElement).toBe(trigger);
 
       // Open popover by clicking trigger
       fireEvent.click(trigger);
-      
+
       // Wait for focus trap timeout (50ms in hook)
       await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -62,7 +61,9 @@ describe('Accessibility Refinements Verification', () => {
       expect(popover).toBeInTheDocument();
 
       // Focus should have moved inside the popover. Let's find all focusable elements inside popover.
-      const focusableElements = popover.querySelectorAll('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])');
+      const focusableElements = popover.querySelectorAll(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
       const firstFocusable = focusableElements[0] as HTMLElement;
       const lastFocusable = focusableElements[focusableElements.length - 1] as HTMLElement;
 
@@ -73,7 +74,11 @@ describe('Accessibility Refinements Verification', () => {
       lastFocusable.focus();
       expect(document.activeElement).toBe(lastFocusable);
 
-      const tabEvent = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+      const tabEvent = new KeyboardEvent('keydown', {
+        key: 'Tab',
+        bubbles: true,
+        cancelable: true,
+      });
       document.dispatchEvent(tabEvent);
       expect(document.activeElement).toBe(firstFocusable);
 
@@ -81,7 +86,12 @@ describe('Accessibility Refinements Verification', () => {
       firstFocusable.focus();
       expect(document.activeElement).toBe(firstFocusable);
 
-      const shiftTabEvent = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true });
+      const shiftTabEvent = new KeyboardEvent('keydown', {
+        key: 'Tab',
+        shiftKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
       document.dispatchEvent(shiftTabEvent);
       expect(document.activeElement).toBe(lastFocusable);
 
@@ -119,7 +129,7 @@ describe('Accessibility Refinements Verification', () => {
           data={data}
           keyField="id"
           mobileRender={(item) => <div>{item.name}</div>}
-        />
+        />,
       );
 
       const list = screen.getByRole('list');
@@ -140,7 +150,7 @@ describe('Accessibility Refinements Verification', () => {
           keyField="id"
           onRowClick={handleRowClick}
           mobileRender={(item) => <div>{item.name}</div>}
-        />
+        />,
       );
 
       const list = screen.getByRole('list');
@@ -158,13 +168,7 @@ describe('Accessibility Refinements Verification', () => {
   describe('Pagination Refinements', () => {
     it('has correct nav roles, labels, and aria-current page values', () => {
       const handlePageChange = vi.fn();
-      render(
-        <Pagination
-          currentPage={2}
-          totalPages={5}
-          onPageChange={handlePageChange}
-        />
-      );
+      render(<Pagination currentPage={2} totalPages={5} onPageChange={handlePageChange} />);
 
       // 1. Navigation role and label
       const nav = screen.getByRole('navigation');

@@ -1,4 +1,4 @@
-import { MetadataRoute } from 'next'
+import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -39,7 +39,7 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: '512x512',
         type: 'image/png',
         purpose: 'any',
-      }
+      },
     ],
     shortcuts: [
       {
@@ -61,5 +61,5 @@ export default function manifest(): MetadataRoute.Manifest {
         description: 'Lihat semua riwayat transaksi',
       },
     ],
-  }
+  };
 }

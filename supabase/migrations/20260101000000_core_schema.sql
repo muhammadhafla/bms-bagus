@@ -398,13 +398,25 @@ ADD COLUMN IF NOT EXISTS voided_at timestamptz;
 CREATE INDEX IF NOT EXISTS pembelian_return_items_voided_at_idx
 ON public.pembelian_return_items(voided_at);
 
-CREATE POLICY "pembelian_return_items_void_update_all_auth" 
-ON public.pembelian_return_items
-FOR UPDATE
-TO authenticated
-USING (true)
-WITH CHECK (true);
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'pembelian_return_items'
+      AND policyname = 'pembelian_return_items_void_update_all_auth'
+  ) THEN
+    EXECUTE 'DROP POLICY "pembelian_return_items_void_update_all_auth" ON public.pembelian_return_items';
+  END IF;
 
+  CREATE POLICY "pembelian_return_items_void_update_all_auth"
+  ON public.pembelian_return_items
+  FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+END $$;
 
 CREATE OR REPLACE FUNCTION public.void_pembelian_return_item(
   p_pembelian_return_item_id uuid,

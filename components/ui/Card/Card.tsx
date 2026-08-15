@@ -35,7 +35,7 @@ export const Card: React.FC<CardProps> = ({
   return (
     <div
       className={[
-        'bg-white dark:bg-neutral-900 rounded-xl',
+        'rounded-xl bg-white dark:bg-neutral-900',
         variantStyles[variant],
         paddingStyles[padding],
         hover && 'card-hover',
@@ -63,7 +63,10 @@ export const CardTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({
   children,
   ...props
 }) => (
-  <h3 className={`text-lg font-semibold text-neutral-900 dark:text-neutral-100 ${className}`} {...props}>
+  <h3
+    className={`text-lg font-semibold text-neutral-900 dark:text-neutral-100 ${className}`}
+    {...props}
+  >
     {children}
   </h3>
 );
@@ -73,7 +76,7 @@ export const CardDescription: React.FC<React.HTMLAttributes<HTMLParagraphElement
   children,
   ...props
 }) => (
-  <p className={`text-sm text-neutral-500 dark:text-neutral-400 mt-1 ${className}`} {...props}>
+  <p className={`mt-1 text-sm text-neutral-500 dark:text-neutral-400 ${className}`} {...props}>
     {children}
   </p>
 );
@@ -93,7 +96,10 @@ export const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   children,
   ...props
 }) => (
-  <div className={`mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-800 ${className}`} {...props}>
+  <div
+    className={`mt-4 border-t border-neutral-200 pt-4 dark:border-neutral-800 ${className}`}
+    {...props}
+  >
     {children}
   </div>
 );

@@ -12,6 +12,7 @@
     "build": "next build",
     "start": "next start -p 3000",
     "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write .",
     "tsc": "tsc --noEmit"
   },
   "keywords": [],
@@ -55,8 +56,11 @@
     "cross-env": "^10.1.0",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.3",
+    "eslint-config-prettier": "^10.1.8",
     "jsdom": "^29.0.2",
     "postcss": "^8.5.9",
+    "prettier": "^3.9.6",
+    "prettier-plugin-tailwindcss": "^0.8.1",
     "supabase": "^2.91.3",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.2",
@@ -75,5 +79,9 @@
     "firefox >= 100",
     "safari >= 15",
     "edge >= 100"
-  ]
+  ],
+  "allowScripts": {
+    "sharp@0.34.5": true,
+    "unrs-resolver@1.11.1": true
+  }
 }

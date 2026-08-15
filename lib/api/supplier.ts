@@ -41,12 +41,7 @@ export const supplierApi = {
 
   async update(id: string, data: { nama: string; kontak?: string; alamat?: string }) {
     return safeQuery<Supplier>(async () => {
-      const result = await supabase
-        .from('supplier')
-        .update(data)
-        .eq('id', id)
-        .select()
-        .single();
+      const result = await supabase.from('supplier').update(data).eq('id', id).select().single();
       return { data: result.data, error: result.error as Error | null };
     });
   },
@@ -56,5 +51,5 @@ export const supplierApi = {
       const result = await supabase.from('supplier').delete().eq('id', id);
       return { data: result.data, error: result.error as Error | null };
     });
-  }
+  },
 };

@@ -13,7 +13,7 @@ describe('ModernPagination Accessibility', () => {
         total={100}
         limit={20}
         onPageChange={handlePageChange}
-      />
+      />,
     );
 
     // Verify navigation element and role
@@ -39,7 +39,7 @@ describe('ModernPagination Accessibility', () => {
         total={20}
         limit={20}
         onPageChange={handlePageChange}
-      />
+      />,
     );
     expect(container.firstChild).toBeNull();
   });

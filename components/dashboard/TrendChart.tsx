@@ -1,5 +1,13 @@
 import { TrendData } from '@/lib/api/dashboard';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import { Card, CardTitle } from '@/components/ui';
 
 interface TrendChartProps {
@@ -7,7 +15,15 @@ interface TrendChartProps {
   isLoading: boolean;
 }
 
-const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string }) => {
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string }>;
+  label?: string;
+}) => {
   if (!active || !payload || payload.length === 0) return null;
 
   const date = new Date(label as string);
@@ -19,16 +35,20 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
   });
 
   return (
-    <div className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md rounded-xl p-3 shadow-elevated border border-white/20 dark:border-white/10 min-w-[180px]">
-      <p className="text-neutral-500 dark:text-neutral-400 text-xs font-medium mb-2 uppercase tracking-wider border-b border-neutral-100 dark:border-neutral-800 pb-2">{formattedDate}</p>
+    <div className="shadow-elevated min-w-[180px] rounded-xl border border-white/20 bg-white/90 p-3 backdrop-blur-md dark:border-white/10 dark:bg-neutral-900/90">
+      <p className="mb-2 border-b border-neutral-100 pb-2 text-xs font-medium tracking-wider text-neutral-500 uppercase dark:border-neutral-800 dark:text-neutral-400">
+        {formattedDate}
+      </p>
       <div className="flex flex-col gap-2">
         {payload.map((entry, index) => (
-          <div key={index} className="flex justify-between items-center gap-4 text-sm font-medium">
+          <div key={index} className="flex items-center justify-between gap-4 text-sm font-medium">
             <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
-              <span className="text-neutral-500 dark:text-neutral-400 capitalize">{entry.name}</span>
+              <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
+              <span className="text-neutral-500 capitalize dark:text-neutral-400">
+                {entry.name}
+              </span>
             </div>
-            <span className="text-neutral-900 dark:text-white font-bold tracking-tight">
+            <span className="font-bold tracking-tight text-neutral-900 dark:text-white">
               Rp {new Intl.NumberFormat('id-ID').format(entry.value)}
             </span>
           </div>
@@ -41,10 +61,14 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
 export function TrendChart({ data, isLoading }: TrendChartProps) {
   if (isLoading) {
     return (
-      <Card padding="lg" variant="flat" className="bg-white/50 dark:bg-neutral-900/40 backdrop-blur border border-white/20 dark:border-white/5">
+      <Card
+        padding="lg"
+        variant="flat"
+        className="border border-white/20 bg-white/50 backdrop-blur dark:border-white/5 dark:bg-neutral-900/40"
+      >
         <div className="animate-pulse">
-          <div className="h-6 bg-neutral-200/50 dark:bg-neutral-700/50 rounded w-40 mb-4" />
-          <div className="h-52 bg-neutral-200/50 dark:bg-neutral-700/50 rounded-xl" />
+          <div className="mb-4 h-6 w-40 rounded bg-neutral-200/50 dark:bg-neutral-700/50" />
+          <div className="h-52 rounded-xl bg-neutral-200/50 dark:bg-neutral-700/50" />
         </div>
       </Card>
     );
@@ -63,23 +87,41 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
   };
 
   return (
-    <Card padding="md" variant="flat" className="bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 h-full flex flex-col">
+    <Card
+      padding="md"
+      variant="flat"
+      className="flex h-full flex-col border border-white/40 bg-white/70 backdrop-blur-xl dark:border-white/10 dark:bg-neutral-900/60"
+    >
       <CardTitle className="mb-4 shrink-0">Trend 7 Hari Terakhir</CardTitle>
 
-      <div className="flex-1 w-full min-w-[300px] flex flex-col gap-2 md:gap-4 relative pt-2" style={{ minHeight: 350 }}>
-        
+      <div
+        className="relative flex w-full min-w-[300px] flex-1 flex-col gap-2 pt-2 md:gap-4"
+        style={{ minHeight: 350 }}
+      >
         {/* Penjualan Chart */}
-        <div className="flex-1 min-h-[120px] w-full relative border-b border-neutral-100 dark:border-neutral-800/50 pb-2">
-          <p className="absolute top-0 left-4 text-xs font-bold text-teal-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Penjualan</p>
+        <div className="relative min-h-[120px] w-full flex-1 border-b border-neutral-100 pb-2 dark:border-neutral-800/50">
+          <p className="absolute top-0 left-4 z-10 rounded-full bg-white/50 px-2 text-xs font-bold text-teal-500 shadow-sm backdrop-blur-sm dark:bg-neutral-800/50">
+            Penjualan
+          </p>
           <ResponsiveContainer width="100%" height="100%" minHeight={1}>
-            <AreaChart data={data} syncId="trendDashboard" margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
+            <AreaChart
+              data={data}
+              syncId="trendDashboard"
+              margin={{ top: 20, right: 10, left: 0, bottom: 0 }}
+            >
               <defs>
                 <linearGradient id="colorPenjualan" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#14B8A6" stopOpacity={0.4}/>
-                  <stop offset="95%" stopColor="#14B8A6" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#14B8A6" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#14B8A6" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-neutral-200 dark:text-neutral-800" opacity={0.3} vertical={false} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="currentColor"
+                className="text-neutral-200 dark:text-neutral-800"
+                opacity={0.3}
+                vertical={false}
+              />
               <XAxis dataKey="date" tick={false} tickLine={false} axisLine={false} height={10} />
               <YAxis
                 tickFormatter={formatValue}
@@ -89,7 +131,10 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
                 dx={-10}
                 width={45}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '4 4', opacity: 0.5 }} />
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '4 4', opacity: 0.5 }}
+              />
               <Area
                 type="monotone"
                 dataKey="penjualan"
@@ -98,24 +143,41 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
                 strokeWidth={3}
                 fillOpacity={1}
                 fill="url(#colorPenjualan)"
-                activeDot={{ r: 6, strokeWidth: 0, fill: '#14B8A6', className: 'animate-pulse-glow' }}
+                activeDot={{
+                  r: 6,
+                  strokeWidth: 0,
+                  fill: '#14B8A6',
+                  className: 'animate-pulse-glow',
+                }}
               />
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
         {/* Pembelian Chart */}
-        <div className="flex-1 min-h-[120px] w-full relative pt-2">
-          <p className="absolute top-0 left-4 text-xs font-bold text-orange-500 z-10 bg-white/50 dark:bg-neutral-800/50 px-2 rounded-full backdrop-blur-sm shadow-sm">Pembelian</p>
+        <div className="relative min-h-[120px] w-full flex-1 pt-2">
+          <p className="absolute top-0 left-4 z-10 rounded-full bg-white/50 px-2 text-xs font-bold text-orange-500 shadow-sm backdrop-blur-sm dark:bg-neutral-800/50">
+            Pembelian
+          </p>
           <ResponsiveContainer width="100%" height="100%" minHeight={1}>
-            <AreaChart data={data} syncId="trendDashboard" margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
+            <AreaChart
+              data={data}
+              syncId="trendDashboard"
+              margin={{ top: 20, right: 10, left: 0, bottom: 20 }}
+            >
               <defs>
                 <linearGradient id="colorPembelian" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.4}/>
-                  <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-neutral-200 dark:text-neutral-800" opacity={0.3} vertical={false} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="currentColor"
+                className="text-neutral-200 dark:text-neutral-800"
+                opacity={0.3}
+                vertical={false}
+              />
               <XAxis
                 dataKey="date"
                 tickFormatter={formatDate}
@@ -133,7 +195,10 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
                 dx={-10}
                 width={45}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '4 4', opacity: 0.5 }} />
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '4 4', opacity: 0.5 }}
+              />
               <Area
                 type="monotone"
                 dataKey="pembelian"
@@ -142,12 +207,16 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
                 strokeWidth={3}
                 fillOpacity={1}
                 fill="url(#colorPembelian)"
-                activeDot={{ r: 6, strokeWidth: 0, fill: '#F59E0B', className: 'animate-pulse-glow' }}
+                activeDot={{
+                  r: 6,
+                  strokeWidth: 0,
+                  fill: '#F59E0B',
+                  className: 'animate-pulse-glow',
+                }}
               />
             </AreaChart>
           </ResponsiveContainer>
         </div>
-
       </div>
     </Card>
   );

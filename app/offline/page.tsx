@@ -4,23 +4,19 @@ import { IconWifiOff } from '@tabler/icons-react';
 
 export default function OfflinePage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 
-                    bg-neutral-50 dark:bg-neutral-950 text-center">
-      <div className="w-20 h-20 bg-neutral-100 dark:bg-neutral-800 rounded-full 
-                      flex items-center justify-center mb-6">
-        <IconWifiOff className="w-10 h-10 text-neutral-400" />
+    <div className="flex min-h-screen flex-col items-center justify-center bg-neutral-50 p-6 text-center dark:bg-neutral-950">
+      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
+        <IconWifiOff className="h-10 w-10 text-neutral-400" />
       </div>
-      <h1 className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">
+      <h1 className="mb-2 text-2xl font-bold text-neutral-900 dark:text-white">
         Tidak Ada Koneksi
       </h1>
-      <p className="text-neutral-500 dark:text-neutral-400 max-w-sm mb-8">
-        Perangkat Anda sedang offline. Periksa koneksi internet Anda, 
-        lalu coba kembali.
+      <p className="mb-8 max-w-sm text-neutral-500 dark:text-neutral-400">
+        Perangkat Anda sedang offline. Periksa koneksi internet Anda, lalu coba kembali.
       </p>
-      <button 
+      <button
         onClick={() => window.location.reload()}
-        className="px-6 py-3 bg-brand-500 text-white rounded-xl 
-                   font-semibold min-h-[44px] active:scale-95 transition-transform"
+        className="bg-brand-500 min-h-[44px] rounded-xl px-6 py-3 font-semibold text-white transition-transform active:scale-95"
       >
         Coba Lagi
       </button>

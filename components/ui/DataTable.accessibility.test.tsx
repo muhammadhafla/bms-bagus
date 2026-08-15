@@ -23,14 +23,7 @@ describe('DataTable Accessibility', () => {
 
   it('renders table headers with correct aria-sort when not sorted', () => {
     const handleSort = vi.fn();
-    render(
-      <DataTable
-        columns={columns}
-        data={data}
-        keyField="id"
-        onSort={handleSort}
-      />
-    );
+    render(<DataTable columns={columns} data={data} keyField="id" onSort={handleSort} />);
 
     // ID column is not sortable, so should not have aria-sort
     const idHeader = screen.getByRole('columnheader', { name: 'ID' });
@@ -55,11 +48,17 @@ describe('DataTable Accessibility', () => {
         sortKey="name"
         sortDirection="asc"
         onSort={handleSort}
-      />
+      />,
     );
 
-    expect(screen.getByRole('columnheader', { name: 'Nama' })).toHaveAttribute('aria-sort', 'ascending');
-    expect(screen.getByRole('columnheader', { name: 'Jumlah' })).toHaveAttribute('aria-sort', 'none');
+    expect(screen.getByRole('columnheader', { name: 'Nama' })).toHaveAttribute(
+      'aria-sort',
+      'ascending',
+    );
+    expect(screen.getByRole('columnheader', { name: 'Jumlah' })).toHaveAttribute(
+      'aria-sort',
+      'none',
+    );
   }, 10000);
 
   it('renders table headers with correct aria-sort when sorted desc', () => {
@@ -72,10 +71,13 @@ describe('DataTable Accessibility', () => {
         sortKey="count"
         sortDirection="desc"
         onSort={handleSort}
-      />
+      />,
     );
 
     expect(screen.getByRole('columnheader', { name: 'Nama' })).toHaveAttribute('aria-sort', 'none');
-    expect(screen.getByRole('columnheader', { name: 'Jumlah' })).toHaveAttribute('aria-sort', 'descending');
+    expect(screen.getByRole('columnheader', { name: 'Jumlah' })).toHaveAttribute(
+      'aria-sort',
+      'descending',
+    );
   }, 10000);
 });

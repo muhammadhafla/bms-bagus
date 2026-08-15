@@ -3,68 +3,87 @@ import { Profitability, Atv } from '@/lib/api/analytics';
 import { formatCurrency } from '@/lib/utils';
 import { IconReceipt, IconShoppingCart, IconTrendingUp } from '@tabler/icons-react';
 
-export function ProfitabilityAndAtvCards({ 
-  profitabilityData, 
-  atvData, 
-  isLoading 
-}: { 
-  profitabilityData: Profitability[], 
-  atvData: Atv | null, 
-  isLoading: boolean 
+export function ProfitabilityAndAtvCards({
+  profitabilityData,
+  atvData,
+  isLoading,
+}: {
+  profitabilityData: Profitability[];
+  atvData: Atv | null;
+  isLoading: boolean;
 }) {
-  
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 animate-pulse">
+      <div className="grid animate-pulse grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
         {[1, 2, 3].map((i, index) => (
-          <div key={i} className={`bg-white dark:bg-neutral-800 rounded-xl p-3 md:p-4 shadow-sm h-28 md:h-32 ${index === 2 ? 'col-span-2 md:col-span-1' : ''}`} />
+          <div
+            key={i}
+            className={`h-28 rounded-xl bg-white p-3 shadow-sm md:h-32 md:p-4 dark:bg-neutral-800 ${index === 2 ? 'col-span-2 md:col-span-1' : ''}`}
+          />
         ))}
       </div>
     );
   }
 
-  const topProfitable = profitabilityData && profitabilityData.length > 0 ? profitabilityData[0] : null;
+  const topProfitable =
+    profitabilityData && profitabilityData.length > 0 ? profitabilityData[0] : null;
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
       {/* ATV Card */}
-      <div className="bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl p-3 md:p-4 shadow-sm text-white flex flex-col justify-between">
-        <div className="flex items-center gap-1.5 md:gap-2 mb-2 opacity-90">
-          <IconReceipt className="w-4 h-4 md:w-5 md:h-5" />
-          <h3 className="font-medium text-xs md:text-sm leading-tight">Avg. Transaction Value (ATV)</h3>
+      <div className="from-brand-500 to-brand-600 flex flex-col justify-between rounded-xl bg-gradient-to-br p-3 text-white shadow-sm md:p-4">
+        <div className="mb-2 flex items-center gap-1.5 opacity-90 md:gap-2">
+          <IconReceipt className="h-4 w-4 md:h-5 md:w-5" />
+          <h3 className="text-xs leading-tight font-medium md:text-sm">
+            Avg. Transaction Value (ATV)
+          </h3>
         </div>
         <div>
-          <div className="text-lg md:text-2xl font-bold">{formatCurrency(atvData?.avg_transaction_value || 0)}</div>
-          <p className="text-brand-100 text-[10px] md:text-xs mt-0.5 md:mt-1">Rata-rata belanja per struk</p>
+          <div className="text-lg font-bold md:text-2xl">
+            {formatCurrency(atvData?.avg_transaction_value || 0)}
+          </div>
+          <p className="text-brand-100 mt-0.5 text-[10px] md:mt-1 md:text-xs">
+            Rata-rata belanja per struk
+          </p>
         </div>
       </div>
 
       {/* IPT Card */}
-      <div className="bg-gradient-to-br from-accent-teal-500 to-accent-teal-600 rounded-xl p-3 md:p-4 shadow-sm text-white flex flex-col justify-between">
-        <div className="flex items-center gap-1.5 md:gap-2 mb-2 opacity-90">
-          <IconShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
-          <h3 className="font-medium text-xs md:text-sm leading-tight">Items Per Ticket (IPT)</h3>
+      <div className="from-accent-teal-500 to-accent-teal-600 flex flex-col justify-between rounded-xl bg-gradient-to-br p-3 text-white shadow-sm md:p-4">
+        <div className="mb-2 flex items-center gap-1.5 opacity-90 md:gap-2">
+          <IconShoppingCart className="h-4 w-4 md:h-5 md:w-5" />
+          <h3 className="text-xs leading-tight font-medium md:text-sm">Items Per Ticket (IPT)</h3>
         </div>
         <div>
-          <div className="text-lg md:text-2xl font-bold">{atvData?.items_per_ticket || 0} <span className="text-xs md:text-base font-normal">item</span></div>
-          <p className="text-accent-teal-100 text-[10px] md:text-xs mt-0.5 md:mt-1">Rata-rata barang per struk</p>
+          <div className="text-lg font-bold md:text-2xl">
+            {atvData?.items_per_ticket || 0}{' '}
+            <span className="text-xs font-normal md:text-base">item</span>
+          </div>
+          <p className="text-accent-teal-100 mt-0.5 text-[10px] md:mt-1 md:text-xs">
+            Rata-rata barang per struk
+          </p>
         </div>
       </div>
 
       {/* Top Profit Margin Card */}
-      <div className="col-span-2 md:col-span-1 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-3 md:p-4 shadow-sm text-white flex flex-col justify-between">
-        <div className="flex items-center gap-1.5 md:gap-2 mb-2 opacity-90">
-          <IconTrendingUp className="w-4 h-4 md:w-5 md:h-5" />
-          <h3 className="font-medium text-xs md:text-sm leading-tight">Margin Tertinggi</h3>
+      <div className="col-span-2 flex flex-col justify-between rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 p-3 text-white shadow-sm md:col-span-1 md:p-4">
+        <div className="mb-2 flex items-center gap-1.5 opacity-90 md:gap-2">
+          <IconTrendingUp className="h-4 w-4 md:h-5 md:w-5" />
+          <h3 className="text-xs leading-tight font-medium md:text-sm">Margin Tertinggi</h3>
         </div>
         <div>
           {topProfitable ? (
             <>
-              <div className="text-base md:text-lg font-bold truncate">{topProfitable.nama_barang}</div>
-              <p className="text-amber-100 text-[10px] md:text-xs mt-0.5 md:mt-1">Margin: {topProfitable.profit_margin}% • Laba: {formatCurrency(topProfitable.total_profit)}</p>
+              <div className="truncate text-base font-bold md:text-lg">
+                {topProfitable.nama_barang}
+              </div>
+              <p className="mt-0.5 text-[10px] text-amber-100 md:mt-1 md:text-xs">
+                Margin: {topProfitable.profit_margin}% • Laba:{' '}
+                {formatCurrency(topProfitable.total_profit)}
+              </p>
             </>
           ) : (
-            <p className="text-amber-100 text-[10px] md:text-sm">Belum ada data</p>
+            <p className="text-[10px] text-amber-100 md:text-sm">Belum ada data</p>
           )}
         </div>
       </div>

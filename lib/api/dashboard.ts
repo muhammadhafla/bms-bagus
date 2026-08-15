@@ -41,8 +41,15 @@ export const dashboardApi = {
       safeQuery<{ total_inventory_value: number; total_items: number; low_stock_items: number }>(
         async () => {
           const result = await supabase.rpc('get_dashboard_stats').single();
-          return { data: result.data as { total_inventory_value: number; total_items: number; low_stock_items: number } | null, error: result.error as Error | null };
-        }
+          return {
+            data: result.data as {
+              total_inventory_value: number;
+              total_items: number;
+              low_stock_items: number;
+            } | null,
+            error: result.error as Error | null,
+          };
+        },
       ),
       // Gunakan RPC get_today_profit — profit benar berdasarkan cost_at_sale (HPP)
       safeQuery<{
@@ -51,18 +58,19 @@ export const dashboardApi = {
         today_profit: number;
         today_purchases: number;
         today_transactions: number;
-      }>(
-        async () => {
-          const result = await supabase.rpc('get_today_profit', { p_date: today }).single();
-          return { data: result.data as {
+      }>(async () => {
+        const result = await supabase.rpc('get_today_profit', { p_date: today }).single();
+        return {
+          data: result.data as {
             today_sales: number;
             today_cogs: number;
             today_profit: number;
             today_purchases: number;
             today_transactions: number;
-          } | null, error: result.error as Error | null };
-        }
-      ),
+          } | null,
+          error: result.error as Error | null,
+        };
+      }),
     ]);
 
     if (statsResult.error || todayProfitResult.error) {
@@ -88,16 +96,14 @@ export const dashboardApi = {
   },
 
   async getLowStockItems(): Promise<{ data: LowStockItem[]; error: unknown }> {
-    const result = await safeQuery<LowStockItem[]>(
-      async () => {
-        const result = await supabase
-          .rpc('get_low_stock_items', { p_search: null })
-          .select('id, nama_barang, stok, minimum_stock')
-          .order('stok', { ascending: true })
-          .limit(10);
-        return { data: result.data as LowStockItem[] | null, error: result.error as Error | null };
-      }
-    );
+    const result = await safeQuery<LowStockItem[]>(async () => {
+      const result = await supabase
+        .rpc('get_low_stock_items', { p_search: null })
+        .select('id, nama_barang, stok, minimum_stock')
+        .order('stok', { ascending: true })
+        .limit(10);
+      return { data: result.data as LowStockItem[] | null, error: result.error as Error | null };
+    });
 
     if (result.error) {
       return { data: [], error: result.error };
@@ -115,24 +121,19 @@ export const dashboardApi = {
     const startDateStr = startDate.toISOString().split('T')[0];
 
     // Gunakan RPC get_7day_trend_v2 — profit benar berdasarkan cost_at_sale
-    const result = await safeQuery<TrendData[]>(
-      async () => {
-        const res = await supabase.rpc('get_7day_trend_v2', { p_start_date: startDateStr });
-        // Mapping nama kolom dari RPC ke TrendData interface
-        const mapped = (res.data || []).map((row: {
-          trend_date: string;
-          penjualan: number;
-          pembelian: number;
-          profit: number;
-        }) => ({
+    const result = await safeQuery<TrendData[]>(async () => {
+      const res = await supabase.rpc('get_7day_trend_v2', { p_start_date: startDateStr });
+      // Mapping nama kolom dari RPC ke TrendData interface
+      const mapped = (res.data || []).map(
+        (row: { trend_date: string; penjualan: number; pembelian: number; profit: number }) => ({
           date: row.trend_date,
           penjualan: row.penjualan,
           pembelian: row.pembelian,
           profit: row.profit,
-        }));
-        return { data: mapped, error: res.error as Error | null };
-      }
-    );
+        }),
+      );
+      return { data: mapped, error: res.error as Error | null };
+    });
 
     if (result.error) {
       return { data: [], error: result.error };
@@ -143,16 +144,14 @@ export const dashboardApi = {
 
   async getRecentTransactions(): Promise<{ data: RecentTransaction[]; error: unknown }> {
     const [penjualan, pembelian] = await Promise.all([
-      safeQuery<{ id: string; total: number; tanggal: string; created_at: string }[]>(
-        async () => {
-          const result = await supabase
-            .from('penjualan')
-            .select('id, total, tanggal, created_at')
-            .order('created_at', { ascending: false })
-            .limit(5);
-          return { data: result.data, error: result.error as Error | null };
-        }
-      ),
+      safeQuery<{ id: string; total: number; tanggal: string; created_at: string }[]>(async () => {
+        const result = await supabase
+          .from('penjualan')
+          .select('id, total, tanggal, created_at')
+          .order('created_at', { ascending: false })
+          .limit(5);
+        return { data: result.data, error: result.error as Error | null };
+      }),
       safeQuery<{ id: string; total_sistem: number; tanggal: string; created_at: string }[]>(
         async () => {
           const result = await supabase
@@ -161,7 +160,7 @@ export const dashboardApi = {
             .order('created_at', { ascending: false })
             .limit(5);
           return { data: result.data, error: result.error as Error | null };
-        }
+        },
       ),
     ]);
 
@@ -171,14 +170,16 @@ export const dashboardApi = {
 
     const transactions: RecentTransaction[] = [
       ...(penjualan.data || []).map((t) => ({ ...t, type: 'penjualan' as const })),
-      ...(pembelian.data || []).map((t) => ({ 
-        ...t, 
+      ...(pembelian.data || []).map((t) => ({
+        ...t,
         total: t.total_sistem || 0,
-        type: 'pembelian' as const 
+        type: 'pembelian' as const,
       })),
     ];
 
-    transactions.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    transactions.sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
 
     return {
       data: transactions.slice(0, 5),

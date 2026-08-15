@@ -88,14 +88,20 @@ export const returnApi = {
 
   async getPembelianItems(transactionId: string) {
     return safeQuery(async () => {
-      const result = await supabase.from('pembelian_items').select('*, inventory:inventory(*)').eq('transaction_id', transactionId);
+      const result = await supabase
+        .from('pembelian_items')
+        .select('*, inventory:inventory(*)')
+        .eq('transaction_id', transactionId);
       return { data: result.data, error: result.error as Error | null };
     });
   },
 
   async getPenjualanItems(transactionId: string) {
     return safeQuery(async () => {
-      const result = await supabase.from('penjualan_items').select('*, inventory:inventory(*)').eq('transaction_id', transactionId);
+      const result = await supabase
+        .from('penjualan_items')
+        .select('*, inventory:inventory(*)')
+        .eq('transaction_id', transactionId);
       return { data: result.data, error: result.error as Error | null };
     });
   },
@@ -108,20 +114,25 @@ export const returnApi = {
     idempotency_key?: string;
   }) {
     const idempotencyKey = data.idempotency_key || generateIdempotencyKey();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return { data: null, error: { message: 'User not authenticated' } };
 
-    return safeQuery(async () => {
-      const result = await supabase.rpc('pembelian_return_create', {
-        p_pembelian_id: data.original_transaction_id,
-        p_tanggal: data.tanggal,
-        p_created_by: user.id,
-        p_note: data.note ?? null,
-        p_idempotency_key: idempotencyKey,
-        p_items: data.items,
-      });
-      return { data: result.data, error: result.error as Error | null };
-    }, { isMutation: true });
+    return safeQuery(
+      async () => {
+        const result = await supabase.rpc('pembelian_return_create', {
+          p_pembelian_id: data.original_transaction_id,
+          p_tanggal: data.tanggal,
+          p_created_by: user.id,
+          p_note: data.note ?? null,
+          p_idempotency_key: idempotencyKey,
+          p_items: data.items,
+        });
+        return { data: result.data, error: result.error as Error | null };
+      },
+      { isMutation: true },
+    );
   },
 
   async submitPenjualanReturn(data: {
@@ -132,64 +143,83 @@ export const returnApi = {
     idempotency_key?: string;
   }) {
     const idempotencyKey = data.idempotency_key || generateIdempotencyKey();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return { data: null, error: { message: 'User not authenticated' } };
 
-    return safeQuery(async () => {
-      const result = await supabase.rpc('penjualan_return_create', {
-        p_penjualan_id: data.original_transaction_id,
-        p_tanggal: data.tanggal,
-        p_created_by: user.id,
-        p_note: data.note ?? null,
-        p_idempotency_key: idempotencyKey,
-        p_items: data.items,
-      });
-      return { data: result.data, error: result.error as Error | null };
-    }, { isMutation: true });
+    return safeQuery(
+      async () => {
+        const result = await supabase.rpc('penjualan_return_create', {
+          p_penjualan_id: data.original_transaction_id,
+          p_tanggal: data.tanggal,
+          p_created_by: user.id,
+          p_note: data.note ?? null,
+          p_idempotency_key: idempotencyKey,
+          p_items: data.items,
+        });
+        return { data: result.data, error: result.error as Error | null };
+      },
+      { isMutation: true },
+    );
   },
 
   async getAvailableItemsBySupplier(supplierId: string) {
     return safeQuery<AvailableReturnItem[]>(async () => {
-      const result = await supabase.rpc('get_available_return_items', { p_supplier_id: supplierId });
+      const result = await supabase.rpc('get_available_return_items', {
+        p_supplier_id: supplierId,
+      });
       return { data: result.data, error: result.error as Error | null };
     });
   },
 
   async submitBatchReturn(data: BatchReturnInput) {
     const idempotencyKey = data.idempotency_key || generateIdempotencyKey();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return { data: null, error: { message: 'User not authenticated' } };
 
-    return safeQuery(async () => {
-      const result = await supabase.rpc('proses_return_batch', {
-        p_supplier_id: data.supplier_id,
-        p_supplier_nama: data.supplier_nama,
-        p_tanggal: data.tanggal,
-        p_note: data.note ?? null,
-        p_items: data.items,
-        p_idempotency_key: idempotencyKey,
-        p_created_by: user.id,
-      });
-      return { data: result.data, error: result.error as Error | null };
-    }, { isMutation: true });
+    return safeQuery(
+      async () => {
+        const result = await supabase.rpc('proses_return_batch', {
+          p_supplier_id: data.supplier_id,
+          p_supplier_nama: data.supplier_nama,
+          p_tanggal: data.tanggal,
+          p_note: data.note ?? null,
+          p_items: data.items,
+          p_idempotency_key: idempotencyKey,
+          p_created_by: user.id,
+        });
+        return { data: result.data, error: result.error as Error | null };
+      },
+      { isMutation: true },
+    );
   },
 
   async getReturnDetail(returnId: string) {
     const headerResult = await safeQuery<any>(async () => {
-      const result = await supabase.from('pembelian_return').select('*').eq('id', returnId).single();
+      const result = await supabase
+        .from('pembelian_return')
+        .select('*')
+        .eq('id', returnId)
+        .single();
       return { data: result.data, error: result.error as Error | null };
     });
     const itemsResult = await safeQuery<any[]>(async () => {
-      const result = await supabase.from('pembelian_return_items').select('*').eq('pembelian_return_id', returnId);
+      const result = await supabase
+        .from('pembelian_return_items')
+        .select('*')
+        .eq('pembelian_return_id', returnId);
       return { data: result.data, error: result.error as Error | null };
     });
 
     return {
       data: {
         ...headerResult.data,
-        items: itemsResult.data
+        items: itemsResult.data,
       },
-      error: headerResult.error || itemsResult.error
+      error: headerResult.error || itemsResult.error,
     };
   },
 
@@ -223,23 +253,31 @@ export const returnApi = {
         .order(sortBy, { ascending: isAscending });
 
       if (options?.limit) query = query.limit(options.limit);
-      if (options?.offset) query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
+      if (options?.offset)
+        query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
       if (options?.search) query = query.ilike('id', `%${options.search}%`);
       if (options?.startDate) query = query.gte('tanggal', options.startDate);
       if (options?.endDate) query = query.lte('tanggal', options.endDate);
 
-      const result = await safeQuery<{ data: any[], count: number | null }>(async () => {
+      const result = await safeQuery<{ data: any[]; count: number | null }>(async () => {
         const res = await query;
-        return { data: { data: res.data as any[], count: res.count }, error: res.error as Error | null };
+        return {
+          data: { data: res.data as any[], count: res.count },
+          error: res.error as Error | null,
+        };
       });
-      
+
       if (result.error) return { data: null, error: result.error, total: 0 };
-      
-      const transformedData = result.data?.data?.map(item => {
-        const total = item.items?.reduce((sum: number, returnItem: any) => sum + (returnItem.harga_final * returnItem.qty), 0) || 0;
+
+      const transformedData = result.data?.data?.map((item) => {
+        const total =
+          item.items?.reduce(
+            (sum: number, returnItem: any) => sum + returnItem.harga_final * returnItem.qty,
+            0,
+          ) || 0;
         return { ...item, total };
       });
-      
+
       return { data: transformedData || null, total: result.data?.count || 0, error: null };
     } catch (e: any) {
       return { data: null, error: { message: e.message }, total: 0 };
@@ -265,23 +303,32 @@ export const returnApi = {
         .order(sortBy, { ascending: isAscending });
 
       if (options?.limit) query = query.limit(options.limit);
-      if (options?.offset) query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
-      if (options?.search) query = query.or(`id.ilike.%${options.search}%,supplier_nama.ilike.%${options.search}%`);
+      if (options?.offset)
+        query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
+      if (options?.search)
+        query = query.or(`id.ilike.%${options.search}%,supplier_nama.ilike.%${options.search}%`);
       if (options?.startDate) query = query.gte('tanggal', options.startDate);
       if (options?.endDate) query = query.lte('tanggal', options.endDate);
 
-      const result = await safeQuery<{ data: any[], count: number | null }>(async () => {
+      const result = await safeQuery<{ data: any[]; count: number | null }>(async () => {
         const res = await query;
-        return { data: { data: res.data as any[], count: res.count }, error: res.error as Error | null };
+        return {
+          data: { data: res.data as any[], count: res.count },
+          error: res.error as Error | null,
+        };
       });
-      
+
       if (result.error) return { data: null, error: result.error, total: 0 };
-      
-      const transformedData = result.data?.data?.map(item => {
-        const total = item.items?.reduce((sum: number, returnItem: any) => sum + (returnItem.harga_final * returnItem.qty), 0) || 0;
+
+      const transformedData = result.data?.data?.map((item) => {
+        const total =
+          item.items?.reduce(
+            (sum: number, returnItem: any) => sum + returnItem.harga_final * returnItem.qty,
+            0,
+          ) || 0;
         return { ...item, total };
       });
-      
+
       return { data: transformedData || null, total: result.data?.count || 0, error: null };
     } catch (e: any) {
       return { data: null, error: { message: e.message }, total: 0 };
@@ -290,20 +337,27 @@ export const returnApi = {
 
   async getPenjualanReturnDetail(returnId: string) {
     const headerResult = await safeQuery<any>(async () => {
-      const result = await supabase.from('penjualan_return').select('*').eq('id', returnId).single();
+      const result = await supabase
+        .from('penjualan_return')
+        .select('*')
+        .eq('id', returnId)
+        .single();
       return { data: result.data, error: result.error as Error | null };
     });
     const itemsResult = await safeQuery<any[]>(async () => {
-      const result = await supabase.from('penjualan_return_items').select('*').eq('penjualan_return_id', returnId);
+      const result = await supabase
+        .from('penjualan_return_items')
+        .select('*')
+        .eq('penjualan_return_id', returnId);
       return { data: result.data, error: result.error as Error | null };
     });
 
     return {
       data: {
         ...headerResult?.data,
-        items: itemsResult?.data
+        items: itemsResult?.data,
       },
-      error: headerResult.error || itemsResult.error
+      error: headerResult.error || itemsResult.error,
     };
-  }
+  },
 };

@@ -24,24 +24,28 @@ A robust, modern, and offline-capable Inventory Management System and Point of S
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js (v20+) and npm
 - A Supabase project
 
 ### Installation
 
 1. Clone the repository and navigate to the project directory:
+
    ```bash
    git clone <repository-url>
    cd inventory
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Environment Variables:
    Copy `.env.example` to `.env.local` and configure your Supabase URL and Anon Key:
+
    ```bash
    cp .env.example .env.local
    ```

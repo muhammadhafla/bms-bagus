@@ -18,9 +18,12 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: 'bg-gradient-to-r from-accent-orange-500 to-accent-orange-600 text-white shadow-orange hover:shadow-orange-lg hover:from-accent-orange-600 hover:to-accent-orange-700',
-  secondary: 'bg-white dark:bg-neutral-900 border-2 border-neutral-200 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-50 dark:hover:bg-neutral-800',
-  ghost: 'bg-transparent text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800',
+  primary:
+    'bg-gradient-to-r from-accent-orange-500 to-accent-orange-600 text-white shadow-orange hover:shadow-orange-lg hover:from-accent-orange-600 hover:to-accent-orange-700',
+  secondary:
+    'bg-white dark:bg-neutral-900 border-2 border-neutral-200 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-50 dark:hover:bg-neutral-800',
+  ghost:
+    'bg-transparent text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800',
   danger: 'bg-accent-rose-500 text-white hover:bg-accent-rose-600 shadow-rose',
 };
 
@@ -30,62 +33,65 @@ const sizeStyles: Record<ButtonSize, string> = {
   lg: 'px-6 py-3 text-lg min-h-[48px]',
 };
 
-export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
-  variant = 'primary',
-  size = 'md',
-  loading = false,
-  fullWidth = false,
-  disabled,
-  leftIcon,
-  rightIcon,
-  children,
-  className = '',
-  onClick,
-  ...props
-}, ref) => {
-  const isDisabled = disabled || loading;
-  const haptic = useHaptic();
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  (
+    {
+      variant = 'primary',
+      size = 'md',
+      loading = false,
+      fullWidth = false,
+      disabled,
+      leftIcon,
+      rightIcon,
+      children,
+      className = '',
+      onClick,
+      ...props
+    },
+    ref,
+  ) => {
+    const isDisabled = disabled || loading;
+    const haptic = useHaptic();
 
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (isDisabled) return;
-    
-    // Berikan efek haptic berdasarkan varian tombol
-    if (variant === 'danger') {
-      haptic.heavy();
-    } else if (variant === 'primary') {
-      haptic.medium();
-    } else {
-      haptic.light();
-    }
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (isDisabled) return;
 
-    if (onClick) {
-      onClick(e);
-    }
-  };
+      // Berikan efek haptic berdasarkan varian tombol
+      if (variant === 'danger') {
+        haptic.heavy();
+      } else if (variant === 'primary') {
+        haptic.medium();
+      } else {
+        haptic.light();
+      }
 
-  return (
-    <button
-      ref={ref}
-      disabled={isDisabled}
-      onClick={handleClick}
-      className={[
-        'inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-200 btn-press focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900',
-        variantStyles[variant],
-        sizeStyles[size],
-        fullWidth && 'w-full',
-        isDisabled && 'opacity-50 cursor-not-allowed',
-        className,
-      ].join(' ')}
-      {...props}
-    >
-      {loading ? (
-        <IconLoader2 className="w-4 h-4 animate-spin" />
-      ) : leftIcon}
-      {children}
-      {!loading && rightIcon}
-    </button>
-  );
-});
+      if (onClick) {
+        onClick(e);
+      }
+    };
+
+    return (
+      <button
+        ref={ref}
+        disabled={isDisabled}
+        onClick={handleClick}
+        className={[
+          'btn-press focus-visible:ring-brand-500 inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900',
+          variantStyles[variant],
+          sizeStyles[size],
+          fullWidth && 'w-full',
+          isDisabled && 'cursor-not-allowed opacity-50',
+          className,
+        ].join(' ')}
+        {...props}
+      >
+        {loading ? <IconLoader2 className="h-4 w-4 animate-spin" /> : leftIcon}
+        {children}
+        {!loading && rightIcon}
+      </button>
+    );
+  },
+);
 
 Button.displayName = 'Button';
 

@@ -8,7 +8,7 @@ describe('Modal Accessibility', () => {
     render(
       <Modal isOpen={false} onClose={vi.fn()}>
         <div>Modal Content</div>
-      </Modal>
+      </Modal>,
     );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
@@ -18,13 +18,13 @@ describe('Modal Accessibility', () => {
     render(
       <Modal isOpen={true} onClose={handleClose} title="Test Modal Title">
         <div>Modal Content</div>
-      </Modal>
+      </Modal>,
     );
 
     const dialog = screen.getByRole('dialog');
     expect(dialog).toBeInTheDocument();
     expect(dialog).toHaveAttribute('aria-modal', 'true');
-    
+
     // Verify aria-labelledby matches the heading ID
     const heading = screen.getByRole('heading', { name: 'Test Modal Title', level: 2 });
     expect(heading).toBeInTheDocument();
@@ -36,7 +36,7 @@ describe('Modal Accessibility', () => {
     render(
       <Modal isOpen={true} onClose={vi.fn()}>
         <div>Modal Content</div>
-      </Modal>
+      </Modal>,
     );
 
     const dialog = screen.getByRole('dialog');
@@ -50,7 +50,7 @@ describe('Modal Accessibility', () => {
     render(
       <Modal isOpen={true} onClose={handleClose} title="Test Modal Title">
         <div>Modal Content</div>
-      </Modal>
+      </Modal>,
     );
 
     fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
@@ -62,7 +62,7 @@ describe('Modal Accessibility', () => {
     render(
       <Modal isOpen={true} onClose={handleClose} title="Test Modal Title">
         <div>Modal Content</div>
-      </Modal>
+      </Modal>,
     );
 
     const backdrop = document.querySelector('.bg-black\\/50');

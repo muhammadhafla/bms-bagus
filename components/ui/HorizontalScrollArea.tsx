@@ -6,7 +6,11 @@ export interface HorizontalScrollAreaProps extends React.HTMLAttributes<HTMLDivE
   children: React.ReactNode;
 }
 
-export function HorizontalScrollArea({ children, className = '', ...props }: HorizontalScrollAreaProps) {
+export function HorizontalScrollArea({
+  children,
+  className = '',
+  ...props
+}: HorizontalScrollAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,7 +29,7 @@ export function HorizontalScrollArea({ children, className = '', ...props }: Hor
     el.addEventListener('touchstart', stopPropagation, options);
     el.addEventListener('touchmove', stopPropagation, options);
     el.addEventListener('touchend', stopPropagation, options);
-    
+
     el.addEventListener('pointerdown', stopPropagation, options);
     el.addEventListener('pointermove', stopPropagation, options);
     el.addEventListener('pointerup', stopPropagation, options);
@@ -34,7 +38,7 @@ export function HorizontalScrollArea({ children, className = '', ...props }: Hor
       el.removeEventListener('touchstart', stopPropagation, options);
       el.removeEventListener('touchmove', stopPropagation, options);
       el.removeEventListener('touchend', stopPropagation, options);
-      
+
       el.removeEventListener('pointerdown', stopPropagation, options);
       el.removeEventListener('pointermove', stopPropagation, options);
       el.removeEventListener('pointerup', stopPropagation, options);
@@ -42,9 +46,9 @@ export function HorizontalScrollArea({ children, className = '', ...props }: Hor
   }, []);
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      className={`overflow-x-auto hide-scrollbar touch-pan-x ${className}`}
+      className={`hide-scrollbar touch-pan-x overflow-x-auto ${className}`}
       {...props}
     >
       {children}

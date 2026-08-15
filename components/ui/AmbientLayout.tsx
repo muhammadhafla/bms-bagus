@@ -7,9 +7,7 @@ interface AmbientLayoutProps {
 export default function AmbientLayout({ children }: AmbientLayoutProps) {
   return (
     <div className="relative w-full">
-      <div className="relative z-10 flex flex-col min-h-full">
-        {children}
-      </div>
+      <div className="relative z-10 flex min-h-full flex-col">{children}</div>
     </div>
   );
 }

@@ -15,7 +15,13 @@ interface TransactionModalProps {
   isBottomSheet?: boolean;
 }
 
-export function TransactionModal({ isOpen, onClose, transactionId, transactionType, isBottomSheet = true }: TransactionModalProps) {
+export function TransactionModal({
+  isOpen,
+  onClose,
+  transactionId,
+  transactionType,
+  isBottomSheet = true,
+}: TransactionModalProps) {
   const { data, isLoading, error } = useQuery({
     queryKey: ['transactionDetail', transactionType, transactionId],
     queryFn: async () => {
@@ -35,57 +41,88 @@ export function TransactionModal({ isOpen, onClose, transactionId, transactionTy
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
-    return formatDateTimeWIB(dateStr, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return formatDateTimeWIB(dateStr, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Detail ${transactionType === 'penjualan' ? 'Penjualan' : 'Pembelian'}`} size="lg" isBottomSheetOnMobile={isBottomSheet}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`Detail ${transactionType === 'penjualan' ? 'Penjualan' : 'Pembelian'}`}
+      size="lg"
+      isBottomSheetOnMobile={isBottomSheet}
+    >
       <div className="space-y-6">
         {isLoading ? (
-          <div className="flex justify-center items-center py-10">
-            <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="flex items-center justify-center py-10">
+            <div className="border-brand-500 h-8 w-8 animate-spin rounded-full border-4 border-t-transparent"></div>
           </div>
         ) : error ? (
-          <div className="text-center py-10 text-accent-rose-500">
-            Gagal memuat data transaksi.
-          </div>
+          <div className="text-accent-rose-500 py-10 text-center">Gagal memuat data transaksi.</div>
         ) : data ? (
           <>
-            <div className="flex flex-col sm:flex-row gap-3 sm:justify-between sm:items-start border-b border-neutral-200 dark:border-neutral-800 pb-4">
+            <div className="flex flex-col gap-3 border-b border-neutral-200 pb-4 sm:flex-row sm:items-start sm:justify-between dark:border-neutral-800">
               <div>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-0.5 uppercase tracking-wide font-medium">ID Transaksi</p>
+                <p className="mb-0.5 text-xs font-medium tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
+                  ID Transaksi
+                </p>
                 <div className="flex items-center gap-1.5">
-                  <p className="font-mono font-medium text-neutral-900 dark:text-neutral-100 text-xs sm:text-sm break-all">{data.id}</p>
-                  <button 
-                    onClick={() => navigator.clipboard.writeText(data.id)} 
-                    className="p-1 text-neutral-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/30 rounded transition-colors shrink-0" 
+                  <p className="font-mono text-xs font-medium break-all text-neutral-900 sm:text-sm dark:text-neutral-100">
+                    {data.id}
+                  </p>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(data.id)}
+                    className="hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/30 shrink-0 rounded p-1 text-neutral-400 transition-colors"
                     title="Salin ID"
                   >
-                    <IconCopy className="w-3.5 h-3.5" />
+                    <IconCopy className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>
-              <div className="sm:text-right shrink-0">
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-0.5 uppercase tracking-wide font-medium">Tanggal</p>
-                <p className="font-medium text-neutral-900 dark:text-neutral-100 text-sm">{formatDate(data.created_at || data.tanggal)}</p>
+              <div className="shrink-0 sm:text-right">
+                <p className="mb-0.5 text-xs font-medium tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
+                  Tanggal
+                </p>
+                <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                  {formatDate(data.created_at || data.tanggal)}
+                </p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Daftar Item</h4>
+              <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                Daftar Item
+              </h4>
               <div className="max-h-60 overflow-y-auto pr-2">
-                <div className="divide-y divide-neutral-200 dark:divide-neutral-800 border-b border-neutral-200 dark:border-neutral-800">
+                <div className="divide-y divide-neutral-200 border-b border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
                   {data.items?.map((item: any, index: number) => (
-                    <div key={index} className="flex justify-between items-start py-2.5">
+                    <div key={index} className="flex items-start justify-between py-2.5">
                       <div>
-                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{item.nama_barang}</p>
+                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                          {item.nama_barang}
+                        </p>
                         <p className="text-xs text-neutral-500 dark:text-neutral-400">
                           {item.qty} x {formatCurrency(item.harga_jual || item.harga_beli || 0)}
-                          {item.diskon > 0 && <span className="text-accent-rose-500 ml-1">(Diskon {formatCurrency(item.diskon)})</span>}
+                          {item.diskon > 0 && (
+                            <span className="text-accent-rose-500 ml-1">
+                              (Diskon {formatCurrency(item.diskon)})
+                            </span>
+                          )}
                         </p>
                       </div>
-                      <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 pt-0.5">
-                        {formatCurrency(item.subtotal || ((item.harga_final || ((item.harga_jual || item.harga_beli || 0) - (item.diskon || 0))) * item.qty))}
+                      <p className="pt-0.5 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                        {formatCurrency(
+                          item.subtotal ||
+                            (item.harga_final ||
+                              (item.harga_jual || item.harga_beli || 0) - (item.diskon || 0)) *
+                              item.qty,
+                        )}
                       </p>
                     </div>
                   ))}
@@ -93,15 +130,17 @@ export function TransactionModal({ isOpen, onClose, transactionId, transactionTy
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-2">
-              <p className="font-bold text-base text-neutral-900 dark:text-neutral-100">Total</p>
-              <p className="font-bold text-lg text-brand-600 dark:text-brand-400">
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-base font-bold text-neutral-900 dark:text-neutral-100">Total</p>
+              <p className="text-brand-600 dark:text-brand-400 text-lg font-bold">
                 {formatCurrency(data.total || data.total_sistem || 0)}
               </p>
             </div>
-            
+
             <div className="pt-6">
-               <Button onClick={onClose} variant="secondary" fullWidth>Tutup</Button>
+              <Button onClick={onClose} variant="secondary" fullWidth>
+                Tutup
+              </Button>
             </div>
           </>
         ) : null}

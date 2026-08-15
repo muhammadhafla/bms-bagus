@@ -6,7 +6,6 @@ import { DataTable } from './DataTable/DataTable';
 import { Pagination } from './DataTable/Pagination';
 
 describe('Accessibility Verification Tests', () => {
-  
   describe('DateRangePicker Accessibility', () => {
     it('1. Escape key closes DateRangePicker', async () => {
       const handleChange = vi.fn();
@@ -16,13 +15,13 @@ describe('Accessibility Verification Tests', () => {
           endDate="2026-07-07"
           onChange={handleChange}
           label="Pilih Periode Laporan"
-        />
+        />,
       );
 
       // Open popover
       const trigger = screen.getByRole('button');
       fireEvent.click(trigger);
-      
+
       // Verify popover is open (role="dialog" is in the document)
       expect(screen.getByRole('dialog')).toBeInTheDocument();
 
@@ -43,7 +42,7 @@ describe('Accessibility Verification Tests', () => {
           endDate="2026-07-07"
           onChange={handleChange}
           label="Pilih Periode Laporan"
-        />
+        />,
       );
 
       const trigger = screen.getByRole('button');
@@ -57,10 +56,10 @@ describe('Accessibility Verification Tests', () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const popover = screen.getByRole('dialog');
-      
+
       // Get all focusable elements inside popover
       const focusable = Array.from(
-        popover.querySelectorAll('button:not([disabled]), input:not([disabled])')
+        popover.querySelectorAll('button:not([disabled]), input:not([disabled])'),
       ) as HTMLElement[];
 
       expect(focusable.length).toBeGreaterThan(0);
@@ -77,12 +76,16 @@ describe('Accessibility Verification Tests', () => {
 
       // Shift+Tab on the first element should wrap around to the last element
       firstFocusable.focus();
-      fireEvent.keyDown(document.activeElement || document.body, { key: 'Tab', code: 'Tab', shiftKey: true });
+      fireEvent.keyDown(document.activeElement || document.body, {
+        key: 'Tab',
+        code: 'Tab',
+        shiftKey: true,
+      });
       expect(document.activeElement).toBe(lastFocusable);
 
       // Close popover
       fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
-      
+
       await waitFor(() => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       });
@@ -95,11 +98,11 @@ describe('Accessibility Verification Tests', () => {
   describe('DataTable Mobile Accessibility', () => {
     const columns = [
       { key: 'id', header: 'ID' },
-      { key: 'name', header: 'Nama' }
+      { key: 'name', header: 'Nama' },
     ];
     const data = [
       { id: '1', name: 'Item 1' },
-      { id: '2', name: 'Item 2' }
+      { id: '2', name: 'Item 2' },
     ];
 
     it('3. Mobile DataTable elements have correct list roles (when non-interactive)', () => {
@@ -109,7 +112,7 @@ describe('Accessibility Verification Tests', () => {
           data={data}
           keyField="id"
           mobileRender={(item) => <div>{item.name}</div>}
-        />
+        />,
       );
 
       // Mobile view parent should have role="list"
@@ -130,7 +133,7 @@ describe('Accessibility Verification Tests', () => {
           keyField="id"
           onRowClick={handleRowClick}
           mobileRender={(item) => <div>{item.name}</div>}
-        />
+        />,
       );
 
       // Mobile view parent should have role="list"
@@ -146,13 +149,7 @@ describe('Accessibility Verification Tests', () => {
   describe('Pagination Accessibility', () => {
     it('4. Pagination has correct nav roles, labels, and aria-current page values', () => {
       const handlePageChange = vi.fn();
-      render(
-        <Pagination
-          currentPage={2}
-          totalPages={5}
-          onPageChange={handlePageChange}
-        />
-      );
+      render(<Pagination currentPage={2} totalPages={5} onPageChange={handlePageChange} />);
 
       // Nav role and label
       const nav = screen.getByRole('navigation');
@@ -166,7 +163,7 @@ describe('Accessibility Verification Tests', () => {
       expect(nextButton).toBeInTheDocument();
 
       // Page buttons and aria-current
-      const pageButtons = screen.getAllByRole('button').filter(btn => {
+      const pageButtons = screen.getAllByRole('button').filter((btn) => {
         const text = btn.textContent;
         return text && /^[0-9]+$/.test(text);
       });
@@ -175,11 +172,11 @@ describe('Accessibility Verification Tests', () => {
       expect(pageButtons).toHaveLength(5);
 
       // Active page (2) should have aria-current="page"
-      const activePageBtn = pageButtons.find(btn => btn.textContent === '2');
+      const activePageBtn = pageButtons.find((btn) => btn.textContent === '2');
       expect(activePageBtn).toHaveAttribute('aria-current', 'page');
 
       // Inactive pages should not have aria-current
-      const inactivePageBtn = pageButtons.find(btn => btn.textContent === '1');
+      const inactivePageBtn = pageButtons.find((btn) => btn.textContent === '1');
       expect(inactivePageBtn).not.toHaveAttribute('aria-current');
     });
   });

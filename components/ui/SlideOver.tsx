@@ -21,11 +21,14 @@ export function SlideOver({ isOpen, onClose, title, children, size = 'md' }: Sli
     setMounted(true);
   }, []);
 
-  const handleEscape = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  }, [onClose]);
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    },
+    [onClose],
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -51,25 +54,23 @@ export function SlideOver({ isOpen, onClose, title, children, size = 'md' }: Sli
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex justify-end">
-      <div 
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-      />
-      <div ref={focusTrapRef} className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-neutral-950 shadow-xl flex flex-col h-full animate-slide-in`}>
-        <div className="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-800">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div
+        ref={focusTrapRef}
+        className={`relative w-full ${sizeClasses[size]} animate-slide-in flex h-full flex-col bg-white shadow-xl dark:bg-neutral-950`}
+      >
+        <div className="flex items-center justify-between border-b border-neutral-200 p-4 dark:border-neutral-800">
           <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">{title}</h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition-colors"
+            className="rounded-lg p-2 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
           >
-            <IconX className="w-5 h-5" />
+            <IconX className="h-5 w-5" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-4">
-          {children}
-        </div>
+        <div className="flex-1 overflow-y-auto p-4">{children}</div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

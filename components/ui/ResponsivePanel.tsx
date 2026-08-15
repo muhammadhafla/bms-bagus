@@ -23,8 +23,7 @@ export function ResponsivePanel({
   const [direction, setDirection] = useState<'bottom' | 'right'>('bottom');
 
   useEffect(() => {
-    const update = () =>
-      setDirection(window.innerWidth >= 1024 ? 'right' : 'bottom');
+    const update = () => setDirection(window.innerWidth >= 1024 ? 'right' : 'bottom');
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
@@ -43,34 +42,28 @@ export function ResponsivePanel({
         <Drawer.Overlay className="fixed inset-0 z-[100] bg-black/50" />
 
         <Drawer.Content
-          className={`
-            fixed z-[101] bg-white dark:bg-neutral-950 flex flex-col
-            focus:outline-none
-            ${isDesktop
+          className={`fixed z-[101] flex flex-col bg-white focus:outline-none dark:bg-neutral-950 ${
+            isDesktop
               ? 'top-0 right-0 h-full w-full max-w-md shadow-xl'
-              : 'bottom-0 left-0 right-0 rounded-t-2xl max-h-[92svh] pb-[env(safe-area-inset-bottom)]'
-            }
-          `}
+              : 'right-0 bottom-0 left-0 max-h-[92svh] rounded-t-2xl pb-[env(safe-area-inset-bottom)]'
+          } `}
         >
           {/* Drag handle — hanya di mobile */}
           {!isDesktop && (
-            <div className="flex justify-center pt-3 pb-1 shrink-0">
-              <div className="w-12 h-1.5 bg-neutral-300 dark:bg-neutral-700 rounded-full" />
+            <div className="flex shrink-0 justify-center pt-3 pb-1">
+              <div className="h-1.5 w-12 rounded-full bg-neutral-300 dark:bg-neutral-700" />
             </div>
           )}
 
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4
-                          border-b border-neutral-200 dark:border-neutral-800 shrink-0">
+          <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
             <Drawer.Title className="text-lg font-semibold text-neutral-900 dark:text-white">
               {title}
             </Drawer.Title>
           </div>
 
           {/* Konten scrollable */}
-          <div className="flex-1 overflow-y-auto p-5">
-            {children}
-          </div>
+          <div className="flex-1 overflow-y-auto p-5">{children}</div>
         </Drawer.Content>
       </Drawer.Portal>
     </Drawer.Root>

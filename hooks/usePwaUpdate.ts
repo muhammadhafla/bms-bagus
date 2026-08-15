@@ -20,7 +20,7 @@ export function usePwaUpdate() {
         setUpdateAvailable(true);
         // Registrasi diperlukan jika ingin memanggil postMessage
         if (event.sw) {
-           // We'll rely on wb.messageSkipWaiting() later
+          // We'll rely on wb.messageSkipWaiting() later
         }
       };
 

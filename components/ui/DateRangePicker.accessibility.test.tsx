@@ -12,13 +12,13 @@ describe('DateRangePicker Accessibility', () => {
         endDate="2026-07-07"
         onChange={handleChange}
         label="Pilih Periode Laporan"
-      />
+      />,
     );
 
     // Get trigger button
     const trigger = screen.getByRole('button', { name: /1 Jul - 7 Jul/i });
     expect(trigger).toBeInTheDocument();
-    
+
     // Check initial attributes when closed
     expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
@@ -53,13 +53,7 @@ describe('DateRangePicker Accessibility', () => {
 
   it('uses default aria-label when no label is provided', () => {
     const handleChange = vi.fn();
-    render(
-      <DateRangePicker
-        startDate="2026-07-01"
-        endDate="2026-07-07"
-        onChange={handleChange}
-      />
-    );
+    render(<DateRangePicker startDate="2026-07-01" endDate="2026-07-07" onChange={handleChange} />);
 
     const trigger = screen.getByRole('button', { name: /1 Jul - 7 Jul/i });
     fireEvent.click(trigger);

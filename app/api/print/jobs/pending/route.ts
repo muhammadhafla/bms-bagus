@@ -7,18 +7,20 @@ export async function GET(request: Request) {
     if (authError) return authError;
 
     const supabase = createAdminClient();
-    
+
     // Polling endpoint for POS to fetch pending jobs along with their templates
     const { data, error } = await supabase
       .from('print_jobs')
-      .select(`
+      .select(
+        `
         *,
         label_templates (
           name,
           language,
           content_json
         )
-      `)
+      `,
+      )
       .eq('status', 'Pending')
       .order('created_at', { ascending: true });
 

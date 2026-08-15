@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyAuth, createAdminClient } from '@/lib/api/auth-guard';
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { user, error: authError } = await verifyAuth(request);
     if (authError) return authError;
@@ -16,7 +13,10 @@ export async function PUT(
     const { name, language, content_json, active } = body;
 
     if (!name || !language || !content_json) {
-      return NextResponse.json({ error: 'Name, language, and content_json are required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Name, language, and content_json are required' },
+        { status: 400 },
+      );
     }
 
     const { data, error } = await supabase
@@ -41,10 +41,7 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { user, error: authError } = await verifyAuth(request);
     if (authError) return authError;
@@ -64,13 +61,13 @@ export async function DELETE(
     }
 
     if (count && count > 0) {
-      return NextResponse.json({ error: 'Cannot delete template. It is being used by existing print jobs.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Cannot delete template. It is being used by existing print jobs.' },
+        { status: 400 },
+      );
     }
 
-    const { error } = await supabase
-      .from('label_templates')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('label_templates').delete().eq('id', id);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });

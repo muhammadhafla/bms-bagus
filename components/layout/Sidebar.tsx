@@ -35,9 +35,7 @@ import {
 import { useSidebarContext } from './SidebarProvider';
 
 // Constants
-const NAV_ITEMS = [
-  { href: '/dashboard', title: 'Dashboard', icon: IconLayoutDashboard },
-];
+const NAV_ITEMS = [{ href: '/dashboard', title: 'Dashboard', icon: IconLayoutDashboard }];
 
 const INVENTORY_ITEMS = [
   { href: '/inventory', title: 'Stok', icon: IconPackage },
@@ -63,9 +61,7 @@ const PRINTING_ITEMS = [
   { href: '/master/label-templates', title: 'Template Label', icon: IconTags },
 ];
 
-const FINANCE_ITEMS = [
-  { href: '/finance/cash-flow', title: 'Arus Kas', icon: IconReport },
-];
+const FINANCE_ITEMS = [{ href: '/finance/cash-flow', title: 'Arus Kas', icon: IconReport }];
 
 interface SidebarLinkProps {
   href: string;
@@ -80,13 +76,13 @@ function SidebarLink({ href, title, icon: Icon, isActive, sidebarCollapsed }: Si
     <Link
       href={href}
       aria-current={isActive ? 'page' : undefined}
-      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
         isActive
           ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 font-semibold'
-          : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-100 dark:hover:bg-neutral-800'
+          : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100'
       }`}
     >
-      <Icon className={`w-4 h-4 flex-shrink-0 ${sidebarCollapsed ? 'lg:w-3 lg:h-3' : ''}`} />
+      <Icon className={`h-4 w-4 flex-shrink-0 ${sidebarCollapsed ? 'lg:h-3 lg:w-3' : ''}`} />
       <span className={`transition-all ${sidebarCollapsed ? 'lg:hidden' : 'lg:block'}`}>
         {title}
       </span>
@@ -95,7 +91,7 @@ function SidebarLink({ href, title, icon: Icon, isActive, sidebarCollapsed }: Si
 
   if (sidebarCollapsed) {
     return (
-      <Tooltip content={title} position="right" className="w-full block">
+      <Tooltip content={title} position="right" className="block w-full">
         {link}
       </Tooltip>
     );
@@ -110,22 +106,34 @@ export function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { theme, toggleTheme } = useDarkMode();
-  
+
   const {
-    sidebarHovered, setSidebarHovered,
-    userMenuOpen, setUserMenuOpen,
-    logoutConfirmOpen, setLogoutConfirmOpen,
-    isLoggingOut, setIsLoggingOut,
-    mobileMenuOpen, setMobileMenuOpen,
-    sidebarCollapsed, setSidebarCollapsed,
-    inventoryExpanded, setInventoryExpanded,
-    purchasingExpanded, setPurchasingExpanded,
-    transactionsExpanded, setTransactionsExpanded,
-    printingExpanded, setPrintingExpanded,
-    financeExpanded, setFinanceExpanded,
-    autoHideEnabled, setAutoHideEnabled,
+    sidebarHovered,
+    setSidebarHovered,
+    userMenuOpen,
+    setUserMenuOpen,
+    logoutConfirmOpen,
+    setLogoutConfirmOpen,
+    isLoggingOut,
+    setIsLoggingOut,
+    mobileMenuOpen,
+    setMobileMenuOpen,
+    sidebarCollapsed,
+    setSidebarCollapsed,
+    inventoryExpanded,
+    setInventoryExpanded,
+    purchasingExpanded,
+    setPurchasingExpanded,
+    transactionsExpanded,
+    setTransactionsExpanded,
+    printingExpanded,
+    setPrintingExpanded,
+    financeExpanded,
+    setFinanceExpanded,
+    autoHideEnabled,
+    setAutoHideEnabled,
     isSidebarVisible,
-    sidebarWidth
+    sidebarWidth,
   } = useSidebarContext();
 
   // Click-outside handler for userMenuOpen
@@ -141,7 +149,7 @@ export function Sidebar() {
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-    }
+    };
   }, [userMenuOpen, setUserMenuOpen]);
 
   // Auth redirect
@@ -187,174 +195,129 @@ export function Sidebar() {
       />
 
       <aside
-        className={`
-          fixed inset-y-0 left-0 z-50 flex flex-col transform transition-all duration-300 ease-in-out overflow-x-hidden
-          ${mobileMenuOpen ? 'translate-x-0 bg-neutral-50 dark:bg-neutral-950 shadow-xl' : '-translate-x-full lg:translate-x-0'}
-          ${sidebarWidth}
-        `}
+        className={`fixed inset-y-0 left-0 z-50 flex transform flex-col overflow-x-hidden transition-all duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0 bg-neutral-50 shadow-xl dark:bg-neutral-950' : '-translate-x-full lg:translate-x-0'} ${sidebarWidth} `}
         aria-label="Sidebar navigation"
         onMouseEnter={() => autoHideEnabled && setSidebarHovered(true)}
         onMouseLeave={() => autoHideEnabled && setSidebarHovered(false)}
       >
-          {/* Sidebar Header: Logo + Collapse Toggle */}
-          <div className={`p-4 flex items-center ${isSidebarVisible ? 'justify-between' : 'justify-center'}`}>
-            <Link href="/" className={`flex items-center ${isSidebarVisible ? 'gap-3' : 'gap-0'} ${!isSidebarVisible ? 'lg:justify-center' : ''}`}>
-              <div className={`relative flex items-center justify-center transition-all ${!isSidebarVisible && autoHideEnabled ? 'lg:w-6 lg:h-6' : 'w-10 h-10'} dark:bg-white dark:rounded-xl`}>
-                <Image src="/images/logo.svg" alt="BMS Logo" fill sizes="(max-width: 1023px) 24px, 40px" priority className="object-contain dark:p-1.5" />
-              </div>
-            </Link>
-            {isSidebarVisible && (
+        {/* Sidebar Header: Logo + Collapse Toggle */}
+        <div
+          className={`flex items-center p-4 ${isSidebarVisible ? 'justify-between' : 'justify-center'}`}
+        >
+          <Link
+            href="/"
+            className={`flex items-center ${isSidebarVisible ? 'gap-3' : 'gap-0'} ${!isSidebarVisible ? 'lg:justify-center' : ''}`}
+          >
+            <div
+              className={`relative flex items-center justify-center transition-all ${!isSidebarVisible && autoHideEnabled ? 'lg:h-6 lg:w-6' : 'h-10 w-10'} dark:rounded-xl dark:bg-white`}
+            >
+              <Image
+                src="/images/logo.svg"
+                alt="BMS Logo"
+                fill
+                sizes="(max-width: 1023px) 24px, 40px"
+                priority
+                className="object-contain dark:p-1.5"
+              />
+            </div>
+          </Link>
+          {isSidebarVisible && (
+            <button
+              onClick={() => setAutoHideEnabled((prev: boolean) => !prev)}
+              className={`hidden rounded-lg p-2 transition-colors lg:block ${autoHideEnabled ? 'bg-brand-100 dark:bg-brand-900 text-brand-600 dark:text-brand-400' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}
+              aria-label={autoHideEnabled ? 'Disable auto-hide' : 'Enable auto-hide'}
+            >
+              {autoHideEnabled ? (
+                <IconMenu2 className="h-5 w-5" />
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m15 18-6-6 6-6" />
+                </svg>
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 space-y-4 overflow-x-hidden overflow-y-auto px-3 py-4">
+          {/* Main Navigation */}
+          <div className="space-y-1">
+            {navItems.map((item) => (
+              <SidebarLink
+                key={item.href}
+                href={item.href}
+                title={item.title}
+                icon={item.icon}
+                isActive={pathname === item.href}
+                sidebarCollapsed={!isSidebarVisible}
+              />
+            ))}
+          </div>
+
+          {/* Inventory Group */}
+          <div className="space-y-1">
+            {(isSidebarVisible || mobileMenuOpen) && (
               <button
-                onClick={() => setAutoHideEnabled((prev: boolean) => !prev)}
-                className={`p-2 rounded-lg transition-colors hidden lg:block ${autoHideEnabled ? 'bg-brand-100 dark:bg-brand-900 text-brand-600 dark:text-brand-400' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}
-                aria-label={autoHideEnabled ? 'Disable auto-hide' : 'Enable auto-hide'}
+                type="button"
+                onClick={() => setInventoryExpanded((prev: boolean) => !prev)}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase transition-colors hover:bg-neutral-200/50 dark:text-neutral-500 dark:hover:bg-neutral-800/50"
+                aria-expanded={inventoryExpanded}
               >
-                {autoHideEnabled ? (
-                  <IconMenu2 className="w-5 h-5" />
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                <span className="flex-1 text-left">Stok</span>
+                {isSidebarVisible && (
+                  <IconChevronRight
+                    className={`h-3 w-3 transition-transform ${inventoryExpanded ? 'rotate-90' : ''}`}
+                  />
                 )}
               </button>
             )}
+            {inventoryExpanded && (isSidebarVisible || mobileMenuOpen) ? (
+              <div className="space-y-1 pl-2">
+                {INVENTORY_ITEMS.map((item) => (
+                  <SidebarLink
+                    key={item.href}
+                    href={item.href}
+                    title={item.title}
+                    icon={item.icon}
+                    isActive={pathname === item.href}
+                    sidebarCollapsed={!isSidebarVisible}
+                  />
+                ))}
+              </div>
+            ) : null}
           </div>
 
-         {/* Navigation */}
-         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-4 overflow-x-hidden">
-           {/* Main Navigation */}
-           <div className="space-y-1">
-             {navItems.map((item) => (
-               <SidebarLink
-                 key={item.href}
-                 href={item.href}
-                 title={item.title}
-                 icon={item.icon}
-                 isActive={pathname === item.href}
-                 sidebarCollapsed={!isSidebarVisible}
-               />
-             ))}
-           </div>
-
-           {/* Inventory Group */}
-           <div className="space-y-1">
-             {(isSidebarVisible || mobileMenuOpen) && (
-               <button
-                 type="button"
-                 onClick={() => setInventoryExpanded((prev: boolean) => !prev)}
-                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-colors"
-                 aria-expanded={inventoryExpanded}
-               >
-                 <span className="flex-1 text-left">Stok</span>
-                 {isSidebarVisible && (
-                   <IconChevronRight
-                     className={`w-3 h-3 transition-transform ${inventoryExpanded ? 'rotate-90' : ''}`}
-                   />
-                 )}
-               </button>
-             )}
-              {(inventoryExpanded && (isSidebarVisible || mobileMenuOpen)) ? (
-                <div className="space-y-1 pl-2">
-                  {INVENTORY_ITEMS.map((item) => (
-                    <SidebarLink
-                      key={item.href}
-                      href={item.href}
-                      title={item.title}
-                      icon={item.icon}
-                      isActive={pathname === item.href}
-                      sidebarCollapsed={!isSidebarVisible}
-                    />
-                  ))}
-                </div>
-              ) : null}
-           </div>
-
-           {/* Purchasing Group */}
-           {isAdminUser && (
-             <div className="space-y-1">
-               {(isSidebarVisible || mobileMenuOpen) && (
-                 <button
-                   type="button"
-                   onClick={() => setPurchasingExpanded((prev: boolean) => !prev)}
-                   className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-colors"
-                   aria-expanded={purchasingExpanded}
-                 >
-                   <span className="flex-1 text-left">Pembelian</span>
-                   {isSidebarVisible && (
-                     <IconChevronRight
-                       className={`w-3 h-3 transition-transform ${purchasingExpanded ? 'rotate-90' : ''}`}
-                     />
-                   )}
-                 </button>
-               )}
-                {(purchasingExpanded && (isSidebarVisible || mobileMenuOpen)) ? (
-                  <div className="space-y-1 pl-2">
-                    {PURCHASING_ITEMS.map((item) => (
-                      <SidebarLink
-                        key={item.href}
-                        href={item.href}
-                        title={item.title}
-                        icon={item.icon}
-                        isActive={pathname === item.href}
-                        sidebarCollapsed={!isSidebarVisible}
-                      />
-                    ))}
-                  </div>
-                ) : null}
-             </div>
-           )}
-
-            {/* Transactions Group */}
-            <div className="space-y-1">
-              {(isSidebarVisible || mobileMenuOpen) && (
-                 <button
-                  type="button"
-                  onClick={() => setTransactionsExpanded((prev: boolean) => !prev)}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-colors"
-                  aria-expanded={transactionsExpanded}
-                >
-                  <span className="flex-1 text-left">Transaksi</span>
-                  {isSidebarVisible && (
-                    <IconChevronRight
-                      className={`w-3 h-3 transition-transform ${transactionsExpanded ? 'rotate-90' : ''}`}
-                    />
-                  )}
-                </button>
-              )}
-              {(transactionsExpanded && (isSidebarVisible || mobileMenuOpen)) ? (
-                <div className="space-y-1 pl-2">
-                  {TRANSACTIONS_ITEMS.map((item) => (
-                    <SidebarLink
-                      key={item.href}
-                      href={item.href}
-                      title={item.title}
-                      icon={item.icon}
-                      isActive={pathname === item.href}
-                      sidebarCollapsed={!isSidebarVisible}
-                    />
-                  ))}
-                </div>
-              ) : null}
-            </div>
-
-            {/* Printing Group */}
+          {/* Purchasing Group */}
+          {isAdminUser && (
             <div className="space-y-1">
               {(isSidebarVisible || mobileMenuOpen) && (
                 <button
                   type="button"
-                  onClick={() => setPrintingExpanded((prev: boolean) => !prev)}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-colors"
-                  aria-expanded={printingExpanded}
+                  onClick={() => setPurchasingExpanded((prev: boolean) => !prev)}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase transition-colors hover:bg-neutral-200/50 dark:text-neutral-500 dark:hover:bg-neutral-800/50"
+                  aria-expanded={purchasingExpanded}
                 >
-                  <span className="flex-1 text-left">Pencetakan Label</span>
+                  <span className="flex-1 text-left">Pembelian</span>
                   {isSidebarVisible && (
                     <IconChevronRight
-                      className={`w-3 h-3 transition-transform ${printingExpanded ? 'rotate-90' : ''}`}
+                      className={`h-3 w-3 transition-transform ${purchasingExpanded ? 'rotate-90' : ''}`}
                     />
                   )}
                 </button>
               )}
-              {(printingExpanded && (isSidebarVisible || mobileMenuOpen)) ? (
+              {purchasingExpanded && (isSidebarVisible || mobileMenuOpen) ? (
                 <div className="space-y-1 pl-2">
-                  {PRINTING_ITEMS.filter(item => isAdminUser || item.href !== '/master/label-templates').map((item) => (
+                  {PURCHASING_ITEMS.map((item) => (
                     <SidebarLink
                       key={item.href}
                       href={item.href}
@@ -367,25 +330,95 @@ export function Sidebar() {
                 </div>
               ) : null}
             </div>
+          )}
 
-            {/* Finance Group */}
+          {/* Transactions Group */}
+          <div className="space-y-1">
+            {(isSidebarVisible || mobileMenuOpen) && (
+              <button
+                type="button"
+                onClick={() => setTransactionsExpanded((prev: boolean) => !prev)}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase transition-colors hover:bg-neutral-200/50 dark:text-neutral-500 dark:hover:bg-neutral-800/50"
+                aria-expanded={transactionsExpanded}
+              >
+                <span className="flex-1 text-left">Transaksi</span>
+                {isSidebarVisible && (
+                  <IconChevronRight
+                    className={`h-3 w-3 transition-transform ${transactionsExpanded ? 'rotate-90' : ''}`}
+                  />
+                )}
+              </button>
+            )}
+            {transactionsExpanded && (isSidebarVisible || mobileMenuOpen) ? (
+              <div className="space-y-1 pl-2">
+                {TRANSACTIONS_ITEMS.map((item) => (
+                  <SidebarLink
+                    key={item.href}
+                    href={item.href}
+                    title={item.title}
+                    icon={item.icon}
+                    isActive={pathname === item.href}
+                    sidebarCollapsed={!isSidebarVisible}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          {/* Printing Group */}
+          <div className="space-y-1">
+            {(isSidebarVisible || mobileMenuOpen) && (
+              <button
+                type="button"
+                onClick={() => setPrintingExpanded((prev: boolean) => !prev)}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase transition-colors hover:bg-neutral-200/50 dark:text-neutral-500 dark:hover:bg-neutral-800/50"
+                aria-expanded={printingExpanded}
+              >
+                <span className="flex-1 text-left">Pencetakan Label</span>
+                {isSidebarVisible && (
+                  <IconChevronRight
+                    className={`h-3 w-3 transition-transform ${printingExpanded ? 'rotate-90' : ''}`}
+                  />
+                )}
+              </button>
+            )}
+            {printingExpanded && (isSidebarVisible || mobileMenuOpen) ? (
+              <div className="space-y-1 pl-2">
+                {PRINTING_ITEMS.filter(
+                  (item) => isAdminUser || item.href !== '/master/label-templates',
+                ).map((item) => (
+                  <SidebarLink
+                    key={item.href}
+                    href={item.href}
+                    title={item.title}
+                    icon={item.icon}
+                    isActive={pathname === item.href}
+                    sidebarCollapsed={!isSidebarVisible}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          {/* Finance Group */}
+          {isAdminUser && (
             <div className="space-y-1">
               {(isSidebarVisible || mobileMenuOpen) && (
                 <button
                   type="button"
                   onClick={() => setFinanceExpanded((prev: boolean) => !prev)}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-colors"
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase transition-colors hover:bg-neutral-200/50 dark:text-neutral-500 dark:hover:bg-neutral-800/50"
                   aria-expanded={financeExpanded}
                 >
                   <span className="flex-1 text-left">Keuangan</span>
                   {isSidebarVisible && (
                     <IconChevronRight
-                      className={`w-3 h-3 transition-transform ${financeExpanded ? 'rotate-90' : ''}`}
+                      className={`h-3 w-3 transition-transform ${financeExpanded ? 'rotate-90' : ''}`}
                     />
                   )}
                 </button>
               )}
-              {(financeExpanded && (isSidebarVisible || mobileMenuOpen)) ? (
+              {financeExpanded && (isSidebarVisible || mobileMenuOpen) ? (
                 <div className="space-y-1 pl-2">
                   {FINANCE_ITEMS.map((item) => (
                     <SidebarLink
@@ -400,54 +433,59 @@ export function Sidebar() {
                 </div>
               ) : null}
             </div>
-         </nav>
+          )}
+        </nav>
 
         {/* Sidebar Footer: User Dropup Menu */}
-        <div id="user-menu-container" className="p-3 relative">
+        <div id="user-menu-container" className="relative p-3">
           {/* User Menu Trigger */}
           <button
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all relative"
+            className="relative flex w-full items-center gap-3 rounded-lg p-2 transition-all hover:bg-neutral-100 dark:hover:bg-neutral-800"
             aria-label="Open user menu"
             aria-expanded={userMenuOpen}
           >
             {/* Avatar */}
             {profile?.avatar_url ? (
-              <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-neutral-200 dark:border-neutral-700">
-                <Image src={profile.avatar_url} alt="Avatar" fill className="object-cover" sizes="32px" />
+              <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full border border-neutral-200 dark:border-neutral-700">
+                <Image
+                  src={profile.avatar_url}
+                  alt="Avatar"
+                  fill
+                  className="object-cover"
+                  sizes="32px"
+                />
               </div>
             ) : (
-              <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                {profile?.nama?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+              <div className="bg-brand-500 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white">
+                {profile?.nama?.charAt(0)?.toUpperCase() ||
+                  user?.email?.charAt(0)?.toUpperCase() ||
+                  'U'}
               </div>
             )}
             {isSidebarVisible && (
-              <div className="flex-1 min-w-0 text-left">
-                <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
+              <div className="min-w-0 flex-1 text-left">
+                <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
                   {profile?.nama || 'User'}
                 </p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                <p className="truncate text-xs text-neutral-500 dark:text-neutral-400">
                   {user?.email}
                 </p>
               </div>
             )}
-            {isSidebarVisible && (
-              <IconDotsVertical className="w-4 h-4 text-neutral-400" />
-            )}
+            {isSidebarVisible && <IconDotsVertical className="h-4 w-4 text-neutral-400" />}
           </button>
 
           {/* Dropup Menu */}
           {userMenuOpen && (
-            <div className="absolute bottom-full left-2 right-2 mb-2 bg-white dark:bg-neutral-900 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1 z-50">
+            <div className="absolute right-2 bottom-full left-2 z-50 mb-2 rounded-lg border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900">
               {/* Account Info Section */}
-              <div className="px-3 py-2 border-b border-neutral-200 dark:border-neutral-700">
+              <div className="border-b border-neutral-200 px-3 py-2 dark:border-neutral-700">
                 <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                   {profile?.nama || 'User'}
                 </p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  {user?.email}
-                </p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 capitalize">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">{user?.email}</p>
+                <p className="text-xs text-neutral-500 capitalize dark:text-neutral-400">
                   {profile?.role || 'Staff'}
                 </p>
               </div>
@@ -456,9 +494,9 @@ export function Sidebar() {
               <Link
                 href="/profile"
                 onClick={() => setUserMenuOpen(false)}
-                className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-800"
               >
-                <IconUsers className="w-4 h-4" />
+                <IconUsers className="h-4 w-4" />
                 <span>Edit Profil</span>
               </Link>
 
@@ -468,9 +506,13 @@ export function Sidebar() {
                   toggleTheme();
                   setUserMenuOpen(false);
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-800"
               >
-                {theme === 'dark' ? <IconSun className="w-4 h-4" /> : <IconMoon className="w-4 h-4" />}
+                {theme === 'dark' ? (
+                  <IconSun className="h-4 w-4" />
+                ) : (
+                  <IconMoon className="h-4 w-4" />
+                )}
                 <span>{theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'}</span>
               </button>
 
@@ -480,9 +522,9 @@ export function Sidebar() {
                   setUserMenuOpen(false);
                   setLogoutConfirmOpen(true);
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-neutral-100 dark:text-red-400 dark:hover:bg-neutral-800"
               >
-                <IconLogout className="w-4 h-4" />
+                <IconLogout className="h-4 w-4" />
                 <span>Keluar</span>
               </button>
             </div>

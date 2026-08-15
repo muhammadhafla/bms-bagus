@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-const FOCUSABLE_ELEMENTS_SELECTOR = 
+const FOCUSABLE_ELEMENTS_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function useFocusTrap(isActive: boolean) {
@@ -17,7 +17,7 @@ export function useFocusTrap(isActive: boolean) {
     if (!container) return;
 
     const focusableElements = Array.from(
-      container.querySelectorAll<HTMLElement>(FOCUSABLE_ELEMENTS_SELECTOR)
+      container.querySelectorAll<HTMLElement>(FOCUSABLE_ELEMENTS_SELECTOR),
     );
 
     if (focusableElements.length > 0) {
@@ -31,7 +31,7 @@ export function useFocusTrap(isActive: boolean) {
       if (e.key !== 'Tab') return;
 
       const focusable = Array.from(
-        container.querySelectorAll<HTMLElement>(FOCUSABLE_ELEMENTS_SELECTOR)
+        container.querySelectorAll<HTMLElement>(FOCUSABLE_ELEMENTS_SELECTOR),
       );
 
       if (focusable.length === 0) {

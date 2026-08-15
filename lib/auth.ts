@@ -47,14 +47,10 @@ let sessionRefreshPromise: Promise<boolean> | null = null;
 const fetchProfile = async (userId: string): Promise<Profile | null> => {
   try {
     const result = await safeQuery<Profile>(async () => {
-      const response = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      return { 
-        data: response.data as Profile | null, 
-        error: response.error as Error | null 
+      const response = await supabase.from('profiles').select('*').eq('id', userId).single();
+      return {
+        data: response.data as Profile | null,
+        error: response.error as Error | null,
       };
     });
 
@@ -81,7 +77,7 @@ async function retryWithBackoff<T>(fn: () => Promise<T>, retries = MAX_RETRY): P
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       if (i < retries - 1) {
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (i + 1)));
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY * (i + 1)));
       }
     }
   }
@@ -142,16 +138,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     set({ sessionExpiryTime: expiryTimestamp });
 
-    const warningTime = expiryTimestamp - (5 * 60 * 1000);
+    const warningTime = expiryTimestamp - 5 * 60 * 1000;
     const now = Date.now();
 
     if (warningTime > now && !sessionWarningShown) {
       const timerId = setTimeout(() => {
         const currentExpiry = get().sessionExpiryTime;
         if (currentExpiry === expiryTimestamp && !get().sessionWarningShown) {
-          window.dispatchEvent(new CustomEvent('auth:session-warning', {
-            detail: { message: 'Sesi Anda akan berakhir dalam 5 menit.' }
-          }));
+          window.dispatchEvent(
+            new CustomEvent('auth:session-warning', {
+              detail: { message: 'Sesi Anda akan berakhir dalam 5 menit.' },
+            }),
+          );
           set({ sessionWarningShown: true });
         }
       }, warningTime - now);
@@ -178,19 +176,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Fetch profile with guard
         const fetchId = ++profileFetchSeq;
         const profile = await fetchProfile(data.session.user.id);
-        
+
         if (fetchId === profileFetchSeq && profile) {
-          set({ 
-            user: data.session.user, 
+          set({
+            user: data.session.user,
             profile,
             isRefreshing: false,
-            initialized: true 
+            initialized: true,
           });
         } else {
-          set({ 
-            user: data.session.user, 
+          set({
+            user: data.session.user,
             isRefreshing: false,
-            initialized: true 
+            initialized: true,
           });
         }
 
@@ -206,7 +204,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     };
 
-    sessionRefreshPromise = doRefresh().finally(() => { sessionRefreshPromise = null; });
+    sessionRefreshPromise = doRefresh().finally(() => {
+      sessionRefreshPromise = null;
+    });
     return sessionRefreshPromise;
   },
 
@@ -216,7 +216,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // If no user, try to refresh to restore session
     if (!user) {
       if (isRefreshing) {
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise((resolve) => setTimeout(resolve, 300));
         return !!get().user;
       }
       return await get().refreshSession();
@@ -263,13 +263,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     if (sessionWarningTimerId) clearTimeout(sessionWarningTimerId);
     if (initTimeoutId) clearTimeout(initTimeoutId);
-    set({ 
-      authSubscription: null, 
+    set({
+      authSubscription: null,
       sessionWarningTimerId: null,
       initTimeoutId: null,
       isRefreshing: false,
       sessionExpiryTime: null,
-      sessionWarningShown: false 
+      sessionWarningShown: false,
     });
   },
 
@@ -289,108 +289,118 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       let lastUserId: string | null = null;
 
       // Set up auth state change listener - fires immediately with current session
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          const eventUserId = session?.user?.id || null;
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const eventUserId = session?.user?.id || null;
 
-          // Prevent stale events from previous user
-          if (eventUserId && lastUserId && eventUserId !== lastUserId && event !== 'SIGNED_IN' && event !== 'INITIAL_SESSION') {
-            return;
-          }
+        // Prevent stale events from previous user
+        if (
+          eventUserId &&
+          lastUserId &&
+          eventUserId !== lastUserId &&
+          event !== 'SIGNED_IN' &&
+          event !== 'INITIAL_SESSION'
+        ) {
+          return;
+        }
 
-          switch (event) {
-            case 'SIGNED_OUT':
+        switch (event) {
+          case 'SIGNED_OUT':
+            lastUserId = null;
+            set({ user: null, profile: null, initialized: true, isRefreshing: false });
+            break;
+
+          case 'TOKEN_REFRESHED':
+            if (!session) {
               lastUserId = null;
-              set({ user: null, profile: null, initialized: true, isRefreshing: false });
-              break;
+              set({ user: null, profile: null });
+              return;
+            }
+            // Token refreshed, update user
+            set({ user: session.user });
+            if (session.expires_at) {
+              get().setSessionExpiry(session.expires_at * 1000);
+            }
+            // Fetch profile with guard
+            const fetchId = ++profileFetchSeq;
+            fetchProfile(session.user.id)
+              .then((profile) => {
+                get()._setProfileIfLatest(fetchId, profile, session.user.id);
+              })
+              .catch((err) => {
+                console.error('Profile fetch error (TOKEN_REFRESHED):', err);
+              });
+            break;
 
-            case 'TOKEN_REFRESHED':
-              if (!session) {
-                lastUserId = null;
-                set({ user: null, profile: null });
-                return;
-              }
-              // Token refreshed, update user
-              set({ user: session.user });
+          case 'SIGNED_IN':
+          case 'INITIAL_SESSION':
+            if (session?.user) {
+              lastUserId = session.user.id;
+              const userId = session.user.id;
+              // Set user and initialized immediately to unblock UI
+              set({
+                user: session.user,
+                initialized: true,
+                isRefreshing: false,
+              });
+              // Set session expiry tracking
               if (session.expires_at) {
                 get().setSessionExpiry(session.expires_at * 1000);
               }
               // Fetch profile with guard
               const fetchId = ++profileFetchSeq;
-              fetchProfile(session.user.id).then(profile => {
-                get()._setProfileIfLatest(fetchId, profile, session.user.id);
-              }).catch(err => {
-                console.error('Profile fetch error (TOKEN_REFRESHED):', err);
-              });
-              break;
-
-            case 'SIGNED_IN':
-            case 'INITIAL_SESSION':
-              if (session?.user) {
-                lastUserId = session.user.id;
-                const userId = session.user.id;
-                // Set user and initialized immediately to unblock UI
-                set({ 
-                  user: session.user, 
-                  initialized: true, 
-                  isRefreshing: false 
-                });
-                // Set session expiry tracking
-                if (session.expires_at) {
-                  get().setSessionExpiry(session.expires_at * 1000);
-                }
-                // Fetch profile with guard
-                const fetchId = ++profileFetchSeq;
-                fetchProfile(userId).then(profile => {
+              fetchProfile(userId)
+                .then((profile) => {
                   get()._setProfileIfLatest(fetchId, profile, userId);
-                }).catch(err => {
+                })
+                .catch((err) => {
                   console.error('Profile fetch error (SIGNED_IN):', err);
                 });
-              } else {
-                lastUserId = null;
-                set({ user: null, profile: null, initialized: true, isRefreshing: false });
-              }
-              break;
+            } else {
+              lastUserId = null;
+              set({ user: null, profile: null, initialized: true, isRefreshing: false });
+            }
+            break;
 
-            case 'USER_UPDATED':
-              if (session?.user) {
-                const userId = session.user.id;
-                const fetchId = ++profileFetchSeq;
-                const profile = await fetchProfile(userId);
-                get()._setProfileIfLatest(fetchId, profile, userId);
-                // Always update user
-                set({ user: session.user });
-                if (session.expires_at) {
-                  get().setSessionExpiry(session.expires_at * 1000);
-                }
+          case 'USER_UPDATED':
+            if (session?.user) {
+              const userId = session.user.id;
+              const fetchId = ++profileFetchSeq;
+              const profile = await fetchProfile(userId);
+              get()._setProfileIfLatest(fetchId, profile, userId);
+              // Always update user
+              set({ user: session.user });
+              if (session.expires_at) {
+                get().setSessionExpiry(session.expires_at * 1000);
               }
-              break;
+            }
+            break;
 
-            case 'MFA_CHALLENGE_VERIFIED':
-              if (session?.user) {
-                lastUserId = session.user.id;
-                const userId = session.user.id;
-                const fetchId = ++profileFetchSeq;
-                const profile = await fetchProfile(userId);
-                get()._setProfileIfLatest(fetchId, profile, userId);
-                // Always update user
-                set({ user: session.user });
-                if (session.expires_at) {
-                  get().setSessionExpiry(session.expires_at * 1000);
-                }
+          case 'MFA_CHALLENGE_VERIFIED':
+            if (session?.user) {
+              lastUserId = session.user.id;
+              const userId = session.user.id;
+              const fetchId = ++profileFetchSeq;
+              const profile = await fetchProfile(userId);
+              get()._setProfileIfLatest(fetchId, profile, userId);
+              // Always update user
+              set({ user: session.user });
+              if (session.expires_at) {
+                get().setSessionExpiry(session.expires_at * 1000);
               }
-              break;
+            }
+            break;
 
-            default:
-              console.warn('Unhandled auth event:', event);
-              // Jangan mengubah auth state untuk event yang tidak dikenal
-              if (!get().initialized) {
-                set({ initialized: true });
-              }
-              break;
-          }
+          default:
+            console.warn('Unhandled auth event:', event);
+            // Jangan mengubah auth state untuk event yang tidak dikenal
+            if (!get().initialized) {
+              set({ initialized: true });
+            }
+            break;
         }
-      );
+      });
 
       set({ authSubscription: subscription });
 
@@ -402,7 +412,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
       }, 10000);
       set({ initTimeoutId: timerId });
-
     } catch (error) {
       console.error('Auth initialization error:', error);
       set({ user: null, profile: null, initialized: true, isRefreshing: false });
@@ -411,7 +420,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signIn: async (email: string, password: string) => {
     const { isRefreshing } = get();
-    
+
     // Prevent concurrent sign-ins
     if (isRefreshing || get().loading) {
       return { success: false, error: 'Masih memproses permintaan sebelumnya' };
@@ -434,29 +443,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Fetch profile with guard
         const fetchId = ++profileFetchSeq;
         const profile = await fetchProfile(data.user.id);
-        
+
         // Set state synchronously so we don't rely on _setProfileIfLatest
         // which requires get().user to already be set.
         if (fetchId === profileFetchSeq && profile) {
-          set({ 
+          set({
             user: data.user,
             profile,
-            loading: false, 
+            loading: false,
             isRefreshing: false,
-            initialized: true 
+            initialized: true,
           });
         } else {
-          set({ 
+          set({
             user: data.user,
-            loading: false, 
+            loading: false,
             isRefreshing: false,
-            initialized: true 
+            initialized: true,
           });
           if (!profile) {
             console.error('Failed to fetch profile in signIn for user', data.user.id);
           }
         }
-        
+
         // Set session expiry tracking
         if (data.session?.expires_at) {
           get().setSessionExpiry(data.session.expires_at * 1000);
@@ -488,7 +497,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       authSubscription: null,
       isRefreshing: false,
       sessionExpiryTime: null,
-      sessionWarningShown: false
+      sessionWarningShown: false,
     });
 
     const logout = async () => {
@@ -504,17 +513,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Force local logout even if server signout failed
       try {
         if (typeof window !== 'undefined') {
-          const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0] || 'auth';
+          const projectRef =
+            process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0] || 'auth';
 
           // Remove all Supabase auth tokens (based on Supabase storageKey pattern)
           const keysToRemove = [
             `sb-${projectRef}-auth-token`,
             `sb-${projectRef}-refresh-token`,
             `sb-${projectRef}-persisted-session`,
-            'supabase.auth.token'
+            'supabase.auth.token',
           ];
 
-          keysToRemove.forEach(key => {
+          keysToRemove.forEach((key) => {
             localStorage.removeItem(key);
             sessionStorage.removeItem(key);
           });
@@ -528,5 +538,5 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 // Custom hook to check if current user is an admin
 export const useIsAdmin = () => {
-  return useAuthStore(state => state.profile?.role === 'admin');
+  return useAuthStore((state) => state.profile?.role === 'admin');
 };

@@ -10,23 +10,25 @@ export function UpdateBanner() {
   if (!updateAvailable) return null;
 
   return (
-    <div className="bg-brand-50 dark:bg-brand-900/30 border-b border-brand-200 dark:border-brand-800 p-3 flex flex-col sm:flex-row items-center justify-between gap-3 animate-fade-in z-50 rounded-b-2xl mb-4 lg:mb-6 shadow-sm">
+    <div className="bg-brand-50 dark:bg-brand-900/30 border-brand-200 dark:border-brand-800 animate-fade-in z-50 mb-4 flex flex-col items-center justify-between gap-3 rounded-b-2xl border-b p-3 shadow-sm sm:flex-row lg:mb-6">
       <div className="flex items-center gap-3">
-        <div className="bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 p-2 rounded-full shrink-0">
-          <IconRefresh className="w-5 h-5 animate-spin-slow" />
+        <div className="bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 shrink-0 rounded-full p-2">
+          <IconRefresh className="animate-spin-slow h-5 w-5" />
         </div>
         <div>
-          <h4 className="text-sm font-bold text-neutral-900 dark:text-brand-100">Pembaruan Tersedia!</h4>
-          <p className="text-xs text-neutral-600 dark:text-brand-200/80 mt-0.5">
+          <h4 className="dark:text-brand-100 text-sm font-bold text-neutral-900">
+            Pembaruan Tersedia!
+          </h4>
+          <p className="dark:text-brand-200/80 mt-0.5 text-xs text-neutral-600">
             Versi terbaru aplikasi siap digunakan. Segarkan untuk memuat pembaruan.
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-        <Button 
-          variant="primary" 
-          size="sm" 
-          className="w-full sm:w-auto text-xs whitespace-nowrap"
+      <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
+        <Button
+          variant="primary"
+          size="sm"
+          className="w-full text-xs whitespace-nowrap sm:w-auto"
           onClick={updatePwa}
         >
           Muat Ulang

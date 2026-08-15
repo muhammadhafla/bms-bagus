@@ -37,7 +37,7 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
         set((state) => ({
-          onlineUsers: Array.from(new Set([...state.onlineUsers, key]))
+          onlineUsers: Array.from(new Set([...state.onlineUsers, key])),
         }));
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {

@@ -25,13 +25,16 @@ export interface PromoItem {
 export const promoApi = {
   async getAll() {
     return safeQuery<Promo[]>(async () => {
-      const result = await supabase.from('promosi').select('*').order('tanggal_mulai', { ascending: false });
+      const result = await supabase
+        .from('promosi')
+        .select('*')
+        .order('tanggal_mulai', { ascending: false });
       return { data: result.data, error: result.error as Error | null };
     });
   },
 
   async getById(id: string) {
-    return safeQuery<{ promo: Promo, items: PromoItem[] }>(async () => {
+    return safeQuery<{ promo: Promo; items: PromoItem[] }>(async () => {
       const promoResult = await supabase.from('promosi').select('*').eq('id', id).single();
       if (promoResult.error) return { data: null, error: promoResult.error as Error };
 
@@ -45,9 +48,9 @@ export const promoApi = {
       return {
         data: {
           promo: promoResult.data,
-          items: itemsResult.data
+          items: itemsResult.data,
         },
-        error: null
+        error: null,
       };
     });
   },
@@ -55,42 +58,56 @@ export const promoApi = {
   async upsert(promo: Partial<Promo>, items: { inventory_id: string; diskon_nominal: number }[]) {
     return safeQuery<Promo>(async () => {
       let promoId = promo.id;
-      
+
       if (promoId) {
-        const { error } = await supabase.from('promosi').update({
-          nama: promo.nama,
-          tanggal_mulai: promo.tanggal_mulai,
-          tanggal_selesai: promo.tanggal_selesai,
-          status: promo.status || 'aktif'
-        }).eq('id', promoId);
+        const { error } = await supabase
+          .from('promosi')
+          .update({
+            nama: promo.nama,
+            tanggal_mulai: promo.tanggal_mulai,
+            tanggal_selesai: promo.tanggal_selesai,
+            status: promo.status || 'aktif',
+          })
+          .eq('id', promoId);
         if (error) throw error;
       } else {
-        const { data, error } = await supabase.from('promosi').insert({
-          nama: promo.nama,
-          tanggal_mulai: promo.tanggal_mulai,
-          tanggal_selesai: promo.tanggal_selesai,
-          status: promo.status || 'aktif'
-        }).select('id').single();
+        const { data, error } = await supabase
+          .from('promosi')
+          .insert({
+            nama: promo.nama,
+            tanggal_mulai: promo.tanggal_mulai,
+            tanggal_selesai: promo.tanggal_selesai,
+            status: promo.status || 'aktif',
+          })
+          .select('id')
+          .single();
         if (error) throw error;
         promoId = data.id;
       }
 
       if (promoId) {
-        const { error: delError } = await supabase.from('promosi_items').delete().eq('promosi_id', promoId);
+        const { error: delError } = await supabase
+          .from('promosi_items')
+          .delete()
+          .eq('promosi_id', promoId);
         if (delError) throw delError;
 
         if (items && items.length > 0) {
-          const insertData = items.map(i => ({
+          const insertData = items.map((i) => ({
             promosi_id: promoId,
             inventory_id: i.inventory_id,
-            diskon_nominal: i.diskon_nominal
+            diskon_nominal: i.diskon_nominal,
           }));
           const { error: insError } = await supabase.from('promosi_items').insert(insertData);
           if (insError) throw insError;
         }
       }
 
-      const { data: finalPromo } = await supabase.from('promosi').select('*').eq('id', promoId).single();
+      const { data: finalPromo } = await supabase
+        .from('promosi')
+        .select('*')
+        .eq('id', promoId)
+        .single();
       return { data: finalPromo, error: null };
     });
   },
@@ -123,5 +140,5 @@ export const promoApi = {
       }
     }
     return map;
-  }
+  },
 };

@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyAuth, createAdminClient } from '@/lib/api/auth-guard';
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const { user, error: authError } = await verifyAuth(request);

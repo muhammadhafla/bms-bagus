@@ -19,21 +19,21 @@ export function DarkModeProvider({ children }: { children: ReactNode }) {
     const savedTheme = localStorage.getItem('theme') as Theme | null;
     const html = document.documentElement;
     let initialTheme: Theme = 'light';
-    
+
     if (savedTheme) {
       initialTheme = savedTheme;
     } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
       initialTheme = 'dark';
     }
-    
+
     setTheme(initialTheme);
     html.classList.remove('light', 'dark');
     html.classList.add(initialTheme);
-    
+
     // Clear inline styles
     document.body.style.backgroundColor = '';
     document.body.style.color = '';
-    
+
     setMounted(true);
   }, []);
 
@@ -43,20 +43,18 @@ export function DarkModeProvider({ children }: { children: ReactNode }) {
       const html = document.documentElement;
       html.classList.remove('light', 'dark');
       html.classList.add(newTheme);
-      
+
       // Clear inline styles
       document.body.style.backgroundColor = '';
       document.body.style.color = '';
-      
+
       localStorage.setItem('theme', newTheme);
       return newTheme;
     });
   }, []);
 
   return (
-    <DarkModeContext.Provider value={{ theme, toggleTheme }}>
-      {children}
-    </DarkModeContext.Provider>
+    <DarkModeContext.Provider value={{ theme, toggleTheme }}>{children}</DarkModeContext.Provider>
   );
 }
 

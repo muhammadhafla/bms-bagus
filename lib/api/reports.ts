@@ -74,11 +74,7 @@ function calculatePagination(page?: number, limit?: number) {
 }
 
 export const reportApi = {
-  async getStockMutations(
-    startDate?: string,
-    endDate?: string,
-    pagination?: PaginationOptions
-  ) {
+  async getStockMutations(startDate?: string, endDate?: string, pagination?: PaginationOptions) {
     const { page, limit } = calculatePagination(pagination?.page, pagination?.limit);
     const offset = (page - 1) * limit;
 
@@ -89,21 +85,30 @@ export const reportApi = {
     const { count, error: countError } = await countQuery;
 
     if (countError) {
-      return { data: [], error: { message: countError.message }, total: 0, page: 1, limit: 50, hasMore: false };
+      return {
+        data: [],
+        error: { message: countError.message },
+        total: 0,
+        page: 1,
+        limit: 50,
+        hasMore: false,
+      };
     }
 
     const totalCount = count || 0;
 
     let dataQuery = supabase
       .from('stock_movements')
-      .select(`
+      .select(
+        `
         *,
         inventory:inventory_id (
           id,
           nama_barang,
           kode_barcode
         )
-      `)
+      `,
+      )
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -116,37 +121,38 @@ export const reportApi = {
     });
 
     if (result.error) {
-      return { 
-        data: [], 
+      return {
+        data: [],
         error: { message: result.error.message },
         total: count,
         page,
         limit,
-        hasMore: false 
+        hasMore: false,
       };
     }
 
     const mapped = (result.data || []).map((item: Record<string, unknown>): StockMutation => ({
       id: item.id as string,
       inventory_id: item.inventory_id as string,
-      barcode: (item.inventory as Record<string, unknown> | null)?.kode_barcode as string || '',
-      nama_barang: (item.inventory as Record<string, unknown> | null)?.nama_barang as string || '',
+      barcode: ((item.inventory as Record<string, unknown> | null)?.kode_barcode as string) || '',
+      nama_barang:
+        ((item.inventory as Record<string, unknown> | null)?.nama_barang as string) || '',
       type: (item.tipe as string) === 'IN' ? 'in' : 'out',
       tipe: item.tipe as 'IN' | 'OUT',
       qty: item.qty as number,
-      qty_mutation: (item.tipe as string) === 'IN' ? item.qty as number : -(item.qty as number),
+      qty_mutation: (item.tipe as string) === 'IN' ? (item.qty as number) : -(item.qty as number),
       transaction_type: (item.referensi as string) || '-',
       referensi: item.referensi as string | undefined,
       created_at: item.created_at as string,
     }));
 
-    return { 
-      data: mapped, 
+    return {
+      data: mapped,
       error: null,
       total: totalCount,
       page,
       limit,
-      hasMore: offset + mapped.length < totalCount
+      hasMore: offset + mapped.length < totalCount,
     };
   },
 
@@ -175,7 +181,7 @@ export const reportApi = {
 
     if (result.error) return { data: null, error: { message: result.error.message } };
 
-    const values: InventoryValue[] = (result.data || []).map(item => ({
+    const values: InventoryValue[] = (result.data || []).map((item) => ({
       id: item.id,
       barcode: item.kode_barcode || '',
       nama_barang: item.nama_barang,
@@ -186,13 +192,13 @@ export const reportApi = {
       total_value: item.stok * (item.harga_beli_terakhir || 0),
     }));
 
-    return { 
-      data: values, 
+    return {
+      data: values,
       error: null,
       total: totalCount,
       page,
       limit,
-      hasMore: offset + values.length < totalCount
+      hasMore: offset + values.length < totalCount,
     };
   },
 
@@ -200,7 +206,7 @@ export const reportApi = {
     startDate?: string,
     endDate?: string,
     categoryId?: string,
-    pagination?: PaginationOptions
+    pagination?: PaginationOptions,
   ) {
     const { page, limit } = calculatePagination(pagination?.page, pagination?.limit);
 
@@ -221,7 +227,7 @@ export const reportApi = {
     const rows = result.data || [];
     const totalCount = rows[0]?.total_count ?? 0;
 
-    const summary: SalesSummary[] = rows.map(row => ({
+    const summary: SalesSummary[] = rows.map((row) => ({
       date: String(row.report_date),
       total_sales: Number(row.total_sales),
       total_cash: Number(row.total_cash),
@@ -244,7 +250,7 @@ export const reportApi = {
     startDate?: string,
     endDate?: string,
     categoryId?: string,
-    pagination?: PaginationOptions
+    pagination?: PaginationOptions,
   ) {
     const { page, limit } = calculatePagination(pagination?.page, pagination?.limit);
 
@@ -265,7 +271,7 @@ export const reportApi = {
     const rows = result.data || [];
     const totalCount = rows[0]?.total_count ?? 0;
 
-    const summary: ProfitSummary[] = rows.map(row => ({
+    const summary: ProfitSummary[] = rows.map((row) => ({
       date: String(row.report_date),
       total_modal: Number(row.total_modal),
       total_penjualan: Number(row.total_penjualan),
@@ -282,12 +288,12 @@ export const reportApi = {
       hasMore: (page - 1) * limit + rows.length < Number(totalCount),
     };
   },
-  
+
   async getTopSellingItems(
     startDate?: string,
     endDate?: string,
     categoryId?: string,
-    limitItems: number = 10
+    limitItems: number = 10,
   ) {
     // Gunakan RPC get_top_selling_items — server-side aggregation
     const result = await safeQuery<TopSellingItem[]>(async () => {
@@ -297,19 +303,21 @@ export const reportApi = {
         p_category_id: categoryId || null,
         p_limit: limitItems,
       });
-      const mapped = (res.data || []).map((row: {
-        inventory_id: string;
-        nama_barang: string;
-        total_qty: number;
-        total_sales: number;
-        total_profit: number;
-      }) => ({
-        inventory_id: row.inventory_id,
-        nama_barang: row.nama_barang,
-        total_qty: Number(row.total_qty),
-        total_sales: Number(row.total_sales),
-        total_profit: Number(row.total_profit),
-      }));
+      const mapped = (res.data || []).map(
+        (row: {
+          inventory_id: string;
+          nama_barang: string;
+          total_qty: number;
+          total_sales: number;
+          total_profit: number;
+        }) => ({
+          inventory_id: row.inventory_id,
+          nama_barang: row.nama_barang,
+          total_qty: Number(row.total_qty),
+          total_sales: Number(row.total_sales),
+          total_profit: Number(row.total_profit),
+        }),
+      );
       return { data: mapped, error: res.error as Error | null };
     });
 
@@ -320,10 +328,12 @@ export const reportApi = {
   async exportStockMutations(startDate?: string, endDate?: string) {
     let dataQuery = supabase
       .from('stock_movements')
-      .select(`
+      .select(
+        `
         *,
         inventory:inventory_id (id, nama_barang, kode_barcode)
-      `)
+      `,
+      )
       .order('created_at', { ascending: false });
 
     if (startDate) dataQuery = dataQuery.gte('created_at', startDate);
@@ -353,7 +363,11 @@ export const reportApi = {
   },
 
   async exportSalesReport(startDate?: string, endDate?: string, categoryId?: string) {
-    let query = supabase.from('penjualan_items').select(`penjualan_id, qty, harga_final, penjualan!inner(tanggal, cash_amount, qris_amount), inventory!inner(id_kategori)`);
+    let query = supabase
+      .from('penjualan_items')
+      .select(
+        `penjualan_id, qty, harga_final, penjualan!inner(tanggal, cash_amount, qris_amount), inventory!inner(id_kategori)`,
+      );
     if (startDate) query = query.gte('penjualan.tanggal', startDate);
     if (endDate) query = query.lte('penjualan.tanggal', endDate);
     if (categoryId) query = query.eq('inventory.id_kategori', categoryId);
@@ -369,9 +383,17 @@ export const reportApi = {
       const date = item.penjualan?.tanggal;
       const tx_id = item.penjualan_id;
       if (!date) return;
-      if (!grouped[date]) grouped[date] = { total: 0, total_cash: 0, total_qris: 0, items: 0, count: new Set(), processed_tx: new Set() };
+      if (!grouped[date])
+        grouped[date] = {
+          total: 0,
+          total_cash: 0,
+          total_qris: 0,
+          items: 0,
+          count: new Set(),
+          processed_tx: new Set(),
+        };
       grouped[date].total += (item.harga_final || 0) * (item.qty || 0);
-      grouped[date].items += (item.qty || 0);
+      grouped[date].items += item.qty || 0;
       grouped[date].count.add(tx_id || Math.random().toString());
       if (tx_id && !grouped[date].processed_tx.has(tx_id)) {
         grouped[date].processed_tx.add(tx_id);
@@ -380,14 +402,23 @@ export const reportApi = {
       }
     });
     const summary: SalesSummary[] = Object.entries(grouped).map(([date, data]) => ({
-      date, total_sales: data.total, total_cash: data.total_cash, total_qris: data.total_qris, total_items: data.items, transaction_count: data.count.size,
+      date,
+      total_sales: data.total,
+      total_cash: data.total_cash,
+      total_qris: data.total_qris,
+      total_items: data.items,
+      transaction_count: data.count.size,
     }));
     summary.sort((a, b) => b.date.localeCompare(a.date));
     return { data: summary, error: null };
   },
 
   async exportProfitReport(startDate?: string, endDate?: string, categoryId?: string) {
-    let query = supabase.from('penjualan_items').select(`qty, harga_final, cost_at_sale, penjualan!inner(tanggal), inventory!inner(id_kategori)`);
+    let query = supabase
+      .from('penjualan_items')
+      .select(
+        `qty, harga_final, cost_at_sale, penjualan!inner(tanggal), inventory!inner(id_kategori)`,
+      );
     if (startDate) query = query.gte('penjualan.tanggal', startDate);
     if (endDate) query = query.lte('penjualan.tanggal', endDate);
     if (categoryId) query = query.eq('inventory.id_kategori', categoryId);
@@ -402,17 +433,27 @@ export const reportApi = {
     (result.data || []).forEach((item: any) => {
       const date = item.penjualan?.tanggal;
       if (!date) return;
-      if (!summaryMap[date]) summaryMap[date] = { date, total_modal: 0, total_penjualan: 0, total_profit: 0, margin_percentage: 0 };
+      if (!summaryMap[date])
+        summaryMap[date] = {
+          date,
+          total_modal: 0,
+          total_penjualan: 0,
+          total_profit: 0,
+          margin_percentage: 0,
+        };
       const modal = (item.cost_at_sale || 0) * (item.qty || 0);
       const penjualan = (item.harga_final || 0) * (item.qty || 0);
       summaryMap[date].total_modal += modal;
       summaryMap[date].total_penjualan += penjualan;
-      summaryMap[date].total_profit += (penjualan - modal);
+      summaryMap[date].total_profit += penjualan - modal;
     });
-    const summary = Object.values(summaryMap).map(s => {
-      s.margin_percentage = s.total_penjualan > 0 ? (s.total_profit / s.total_penjualan) * 100 : 0;
-      return s;
-    }).sort((a, b) => b.date.localeCompare(a.date));
+    const summary = Object.values(summaryMap)
+      .map((s) => {
+        s.margin_percentage =
+          s.total_penjualan > 0 ? (s.total_profit / s.total_penjualan) * 100 : 0;
+        return s;
+      })
+      .sort((a, b) => b.date.localeCompare(a.date));
     return { data: summary, error: null };
   },
 };

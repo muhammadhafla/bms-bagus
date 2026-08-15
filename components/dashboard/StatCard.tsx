@@ -15,12 +15,12 @@ function useCountUp(end: number, duration: number = 1500) {
       // easeOutQuart animation curve
       const easeProgress = 1 - Math.pow(1 - progress, 4);
       setCount(Math.floor(easeProgress * end));
-      
+
       if (progress < 1) {
         animationFrame = window.requestAnimationFrame(step);
       }
     };
-    
+
     animationFrame = window.requestAnimationFrame(step);
     return () => window.cancelAnimationFrame(animationFrame);
   }, [end, duration]);
@@ -37,7 +37,14 @@ interface StatCardProps {
   variant?: 'default' | 'success' | 'warning' | 'danger';
 }
 
-export function StatCard({ title, value, icon, prefix = '', suffix = '', variant = 'default' }: StatCardProps) {
+export function StatCard({
+  title,
+  value,
+  icon,
+  prefix = '',
+  suffix = '',
+  variant = 'default',
+}: StatCardProps) {
   const animatedValue = useCountUp(value);
 
   const borderColors = {
@@ -66,20 +73,22 @@ export function StatCard({ title, value, icon, prefix = '', suffix = '', variant
   };
 
   const finalStringLength = `${prefix}${formatNumber(value)}${suffix}`.length;
-  
+
   // Dynamic font and icon size to prevent layout breakage on small screens for large numbers
   let textSizeClass = 'text-lg sm:text-2xl lg:text-3xl';
   let iconContainerClass = 'p-2 sm:p-3';
   let iconSizeClass = '[&>svg]:w-5 [&>svg]:h-5 sm:[&>svg]:w-6 sm:[&>svg]:h-6';
-  
+
   if (finalStringLength >= 14) {
     textSizeClass = 'text-sm sm:text-lg lg:text-xl';
     iconContainerClass = 'p-1.5 sm:p-2 lg:p-3';
-    iconSizeClass = '[&>svg]:w-4 [&>svg]:h-4 sm:[&>svg]:w-5 sm:[&>svg]:h-5 lg:[&>svg]:w-6 lg:[&>svg]:h-6';
+    iconSizeClass =
+      '[&>svg]:w-4 [&>svg]:h-4 sm:[&>svg]:w-5 sm:[&>svg]:h-5 lg:[&>svg]:w-6 lg:[&>svg]:h-6';
   } else if (finalStringLength >= 10) {
     textSizeClass = 'text-base sm:text-xl lg:text-2xl';
     iconContainerClass = 'p-1.5 sm:p-2.5 lg:p-3';
-    iconSizeClass = '[&>svg]:w-4 [&>svg]:h-4 sm:[&>svg]:w-5 sm:[&>svg]:h-5 lg:[&>svg]:w-6 lg:[&>svg]:h-6';
+    iconSizeClass =
+      '[&>svg]:w-4 [&>svg]:h-4 sm:[&>svg]:w-5 sm:[&>svg]:h-5 lg:[&>svg]:w-6 lg:[&>svg]:h-6';
   }
 
   const cardBgColors = {
@@ -90,25 +99,35 @@ export function StatCard({ title, value, icon, prefix = '', suffix = '', variant
   };
 
   return (
-    <div className={`relative rounded-2xl overflow-hidden group card-hover animate-fade-in-up`}>
+    <div className={`group card-hover animate-fade-in-up relative overflow-hidden rounded-2xl`}>
       {/* Soft background glow */}
-      <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 ${iconBgClasses[variant]}`} />
-      
-      <Card padding="none" variant="flat" className={`relative h-full ${cardBgColors[variant]} backdrop-blur-xl border ${borderColors[variant]} transition-all duration-300 p-3 sm:p-4 lg:p-6`}>
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-0">
-          <div className="flex-1 order-2 sm:order-1 min-w-0">
-            <p className="text-xs sm:text-sm font-medium text-neutral-500 dark:text-neutral-400 truncate">{title}</p>
-            <p 
-              className={`mt-0.5 sm:mt-1.5 ${textSizeClass} font-extrabold text-neutral-900 dark:text-white tracking-tight truncate`}
+      <div
+        className={`absolute -top-4 -right-4 h-24 w-24 rounded-full opacity-20 blur-3xl transition-opacity duration-500 group-hover:opacity-40 ${iconBgClasses[variant]}`}
+      />
+
+      <Card
+        padding="none"
+        variant="flat"
+        className={`relative h-full ${cardBgColors[variant]} border backdrop-blur-xl ${borderColors[variant]} p-3 transition-all duration-300 sm:p-4 lg:p-6`}
+      >
+        <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start sm:gap-0">
+          <div className="order-2 min-w-0 flex-1 sm:order-1">
+            <p className="truncate text-xs font-medium text-neutral-500 sm:text-sm dark:text-neutral-400">
+              {title}
+            </p>
+            <p
+              className={`mt-0.5 sm:mt-1.5 ${textSizeClass} truncate font-extrabold tracking-tight text-neutral-900 dark:text-white`}
               title={`${prefix}${formatNumber(value)}${suffix}`}
             >
-              {prefix}{formatNumber(animatedValue)}{suffix}
+              {prefix}
+              {formatNumber(animatedValue)}
+              {suffix}
             </p>
           </div>
-          <div className={`${iconContainerClass} rounded-lg sm:rounded-xl order-1 sm:order-2 flex-shrink-0 w-fit ${iconBgClasses[variant]} ${iconShadowClasses[variant]}`}>
-            <div className={`text-white ${iconSizeClass}`}>
-              {icon}
-            </div>
+          <div
+            className={`${iconContainerClass} order-1 w-fit flex-shrink-0 rounded-lg sm:order-2 sm:rounded-xl ${iconBgClasses[variant]} ${iconShadowClasses[variant]}`}
+          >
+            <div className={`text-white ${iconSizeClass}`}>{icon}</div>
           </div>
         </div>
       </Card>
@@ -118,21 +137,32 @@ export function StatCard({ title, value, icon, prefix = '', suffix = '', variant
 
 export function StatCardSkeleton() {
   return (
-    <Card padding="none" variant="flat" className="bg-white/50 dark:bg-neutral-900/40 backdrop-blur border border-white/20 dark:border-white/5 animate-pulse rounded-2xl p-3 sm:p-4 lg:p-6">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-0">
-        <div className="w-full order-2 sm:order-1">
-          <div className="h-3 sm:h-4 bg-neutral-200 dark:bg-neutral-700 rounded w-20 sm:w-28 mb-2 sm:mb-3" />
-          <div className="h-6 sm:h-8 bg-neutral-200 dark:bg-neutral-700 rounded w-24 sm:w-40" />
+    <Card
+      padding="none"
+      variant="flat"
+      className="animate-pulse rounded-2xl border border-white/20 bg-white/50 p-3 backdrop-blur sm:p-4 lg:p-6 dark:border-white/5 dark:bg-neutral-900/40"
+    >
+      <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start sm:gap-0">
+        <div className="order-2 w-full sm:order-1">
+          <div className="mb-2 h-3 w-20 rounded bg-neutral-200 sm:mb-3 sm:h-4 sm:w-28 dark:bg-neutral-700" />
+          <div className="h-6 w-24 rounded bg-neutral-200 sm:h-8 sm:w-40 dark:bg-neutral-700" />
         </div>
-        <div className="w-9 h-9 sm:w-12 sm:h-12 bg-neutral-200 dark:bg-neutral-700 rounded-lg sm:rounded-xl order-1 sm:order-2" />
+        <div className="order-1 h-9 w-9 rounded-lg bg-neutral-200 sm:order-2 sm:h-12 sm:w-12 sm:rounded-xl dark:bg-neutral-700" />
       </div>
     </Card>
   );
 }
 
-export function HeroStatCard({ title, value, icon, prefix = '', suffix = '', variant = 'success' }: StatCardProps) {
+export function HeroStatCard({
+  title,
+  value,
+  icon,
+  prefix = '',
+  suffix = '',
+  variant = 'success',
+}: StatCardProps) {
   const animatedValue = useCountUp(value);
-  
+
   const bgClasses = {
     default: 'bg-gradient-to-br from-brand-500 to-brand-700',
     success: 'bg-gradient-to-br from-accent-teal-500 to-accent-teal-700',
@@ -143,23 +173,28 @@ export function HeroStatCard({ title, value, icon, prefix = '', suffix = '', var
   const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
 
   return (
-    <div className={`relative rounded-3xl overflow-hidden group animate-fade-in-up ${bgClasses[variant]} text-white shadow-lg`}>
+    <div
+      className={`group animate-fade-in-up relative overflow-hidden rounded-3xl ${bgClasses[variant]} text-white shadow-lg`}
+    >
       {/* Abstract background shapes */}
-      <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
-      <div className="absolute -left-10 -bottom-10 w-32 h-32 bg-black/10 rounded-full blur-xl" />
-      
-      <div className="relative p-6 sm:p-8 flex flex-col justify-between h-full min-h-[140px] sm:min-h-[160px]">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm sm:text-base font-medium text-white/90">{title}</p>
-          <div className="p-2 sm:p-2.5 bg-white/20 backdrop-blur-md rounded-xl text-white">
-            <div className="[&>svg]:w-6 [&>svg]:h-6 sm:[&>svg]:w-8 sm:[&>svg]:h-8">
-              {icon}
-            </div>
+      <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+      <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-black/10 blur-xl" />
+
+      <div className="relative flex h-full min-h-[140px] flex-col justify-between p-6 sm:min-h-[160px] sm:p-8">
+        <div className="mb-4 flex items-center justify-between">
+          <p className="text-sm font-medium text-white/90 sm:text-base">{title}</p>
+          <div className="rounded-xl bg-white/20 p-2 text-white backdrop-blur-md sm:p-2.5">
+            <div className="[&>svg]:h-6 [&>svg]:w-6 sm:[&>svg]:h-8 sm:[&>svg]:w-8">{icon}</div>
           </div>
         </div>
         <div>
-          <p className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight truncate" title={`${prefix}${formatNumber(value)}${suffix}`}>
-            {prefix}{formatNumber(animatedValue)}{suffix}
+          <p
+            className="truncate text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl"
+            title={`${prefix}${formatNumber(value)}${suffix}`}
+          >
+            {prefix}
+            {formatNumber(animatedValue)}
+            {suffix}
           </p>
         </div>
       </div>
@@ -169,32 +204,46 @@ export function HeroStatCard({ title, value, icon, prefix = '', suffix = '', var
 
 export function HeroStatCardSkeleton() {
   return (
-    <div className="relative rounded-3xl overflow-hidden bg-neutral-200 dark:bg-neutral-800 animate-pulse h-[140px] sm:h-[160px] p-6 sm:p-8 flex flex-col justify-between">
-      <div className="flex justify-between items-center">
-        <div className="h-4 sm:h-5 bg-neutral-300 dark:bg-neutral-700 rounded w-32" />
-        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-neutral-300 dark:bg-neutral-700 rounded-xl" />
+    <div className="relative flex h-[140px] animate-pulse flex-col justify-between overflow-hidden rounded-3xl bg-neutral-200 p-6 sm:h-[160px] sm:p-8 dark:bg-neutral-800">
+      <div className="flex items-center justify-between">
+        <div className="h-4 w-32 rounded bg-neutral-300 sm:h-5 dark:bg-neutral-700" />
+        <div className="h-10 w-10 rounded-xl bg-neutral-300 sm:h-12 sm:w-12 dark:bg-neutral-700" />
       </div>
-      <div className="h-8 sm:h-10 lg:h-12 bg-neutral-300 dark:bg-neutral-700 rounded w-48 sm:w-64" />
+      <div className="h-8 w-48 rounded bg-neutral-300 sm:h-10 sm:w-64 lg:h-12 dark:bg-neutral-700" />
     </div>
   );
 }
 
-export function CompactStatCard({ title, value, icon, prefix = '', suffix = '', variant = 'default' }: StatCardProps) {
+export function CompactStatCard({
+  title,
+  value,
+  icon,
+  prefix = '',
+  suffix = '',
+  variant = 'default',
+}: StatCardProps) {
   const animatedValue = useCountUp(value);
   const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
 
   const iconColors = {
-    default: 'text-brand-600 bg-white dark:bg-neutral-800 shadow-sm border border-brand-100 dark:border-brand-900/50',
-    success: 'text-accent-teal-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-teal-100 dark:border-accent-teal-900/50',
-    warning: 'text-accent-amber-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-amber-100 dark:border-accent-amber-900/50',
-    danger: 'text-accent-rose-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-rose-100 dark:border-accent-rose-900/50',
+    default:
+      'text-brand-600 bg-white dark:bg-neutral-800 shadow-sm border border-brand-100 dark:border-brand-900/50',
+    success:
+      'text-accent-teal-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-teal-100 dark:border-accent-teal-900/50',
+    warning:
+      'text-accent-amber-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-amber-100 dark:border-accent-amber-900/50',
+    danger:
+      'text-accent-rose-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-rose-100 dark:border-accent-rose-900/50',
   };
 
   const bgColors = {
     default: 'bg-brand-50/50 dark:bg-brand-900/10 border-brand-100/50 dark:border-brand-900/30',
-    success: 'bg-accent-teal-50/50 dark:bg-accent-teal-900/10 border-accent-teal-100/50 dark:border-accent-teal-900/30',
-    warning: 'bg-accent-amber-50/50 dark:bg-accent-amber-900/10 border-accent-amber-100/50 dark:border-accent-amber-900/30',
-    danger: 'bg-accent-rose-50/50 dark:bg-accent-rose-900/10 border-accent-rose-100/50 dark:border-accent-rose-900/30',
+    success:
+      'bg-accent-teal-50/50 dark:bg-accent-teal-900/10 border-accent-teal-100/50 dark:border-accent-teal-900/30',
+    warning:
+      'bg-accent-amber-50/50 dark:bg-accent-amber-900/10 border-accent-amber-100/50 dark:border-accent-amber-900/30',
+    danger:
+      'bg-accent-rose-50/50 dark:bg-accent-rose-900/10 border-accent-rose-100/50 dark:border-accent-rose-900/30',
   };
 
   const finalStringLength = `${prefix}${formatNumber(value)}${suffix}`.length;
@@ -203,17 +252,26 @@ export function CompactStatCard({ title, value, icon, prefix = '', suffix = '', 
   else if (finalStringLength >= 10) textSizeClass = 'text-lg sm:text-xl lg:text-2xl';
 
   return (
-    <Card padding="none" variant="flat" className={`relative rounded-2xl ${bgColors[variant]} border p-4 sm:p-5 card-hover animate-fade-in-up`}>
+    <Card
+      padding="none"
+      variant="flat"
+      className={`relative rounded-2xl ${bgColors[variant]} card-hover animate-fade-in-up border p-4 sm:p-5`}
+    >
       <div className="flex items-start gap-3 sm:gap-4">
-        <div className={`p-2 sm:p-2.5 rounded-xl flex-shrink-0 ${iconColors[variant]}`}>
-          <div className="[&>svg]:w-5 [&>svg]:h-5 sm:[&>svg]:w-6 sm:[&>svg]:h-6">
-            {icon}
-          </div>
+        <div className={`flex-shrink-0 rounded-xl p-2 sm:p-2.5 ${iconColors[variant]}`}>
+          <div className="[&>svg]:h-5 [&>svg]:w-5 sm:[&>svg]:h-6 sm:[&>svg]:w-6">{icon}</div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs sm:text-sm font-medium text-neutral-500 dark:text-neutral-400 truncate">{title}</p>
-          <p className={`mt-1 ${textSizeClass} font-bold text-neutral-900 dark:text-white tracking-tight truncate`} title={`${prefix}${formatNumber(value)}${suffix}`}>
-            {prefix}{formatNumber(animatedValue)}{suffix}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-medium text-neutral-500 sm:text-sm dark:text-neutral-400">
+            {title}
+          </p>
+          <p
+            className={`mt-1 ${textSizeClass} truncate font-bold tracking-tight text-neutral-900 dark:text-white`}
+            title={`${prefix}${formatNumber(value)}${suffix}`}
+          >
+            {prefix}
+            {formatNumber(animatedValue)}
+            {suffix}
           </p>
         </div>
       </div>
@@ -223,49 +281,75 @@ export function CompactStatCard({ title, value, icon, prefix = '', suffix = '', 
 
 export function CompactStatCardSkeleton() {
   return (
-    <Card padding="none" variant="flat" className="rounded-2xl bg-white/50 dark:bg-neutral-900/40 border border-neutral-100 dark:border-neutral-800 animate-pulse p-4 sm:p-5">
+    <Card
+      padding="none"
+      variant="flat"
+      className="animate-pulse rounded-2xl border border-neutral-100 bg-white/50 p-4 sm:p-5 dark:border-neutral-800 dark:bg-neutral-900/40"
+    >
       <div className="flex items-start gap-3 sm:gap-4">
-        <div className="w-9 h-9 sm:w-11 sm:h-11 bg-neutral-200 dark:bg-neutral-700 rounded-xl flex-shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="h-3 sm:h-4 bg-neutral-200 dark:bg-neutral-700 rounded w-20 sm:w-24 mb-2" />
-          <div className="h-6 sm:h-7 bg-neutral-200 dark:bg-neutral-700 rounded w-full max-w-[120px]" />
+        <div className="h-9 w-9 flex-shrink-0 rounded-xl bg-neutral-200 sm:h-11 sm:w-11 dark:bg-neutral-700" />
+        <div className="min-w-0 flex-1">
+          <div className="mb-2 h-3 w-20 rounded bg-neutral-200 sm:h-4 sm:w-24 dark:bg-neutral-700" />
+          <div className="h-6 w-full max-w-[120px] rounded bg-neutral-200 sm:h-7 dark:bg-neutral-700" />
         </div>
       </div>
     </Card>
   );
 }
 
-export function ListStatCard({ title, value, icon, prefix = '', suffix = '', variant = 'default' }: StatCardProps) {
+export function ListStatCard({
+  title,
+  value,
+  icon,
+  prefix = '',
+  suffix = '',
+  variant = 'default',
+}: StatCardProps) {
   const animatedValue = useCountUp(value);
   const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
 
   const iconColors = {
-    default: 'text-brand-600 bg-white dark:bg-neutral-800 shadow-sm border border-brand-100 dark:border-brand-900/50',
-    success: 'text-accent-teal-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-teal-100 dark:border-accent-teal-900/50',
-    warning: 'text-accent-amber-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-amber-100 dark:border-accent-amber-900/50',
-    danger: 'text-accent-rose-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-rose-100 dark:border-accent-rose-900/50',
+    default:
+      'text-brand-600 bg-white dark:bg-neutral-800 shadow-sm border border-brand-100 dark:border-brand-900/50',
+    success:
+      'text-accent-teal-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-teal-100 dark:border-accent-teal-900/50',
+    warning:
+      'text-accent-amber-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-amber-100 dark:border-accent-amber-900/50',
+    danger:
+      'text-accent-rose-600 bg-white dark:bg-neutral-800 shadow-sm border border-accent-rose-100 dark:border-accent-rose-900/50',
   };
 
   const bgColors = {
-    default: 'bg-brand-50/50 dark:bg-brand-900/10 border-brand-100/50 dark:border-brand-900/30 hover:bg-brand-50 dark:hover:bg-brand-900/20',
-    success: 'bg-accent-teal-50/50 dark:bg-accent-teal-900/10 border-accent-teal-100/50 dark:border-accent-teal-900/30 hover:bg-accent-teal-50 dark:hover:bg-accent-teal-900/20',
-    warning: 'bg-accent-amber-50/50 dark:bg-accent-amber-900/10 border-accent-amber-100/50 dark:border-accent-amber-900/30 hover:bg-accent-amber-50 dark:hover:bg-accent-amber-900/20',
-    danger: 'bg-accent-rose-50/50 dark:bg-accent-rose-900/10 border-accent-rose-100/50 dark:border-accent-rose-900/30 hover:bg-accent-rose-50 dark:hover:bg-accent-rose-900/20',
+    default:
+      'bg-brand-50/50 dark:bg-brand-900/10 border-brand-100/50 dark:border-brand-900/30 hover:bg-brand-50 dark:hover:bg-brand-900/20',
+    success:
+      'bg-accent-teal-50/50 dark:bg-accent-teal-900/10 border-accent-teal-100/50 dark:border-accent-teal-900/30 hover:bg-accent-teal-50 dark:hover:bg-accent-teal-900/20',
+    warning:
+      'bg-accent-amber-50/50 dark:bg-accent-amber-900/10 border-accent-amber-100/50 dark:border-accent-amber-900/30 hover:bg-accent-amber-50 dark:hover:bg-accent-amber-900/20',
+    danger:
+      'bg-accent-rose-50/50 dark:bg-accent-rose-900/10 border-accent-rose-100/50 dark:border-accent-rose-900/30 hover:bg-accent-rose-50 dark:hover:bg-accent-rose-900/20',
   };
 
   return (
-    <div className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl border transition-colors animate-fade-in-up ${bgColors[variant]}`}>
-      <div className={`p-2 sm:p-2.5 rounded-xl flex-shrink-0 ${iconColors[variant]}`}>
-         <div className="[&>svg]:w-5 [&>svg]:h-5">
-            {icon}
-         </div>
+    <div
+      className={`animate-fade-in-up flex items-center gap-3 rounded-2xl border p-3 transition-colors sm:gap-4 sm:p-4 ${bgColors[variant]}`}
+    >
+      <div className={`flex-shrink-0 rounded-xl p-2 sm:p-2.5 ${iconColors[variant]}`}>
+        <div className="[&>svg]:h-5 [&>svg]:w-5">{icon}</div>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm sm:text-base font-medium text-neutral-600 dark:text-neutral-300 truncate">{title}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-neutral-600 sm:text-base dark:text-neutral-300">
+          {title}
+        </p>
       </div>
       <div className="flex-shrink-0 text-right">
-        <p className="text-base sm:text-lg font-bold text-neutral-900 dark:text-white truncate" title={`${prefix}${formatNumber(value)}${suffix}`}>
-          {prefix}{formatNumber(animatedValue)}{suffix}
+        <p
+          className="truncate text-base font-bold text-neutral-900 sm:text-lg dark:text-white"
+          title={`${prefix}${formatNumber(value)}${suffix}`}
+        >
+          {prefix}
+          {formatNumber(animatedValue)}
+          {suffix}
         </p>
       </div>
     </div>
@@ -274,13 +358,13 @@ export function ListStatCard({ title, value, icon, prefix = '', suffix = '', var
 
 export function ListStatCardSkeleton() {
   return (
-    <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl bg-white/50 dark:bg-neutral-900/40 border border-neutral-100 dark:border-neutral-800 animate-pulse">
-      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-neutral-200 dark:bg-neutral-700 rounded-xl flex-shrink-0" />
-      <div className="flex-1 min-w-0">
-        <div className="h-4 sm:h-5 bg-neutral-200 dark:bg-neutral-700 rounded w-24 sm:w-32" />
+    <div className="flex animate-pulse items-center gap-3 rounded-2xl border border-neutral-100 bg-white/50 p-3 sm:gap-4 sm:p-4 dark:border-neutral-800 dark:bg-neutral-900/40">
+      <div className="h-9 w-9 flex-shrink-0 rounded-xl bg-neutral-200 sm:h-10 sm:w-10 dark:bg-neutral-700" />
+      <div className="min-w-0 flex-1">
+        <div className="h-4 w-24 rounded bg-neutral-200 sm:h-5 sm:w-32 dark:bg-neutral-700" />
       </div>
       <div className="flex-shrink-0">
-        <div className="h-5 sm:h-6 bg-neutral-200 dark:bg-neutral-700 rounded w-16 sm:w-20" />
+        <div className="h-5 w-16 rounded bg-neutral-200 sm:h-6 sm:w-20 dark:bg-neutral-700" />
       </div>
     </div>
   );

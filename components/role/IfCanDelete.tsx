@@ -9,25 +9,25 @@ interface IfCanDeleteProps {
   fallback?: React.ReactNode;
 }
 
-export const IfCanDelete: React.FC<IfCanDeleteProps> = ({ 
-  children, 
-  createdBy, 
+export const IfCanDelete: React.FC<IfCanDeleteProps> = ({
+  children,
+  createdBy,
   status,
-  fallback = null 
+  fallback = null,
 }) => {
-  const { isAdmin, user } = useAuthStore(state => ({
+  const { isAdmin, user } = useAuthStore((state) => ({
     isAdmin: state.isAdmin(),
-    user: state.user
+    user: state.user,
   }));
-  
+
   if (isAdmin) {
     return <>{children}</>;
   }
-  
+
   // Special case for stock opname draft
   if (status === 'draft' && createdBy === user?.id) {
     return <>{children}</>;
   }
-  
+
   return <>{fallback}</>;
 };

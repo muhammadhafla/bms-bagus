@@ -64,9 +64,9 @@ describe('parsePrice', () => {
 
   it('parse US format with comma separators fallback', () => {
     // Karena implementasi kini memprioritaskan format Indonesia,
-    // 1,500.000 akan di-parse sebagai 1.500000 
+    // 1,500.000 akan di-parse sebagai 1.500000
     // Tapi kita sesuaikan test case dengan format Indonesia baru:
-    expect(parsePrice('1.500,50')).toBe(1500.50);
+    expect(parsePrice('1.500,50')).toBe(1500.5);
   });
 
   it('return 0 for invalid input', () => {

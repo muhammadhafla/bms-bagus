@@ -13,13 +13,20 @@ export function useInstallPrompt() {
 
   useEffect(() => {
     // Check jika sudah standalone / installed
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
-      || (navigator as Navigator & { standalone?: boolean }).standalone === true;
-    if (isStandalone) { setIsInstalled(true); return; }
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (navigator as Navigator & { standalone?: boolean }).standalone === true;
+    if (isStandalone) {
+      setIsInstalled(true);
+      return;
+    }
 
     // Cek apakah sudah pernah dismiss (persist di localStorage)
     const dismissed = localStorage.getItem('pwa-install-dismissed');
-    if (dismissed) { setIsDismissed(true); return; }
+    if (dismissed) {
+      setIsDismissed(true);
+      return;
+    }
 
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();

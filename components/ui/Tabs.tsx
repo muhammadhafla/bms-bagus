@@ -27,14 +27,11 @@ export function Tabs({ items, activeId, onChange, className = '' }: TabsProps) {
               key={tab.id}
               type="button"
               onClick={() => onChange(tab.id)}
-              className={`
-                flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors snap-start
-                border-b-2
-                ${isActive 
-                  ? 'border-brand-500 text-brand-600 dark:text-brand-400' 
-                  : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:border-neutral-700'
-                }
-              `}
+              className={`flex snap-start items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
+                isActive
+                  ? 'border-brand-500 text-brand-600 dark:text-brand-400'
+                  : 'border-transparent text-neutral-500 hover:border-neutral-300 hover:text-neutral-700 dark:text-neutral-400 dark:hover:border-neutral-700 dark:hover:text-neutral-200'
+              } `}
             >
               {tab.icon}
               {tab.label}

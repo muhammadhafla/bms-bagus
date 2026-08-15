@@ -10,7 +10,7 @@ export const metadata = {
 
 export default async function InventoryPage() {
   const queryClient = new QueryClient();
-  
+
   const cookieStore = await cookies();
   const supabaseServer = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,14 +19,25 @@ export default async function InventoryPage() {
       cookies: {
         getAll() {
           return cookieStore.getAll();
-        }
-      }
-    }
+        },
+      },
+    },
   );
 
   // Default query parameter yang persis sama dengan InventoryPageClient
-  const queryKey = ['inventory', { page: 1, search: '', categoryName: '', lowStockOnly: false, activeStatus: 'all', sortBy: 'nama_barang', sortDir: 'asc' }];
-  
+  const queryKey = [
+    'inventory',
+    {
+      page: 1,
+      search: '',
+      categoryName: '',
+      lowStockOnly: false,
+      activeStatus: 'all',
+      sortBy: 'nama_barang',
+      sortDir: 'asc',
+    },
+  ];
+
   // Prefetch data inventory halaman pertama menggunakan SSR (tanpa HTTP fetch)
   await queryClient.prefetchQuery({
     queryKey,
@@ -34,7 +45,11 @@ export default async function InventoryPage() {
       // Meniru behavior inventoryApi.getPaginated() untuk default state
       const [countResult, dataResult] = await Promise.all([
         supabaseServer.from('inventory').select('*', { count: 'exact', head: true }),
-        supabaseServer.from('inventory').select('*, id_kategori:id_kategori(*)').order('nama_barang', { ascending: true }).range(0, 19)
+        supabaseServer
+          .from('inventory')
+          .select('*, id_kategori:id_kategori(*)')
+          .order('nama_barang', { ascending: true })
+          .range(0, 19),
       ]);
 
       return {
@@ -43,7 +58,7 @@ export default async function InventoryPage() {
         page: 1,
         limit: 20,
         hasMore: (dataResult.data?.length || 0) < (countResult.count || 0),
-        error: null
+        error: null,
       };
     },
   });

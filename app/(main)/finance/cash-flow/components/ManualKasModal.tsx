@@ -9,7 +9,7 @@ import { PriceInput } from '@/components/ui/PriceInput';
 import TextareaInput from '@/components/ui/TextareaInput';
 import { kasApi } from '@/lib/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from "sonner";
+import { toast } from 'sonner';
 
 interface ManualKasModalProps {
   isOpen: boolean;
@@ -22,7 +22,7 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
   const [jumlah, setJumlah] = useState<number | null>(null);
   const [catatan, setCatatan] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
-  
+
   const queryClient = useQueryClient();
 
   // Reset form when opened with new type
@@ -50,7 +50,7 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
     },
     onError: (err: any) => {
       toast.error(err.message || 'Terjadi kesalahan');
-    }
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -59,7 +59,7 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
       toast.error('Jumlah harus lebih dari 0');
       return;
     }
-    
+
     mutation.mutate({
       tipe,
       jumlah,
@@ -71,26 +71,25 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
   const isSubmitting = mutation.isPending;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Catat ${tipe === 'SETOR' ? 'Pemasukan' : 'Pengeluaran'} Manual`} isBottomSheetOnMobile>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`Catat ${tipe === 'SETOR' ? 'Pemasukan' : 'Pengeluaran'} Manual`}
+      isBottomSheetOnMobile
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
-        
         <SelectInput
           label="Tipe Kas"
           value={tipe}
           onChange={(val) => setTipe(val as 'SETOR' | 'TARIK')}
           options={[
             { label: 'Pemasukan (SETOR)', value: 'SETOR' },
-            { label: 'Pengeluaran (TARIK)', value: 'TARIK' }
+            { label: 'Pengeluaran (TARIK)', value: 'TARIK' },
           ]}
           required
         />
 
-        <PriceInput
-          label="Nominal (Rp)"
-          value={jumlah || 0}
-          onChange={setJumlah}
-          placeholder="0"
-        />
+        <PriceInput label="Nominal (Rp)" value={jumlah || 0} onChange={setJumlah} placeholder="0" />
 
         <SelectInput
           label="Metode Pembayaran"
@@ -99,7 +98,7 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
           options={[
             { label: 'CASH (Tunai)', value: 'CASH' },
             { label: 'QRIS', value: 'QRIS' },
-            { label: 'TRANSFER', value: 'TRANSFER' }
+            { label: 'TRANSFER', value: 'TRANSFER' },
           ]}
           required
         />
@@ -113,12 +112,15 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
           required={tipe === 'TARIK'} // Pengeluaran wajib ada catatan
         />
 
-        <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800">
-          <Button type="submit" disabled={isSubmitting} className={`w-full ${tipe === 'SETOR' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>
+        <div className="border-t border-neutral-100 pt-4 dark:border-neutral-800">
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className={`w-full ${tipe === 'SETOR' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
+          >
             {isSubmitting ? 'Menyimpan...' : 'Simpan'}
           </Button>
         </div>
-
       </form>
     </Modal>
   );

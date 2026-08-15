@@ -14,7 +14,7 @@ interface SidebarContextType {
   setIsLoggingOut: (loggingOut: boolean) => void;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
-  
+
   // Expose zustand state for convenience
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (v: boolean | ((prev: boolean) => boolean)) => void;
@@ -46,41 +46,56 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const {
-    sidebarCollapsed, setSidebarCollapsed,
-    inventoryExpanded, setInventoryExpanded,
-    purchasingExpanded, setPurchasingExpanded,
-    transactionsExpanded, setTransactionsExpanded,
-    printingExpanded, setPrintingExpanded,
-    financeExpanded, setFinanceExpanded,
-    autoHideEnabled, setAutoHideEnabled,
+    sidebarCollapsed,
+    setSidebarCollapsed,
+    inventoryExpanded,
+    setInventoryExpanded,
+    purchasingExpanded,
+    setPurchasingExpanded,
+    transactionsExpanded,
+    setTransactionsExpanded,
+    printingExpanded,
+    setPrintingExpanded,
+    financeExpanded,
+    setFinanceExpanded,
+    autoHideEnabled,
+    setAutoHideEnabled,
   } = useSidebarZustand();
 
   const isSidebarVisible = autoHideEnabled ? sidebarHovered : true;
-  const sidebarWidth = autoHideEnabled
-    ? (sidebarHovered ? 'lg:w-56' : 'lg:w-16')
-    : 'lg:w-56';
-  const contentMargin = autoHideEnabled
-    ? (sidebarHovered ? 'lg:ml-56' : 'lg:ml-16')
-    : 'lg:ml-56';
+  const sidebarWidth = autoHideEnabled ? (sidebarHovered ? 'lg:w-56' : 'lg:w-16') : 'lg:w-56';
+  const contentMargin = autoHideEnabled ? (sidebarHovered ? 'lg:ml-56' : 'lg:ml-16') : 'lg:ml-56';
 
   return (
     <SidebarContext.Provider
       value={{
-        sidebarHovered, setSidebarHovered,
-        userMenuOpen, setUserMenuOpen,
-        logoutConfirmOpen, setLogoutConfirmOpen,
-        isLoggingOut, setIsLoggingOut,
-        mobileMenuOpen, setMobileMenuOpen,
-        sidebarCollapsed, setSidebarCollapsed,
-        inventoryExpanded, setInventoryExpanded,
-        purchasingExpanded, setPurchasingExpanded,
-        transactionsExpanded, setTransactionsExpanded,
-        printingExpanded, setPrintingExpanded,
-        financeExpanded, setFinanceExpanded,
-        autoHideEnabled, setAutoHideEnabled,
+        sidebarHovered,
+        setSidebarHovered,
+        userMenuOpen,
+        setUserMenuOpen,
+        logoutConfirmOpen,
+        setLogoutConfirmOpen,
+        isLoggingOut,
+        setIsLoggingOut,
+        mobileMenuOpen,
+        setMobileMenuOpen,
+        sidebarCollapsed,
+        setSidebarCollapsed,
+        inventoryExpanded,
+        setInventoryExpanded,
+        purchasingExpanded,
+        setPurchasingExpanded,
+        transactionsExpanded,
+        setTransactionsExpanded,
+        printingExpanded,
+        setPrintingExpanded,
+        financeExpanded,
+        setFinanceExpanded,
+        autoHideEnabled,
+        setAutoHideEnabled,
         isSidebarVisible,
         sidebarWidth,
-        contentMargin
+        contentMargin,
       }}
     >
       {children}

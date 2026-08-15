@@ -10,7 +10,7 @@ export function useMediaQuery(query: string) {
 
     const result = window.matchMedia(query);
     setValue(result.matches);
-    
+
     result.addEventListener('change', onChange);
     return () => result.removeEventListener('change', onChange);
   }, [query]);

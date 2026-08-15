@@ -13,38 +13,52 @@ import {
   IconArrowDown,
 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  StatCard, 
+import {
+  StatCard,
   StatCardSkeleton,
   HeroStatCard,
   HeroStatCardSkeleton,
   CompactStatCard,
   CompactStatCardSkeleton,
   ListStatCard,
-  ListStatCardSkeleton
+  ListStatCardSkeleton,
 } from '@/components/dashboard/StatCard';
 import dynamic from 'next/dynamic';
-import { dashboardApi, DashboardStats, LowStockItem, TrendData, RecentTransaction, kasApi } from '@/lib/api';
+import {
+  dashboardApi,
+  DashboardStats,
+  LowStockItem,
+  TrendData,
+  RecentTransaction,
+  kasApi,
+} from '@/lib/api';
 import { Card } from '@/components/ui';
 
-const PullToRefresh = dynamic(
-  () => import('react-simple-pull-to-refresh'),
-  { ssr: false }
-);
+const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 
 const LowStockAlert = dynamic(
-  () => import('@/components/dashboard/LowStockAlert').then(m => m.LowStockAlert),
-  { ssr: false, loading: () => <div className="h-[350px] rounded-3xl bg-white/50 dark:bg-neutral-900/40 backdrop-blur border border-white/20 dark:border-white/5 animate-pulse" /> }
+  () => import('@/components/dashboard/LowStockAlert').then((m) => m.LowStockAlert),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[350px] animate-pulse rounded-3xl border border-white/20 bg-white/50 backdrop-blur dark:border-white/5 dark:bg-neutral-900/40" />
+    ),
+  },
 );
 
 const RecentTransactions = dynamic(
-  () => import('@/components/dashboard/RecentTransactions').then(m => m.RecentTransactions),
-  { ssr: false, loading: () => <div className="h-[350px] rounded-3xl bg-white/50 dark:bg-neutral-900/40 backdrop-blur border border-white/20 dark:border-white/5 animate-pulse" /> }
+  () => import('@/components/dashboard/RecentTransactions').then((m) => m.RecentTransactions),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[350px] animate-pulse rounded-3xl border border-white/20 bg-white/50 backdrop-blur dark:border-white/5 dark:bg-neutral-900/40" />
+    ),
+  },
 );
 
 const MobileLaunchpad = dynamic(
-  () => import('@/components/dashboard/MobileLaunchpad').then(m => m.MobileLaunchpad),
-  { ssr: false }
+  () => import('@/components/dashboard/MobileLaunchpad').then((m) => m.MobileLaunchpad),
+  { ssr: false },
 );
 
 const TrendChart = dynamic(
@@ -52,9 +66,9 @@ const TrendChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[350px] rounded-3xl bg-white/50 dark:bg-neutral-900/40 backdrop-blur border border-white/20 dark:border-white/5 animate-pulse" />
+      <div className="h-[350px] animate-pulse rounded-3xl border border-white/20 bg-white/50 backdrop-blur dark:border-white/5 dark:bg-neutral-900/40" />
     ),
-  }
+  },
 );
 
 function HomeContent() {
@@ -62,31 +76,51 @@ function HomeContent() {
   const isAdminUser = useIsAdmin();
   const router = useRouter();
 
-  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    refetch: refetchStats,
+  } = useQuery({
     queryKey: ['dashboard', 'stats'],
-    queryFn: () => dashboardApi.getStats().then(res => res.data),
+    queryFn: () => dashboardApi.getStats().then((res) => res.data),
     refetchInterval: 300000,
   });
 
-  const { data: lowStock, isLoading: lowStockLoading, refetch: refetchLowStock } = useQuery({
+  const {
+    data: lowStock,
+    isLoading: lowStockLoading,
+    refetch: refetchLowStock,
+  } = useQuery({
     queryKey: ['dashboard', 'lowStock'],
-    queryFn: () => dashboardApi.getLowStockItems().then(res => res.data),
+    queryFn: () => dashboardApi.getLowStockItems().then((res) => res.data),
     refetchInterval: 300000,
   });
 
-  const { data: trend, isLoading: trendLoading, refetch: refetchTrend } = useQuery({
+  const {
+    data: trend,
+    isLoading: trendLoading,
+    refetch: refetchTrend,
+  } = useQuery({
     queryKey: ['dashboard', 'trend'],
-    queryFn: () => dashboardApi.get7DayTrend().then(res => res.data),
+    queryFn: () => dashboardApi.get7DayTrend().then((res) => res.data),
     refetchInterval: 300000,
   });
 
-  const { data: transactions, isLoading: transactionsLoading, refetch: refetchTx } = useQuery({
+  const {
+    data: transactions,
+    isLoading: transactionsLoading,
+    refetch: refetchTx,
+  } = useQuery({
     queryKey: ['dashboard', 'transactions'],
-    queryFn: () => dashboardApi.getRecentTransactions().then(res => res.data),
+    queryFn: () => dashboardApi.getRecentTransactions().then((res) => res.data),
     refetchInterval: 300000,
   });
 
-  const { data: kasBalance, isLoading: kasBalanceLoading, refetch: refetchKas } = useQuery({
+  const {
+    data: kasBalance,
+    isLoading: kasBalanceLoading,
+    refetch: refetchKas,
+  } = useQuery({
     queryKey: ['dashboard', 'kasBalance', isAdminUser ? 'global' : user?.id],
     queryFn: async () => {
       if (isAdminUser) {
@@ -109,9 +143,9 @@ function HomeContent() {
 
   if (!initialized) {
     return (
-      <div className="flex-1 h-full flex items-center justify-center">
+      <div className="flex h-full flex-1 items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <div className="border-brand-500 h-10 w-10 animate-spin rounded-full border-4 border-t-transparent" />
           <p className="text-neutral-500 dark:text-neutral-400">Loading...</p>
         </div>
       </div>
@@ -128,7 +162,7 @@ function HomeContent() {
       refetchLowStock(),
       refetchTrend(),
       refetchTx(),
-      refetchKas()
+      refetchKas(),
     ]);
   };
 
@@ -137,18 +171,18 @@ function HomeContent() {
       onRefresh={handleRefresh}
       pullingContent={
         <div className="flex items-center justify-center py-4 text-neutral-400">
-          <IconArrowDown className="w-5 h-5 animate-bounce" />
+          <IconArrowDown className="h-5 w-5 animate-bounce" />
         </div>
       }
       refreshingContent={
         <div className="flex items-center justify-center py-4">
-          <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <div className="border-brand-500 h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" />
         </div>
       }
     >
       {/* Mobile View (Launchpad) */}
       <div className="block lg:hidden">
-        <MobileLaunchpad 
+        <MobileLaunchpad
           stats={stats}
           kasBalance={kasBalance || 0}
           lowStock={lowStock}
@@ -160,15 +194,15 @@ function HomeContent() {
       </div>
 
       {/* Desktop View (Original Dashboard) */}
-      <div className="hidden lg:flex relative flex-col h-full w-full">
+      <div className="relative hidden h-full w-full flex-col lg:flex">
         <div className="relative z-10">
           {/* Header */}
-          <div className="mb-4 lg:mb-6 animate-fade-in-up flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="animate-fade-in-up mb-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-center lg:mb-6">
             <div>
-              <h1 className="text-xl lg:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
+              <h1 className="text-xl font-extrabold tracking-tight text-neutral-900 lg:text-3xl dark:text-white">
                 Dashboard
               </h1>
-              <p className="text-neutral-500 dark:text-neutral-400 mt-1 text-sm lg:text-base font-medium">
+              <p className="mt-1 text-sm font-medium text-neutral-500 lg:text-base dark:text-neutral-400">
                 Ringkasan performa dan stok barang.
               </p>
             </div>
@@ -201,7 +235,7 @@ function HomeContent() {
                     />
                   </div>
                 )}
-                
+
                 <div className="flex flex-col gap-2">
                   {isAdminUser && (
                     <>
@@ -225,10 +259,10 @@ function HomeContent() {
                       </div>
                     </>
                   )}
-                  
+
                   <div className="animate-fade-in-up [animation-delay:120ms]">
                     <ListStatCard
-                      title={isAdminUser ? "Saldo Kas Global" : "Saldo Kas Shift Anda"}
+                      title={isAdminUser ? 'Saldo Kas Global' : 'Saldo Kas Shift Anda'}
                       value={kasBalance || 0}
                       prefix="Rp "
                       icon={<IconWallet size={20} />}
@@ -268,7 +302,7 @@ function HomeContent() {
           </div>
 
           {/* Baris 2 & 3: Bento Layout */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-4">
+          <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {isAdminUser && (
               <div className="animate-fade-in-up flex flex-col [animation-delay:300ms]">
                 <TrendChart data={trend || []} isLoading={trendLoading} />
@@ -278,9 +312,12 @@ function HomeContent() {
             <div className="animate-fade-in-up flex flex-col [animation-delay:350ms]">
               <LowStockAlert items={lowStock || []} isLoading={lowStockLoading} />
             </div>
-            
+
             <div className="animate-fade-in-up flex flex-col [animation-delay:400ms]">
-              <RecentTransactions transactions={transactions || []} isLoading={transactionsLoading} />
+              <RecentTransactions
+                transactions={transactions || []}
+                isLoading={transactionsLoading}
+              />
             </div>
           </div>
         </div>
@@ -289,10 +326,6 @@ function HomeContent() {
   );
 }
 
-
-
-
 export default function Home() {
   return <HomeContent />;
 }
-

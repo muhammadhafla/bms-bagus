@@ -11,7 +11,7 @@ describe('PriceInput Accessibility', () => {
         onChange={vi.fn()}
         id="custom-price-input-id"
         label="Harga Barang"
-      />
+      />,
     );
 
     const label = screen.getByText('Harga Barang');
@@ -24,13 +24,7 @@ describe('PriceInput Accessibility', () => {
   });
 
   it('associates label with input using auto-generated id when id is not provided', () => {
-    render(
-      <PriceInput
-        value={2000}
-        onChange={vi.fn()}
-        label="Harga Otomatis"
-      />
-    );
+    render(<PriceInput value={2000} onChange={vi.fn()} label="Harga Otomatis" />);
 
     const label = screen.getByText('Harga Otomatis');
     expect(label).toBeInTheDocument();

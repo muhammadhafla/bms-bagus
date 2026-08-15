@@ -20,26 +20,41 @@ interface KeyboardShortcutsProps {
   onShowHelp?: () => void;
 }
 
-export function KeyboardShortcutsProvider({ children, shortcuts, onShowHelp }: KeyboardShortcutsProps) {
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    for (const shortcut of shortcuts) {
-      if (!shortcut.allowInInput && (e.target instanceof HTMLInputElement || 
-          e.target instanceof HTMLTextAreaElement ||
-          e.target instanceof HTMLSelectElement)) {
-        continue;
-      }
+export function KeyboardShortcutsProvider({
+  children,
+  shortcuts,
+  onShowHelp,
+}: KeyboardShortcutsProps) {
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      for (const shortcut of shortcuts) {
+        if (
+          !shortcut.allowInInput &&
+          (e.target instanceof HTMLInputElement ||
+            e.target instanceof HTMLTextAreaElement ||
+            e.target instanceof HTMLSelectElement)
+        ) {
+          continue;
+        }
 
-      const ctrlMatch = shortcut.ctrl ? (e.ctrlKey || e.metaKey) : !e.ctrlKey && !e.metaKey;
-      const shiftMatch = shortcut.shift ? e.shiftKey : !e.shiftKey;
-      const altMatch = shortcut.alt ? e.altKey : !e.altKey;
+        const ctrlMatch = shortcut.ctrl ? e.ctrlKey || e.metaKey : !e.ctrlKey && !e.metaKey;
+        const shiftMatch = shortcut.shift ? e.shiftKey : !e.shiftKey;
+        const altMatch = shortcut.alt ? e.altKey : !e.altKey;
 
-      if (e.key.toLowerCase() === shortcut.key.toLowerCase() && ctrlMatch && shiftMatch && altMatch) {
-        e.preventDefault();
-        shortcut.handler();
-        return;
+        if (
+          e.key.toLowerCase() === shortcut.key.toLowerCase() &&
+          ctrlMatch &&
+          shiftMatch &&
+          altMatch
+        ) {
+          e.preventDefault();
+          shortcut.handler();
+          return;
+        }
       }
-    }
-  }, [shortcuts]);
+    },
+    [shortcuts],
+  );
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
@@ -50,25 +65,36 @@ export function KeyboardShortcutsProvider({ children, shortcuts, onShowHelp }: K
 }
 
 export function useKeyboardShortcuts(shortcuts: Shortcut[]) {
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    for (const shortcut of shortcuts) {
-      if (!shortcut.allowInInput && (e.target instanceof HTMLInputElement || 
-          e.target instanceof HTMLTextAreaElement ||
-          e.target instanceof HTMLSelectElement)) {
-        continue;
-      }
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      for (const shortcut of shortcuts) {
+        if (
+          !shortcut.allowInInput &&
+          (e.target instanceof HTMLInputElement ||
+            e.target instanceof HTMLTextAreaElement ||
+            e.target instanceof HTMLSelectElement)
+        ) {
+          continue;
+        }
 
-      const ctrlMatch = shortcut.ctrl ? (e.ctrlKey || e.metaKey) : !e.ctrlKey && !e.metaKey;
-      const shiftMatch = shortcut.shift ? e.shiftKey : !e.shiftKey;
-      const altMatch = shortcut.alt ? e.altKey : !e.altKey;
+        const ctrlMatch = shortcut.ctrl ? e.ctrlKey || e.metaKey : !e.ctrlKey && !e.metaKey;
+        const shiftMatch = shortcut.shift ? e.shiftKey : !e.shiftKey;
+        const altMatch = shortcut.alt ? e.altKey : !e.altKey;
 
-      if (e.key.toLowerCase() === shortcut.key.toLowerCase() && ctrlMatch && shiftMatch && altMatch) {
-        e.preventDefault();
-        shortcut.handler();
-        return;
+        if (
+          e.key.toLowerCase() === shortcut.key.toLowerCase() &&
+          ctrlMatch &&
+          shiftMatch &&
+          altMatch
+        ) {
+          e.preventDefault();
+          shortcut.handler();
+          return;
+        }
       }
-    }
-  }, [shortcuts]);
+    },
+    [shortcuts],
+  );
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);

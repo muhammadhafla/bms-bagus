@@ -23,7 +23,7 @@ const PUBLIC_PATHS = [
 ];
 
 function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PATHS.some(path => pathname.startsWith(path));
+  return PUBLIC_PATHS.some((path) => pathname.startsWith(path));
 }
 
 export async function middleware(request: NextRequest) {
@@ -59,29 +59,27 @@ export async function middleware(request: NextRequest) {
         setAll(cookiesToSet) {
           supabaseCookies = cookiesToSet;
           // Set cookie di request untuk downstream
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           // Buat response baru dengan cookie yang diperbarui
           response = NextResponse.next({
             request: {
               headers: request.headers,
-            }
+            },
           });
-          
+
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            response.cookies.set(name, value, options),
           );
         },
       },
-    }
+    },
   );
 
   // Cek session via cookie secara lokal tanpa HTTP request untuk mempercepat TTFB
   // PERINGATAN: Ini hanya fast gate. Untuk security mutlak, gunakan getUser() di Server Action/API Route.
   const {
     data: { session },
-    error
+    error,
   } = await supabase.auth.getSession();
 
   // Tidak ada session → redirect ke login atau return 401
@@ -89,21 +87,20 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/api/')) {
       const apiResponse = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       supabaseCookies.forEach(({ name, value, options }) =>
-        apiResponse.cookies.set(name, value, options)
+        apiResponse.cookies.set(name, value, options),
       );
       return apiResponse;
     }
 
     const loginUrl = new URL('/login', request.url);
     // Validasi path sebelum set ke param (cegah open redirect)
-    const safeRedirect = pathname.startsWith('/') && !pathname.startsWith('//')
-      ? pathname
-      : '/dashboard';
+    const safeRedirect =
+      pathname.startsWith('/') && !pathname.startsWith('//') ? pathname : '/dashboard';
     loginUrl.searchParams.set('redirectTo', safeRedirect);
-    
+
     const redirectResponse = NextResponse.redirect(loginUrl);
     supabaseCookies.forEach(({ name, value, options }) =>
-      redirectResponse.cookies.set(name, value, options)
+      redirectResponse.cookies.set(name, value, options),
     );
     return redirectResponse;
   }

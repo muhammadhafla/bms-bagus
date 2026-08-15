@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import Tooltip from './Tooltip';
 import { ConfirmDialog } from './ConfirmDialog';
-import { toast } from "sonner";
+import { toast } from 'sonner';
 import MainLayout from '@/app/(main)/layout';
 import { useSidebarState } from '@/hooks/useSidebarState';
 
@@ -72,7 +72,6 @@ vi.mock('@/hooks/useSidebarState', () => ({
 }));
 
 describe('UI Polish Verification Tests', () => {
-
   describe('1. Tooltip Position Classes', () => {
     const positions = ['top', 'right', 'bottom', 'left'] as const;
 
@@ -81,11 +80,11 @@ describe('UI Polish Verification Tests', () => {
         render(
           <Tooltip content={`Tooltip content ${position}`} position={position}>
             <button>Hover me</button>
-          </Tooltip>
+          </Tooltip>,
         );
 
         const trigger = screen.getByRole('button', { name: 'Hover me' });
-        
+
         // Initially, the tooltip panel should not be visible or rendered
         expect(screen.queryByText(`Tooltip content ${position}`)).not.toBeInTheDocument();
 
@@ -161,7 +160,7 @@ describe('UI Polish Verification Tests', () => {
           cancelLabel="Batal"
           onConfirm={handleConfirm}
           onCancel={handleCancel}
-        />
+        />,
       );
 
       // ConfirmDialog is rendered within a Portal, which appends to document.body.
@@ -185,18 +184,10 @@ describe('UI Polish Verification Tests', () => {
   describe('3. Toast Close Button Icon', () => {
     it('has SVG icon content inside the close button', async () => {
       const TriggerComponent = () => {
-        return (
-          <button onClick={() => toast.success('Toast Message')}>
-            Show Toast
-          </button>
-        );
+        return <button onClick={() => toast.success('Toast Message')}>Show Toast</button>;
       };
 
-      render(
-        
-          <TriggerComponent />
-        
-      );
+      render(<TriggerComponent />);
 
       // Trigger the toast
       fireEvent.click(screen.getByRole('button', { name: 'Show Toast' }));
@@ -235,11 +226,9 @@ describe('UI Polish Verification Tests', () => {
       });
 
       render(
-        
-          <MainLayout>
-            <div>Main Content</div>
-          </MainLayout>
-        
+        <MainLayout>
+          <div>Main Content</div>
+        </MainLayout>,
       );
 
       const dashboardLink = screen.getByRole('link', { name: 'Dashboard' });
@@ -273,11 +262,9 @@ describe('UI Polish Verification Tests', () => {
       });
 
       render(
-        
-          <MainLayout>
-            <div>Main Content</div>
-          </MainLayout>
-        
+        <MainLayout>
+          <div>Main Content</div>
+        </MainLayout>,
       );
 
       const dashboardLink = screen.getByRole('link', { name: 'Dashboard' });

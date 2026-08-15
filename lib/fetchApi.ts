@@ -5,7 +5,9 @@ import { supabase } from '@/lib/supabase';
  * and redirects to login upon 401 Unauthorized errors.
  */
 export async function fetchApi(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   const token = session?.access_token;
 
   const headers = new Headers(init?.headers);

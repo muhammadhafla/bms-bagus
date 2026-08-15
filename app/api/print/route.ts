@@ -11,7 +11,10 @@ export async function POST(request: Request) {
     const { template_id, payload_json } = body;
 
     if (!template_id || !payload_json) {
-      return NextResponse.json({ error: 'template_id and payload_json are required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'template_id and payload_json are required' },
+        { status: 400 },
+      );
     }
 
     const { data, error } = await supabase
@@ -19,7 +22,7 @@ export async function POST(request: Request) {
       .insert({
         template_id,
         payload_json,
-        status: 'Pending'
+        status: 'Pending',
       })
       .select()
       .single();

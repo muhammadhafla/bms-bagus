@@ -3,7 +3,7 @@ import { fetchApi } from '@/lib/fetchApi';
 import { Modal, TextInput, Button } from '@/components/ui';
 import { useAuthStore } from '@/lib/auth';
 
-import { toast } from "sonner";
+import { toast } from 'sonner';
 import { IconUserPlus, IconLoader2 } from '@tabler/icons-react';
 
 interface CreateUserModalProps {
@@ -34,7 +34,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
       const response = await fetchApi('/api/users', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
       });
@@ -58,7 +58,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Tambah User Baru" size="md">
-      <form onSubmit={handleSubmit} className="p-6 space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4 p-6">
         <TextInput
           name="nama"
           label="Nama Lengkap"
@@ -66,7 +66,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
           onChange={handleChange}
           required
         />
-        
+
         <TextInput
           type="email"
           name="email"
@@ -81,7 +81,12 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
           label="Username"
           placeholder="Opsional, untuk login tanpa email"
           value={formData.username}
-          onChange={(e) => setFormData({...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '')})}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              username: e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''),
+            })
+          }
         />
 
         <TextInput
@@ -95,26 +100,35 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
         />
 
         <div>
-          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+          <label className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
             Role <span className="text-red-500">*</span>
           </label>
           <select
             name="role"
             value={formData.role}
             onChange={handleChange}
-            className="w-full px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500/20 focus:border-brand-500 text-neutral-900 dark:text-white"
+            className="focus:ring-brand-500/20 focus:border-brand-500 w-full rounded-xl border border-neutral-300 bg-white px-4 py-2 text-neutral-900 focus:ring-2 focus:outline-none focus:ring-inset dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
           >
             <option value="staff">Staff (Kasir)</option>
             <option value="admin">Admin</option>
           </select>
         </div>
 
-        <div className="pt-4 flex justify-end gap-3">
+        <div className="flex justify-end gap-3 pt-4">
           <Button variant="secondary" onClick={onClose}>
             Batal
           </Button>
-          <Button type="submit" variant="primary" disabled={loading} className="flex items-center gap-2">
-            {loading ? <IconLoader2 className="w-4 h-4 animate-spin" /> : <IconUserPlus className="w-4 h-4" />}
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={loading}
+            className="flex items-center gap-2"
+          >
+            {loading ? (
+              <IconLoader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <IconUserPlus className="h-4 w-4" />
+            )}
             Tambah Akun
           </Button>
         </div>

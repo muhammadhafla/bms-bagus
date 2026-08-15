@@ -20,8 +20,10 @@ interface ReturnData {
 }
 
 async function getPdfMake() {
-  const pdfMake = (await import('pdfmake/build/pdfmake')).default || await import('pdfmake/build/pdfmake');
-  const pdfFonts = (await import('pdfmake/build/vfs_fonts')).default || await import('pdfmake/build/vfs_fonts');
+  const pdfMake =
+    (await import('pdfmake/build/pdfmake')).default || (await import('pdfmake/build/pdfmake'));
+  const pdfFonts =
+    (await import('pdfmake/build/vfs_fonts')).default || (await import('pdfmake/build/vfs_fonts'));
   (pdfMake as any).vfs = (pdfFonts as any).pdfMake?.vfs || (pdfFonts as any).vfs || pdfFonts;
   return pdfMake;
 }
@@ -35,32 +37,36 @@ export async function generateReturnPdf(returnData: ReturnData): Promise<Buffer>
       {
         text: 'SURAT RETUR BARANG',
         style: 'header',
-        margin: [0, 0, 0, 5]
+        margin: [0, 0, 0, 5],
       },
       {
         text: `Nomor: ${(returnData.id || '').slice(0, 8).toUpperCase()}`,
         style: 'subheader',
-        margin: [0, 0, 0, 2]
+        margin: [0, 0, 0, 2],
       },
       {
         text: `Tanggal: ${returnData.tanggal}`,
         style: 'subheader',
-        margin: [0, 0, 0, 15]
+        margin: [0, 0, 0, 15],
       },
       {
         text: 'Kepada Yth:',
         style: 'label',
-        margin: [0, 0, 0, 2]
+        margin: [0, 0, 0, 2],
       },
       {
         text: returnData.supplier_nama,
-        margin: [0, 0, 0, 15]
+        margin: [0, 0, 0, 15],
       },
-      ...(returnData.note ? [{
-        text: `Catatan: ${returnData.note}`,
-        italics: true,
-        margin: [0, 0, 0, 15]
-      }] : []),
+      ...(returnData.note
+        ? [
+            {
+              text: `Catatan: ${returnData.note}`,
+              italics: true,
+              margin: [0, 0, 0, 15],
+            },
+          ]
+        : []),
       {
         table: {
           headerRows: 1,
@@ -72,7 +78,7 @@ export async function generateReturnPdf(returnData: ReturnData): Promise<Buffer>
               { text: 'Tgl Beli', style: 'tableHeader' },
               { text: 'Qty', style: 'tableHeader', alignment: 'right' },
               { text: 'Harga', style: 'tableHeader', alignment: 'right' },
-              { text: 'Subtotal', style: 'tableHeader', alignment: 'right' }
+              { text: 'Subtotal', style: 'tableHeader', alignment: 'right' },
             ],
             ...returnData.items.map((item, index) => {
               const harga = item.harga_beli - (item.diskon || 0);
@@ -82,12 +88,16 @@ export async function generateReturnPdf(returnData: ReturnData): Promise<Buffer>
                 { text: item.tanggal_pembelian || '-', fontSize: 9 },
                 { text: String(item.qty), fontSize: 9, alignment: 'right' },
                 { text: `Rp ${harga.toLocaleString('id-ID')}`, fontSize: 9, alignment: 'right' },
-                { text: `Rp ${item.harga_final.toLocaleString('id-ID')}`, fontSize: 9, alignment: 'right' }
+                {
+                  text: `Rp ${item.harga_final.toLocaleString('id-ID')}`,
+                  fontSize: 9,
+                  alignment: 'right',
+                },
               ];
-            })
-          ]
+            }),
+          ],
         },
-        margin: [0, 0, 0, 15]
+        margin: [0, 0, 0, 15],
       },
       {
         columns: [
@@ -98,12 +108,12 @@ export async function generateReturnPdf(returnData: ReturnData): Promise<Buffer>
                 text: `TOTAL RETURN: Rp ${returnData.total.toLocaleString('id-ID')}`,
                 bold: true,
                 fontSize: 12,
-                alignment: 'right'
-              }
-            ]
-          }
+                alignment: 'right',
+              },
+            ],
+          },
         ],
-        margin: [0, 10, 0, 0]
+        margin: [0, 10, 0, 0],
       },
       {
         columns: [
@@ -112,33 +122,33 @@ export async function generateReturnPdf(returnData: ReturnData): Promise<Buffer>
               { text: 'Penerima Barang,', alignment: 'center' },
               { text: '', margin: [0, 40, 0, 0] },
               { text: '___________________', alignment: 'center', fontSize: 9 },
-              { text: 'Nama & Tanda Tangan', alignment: 'center', fontSize: 8 }
+              { text: 'Nama & Tanda Tangan', alignment: 'center', fontSize: 8 },
             ],
-            width: '50%'
+            width: '50%',
           },
           {
             stack: [
               { text: 'Dibuat Oleh,', alignment: 'center' },
               { text: '', margin: [0, 40, 0, 0] },
               { text: '___________________', alignment: 'center', fontSize: 9 },
-              { text: 'Nama & Tanda Tangan', alignment: 'center', fontSize: 8 }
+              { text: 'Nama & Tanda Tangan', alignment: 'center', fontSize: 8 },
             ],
-            width: '50%'
-          }
+            width: '50%',
+          },
         ],
-        margin: [0, 40, 0, 0]
-      }
+        margin: [0, 40, 0, 0],
+      },
     ],
     styles: {
       header: { fontSize: 18, bold: true },
       subheader: { fontSize: 10, color: '#666' },
       label: { bold: true, fontSize: 10 },
-      tableHeader: { bold: true, fontSize: 9, fillColor: '#f0f0f0' }
+      tableHeader: { bold: true, fontSize: 9, fillColor: '#f0f0f0' },
     },
     defaultStyle: {
       fontSize: 10,
-      font: 'Helvetica'
-    }
+      font: 'Helvetica',
+    },
   };
 
   return new Promise((resolve, reject) => {

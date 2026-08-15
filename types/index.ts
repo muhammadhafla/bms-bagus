@@ -19,5 +19,6 @@ export interface PrintPayload {
   nama_barang: string;
   qty: number;
 }
-export type StockAdjustmentWithInventory = StockAdjustment & { inventory?: { nama_barang: string } };  
- 
+export type StockAdjustmentWithInventory = StockAdjustment & {
+  inventory?: { nama_barang: string };
+};

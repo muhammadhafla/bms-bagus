@@ -18,15 +18,26 @@ interface ModalProps {
   isFullScreenOnMobile?: boolean;
 }
 
-export function Modal({ isOpen, onClose, title, children, size = 'md', isBottomSheetOnMobile = false, isFullScreenOnMobile = false }: ModalProps) {
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  size = 'md',
+  isBottomSheetOnMobile = false,
+  isFullScreenOnMobile = false,
+}: ModalProps) {
   const titleId = useId();
   const focusTrapRef = useFocusTrap(isOpen);
 
-  const handleEscape = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  }, [onClose]);
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    },
+    [onClose],
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -57,15 +68,25 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', isBottomS
 
   if (mounted && isBottomSheetOnMobile && !isDesktop) {
     return (
-      <Drawer.Root open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Drawer.Root
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) onClose();
+        }}
+      >
         <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 bg-black/50 z-[100]" />
-          <Drawer.Content className="bg-white dark:bg-neutral-950 flex flex-col rounded-t-2xl fixed bottom-0 left-0 right-0 z-[101] max-h-[96vh] outline-none">
-            <div className="w-12 h-1.5 bg-neutral-300 dark:bg-neutral-700 rounded-full mx-auto mt-3 mb-1 shrink-0" />
+          <Drawer.Overlay className="fixed inset-0 z-[100] bg-black/50" />
+          <Drawer.Content className="fixed right-0 bottom-0 left-0 z-[101] flex max-h-[96vh] flex-col rounded-t-2xl bg-white outline-none dark:bg-neutral-950">
+            <div className="mx-auto mt-3 mb-1 h-1.5 w-12 shrink-0 rounded-full bg-neutral-300 dark:bg-neutral-700" />
             {title && (
-               <div className="flex items-center justify-between px-5 pt-2 pb-4 border-b border-neutral-200 dark:border-neutral-800 shrink-0">
-                 <Drawer.Title id={titleId} className="text-xl font-bold text-neutral-900 dark:text-white">{title}</Drawer.Title>
-               </div>
+              <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-5 pt-2 pb-4 dark:border-neutral-800">
+                <Drawer.Title
+                  id={titleId}
+                  className="text-xl font-bold text-neutral-900 dark:text-white"
+                >
+                  {title}
+                </Drawer.Title>
+              </div>
             )}
             <div className="flex-1 overflow-y-auto p-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
               {children}
@@ -78,46 +99,45 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', isBottomS
 
   return (
     <Portal>
-      <div className={`fixed inset-0 z-[100] flex ${isBottomSheetOnMobile ? 'items-end sm:items-center' : 'items-center'} justify-center ${(isBottomSheetOnMobile || isFullScreenOnMobile) ? 'p-0 sm:p-4' : 'p-4'} animate-fade-in`}>
-        <div 
-          className="absolute inset-0 bg-black/50"
-          onClick={onClose}
-          aria-hidden="true"
-        />
-        <div 
-          ref={focusTrapRef} 
+      <div
+        className={`fixed inset-0 z-[100] flex ${isBottomSheetOnMobile ? 'items-end sm:items-center' : 'items-center'} justify-center ${isBottomSheetOnMobile || isFullScreenOnMobile ? 'p-0 sm:p-4' : 'p-4'} animate-fade-in`}
+      >
+        <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
+        <div
+          ref={focusTrapRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby={title ? titleId : undefined}
-          className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-neutral-950 shadow-xl flex flex-col ${
-            isFullScreenOnMobile 
-              ? 'h-[100dvh] sm:h-auto sm:max-h-[90vh] rounded-none sm:rounded-2xl animate-slide-up sm:animate-scale-in pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] sm:pt-0' 
-              : (isBottomSheetOnMobile 
-                  ? 'max-h-[90vh] sm:max-h-full rounded-t-2xl sm:rounded-2xl animate-slide-up sm:animate-scale-in pb-[env(safe-area-inset-bottom)]' 
-                  : 'max-h-[90vh] sm:max-h-full rounded-2xl animate-scale-in'
-                )
+          className={`relative w-full ${sizeClasses[size]} flex flex-col bg-white shadow-xl dark:bg-neutral-950 ${
+            isFullScreenOnMobile
+              ? 'animate-slide-up sm:animate-scale-in h-[100dvh] rounded-none pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:pt-0'
+              : isBottomSheetOnMobile
+                ? 'animate-slide-up sm:animate-scale-in max-h-[90vh] rounded-t-2xl pb-[env(safe-area-inset-bottom)] sm:max-h-full sm:rounded-2xl'
+                : 'animate-scale-in max-h-[90vh] rounded-2xl sm:max-h-full'
           }`}
         >
           {isBottomSheetOnMobile && (
-            <div className="sm:hidden w-full flex justify-center pt-3 pb-1 shrink-0 bg-transparent">
-              <div className="w-12 h-1.5 bg-neutral-300 dark:bg-neutral-700 rounded-full" />
+            <div className="flex w-full shrink-0 justify-center bg-transparent pt-3 pb-1 sm:hidden">
+              <div className="h-1.5 w-12 rounded-full bg-neutral-300 dark:bg-neutral-700" />
             </div>
           )}
           {title && (
-            <div className={`flex items-center justify-between px-5 ${isBottomSheetOnMobile ? 'pt-2 pb-4 sm:p-5' : 'p-5'} border-b border-neutral-200 dark:border-neutral-800 shrink-0`}>
-              <h2 id={titleId} className="text-xl font-bold text-neutral-900 dark:text-white">{title}</h2>
+            <div
+              className={`flex items-center justify-between px-5 ${isBottomSheetOnMobile ? 'pt-2 pb-4 sm:p-5' : 'p-5'} shrink-0 border-b border-neutral-200 dark:border-neutral-800`}
+            >
+              <h2 id={titleId} className="text-xl font-bold text-neutral-900 dark:text-white">
+                {title}
+              </h2>
               <button
                 onClick={onClose}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="focus:ring-brand-500 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700 focus:ring-2 focus:outline-none dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
                 aria-label="Tutup"
               >
-                <IconX className="w-5 h-5" />
+                <IconX className="h-5 w-5" />
               </button>
             </div>
           )}
-          <div className="flex-1 overflow-y-auto p-5">
-            {children}
-          </div>
+          <div className="flex-1 overflow-y-auto p-5">{children}</div>
         </div>
       </div>
     </Portal>

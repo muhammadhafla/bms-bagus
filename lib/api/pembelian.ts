@@ -78,7 +78,9 @@ export const purchasesApi = {
         query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
       }
       if (options?.search) {
-        query = query.or(`nomor_nota.ilike.%${options.search}%,supplier_nama.ilike.%${options.search}%`);
+        query = query.or(
+          `nomor_nota.ilike.%${options.search}%,supplier_nama.ilike.%${options.search}%`,
+        );
       }
       if (options?.startDate) {
         query = query.gte('tanggal', options.startDate);
@@ -87,9 +89,12 @@ export const purchasesApi = {
         query = query.lte('tanggal', options.endDate);
       }
 
-      const result = await safeQuery<{ data: any[], count: number | null }>(async () => {
+      const result = await safeQuery<{ data: any[]; count: number | null }>(async () => {
         const res = await query;
-        return { data: { data: res.data as any[], count: res.count }, error: res.error as Error | null };
+        return {
+          data: { data: res.data as any[], count: res.count },
+          error: res.error as Error | null,
+        };
       });
 
       if (result.error) {
@@ -156,7 +161,7 @@ export const purchasesApi = {
 
       const formattedItems = (itemsResult.data || []).map((item: any) => ({
         ...item,
-        harga_jual: item.inventory?.harga_jual || 0
+        harga_jual: item.inventory?.harga_jual || 0,
       }));
 
       return {
@@ -165,7 +170,8 @@ export const purchasesApi = {
           items: formattedItems,
           total: purchaseResult.data?.total_sistem || 0,
           total_supplier: purchaseResult.data?.total_supplier || 0,
-          selisih: (purchaseResult.data?.total_sistem || 0) - (purchaseResult.data?.total_supplier || 0),
+          selisih:
+            (purchaseResult.data?.total_sistem || 0) - (purchaseResult.data?.total_supplier || 0),
           created_by_nama: null,
         },
         error: null,
@@ -176,29 +182,29 @@ export const purchasesApi = {
     }
   },
 
-  async getCount(options?: { search?: string, startDate?: string, endDate?: string }) {
-    let query = supabase
-      .from('pembelian')
-      .select('*', { count: 'exact', head: true });
+  async getCount(options?: { search?: string; startDate?: string; endDate?: string }) {
+    let query = supabase.from('pembelian').select('*', { count: 'exact', head: true });
 
-      if (options?.search) {
-        query = query.or(`nomor_nota.ilike.%${options.search}%,supplier_nama.ilike.%${options.search}%`);
-      }
-      if (options?.startDate) {
-        query = query.gte('tanggal', options.startDate);
-      }
-      if (options?.endDate) {
-        query = query.lte('tanggal', options.endDate);
-      }
+    if (options?.search) {
+      query = query.or(
+        `nomor_nota.ilike.%${options.search}%,supplier_nama.ilike.%${options.search}%`,
+      );
+    }
+    if (options?.startDate) {
+      query = query.gte('tanggal', options.startDate);
+    }
+    if (options?.endDate) {
+      query = query.lte('tanggal', options.endDate);
+    }
 
-      // head: true → data selalu null, count ada di response.count
-      const { count, error } = await query;
+    // head: true → data selalu null, count ada di response.count
+    const { count, error } = await query;
 
-      if (error) {
-        return { data: 0, error: { message: error.message } };
-      }
+    if (error) {
+      return { data: 0, error: { message: error.message } };
+    }
 
-      return { data: count ?? 0, error: null };
+    return { data: count ?? 0, error: null };
   },
 };
 
@@ -214,7 +220,9 @@ export const purchaseApi = {
     idempotency_key?: string;
   }) {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const userId = user?.id ?? null;
 
       if (!userId) {
@@ -229,22 +237,31 @@ export const purchaseApi = {
       // Validasi setiap item
       for (const item of data.items) {
         if (!item.inventory_id && !item.barcode) {
-          return { data: null, error: { message: `Item ${item.nama_barang} tidak memiliki ID/barcode valid` } };
+          return {
+            data: null,
+            error: { message: `Item ${item.nama_barang} tidak memiliki ID/barcode valid` },
+          };
         }
         if (!item.qty || item.qty <= 0) {
-          return { data: null, error: { message: `Qty untuk ${item.nama_barang} harus lebih dari 0` } };
+          return {
+            data: null,
+            error: { message: `Qty untuk ${item.nama_barang} harus lebih dari 0` },
+          };
         }
         if (item.harga_final < 0) {
-          return { data: null, error: { message: `Harga untuk ${item.nama_barang} tidak boleh negatif` } };
+          return {
+            data: null,
+            error: { message: `Harga untuk ${item.nama_barang} tidak boleh negatif` },
+          };
         }
       }
-      
+
       // Prepare items for batch RPC - use harga_final (net price after diskon)
-      const itemsPayload = data.items.map(item => ({
+      const itemsPayload = data.items.map((item) => ({
         nama_barang: item.nama_barang,
         qty: item.qty,
         harga: item.harga_final || 0,
-        harga_jual: item.harga_jual
+        harga_jual: item.harga_jual,
       }));
 
       const result = await supabase.rpc('tambah_pembelian_batch', {
@@ -253,7 +270,7 @@ export const purchaseApi = {
         p_tanggal: data.tanggal,
         p_user: userId,
         p_idempotency_key: data.idempotency_key,
-        p_nomor_nota: data.nomor_nota || null
+        p_nomor_nota: data.nomor_nota || null,
       });
 
       if (result.error) {
@@ -268,11 +285,12 @@ export const purchaseApi = {
     }
   },
 
-
-
   updateBatch: async (data: UpdateBatchInput) => {
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       if (userError) throw userError;
       if (!user) throw new Error('User not authenticated');
 
@@ -282,7 +300,7 @@ export const purchaseApi = {
         qty: item.qty,
         harga: item.harga_final || 0,
         harga_jual: item.harga_jual,
-        diskon: item.diskon
+        diskon: item.diskon,
       }));
 
       const { data: response, error } = await supabase.rpc('update_pembelian_batch', {
@@ -291,7 +309,7 @@ export const purchaseApi = {
         p_supplier_id: data.supplier_id || null,
         p_tanggal: data.tanggal,
         p_nomor_nota: data.nomor_nota || null,
-        p_user: user.id
+        p_user: user.id,
       });
 
       if (error) throw error;
@@ -301,6 +319,4 @@ export const purchaseApi = {
       return { data: null, error: error as Error };
     }
   },
-
-
 };

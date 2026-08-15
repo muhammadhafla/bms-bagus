@@ -1,13 +1,24 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { IconPackage, IconDotsVertical, IconDeviceFloppy, IconTrash, IconPrinter, IconChevronRight, IconChevronLeft, IconBan, IconCheck, IconHistory } from '@tabler/icons-react';
+import {
+  IconPackage,
+  IconDotsVertical,
+  IconDeviceFloppy,
+  IconTrash,
+  IconPrinter,
+  IconChevronRight,
+  IconChevronLeft,
+  IconBan,
+  IconCheck,
+  IconHistory,
+} from '@tabler/icons-react';
 import { InventoryItem } from '@/types/inventory';
 import { supabase } from '@/lib/supabase';
 import { fetchApi } from '@/lib/fetchApi';
 import { formatCurrency } from '@/lib/utils';
 import { inventoryApi, kategoriApi } from '@/lib/api';
-import { toast } from "sonner";
+import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { AdminOnly } from '@/components/role';
 import { useAuthStore, useIsAdmin } from '@/lib/auth';
@@ -43,7 +54,13 @@ interface EditForm {
   minimum_stock: number;
 }
 
-export const InventoryTable = React.memo(function InventoryTable({ items, onUpdate, onDelete, pagination, kategoriList }: InventoryTableProps) {
+export const InventoryTable = React.memo(function InventoryTable({
+  items,
+  onUpdate,
+  onDelete,
+  pagination,
+  kategoriList,
+}: InventoryTableProps) {
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
   const [editForm, setEditForm] = useState<EditForm>({
@@ -92,7 +109,7 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
       const kategoriResult = await kategoriApi.getByName(editForm.id_kategori);
       id_kategori = kategoriResult.data?.id;
     }
-    
+
     const updateData: Record<string, unknown> = {
       nama_barang: editForm.nama_barang,
       kode_barcode: editForm.kode_barcode,
@@ -120,7 +137,7 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
 
   const handleDelete = useCallback(async () => {
     if (!selectedItem || !onDelete) return;
-    
+
     await onDelete(selectedItem.id);
     toast.success('Barang dihapus');
     setDeleteConfirm(false);
@@ -129,10 +146,12 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
 
   const handleToggleDiscontinue = useCallback(async () => {
     if (!selectedItem) return;
-    
+
     const result = await inventoryApi.toggleDiscontinued(selectedItem.id);
     if (!result.error && result.data) {
-      toast.success(`Barang berhasil ${selectedItem.is_discontinued ? 'diaktifkan' : 'dihentikan'}`);
+      toast.success(
+        `Barang berhasil ${selectedItem.is_discontinued ? 'diaktifkan' : 'dihentikan'}`,
+      );
       onUpdate(selectedItem.id, result.data);
     } else {
       toast.error('Gagal mengubah status');
@@ -142,17 +161,19 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
   }, [selectedItem, onUpdate, closeSlideOver]);
 
   useKeyboardShortcuts(
-    isSlideOverOpen ? [
-      {
-        key: 's',
-        ctrl: true,
-        allowInInput: true,
-        description: 'Simpan Perubahan',
-        handler: () => {
-          handleSave();
-        },
-      }
-    ] : []
+    isSlideOverOpen
+      ? [
+          {
+            key: 's',
+            ctrl: true,
+            allowInInput: true,
+            description: 'Simpan Perubahan',
+            handler: () => {
+              handleSave();
+            },
+          },
+        ]
+      : [],
   );
 
   const openPrintModal = async () => {
@@ -165,7 +186,7 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
       if (data.templates) {
         setTemplates(data.templates);
         if (data.templates.length > 0) {
-          setPrintForm(prev => ({ ...prev, template_id: data.templates[0].id }));
+          setPrintForm((prev) => ({ ...prev, template_id: data.templates[0].id }));
         }
       }
     } catch (err) {
@@ -179,11 +200,11 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
     try {
       // Harga akhir setelah diskon
       const finalPrice = (selectedItem.harga_jual || 0) - (selectedItem.diskon || 0);
-      
+
       const itemData = {
         name: selectedItem.nama_barang,
         price: formatCurrency(finalPrice),
-        barcode: selectedItem.kode_barcode
+        barcode: selectedItem.kode_barcode,
       };
       const payload_json = Array(printForm.qty).fill(itemData);
 
@@ -192,8 +213,8 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           template_id: printForm.template_id,
-          payload_json
-        })
+          payload_json,
+        }),
       });
 
       if (res.ok) {
@@ -213,7 +234,7 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-neutral-400 dark:text-neutral-500">
+      <div className="flex h-64 flex-col items-center justify-center text-neutral-400 dark:text-neutral-500">
         <IconPackage size={64} className="mb-4 opacity-50" />
         <p className="text-lg font-medium">Tidak ada data inventory</p>
         <p className="text-sm">Tambahkan barang melalui halaman Pembelian</p>
@@ -223,19 +244,39 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
 
   return (
     <>
-      <div className="hidden lg:block overflow-auto rounded-3xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl shadow-elevated">
+      <div className="shadow-elevated hidden overflow-auto rounded-3xl border border-white/40 bg-white/70 backdrop-blur-xl lg:block dark:border-white/10 dark:bg-neutral-900/60">
         <table className="w-full min-w-[900px]">
-          <thead className="bg-white/50 dark:bg-neutral-950/50 backdrop-blur-md sticky top-0 z-10 border-b border-neutral-200/50 dark:border-neutral-800/50">
+          <thead className="sticky top-0 z-10 border-b border-neutral-200/50 bg-white/50 backdrop-blur-md dark:border-neutral-800/50 dark:bg-neutral-950/50">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Barcode</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Nama Barang</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Kategori</th>
-              {isAdminUser && <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Beli</th>}
-              <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Harga Jual</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Diskon</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Stok</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Minimal Stok</th>
-              <th className="px-4 py-3 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400">Aksi</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                Barcode
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                Nama Barang
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                Kategori
+              </th>
+              {isAdminUser && (
+                <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                  Harga Beli
+                </th>
+              )}
+              <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                Harga Jual
+              </th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                Diskon
+              </th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                Stok
+              </th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                Minimal Stok
+              </th>
+              <th className="px-4 py-3 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                Aksi
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
@@ -243,24 +284,26 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
               const isLowStock = item.stok <= (item.minimum_stock || 0);
 
               return (
-                <tr 
-                  key={item.id} 
+                <tr
+                  key={item.id}
                   onClick={() => openSlideOver(item)}
-                  className={`cursor-pointer group transition-colors ${item.is_discontinued ? 'opacity-60 bg-neutral-50/50 dark:bg-neutral-900/30 hover:bg-neutral-100/50 dark:hover:bg-neutral-800/40' : isLowStock ? 'bg-accent-rose-50/30 dark:bg-accent-rose-900/20 hover:bg-accent-rose-100/60 dark:hover:bg-accent-rose-900/50' : 'hover:bg-neutral-50/80 dark:hover:bg-neutral-800/60'}`}
+                  className={`group cursor-pointer transition-colors ${item.is_discontinued ? 'bg-neutral-50/50 opacity-60 hover:bg-neutral-100/50 dark:bg-neutral-900/30 dark:hover:bg-neutral-800/40' : isLowStock ? 'bg-accent-rose-50/30 dark:bg-accent-rose-900/20 hover:bg-accent-rose-100/60 dark:hover:bg-accent-rose-900/50' : 'hover:bg-neutral-50/80 dark:hover:bg-neutral-800/60'}`}
                 >
-                  <td className="px-4 py-3 text-sm font-mono text-neutral-900 dark:text-neutral-100">{item.kode_barcode}</td>
+                  <td className="px-4 py-3 font-mono text-sm text-neutral-900 dark:text-neutral-100">
+                    {item.kode_barcode}
+                  </td>
                   <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">
                     <div className="flex items-center gap-2">
                       {item.nama_barang}
                       {item.is_discontinued && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
+                        <span className="inline-flex items-center rounded bg-neutral-200 px-1.5 py-0.5 text-[10px] font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
                           Discontinue
                         </span>
                       )}
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                    <span className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
                       {item.id_kategori?.nama || '-'}
                     </span>
                   </td>
@@ -275,14 +318,16 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
                   <td className="px-4 py-3 text-right text-neutral-600 dark:text-neutral-300">
                     {formatCurrency(item.diskon)}
                   </td>
-                  <td className={`px-4 py-3 text-right font-bold ${isLowStock ? 'text-accent-rose-600 dark:text-accent-rose-300' : 'text-neutral-900 dark:text-neutral-100'}`}>
+                  <td
+                    className={`px-4 py-3 text-right font-bold ${isLowStock ? 'text-accent-rose-600 dark:text-accent-rose-300' : 'text-neutral-900 dark:text-neutral-100'}`}
+                  >
                     {item.stok}
                   </td>
                   <td className="px-4 py-3 text-right text-neutral-500 dark:text-neutral-300">
                     {item.minimum_stock}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <div className="inline-flex p-1.5 rounded-lg text-neutral-400 group-hover:text-brand-600 dark:group-hover:text-brand-400 group-hover:bg-brand-50 dark:group-hover:bg-brand-900/20 transition-all">
+                    <div className="group-hover:text-brand-600 dark:group-hover:text-brand-400 group-hover:bg-brand-50 dark:group-hover:bg-brand-900/20 inline-flex rounded-lg p-1.5 text-neutral-400 transition-all">
                       <IconChevronRight size={18} stroke={2.5} />
                     </div>
                   </td>
@@ -297,69 +342,82 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
             page={pagination.page}
             totalPages={pagination.totalPages}
             onPageChange={pagination.onPageChange}
-            className="hidden lg:flex border-x-0 border-b-0 rounded-none"
+            className="hidden rounded-none border-x-0 border-b-0 lg:flex"
           />
         )}
       </div>
 
       {/* Mobile Card Layout */}
-      <div className="block lg:hidden space-y-3">
+      <div className="block space-y-3 lg:hidden">
         {(Array.isArray(items) ? items : []).map((item) => {
           const isLowStock = item.stok <= (item.minimum_stock || 0);
           return (
-            <div 
-              key={item.id} 
+            <div
+              key={item.id}
               onClick={() => openSlideOver(item)}
-              className={`p-3 rounded-2xl border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm flex flex-col gap-2 cursor-pointer group active:scale-[0.98] transition-all duration-200 ${item.is_discontinued ? 'opacity-60 bg-neutral-50/50 dark:bg-neutral-900/30 hover:bg-neutral-100/50 dark:hover:bg-neutral-800/40' : isLowStock ? 'bg-accent-rose-50/30 dark:bg-accent-rose-900/20 hover:bg-accent-rose-50/80 dark:hover:bg-accent-rose-900/40' : 'bg-white/70 dark:bg-neutral-900/60 hover:bg-neutral-50/90 dark:hover:bg-neutral-800/80 backdrop-blur-xl'}`}
+              className={`group flex cursor-pointer flex-col gap-2 rounded-2xl border border-neutral-200/60 p-3 shadow-sm transition-all duration-200 active:scale-[0.98] dark:border-neutral-800/60 ${item.is_discontinued ? 'bg-neutral-50/50 opacity-60 hover:bg-neutral-100/50 dark:bg-neutral-900/30 dark:hover:bg-neutral-800/40' : isLowStock ? 'bg-accent-rose-50/30 dark:bg-accent-rose-900/20 hover:bg-accent-rose-50/80 dark:hover:bg-accent-rose-900/40' : 'bg-white/70 backdrop-blur-xl hover:bg-neutral-50/90 dark:bg-neutral-900/60 dark:hover:bg-neutral-800/80'}`}
             >
-              <div className="flex justify-between items-start">
+              <div className="flex items-start justify-between">
                 <div className="flex-1 pr-2">
-                  <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                    <h3 className="font-semibold text-neutral-900 dark:text-white text-sm leading-tight line-clamp-1">{item.nama_barang}</h3>
+                  <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                    <h3 className="line-clamp-1 text-sm leading-tight font-semibold text-neutral-900 dark:text-white">
+                      {item.nama_barang}
+                    </h3>
                     {item.is_discontinued && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 whitespace-nowrap shrink-0">
+                      <span className="inline-flex shrink-0 items-center rounded-md bg-neutral-200 px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
                         Discontinue
                       </span>
                     )}
                     {isLowStock && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-accent-rose-100 dark:bg-accent-rose-900/40 text-accent-rose-600 dark:text-accent-rose-400 whitespace-nowrap shrink-0">
+                      <span className="bg-accent-rose-100 dark:bg-accent-rose-900/40 text-accent-rose-600 dark:text-accent-rose-400 inline-flex shrink-0 items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap">
                         Low Stock
                       </span>
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-xs font-mono text-neutral-500 dark:text-neutral-400">{item.kode_barcode}</p>
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                    <p className="font-mono text-xs text-neutral-500 dark:text-neutral-400">
+                      {item.kode_barcode}
+                    </p>
+                    <span className="inline-flex items-center rounded-md bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
                       {item.id_kategori?.nama || '-'}
                     </span>
                   </div>
                 </div>
-                <div
-                  className="p-1 -mr-1 -mt-1 rounded-lg text-neutral-400 group-hover:text-brand-600 dark:group-hover:text-brand-400 group-hover:bg-brand-50 dark:group-hover:bg-brand-900/20 transition-all shrink-0"
-                >
+                <div className="group-hover:text-brand-600 dark:group-hover:text-brand-400 group-hover:bg-brand-50 dark:group-hover:bg-brand-900/20 -mt-1 -mr-1 shrink-0 rounded-lg p-1 text-neutral-400 transition-all">
                   <IconChevronRight size={18} stroke={2.5} />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[13px] mt-1 pt-2 border-t border-neutral-100 dark:border-neutral-800/60">
+              <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-neutral-100 pt-2 text-[13px] dark:border-neutral-800/60">
                 {isAdminUser && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-500 dark:text-neutral-400 text-xs">Beli</span>
-                    <span className="font-medium text-neutral-900 dark:text-neutral-100">{formatCurrency(item.harga_beli_terakhir || 0)}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-neutral-500 dark:text-neutral-400">Beli</span>
+                    <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                      {formatCurrency(item.harga_beli_terakhir || 0)}
+                    </span>
                   </div>
                 )}
-                <div className="flex justify-between items-center">
-                  <span className="text-neutral-500 dark:text-neutral-400 text-xs">Jual</span>
-                  <span className="font-medium text-neutral-900 dark:text-neutral-100">{formatCurrency(item.harga_jual)}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">Jual</span>
+                  <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                    {formatCurrency(item.harga_jual)}
+                  </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-neutral-500 dark:text-neutral-400 text-xs">Diskon</span>
-                  <span className="font-medium text-neutral-900 dark:text-neutral-100">{formatCurrency(item.diskon)}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">Diskon</span>
+                  <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                    {formatCurrency(item.diskon)}
+                  </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-neutral-500 dark:text-neutral-400 text-xs">Stok</span>
-                  <span className={`font-bold ${isLowStock ? 'text-accent-rose-600 dark:text-accent-rose-400' : 'text-neutral-900 dark:text-neutral-100'}`}>
-                    {item.stok} <span className="text-[10px] font-normal text-neutral-500">/{item.minimum_stock}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">Stok</span>
+                  <span
+                    className={`font-bold ${isLowStock ? 'text-accent-rose-600 dark:text-accent-rose-400' : 'text-neutral-900 dark:text-neutral-100'}`}
+                  >
+                    {item.stok}{' '}
+                    <span className="text-[10px] font-normal text-neutral-500">
+                      /{item.minimum_stock}
+                    </span>
                   </span>
                 </div>
               </div>
@@ -374,7 +432,7 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
           page={pagination.page}
           totalPages={pagination.totalPages}
           onPageChange={pagination.onPageChange}
-          className="lg:hidden sticky bottom-0 z-20 mt-4 -mx-4 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)] rounded-none border-x-0 border-b-0"
+          className="sticky bottom-0 z-20 -mx-4 mt-4 rounded-none border-x-0 border-b-0 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)] lg:hidden"
         />
       )}
 
@@ -389,7 +447,7 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
           fallback={
             <div className="space-y-4">
               {selectedItem?.is_discontinued && (
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
+                <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
                   <IconBan size={18} />
                   Barang telah di-discontinue
                 </div>
@@ -400,7 +458,9 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
               </div>
               <div>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400">Barcode</p>
-                <p className="text-neutral-900 dark:text-white font-mono">{editForm.kode_barcode}</p>
+                <p className="font-mono text-neutral-900 dark:text-white">
+                  {editForm.kode_barcode}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400">Kategori</p>
@@ -408,17 +468,25 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
               </div>
               {isAdminUser && (
                 <div>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">Harga Beli Terakhir</p>
-                  <p className="text-neutral-900 dark:text-white">{formatCurrency(editForm.harga_beli_terakhir)}</p>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                    Harga Beli Terakhir
+                  </p>
+                  <p className="text-neutral-900 dark:text-white">
+                    {formatCurrency(editForm.harga_beli_terakhir)}
+                  </p>
                 </div>
               )}
               <div>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400">Harga Jual</p>
-                <p className="text-neutral-900 dark:text-white">{formatCurrency(editForm.harga_jual)}</p>
+                <p className="text-neutral-900 dark:text-white">
+                  {formatCurrency(editForm.harga_jual)}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400">Diskon</p>
-                <p className="text-neutral-900 dark:text-white">{formatCurrency(editForm.diskon)}</p>
+                <p className="text-neutral-900 dark:text-white">
+                  {formatCurrency(editForm.diskon)}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400">Minimum Stock</p>
@@ -431,19 +499,19 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
             <TextInput
               label="Nama Barang"
               value={editForm.nama_barang}
-              onChange={(e) => setEditForm(prev => ({ ...prev, nama_barang: e.target.value }))}
+              onChange={(e) => setEditForm((prev) => ({ ...prev, nama_barang: e.target.value }))}
               required
             />
             <TextInput
               label="Barcode"
               value={editForm.kode_barcode}
-              onChange={(e) => setEditForm(prev => ({ ...prev, kode_barcode: e.target.value }))}
+              onChange={(e) => setEditForm((prev) => ({ ...prev, kode_barcode: e.target.value }))}
             />
             <SelectInput
               label="Kategori"
               value={editForm.id_kategori}
-              onChange={(value) => setEditForm(prev => ({ ...prev, id_kategori: value }))}
-              options={[...kategoriList].sort().map(k => ({ value: k, label: k }))}
+              onChange={(value) => setEditForm((prev) => ({ ...prev, id_kategori: value }))}
+              options={[...kategoriList].sort().map((k) => ({ value: k, label: k }))}
               placeholder="Pilih kategori"
             />
             {isAdminUser && (
@@ -451,26 +519,35 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
                 label="Harga Beli Terakhir"
                 type="number"
                 value={editForm.harga_beli_terakhir}
-                onChange={(e) => setEditForm(prev => ({ ...prev, harga_beli_terakhir: parseInt(e.target.value) || 0 }))}
+                onChange={(e) =>
+                  setEditForm((prev) => ({
+                    ...prev,
+                    harga_beli_terakhir: parseInt(e.target.value) || 0,
+                  }))
+                }
               />
             )}
             <TextInput
               label="Harga Jual"
               type="number"
               value={editForm.harga_jual}
-              onChange={(e) => setEditForm(prev => ({ ...prev, harga_jual: parseInt(e.target.value) || 0 }))}
+              onChange={(e) =>
+                setEditForm((prev) => ({ ...prev, harga_jual: parseInt(e.target.value) || 0 }))
+              }
             />
 
             <TextInput
               label="Minimum Stock"
               type="number"
               value={editForm.minimum_stock}
-              onChange={(e) => setEditForm(prev => ({ ...prev, minimum_stock: parseInt(e.target.value) || 0 }))}
+              onChange={(e) =>
+                setEditForm((prev) => ({ ...prev, minimum_stock: parseInt(e.target.value) || 0 }))
+              }
             />
           </div>
         </AdminOnly>
         <AdminOnly>
-          <div className="flex flex-col gap-3 mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+          <div className="mt-6 flex flex-col gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">
             <div className="flex gap-3">
               <Button
                 variant="primary"
@@ -485,7 +562,9 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
               variant="secondary"
               onClick={() => setDiscontinueConfirm(true)}
               className="w-full"
-              leftIcon={selectedItem?.is_discontinued ? <IconCheck size={18} /> : <IconBan size={18} />}
+              leftIcon={
+                selectedItem?.is_discontinued ? <IconCheck size={18} /> : <IconBan size={18} />
+              }
             >
               {selectedItem?.is_discontinued ? 'Aktifkan Kembali' : 'Discontinue Barang'}
             </Button>
@@ -532,8 +611,12 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
 
       <ConfirmDialog
         isOpen={discontinueConfirm}
-        title={selectedItem?.is_discontinued ? "Aktifkan Barang" : "Discontinue Barang"}
-        message={selectedItem?.is_discontinued ? `Apakah Anda yakin ingin mengaktifkan kembali "${selectedItem?.nama_barang}"?` : `Apakah Anda yakin ingin melakukan discontinue pada "${selectedItem?.nama_barang}"? Barang ini tidak akan muncul lagi di pencarian kasir.`}
+        title={selectedItem?.is_discontinued ? 'Aktifkan Barang' : 'Discontinue Barang'}
+        message={
+          selectedItem?.is_discontinued
+            ? `Apakah Anda yakin ingin mengaktifkan kembali "${selectedItem?.nama_barang}"?`
+            : `Apakah Anda yakin ingin melakukan discontinue pada "${selectedItem?.nama_barang}"? Barang ini tidak akan muncul lagi di pencarian kasir.`
+        }
         confirmLabel="Ya, Lanjutkan"
         cancelLabel="Batal"
         onConfirm={handleToggleDiscontinue}
@@ -551,29 +634,27 @@ export const InventoryTable = React.memo(function InventoryTable({ items, onUpda
           <p className="text-sm text-neutral-600 dark:text-neutral-400">
             Cetak label untuk <strong>{selectedItem?.nama_barang}</strong>
           </p>
-          
+
           <SelectInput
             label="Template Label"
             value={printForm.template_id}
-            onChange={(val) => setPrintForm(prev => ({...prev, template_id: val}))}
-            options={templates.map(t => ({ value: t.id, label: t.name }))}
+            onChange={(val) => setPrintForm((prev) => ({ ...prev, template_id: val }))}
+            options={templates.map((t) => ({ value: t.id, label: t.name }))}
             placeholder="Pilih template"
           />
-          
+
           <TextInput
             label="Jumlah (Qty)"
             type="number"
             value={printForm.qty}
-            onChange={(e) => setPrintForm(prev => ({...prev, qty: parseInt(e.target.value) || 1}))}
+            onChange={(e) =>
+              setPrintForm((prev) => ({ ...prev, qty: parseInt(e.target.value) || 1 }))
+            }
             required
           />
-          
-          <div className="flex gap-3 mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-800">
-            <Button
-              variant="secondary"
-              onClick={() => setPrintModalOpen(false)}
-              className="flex-1"
-            >
+
+          <div className="mt-6 flex gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+            <Button variant="secondary" onClick={() => setPrintModalOpen(false)} className="flex-1">
               Batal
             </Button>
             <Button

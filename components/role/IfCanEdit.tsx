@@ -9,29 +9,29 @@ interface IfCanEditProps {
   fallback?: React.ReactNode;
 }
 
-export const IfCanEdit: React.FC<IfCanEditProps> = ({ 
-  children, 
-  createdBy, 
+export const IfCanEdit: React.FC<IfCanEditProps> = ({
+  children,
+  createdBy,
   status,
-  fallback = null 
+  fallback = null,
 }) => {
-  const profile = useAuthStore(state => state.profile);
-  const user = useAuthStore(state => state.user);
-  const initialized = useAuthStore(state => state.initialized);
-  
+  const profile = useAuthStore((state) => state.profile);
+  const user = useAuthStore((state) => state.user);
+  const initialized = useAuthStore((state) => state.initialized);
+
   if (!initialized || !profile) {
     return <>{fallback}</>;
   }
-  
+
   const isAdmin = profile.role?.toLowerCase() === 'admin';
   if (isAdmin) {
     return <>{children}</>;
   }
-  
+
   // Special case for stock opname draft
   if (status === 'draft' && createdBy === user?.id) {
     return <>{children}</>;
   }
-  
+
   return <>{fallback}</>;
 };

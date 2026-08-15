@@ -80,7 +80,11 @@ export const analyticsApi = {
     return { data: result.data || [], error: result.error };
   },
 
-  async getSalesTrend(startDate?: string, endDate?: string, groupBy: 'hour' | 'day' | 'date' = 'hour') {
+  async getSalesTrend(
+    startDate?: string,
+    endDate?: string,
+    groupBy: 'hour' | 'day' | 'date' = 'hour',
+  ) {
     const result = await safeQuery<SalesTrend[]>(async () => {
       const res = await supabase.rpc('get_analytics_sales_trend', {
         p_start_date: startDate ? `${startDate}T00:00:00Z` : null,
@@ -91,17 +95,17 @@ export const analyticsApi = {
         let label = row.label_waktu.trim();
         if (groupBy === 'day') {
           const daysMap: Record<string, string> = {
-            'Monday': 'Senin',
-            'Tuesday': 'Selasa',
-            'Wednesday': 'Rabu',
-            'Thursday': 'Kamis',
-            'Friday': 'Jumat',
-            'Saturday': 'Sabtu',
-            'Sunday': 'Minggu'
+            Monday: 'Senin',
+            Tuesday: 'Selasa',
+            Wednesday: 'Rabu',
+            Thursday: 'Kamis',
+            Friday: 'Jumat',
+            Saturday: 'Sabtu',
+            Sunday: 'Minggu',
           };
           label = daysMap[label] || label;
         }
-        
+
         return {
           label_waktu: label,
           transaction_count: Number(row.transaction_count),
@@ -131,11 +135,13 @@ export const analyticsApi = {
 
   async getPaymentMethods(startDate?: string, endDate?: string) {
     const result = await safeQuery<PaymentMethods>(async () => {
-      const res = await supabase.rpc('get_analytics_payment_methods', {
-        p_start_date: startDate ? `${startDate}T00:00:00Z` : null,
-        p_end_date: endDate ? `${endDate}T23:59:59Z` : null,
-      }).single();
-      
+      const res = await supabase
+        .rpc('get_analytics_payment_methods', {
+          p_start_date: startDate ? `${startDate}T00:00:00Z` : null,
+          p_end_date: endDate ? `${endDate}T23:59:59Z` : null,
+        })
+        .single();
+
       const mapped = {
         total_cash: Number((res.data as any)?.total_cash || 0),
         total_qris: Number((res.data as any)?.total_qris || 0),
@@ -143,9 +149,9 @@ export const analyticsApi = {
       };
       return { data: mapped, error: res.error as Error | null };
     });
-    return { 
-      data: result.data || { total_cash: 0, total_qris: 0, transaction_count: 0 }, 
-      error: result.error 
+    return {
+      data: result.data || { total_cash: 0, total_qris: 0, transaction_count: 0 },
+      error: result.error,
     };
   },
 
@@ -187,19 +193,21 @@ export const analyticsApi = {
 
   async getAtv(startDate?: string, endDate?: string) {
     const result = await safeQuery<Atv>(async () => {
-      const res = await supabase.rpc('get_analytics_atv', {
-        p_start_date: startDate ? `${startDate}T00:00:00Z` : null,
-        p_end_date: endDate ? `${endDate}T23:59:59Z` : null,
-      }).single();
+      const res = await supabase
+        .rpc('get_analytics_atv', {
+          p_start_date: startDate ? `${startDate}T00:00:00Z` : null,
+          p_end_date: endDate ? `${endDate}T23:59:59Z` : null,
+        })
+        .single();
       const mapped = {
         avg_transaction_value: Number((res.data as any)?.avg_transaction_value || 0),
         items_per_ticket: Number((res.data as any)?.items_per_ticket || 0),
       };
       return { data: mapped, error: res.error as Error | null };
     });
-    return { 
-      data: result.data || { avg_transaction_value: 0, items_per_ticket: 0 }, 
-      error: result.error 
+    return {
+      data: result.data || { avg_transaction_value: 0, items_per_ticket: 0 },
+      error: result.error,
     };
   },
 
@@ -211,6 +219,13 @@ export const analyticsApi = {
       });
       return { data: res.data as ReturnAnalytics, error: res.error as Error | null };
     });
-    return { data: result.data || { kpi: { total_revenue_returned: 0, total_transactions: 0 }, top_items: [], reasons: [] }, error: result.error };
-  }
+    return {
+      data: result.data || {
+        kpi: { total_revenue_returned: 0, total_transactions: 0 },
+        top_items: [],
+        reasons: [],
+      },
+      error: result.error,
+    };
+  },
 };

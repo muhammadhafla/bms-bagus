@@ -20,27 +20,30 @@ export function Breadcrumb({ items, className = '' }: BreadcrumbProps) {
 
   return (
     <nav aria-label="Breadcrumb" className={`flex items-center gap-1 text-sm ${className}`}>
-      <ol className="flex items-center gap-1 flex-wrap">
+      <ol className="flex flex-wrap items-center gap-1">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
-          
+
           return (
             <li key={index} className="flex items-center gap-1">
               {index > 0 && (
-                <IconChevronRight className="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
+                <IconChevronRight className="h-4 w-4 text-neutral-400 dark:text-neutral-500" />
               )}
               {item.href && !isLast ? (
                 <Link
                   href={item.href}
-                  className="text-neutral-600 dark:text-neutral-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                  className="hover:text-brand-600 dark:hover:text-brand-400 text-neutral-600 transition-colors dark:text-neutral-400"
                 >
                   {item.label}
                 </Link>
               ) : (
-                <span className={isLast 
-                  ? 'font-medium text-neutral-900 dark:text-neutral-100' 
-                  : 'text-neutral-600 dark:text-neutral-400'
-                }>
+                <span
+                  className={
+                    isLast
+                      ? 'font-medium text-neutral-900 dark:text-neutral-100'
+                      : 'text-neutral-600 dark:text-neutral-400'
+                  }
+                >
                   {item.label}
                 </span>
               )}

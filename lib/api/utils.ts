@@ -12,20 +12,24 @@ export function createError(message: string, details?: string): ApiError {
 let refreshPromise: Promise<boolean> | null = null;
 async function ensureSession(): Promise<boolean> {
   if (refreshPromise) return refreshPromise;
-  
+
   const { useAuthStore } = await import('@/lib/auth');
-  refreshPromise = useAuthStore.getState().refreshSession()
-    .finally(() => { refreshPromise = null; });
-  
+  refreshPromise = useAuthStore
+    .getState()
+    .refreshSession()
+    .finally(() => {
+      refreshPromise = null;
+    });
+
   return refreshPromise;
 }
 
 export async function safeQuery<T>(
   operation: () => Promise<{ data: T | null; error: Error | null }>,
-  options?: { isMutation?: boolean }
+  options?: { isMutation?: boolean },
 ): Promise<{ data: T | null; error: ApiError | null }> {
   let result: { data: T | null; error: Error | null };
-  
+
   try {
     if (options?.isMutation) {
       result = await operation();
@@ -45,7 +49,10 @@ export async function safeQuery<T>(
         if (refreshed) {
           const retryResult = await operation();
           if (retryResult.error) {
-            return { data: null, error: createError(retryResult.error.message, retryResult.error.name) };
+            return {
+              data: null,
+              error: createError(retryResult.error.message, retryResult.error.name),
+            };
           }
           return { data: retryResult.data as T, error: null };
         }
@@ -53,7 +60,7 @@ export async function safeQuery<T>(
         console.error('Failed to ensure session:', e);
       }
     }
-    
+
     // Non-auth error or refresh failed - return the original error
     return { data: null, error: createError(result.error.message, result.error.name) };
   }
@@ -62,7 +69,9 @@ export async function safeQuery<T>(
   return { data: result.data as T, error: null };
 }
 
-export function queryToPromise<T>(queryFactory: () => Promise<{ data: T | null; error: Error | null }>): Promise<{ data: T | null; error: Error | null }> {
+export function queryToPromise<T>(
+  queryFactory: () => Promise<{ data: T | null; error: Error | null }>,
+): Promise<{ data: T | null; error: Error | null }> {
   return queryFactory();
 }
 

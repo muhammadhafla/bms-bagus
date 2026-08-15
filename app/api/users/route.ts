@@ -13,8 +13,11 @@ export async function POST(request: Request) {
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error("Missing SUPABASE_SERVICE_ROLE_KEY");
-      return NextResponse.json({ error: 'Konfigurasi server tidak lengkap. Hubungi administrator.' }, { status: 500 });
+      console.error('Missing SUPABASE_SERVICE_ROLE_KEY');
+      return NextResponse.json(
+        { error: 'Konfigurasi server tidak lengkap. Hubungi administrator.' },
+        { status: 500 },
+      );
     }
 
     // Initialize admin client
@@ -26,7 +29,10 @@ export async function POST(request: Request) {
     });
 
     // Verify requester
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -39,7 +45,10 @@ export async function POST(request: Request) {
       .single();
 
     if (profile?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden. Hanya Admin yang bisa membuat akun.' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Forbidden. Hanya Admin yang bisa membuat akun.' },
+        { status: 403 },
+      );
     }
 
     // Parse payload
@@ -57,7 +66,7 @@ export async function POST(request: Request) {
         .select('id')
         .eq('username', username)
         .single();
-        
+
       if (existingUsername) {
         return NextResponse.json({ error: 'Username sudah digunakan' }, { status: 400 });
       }
@@ -71,12 +80,15 @@ export async function POST(request: Request) {
     });
 
     if (createError || !newUser.user) {
-      return NextResponse.json({ error: createError?.message || 'Gagal membuat user' }, { status: 400 });
+      return NextResponse.json(
+        { error: createError?.message || 'Gagal membuat user' },
+        { status: 400 },
+      );
     }
 
     // Add profile data (Wait slightly to let database trigger create the profile first)
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     const { error: updateError } = await supabaseAdmin
       .from('profiles')
       .update({

@@ -15,9 +15,12 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 
 const variantStyles: Record<BadgeVariant, string> = {
   default: 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300',
-  success: 'bg-accent-teal-100 dark:bg-accent-teal-900/40 text-accent-teal-700 dark:text-accent-teal-300',
-  warning: 'bg-accent-amber-100 dark:bg-accent-amber-900/40 text-accent-amber-700 dark:text-accent-amber-300',
-  danger: 'bg-accent-rose-100 dark:bg-accent-rose-900/40 text-accent-rose-700 dark:text-accent-rose-300',
+  success:
+    'bg-accent-teal-100 dark:bg-accent-teal-900/40 text-accent-teal-700 dark:text-accent-teal-300',
+  warning:
+    'bg-accent-amber-100 dark:bg-accent-amber-900/40 text-accent-amber-700 dark:text-accent-amber-300',
+  danger:
+    'bg-accent-rose-100 dark:bg-accent-rose-900/40 text-accent-rose-700 dark:text-accent-rose-300',
   info: 'bg-accent-indigo-100 dark:bg-accent-indigo-900/40 text-accent-indigo-700 dark:text-accent-indigo-300',
 };
 
@@ -46,16 +49,14 @@ export const Badge: React.FC<BadgeProps> = ({
   return (
     <span
       className={[
-        'inline-flex items-center gap-1.5 font-medium rounded-full',
+        'inline-flex items-center gap-1.5 rounded-full font-medium',
         variantStyles[variant],
         sizeStyles[size],
         className,
       ].join(' ')}
       {...props}
     >
-      {dot && (
-        <span className={`w-2 h-2 rounded-full ${dotStyles[variant]} animate-pulse`} />
-      )}
+      {dot && <span className={`h-2 w-2 rounded-full ${dotStyles[variant]} animate-pulse`} />}
       {icon}
       {children}
     </span>

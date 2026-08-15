@@ -26,7 +26,10 @@ export function parsePrice(input: string | number): number {
   if (!input || (typeof input === 'string' && input.trim() === '')) return 0;
 
   // Hapus simbol mata uang dan spasi
-  let normalized = input.toString().replace(/[Rp\s]/gi, '').trim();
+  let normalized = input
+    .toString()
+    .replace(/[Rp\s]/gi, '')
+    .trim();
 
   // Format Indonesia: titik = ribuan separator, koma = desimal
   // Contoh: "1.500.000" → 1500000 | "1.500,50" → 1500.50
@@ -48,7 +51,7 @@ export function parsePrice(input: string | number): number {
  */
 export const debounce = <T extends (...args: any[]) => any>(
   func: T,
-  wait: number
+  wait: number,
 ): ((...args: Parameters<T>) => void) & { cancel: () => void } => {
   let timeout: NodeJS.Timeout;
   const debouncedFn = (...args: Parameters<T>) => {
@@ -63,7 +66,10 @@ export const debounce = <T extends (...args: any[]) => any>(
  * Normalize barcode input - trim whitespace, newlines, and convert to uppercase
  */
 export const normalizeBarcode = (input: string): string => {
-  return input.trim().replace(/[\n\r\t]/g, '').toUpperCase();
+  return input
+    .trim()
+    .replace(/[\n\r\t]/g, '')
+    .toUpperCase();
 };
 
 /**
@@ -78,7 +84,7 @@ export const generateIdempotencyKey = (): string => {
  */
 export const handleBarcodeInput = (
   e: React.KeyboardEvent<HTMLInputElement>,
-  onSubmit: (barcode: string) => void
+  onSubmit: (barcode: string) => void,
 ): void => {
   if (e.key === 'Enter') {
     e.preventDefault();
@@ -95,7 +101,7 @@ export const handleBarcodeInput = (
  */
 export const createDebouncedHandler = <T extends (...args: any[]) => any>(
   func: T,
-  delay: number
+  delay: number,
 ): ((...args: Parameters<T>) => void) & { cancel: () => void } => {
   let lastCall = 0;
   let timeoutId: NodeJS.Timeout | null = null;
@@ -153,7 +159,7 @@ export const levenshteinDistance = (a: string, b: string): number => {
         matrix[i][j] = Math.min(
           matrix[i - 1][j - 1] + 1,
           matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
+          matrix[i - 1][j] + 1,
         );
       }
     }
@@ -168,13 +174,13 @@ export const levenshteinDistance = (a: string, b: string): number => {
 export const stringSimilarity = (a: string, b: string): number => {
   const aLower = a.toLowerCase().trim();
   const bLower = b.toLowerCase().trim();
-  
+
   if (aLower === bLower) return 100;
-  
+
   const distance = levenshteinDistance(aLower, bLower);
   const maxLength = Math.max(aLower.length, bLower.length);
   if (maxLength === 0) return 100;
-  
+
   return Math.round(((maxLength - distance) / maxLength) * 100);
 };
 
@@ -194,9 +200,13 @@ export const generateAutoBarcode = (): string => {
 export const parseUTCDate = (dateString: string | Date | null | undefined): Date => {
   if (!dateString) return new Date();
   if (dateString instanceof Date) return dateString;
-  
+
   // If the date string doesn't end with Z and doesn't contain a timezone offset, append Z
-  if (typeof dateString === 'string' && !dateString.endsWith('Z') && !dateString.match(/[+-]\d{2}:\d{2}$/)) {
+  if (
+    typeof dateString === 'string' &&
+    !dateString.endsWith('Z') &&
+    !dateString.match(/[+-]\d{2}:\d{2}$/)
+  ) {
     // Check if it's just a YYYY-MM-DD date without time, in that case we might not want to append Z
     // but for timestamps like 2026-07-02T02:57:36.465398 it's needed
     if (dateString.includes('T')) {
@@ -209,36 +219,45 @@ export const parseUTCDate = (dateString: string | Date | null | undefined): Date
 /**
  * Format a date to UTC+7 (Asia/Jakarta) locale string
  */
-export const formatDateWIB = (date: Date | string | null | undefined, options?: Intl.DateTimeFormatOptions): string => {
+export const formatDateWIB = (
+  date: Date | string | null | undefined,
+  options?: Intl.DateTimeFormatOptions,
+): string => {
   if (!date) return '-';
   const d = parseUTCDate(date);
   return d.toLocaleDateString('id-ID', {
     timeZone: 'Asia/Jakarta',
-    ...options
+    ...options,
   });
 };
 
 /**
  * Format a time to UTC+7 (Asia/Jakarta) locale string
  */
-export const formatTimeWIB = (date: Date | string | null | undefined, options?: Intl.DateTimeFormatOptions): string => {
+export const formatTimeWIB = (
+  date: Date | string | null | undefined,
+  options?: Intl.DateTimeFormatOptions,
+): string => {
   if (!date) return '-';
   const d = parseUTCDate(date);
   return d.toLocaleTimeString('id-ID', {
     timeZone: 'Asia/Jakarta',
-    ...options
+    ...options,
   });
 };
 
 /**
  * Format a date and time to UTC+7 (Asia/Jakarta) locale string
  */
-export const formatDateTimeWIB = (date: Date | string | null | undefined, options?: Intl.DateTimeFormatOptions): string => {
+export const formatDateTimeWIB = (
+  date: Date | string | null | undefined,
+  options?: Intl.DateTimeFormatOptions,
+): string => {
   if (!date) return '-';
   const d = parseUTCDate(date);
   return d.toLocaleString('id-ID', {
     timeZone: 'Asia/Jakarta',
-    ...options
+    ...options,
   });
 };
 
@@ -258,7 +277,7 @@ export const exportToCSV = (data: (string | number)[][], headers: string[], file
   const arrayToCsv = (h: string[], rows: (string | number)[][]) => {
     return [
       h.join(','),
-      ...rows.map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      ...rows.map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')),
     ].join('\n');
   };
 

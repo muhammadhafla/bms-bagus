@@ -23,7 +23,13 @@ interface RiwayatReturPenjualanTabProps {
   sortDir?: 'asc' | 'desc';
 }
 
-export function RiwayatReturPenjualanTab({ search, startDate, endDate, sortBy, sortDir }: RiwayatReturPenjualanTabProps) {
+export function RiwayatReturPenjualanTab({
+  search,
+  startDate,
+  endDate,
+  sortBy,
+  sortDir,
+}: RiwayatReturPenjualanTabProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -38,35 +44,43 @@ export function RiwayatReturPenjualanTab({ search, startDate, endDate, sortBy, s
   };
 
   const formatDateTime = (dateStr: string) => {
-    return formatDateTimeWIB(dateStr, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return formatDateTimeWIB(dateStr, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   const renderMobileCard = (record: ReturRecord, index: number) => (
     <div
       key={record.id}
       onClick={() => handleViewDetail(record.id)}
-      className="bg-white dark:bg-neutral-900 rounded-2xl p-3 shadow-sm border border-neutral-100 dark:border-neutral-800 cursor-pointer active:scale-[0.98] transition-transform"
+      className="cursor-pointer rounded-2xl border border-neutral-100 bg-white p-3 shadow-sm transition-transform active:scale-[0.98] dark:border-neutral-800 dark:bg-neutral-900"
     >
-      <div className="flex justify-between items-start mb-3">
+      <div className="mb-3 flex items-start justify-between">
         <div>
-          <p className="text-xs text-neutral-500 mb-1">{formatDateTime(record.created_at || record.tanggal)}</p>
+          <p className="mb-1 text-xs text-neutral-500">
+            {formatDateTime(record.created_at || record.tanggal)}
+          </p>
           <div className="flex items-center gap-2">
             <p className="font-mono font-medium text-neutral-900 dark:text-white">
               {record.id.slice(0, 8)}...
             </p>
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-accent-rose-100 text-accent-rose-700 dark:bg-accent-rose-900/30 dark:text-accent-rose-400">
+            <span className="bg-accent-rose-100 text-accent-rose-700 dark:bg-accent-rose-900/30 dark:text-accent-rose-400 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold">
               Retur
             </span>
           </div>
         </div>
-        <div className="text-neutral-400 dark:text-neutral-500 p-1">
-          <IconChevronRight className="w-5 h-5" />
+        <div className="p-1 text-neutral-400 dark:text-neutral-500">
+          <IconChevronRight className="h-5 w-5" />
         </div>
       </div>
-      <div className="flex justify-end mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+      <div className="mt-3 flex justify-end border-t border-neutral-100 pt-3 dark:border-neutral-800">
         <div className="text-right">
           <p className="text-xs text-neutral-500">Total Nominal Retur</p>
-          <p className="font-bold text-accent-rose-600 dark:text-accent-rose-400">
+          <p className="text-accent-rose-600 dark:text-accent-rose-400 font-bold">
             {formatCurrency(record.total)}
           </p>
         </div>
@@ -76,34 +90,48 @@ export function RiwayatReturPenjualanTab({ search, startDate, endDate, sortBy, s
 
   const renderTableHeader = () => (
     <tr>
-      <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-16">#</th>
-      <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">ID Retur</th>
-      <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Tanggal & Waktu</th>
-      <th className="px-5 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">Total Nominal Retur</th>
-      <th className="px-5 py-4 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400 w-32">Status</th>
+      <th className="w-16 px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+        #
+      </th>
+      <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+        ID Retur
+      </th>
+      <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+        Tanggal & Waktu
+      </th>
+      <th className="px-5 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+        Total Nominal Retur
+      </th>
+      <th className="w-32 px-5 py-4 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+        Status
+      </th>
     </tr>
   );
 
   const renderTableRow = (record: ReturRecord, index: number, pageOffset: number) => (
-    <tr key={record.id} onClick={() => handleViewDetail(record.id)} className="hover:bg-white/50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer group">
+    <tr
+      key={record.id}
+      onClick={() => handleViewDetail(record.id)}
+      className="group cursor-pointer transition-colors hover:bg-white/50 dark:hover:bg-neutral-800/50"
+    >
       <td className="px-5 py-4 text-sm text-neutral-600 dark:text-neutral-400">
         {pageOffset + index + 1}
       </td>
-      <td className="px-5 py-4 text-sm font-mono font-medium text-neutral-900 dark:text-neutral-100">
+      <td className="px-5 py-4 font-mono text-sm font-medium text-neutral-900 dark:text-neutral-100">
         {record.id.slice(0, 8)}...
       </td>
       <td className="px-5 py-4 text-sm text-neutral-600 dark:text-neutral-400">
         {formatDateTime(record.created_at || record.tanggal)}
       </td>
-      <td className="px-5 py-4 text-sm font-bold text-accent-rose-600 dark:text-accent-rose-400 text-right">
+      <td className="text-accent-rose-600 dark:text-accent-rose-400 px-5 py-4 text-right text-sm font-bold">
         {formatCurrency(record.total)}
       </td>
       <td className="px-5 py-4 text-center">
         <div className="flex items-center justify-center gap-2">
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-accent-rose-100 text-accent-rose-700 dark:bg-accent-rose-900/30 dark:text-accent-rose-400">
+          <span className="bg-accent-rose-100 text-accent-rose-700 dark:bg-accent-rose-900/30 dark:text-accent-rose-400 inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold">
             Retur
           </span>
-          <IconChevronRight className="w-4 h-4 text-neutral-400 group-hover:text-brand-500 transition-colors" />
+          <IconChevronRight className="group-hover:text-brand-500 h-4 w-4 text-neutral-400 transition-colors" />
         </div>
       </td>
     </tr>
@@ -123,11 +151,11 @@ export function RiwayatReturPenjualanTab({ search, startDate, endDate, sortBy, s
         renderTableRow={renderTableRow}
       />
 
-      <ReturnTransactionModal 
-        isOpen={modalOpen} 
-        onClose={handleCloseModal} 
-        transactionId={selectedId} 
-        transactionType="penjualan_return" 
+      <ReturnTransactionModal
+        isOpen={modalOpen}
+        onClose={handleCloseModal}
+        transactionId={selectedId}
+        transactionType="penjualan_return"
       />
     </>
   );

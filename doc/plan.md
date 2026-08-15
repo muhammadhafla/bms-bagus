@@ -19,6 +19,7 @@ Audit menunjukkan bahwa sebagian besar custom code masih layak dipertahankan, te
    - menurunkan risiko aksesibilitas tanpa ikut menambah banyak logika UI.
 
 Area lain yang tetap custom tetapi perlu dibersihkan:
+
 - `fetchApi` tetap custom
 - `DataTable` tetap custom
 - `Sidebar state` tetap custom
@@ -126,12 +127,12 @@ Total: **5–8 hari kerja** jika dikerjakan berurutan.
 
 ## 7. Risiko & Mitigasi
 
-| Risiko | Mitigasi |
-|---|---|
-| Auth refactor memecah session flow | Jalankan regression manual pada login/logout, token refresh, dan halaman berpagar | 
-| Migrasi modal mengubah interaksi keyboard | Tambahkan test aksesibilitas dan manual smoke test | 
-| TanStack Query misuse memicu duplicate fetch | Periksa query keys dan invalidation sebelum merge | 
-| Memperkenalkan template dependency baru tanpa kebutuhan | Jangan tambahkan library baru kecuali ada manfaat konkret |
+| Risiko                                                  | Mitigasi                                                                          |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Auth refactor memecah session flow                      | Jalankan regression manual pada login/logout, token refresh, dan halaman berpagar |
+| Migrasi modal mengubah interaksi keyboard               | Tambahkan test aksesibilitas dan manual smoke test                                |
+| TanStack Query misuse memicu duplicate fetch            | Periksa query keys dan invalidation sebelum merge                                 |
+| Memperkenalkan template dependency baru tanpa kebutuhan | Jangan tambahkan library baru kecuali ada manfaat konkret                         |
 
 ---
 
@@ -147,6 +148,7 @@ Total: **5–8 hari kerja** jika dikerjakan berurutan.
 ## 9. Follow-up
 
 Jika plan ini disetujui, langkah selanjutnya adalah membuat tiket teknis untuk:
+
 - auth refactor modular
 - Radix dialog migration
 - CSP / env validation cleanup

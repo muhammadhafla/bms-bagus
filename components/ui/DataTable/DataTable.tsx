@@ -1,7 +1,12 @@
 'use client';
 
 import React from 'react';
-import { IconChevronUp, IconChevronDown, IconSortAscending, IconSortDescending } from '@tabler/icons-react';
+import {
+  IconChevronUp,
+  IconChevronDown,
+  IconSortAscending,
+  IconSortDescending,
+} from '@tabler/icons-react';
 
 export type SortDirection = 'asc' | 'desc';
 
@@ -49,19 +54,32 @@ export function DataTable<T>({
 
   if (loading) {
     return (
-      <div className="overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+      <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
         {/* Skeleton header */}
-        <div className="h-12 border-b border-neutral-200 dark:border-neutral-800 px-4 flex items-center gap-4">
+        <div className="flex h-12 items-center gap-4 border-b border-neutral-200 px-4 dark:border-neutral-800">
           {[40, 25, 20, 15].map((w, i) => (
-            <div key={i} className={`h-3 rounded-full skeleton-shimmer`} style={{ width: `${w}%` }} />
+            <div
+              key={i}
+              className={`skeleton-shimmer h-3 rounded-full`}
+              style={{ width: `${w}%` }}
+            />
           ))}
         </div>
         {/* Skeleton rows */}
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="h-14 border-b border-neutral-100 dark:border-neutral-800 px-4 flex items-center gap-4">
-            <div className="h-3 rounded-full skeleton-shimmer" style={{ width: `${30 + (i * 7) % 40}%` }} />
-            <div className="h-3 rounded-full skeleton-shimmer" style={{ width: `${15 + (i * 11) % 25}%` }} />
-            <div className="h-3 rounded-full skeleton-shimmer ml-auto" style={{ width: '12%' }} />
+          <div
+            key={i}
+            className="flex h-14 items-center gap-4 border-b border-neutral-100 px-4 dark:border-neutral-800"
+          >
+            <div
+              className="skeleton-shimmer h-3 rounded-full"
+              style={{ width: `${30 + ((i * 7) % 40)}%` }}
+            />
+            <div
+              className="skeleton-shimmer h-3 rounded-full"
+              style={{ width: `${15 + ((i * 11) % 25)}%` }}
+            />
+            <div className="skeleton-shimmer ml-auto h-3 rounded-full" style={{ width: '12%' }} />
           </div>
         ))}
       </div>
@@ -70,23 +88,28 @@ export function DataTable<T>({
 
   if (data.length === 0 && emptyState) {
     return (
-      <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+      <div className="rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
         {emptyState}
       </div>
     );
   }
 
   return (
-    <div className={`flex flex-col rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 ${className}`}>
+    <div
+      className={`flex flex-col rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900 ${className}`}
+    >
       {/* Mobile View */}
       {mobileRender && data.length > 0 && (
-        <div role="list" className="block lg:hidden divide-y divide-neutral-100 dark:divide-neutral-800">
+        <div
+          role="list"
+          className="block divide-y divide-neutral-100 lg:hidden dark:divide-neutral-800"
+        >
           {data.map((item) => (
-            <div 
+            <div
               key={String(item[keyField])}
-              role={onRowClick ? "button" : "listitem"}
+              role={onRowClick ? 'button' : 'listitem'}
               tabIndex={onRowClick ? 0 : undefined}
-              className={`${onRowClick ? 'cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus:bg-neutral-50 dark:focus:bg-neutral-800 focus:ring-2 focus:ring-inset focus:ring-brand-500 rounded-xl' : ''}`}
+              className={`${onRowClick ? 'focus:ring-brand-500 cursor-pointer rounded-xl transition-colors hover:bg-neutral-50 focus:bg-neutral-50 focus:ring-2 focus:outline-none focus:ring-inset dark:hover:bg-neutral-800 dark:focus:bg-neutral-800' : ''}`}
               onClick={() => onRowClick?.(item)}
               onKeyDown={(e) => {
                 if (!onRowClick) return;
@@ -109,87 +132,95 @@ export function DataTable<T>({
       )}
 
       {/* Desktop/Default View */}
-      <div className={`overflow-x-auto rounded-xl ${mobileRender && data.length > 0 ? 'hidden lg:block' : ''}`}>
+      <div
+        className={`overflow-x-auto rounded-xl ${mobileRender && data.length > 0 ? 'hidden lg:block' : ''}`}
+      >
         <table className="w-full min-w-[600px]">
-        <thead className="bg-neutral-50 dark:bg-neutral-950 sticky top-0">
-          <tr>
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400"
-                style={{ width: col.width }}
-                aria-sort={
-                  col.sortable
-                    ? sortKey === col.key
-                      ? sortDirection === 'asc'
-                        ? 'ascending'
-                        : 'descending'
-                      : 'none'
-                    : undefined
-                }
-              >
-                {col.sortable ? (
-                  <button
-                    onClick={() => handleSort(col.key)}
-                    className="inline-flex items-center gap-1 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
-                  >
-                    {col.header}
-                    {sortKey === col.key ? (
-                      sortDirection === 'asc' ? (
-                        <IconChevronUp className="w-4 h-4" />
-                      ) : (
-                        <IconChevronDown className="w-4 h-4" />
-                      )
-                    ) : (
-                      <IconSortAscending className="w-4 h-4 opacity-30" />
-                    )}
-                  </button>
-                ) : (
-                  col.header
-                )}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
-          {data.map((item) => (
-            <tr
-              key={String(item[keyField])}
-              tabIndex={onRowClick ? 0 : undefined}
-              className={`transition-colors ${
-                onRowClick 
-                  ? 'cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 focus:outline-none focus:bg-neutral-50 dark:focus:bg-neutral-800 focus:ring-2 focus:ring-inset focus:ring-brand-500' 
-                  : 'hover:bg-neutral-50 dark:hover:bg-neutral-800'
-              }`}
-              onClick={() => onRowClick?.(item)}
-              onKeyDown={(e) => {
-                if (!onRowClick) return;
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onRowClick(item);
-                } else if (e.key === 'ArrowDown') {
-                  e.preventDefault();
-                  (e.currentTarget.nextElementSibling as HTMLElement)?.focus();
-                } else if (e.key === 'ArrowUp') {
-                  e.preventDefault();
-                  (e.currentTarget.previousElementSibling as HTMLElement)?.focus();
-                }
-              }}
-            >
+          <thead className="sticky top-0 bg-neutral-50 dark:bg-neutral-950">
+            <tr>
               {columns.map((col) => (
-                <td
+                <th
                   key={col.key}
-                  className={`px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100 ${
-                    col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
-                  }`}
+                  className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400"
+                  style={{ width: col.width }}
+                  aria-sort={
+                    col.sortable
+                      ? sortKey === col.key
+                        ? sortDirection === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                      : undefined
+                  }
                 >
-                  {col.render ? col.render(item) : String((item as Record<string, unknown>)[col.key] ?? '')}
-                </td>
+                  {col.sortable ? (
+                    <button
+                      onClick={() => handleSort(col.key)}
+                      className="inline-flex items-center gap-1 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100"
+                    >
+                      {col.header}
+                      {sortKey === col.key ? (
+                        sortDirection === 'asc' ? (
+                          <IconChevronUp className="h-4 w-4" />
+                        ) : (
+                          <IconChevronDown className="h-4 w-4" />
+                        )
+                      ) : (
+                        <IconSortAscending className="h-4 w-4 opacity-30" />
+                      )}
+                    </button>
+                  ) : (
+                    col.header
+                  )}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
+            {data.map((item) => (
+              <tr
+                key={String(item[keyField])}
+                tabIndex={onRowClick ? 0 : undefined}
+                className={`transition-colors ${
+                  onRowClick
+                    ? 'focus:ring-brand-500 cursor-pointer hover:bg-neutral-50 focus:bg-neutral-50 focus:ring-2 focus:outline-none focus:ring-inset dark:hover:bg-neutral-800 dark:focus:bg-neutral-800'
+                    : 'hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                }`}
+                onClick={() => onRowClick?.(item)}
+                onKeyDown={(e) => {
+                  if (!onRowClick) return;
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onRowClick(item);
+                  } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    (e.currentTarget.nextElementSibling as HTMLElement)?.focus();
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    (e.currentTarget.previousElementSibling as HTMLElement)?.focus();
+                  }
+                }}
+              >
+                {columns.map((col) => (
+                  <td
+                    key={col.key}
+                    className={`px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100 ${
+                      col.align === 'right'
+                        ? 'text-right'
+                        : col.align === 'center'
+                          ? 'text-center'
+                          : 'text-left'
+                    }`}
+                  >
+                    {col.render
+                      ? col.render(item)
+                      : String((item as Record<string, unknown>)[col.key] ?? '')}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

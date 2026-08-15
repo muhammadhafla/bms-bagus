@@ -18,6 +18,7 @@
    - Item yang sudah di-void tidak lagi mempengaruhi perhitungan sisa qty return
 
 ## Cara Pakai untuk Frontend:
+
 ```sql
 -- Panggil void per item
 select * from public.void_pembelian_return_item('<pembelian_return_items_id>');
@@ -27,6 +28,7 @@ select * from public.void_pembelian_return_item('<id>', 'Koreksi kesalahan input
 ```
 
 ## Catatan Penting:
+
 - Semua query yang menampilkan / menghitung `pembelian_return_items` perlu menambahkan filter `WHERE voided_at IS NULL`
 - UI harus menampilkan badge "VOID" untuk item dengan `voided_at IS NOT NULL`
 - Tombol Void hanya tampil untuk item yang belum di-void

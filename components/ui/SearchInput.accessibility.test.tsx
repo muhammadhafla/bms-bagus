@@ -5,13 +5,7 @@ import { TextInput } from './TextInput';
 
 describe('SearchInput / TextInput Accessibility', () => {
   it('correctly passes type="search" and aria-label to the input element', () => {
-    render(
-      <TextInput
-        type="search"
-        aria-label="Cari nama barang"
-        placeholder="Cari..."
-      />
-    );
+    render(<TextInput type="search" aria-label="Cari nama barang" placeholder="Cari..." />);
 
     const searchInput = screen.getByRole('searchbox');
     expect(searchInput).toBeInTheDocument();
@@ -20,13 +14,7 @@ describe('SearchInput / TextInput Accessibility', () => {
   });
 
   it('correctly associates input with label for screen readers', () => {
-    render(
-      <TextInput
-        id="search-input"
-        label="Cari Produk"
-        type="search"
-      />
-    );
+    render(<TextInput id="search-input" label="Cari Produk" type="search" />);
 
     const label = screen.getByText('Cari Produk');
     expect(label).toBeInTheDocument();
@@ -42,12 +30,12 @@ describe('SearchInput / TextInput Accessibility', () => {
         id="search-input-desc"
         helperText="Masukkan minimal 3 karakter untuk mulai mencari"
         type="search"
-      />
+      />,
     );
 
     const input = screen.getByRole('searchbox');
     expect(input).toHaveAttribute('aria-describedby', 'search-input-desc-helper');
-    
+
     const helper = screen.getByText('Masukkan minimal 3 karakter untuk mulai mencari');
     expect(helper).toHaveAttribute('id', 'search-input-desc-helper');
   });
@@ -59,13 +47,13 @@ describe('SearchInput / TextInput Accessibility', () => {
         error="Karakter tidak valid"
         helperText="Masukkan minimal 3 karakter untuk mulai mencari"
         type="search"
-      />
+      />,
     );
 
     const input = screen.getByRole('searchbox');
     expect(input).toHaveAttribute('aria-describedby', 'search-input-err-error');
     expect(input).toHaveAttribute('aria-invalid', 'true');
-    
+
     const errorText = screen.getByText('Karakter tidak valid');
     expect(errorText).toHaveAttribute('id', 'search-input-err-error');
   });

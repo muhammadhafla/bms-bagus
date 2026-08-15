@@ -51,46 +51,59 @@ export function ConfirmDialog({
 
   return (
     <Portal>
-      <div 
+      <div
         className="fixed inset-0 z-[100] flex items-center justify-center p-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby="dialog-title"
       >
-        <div 
-          className="absolute inset-0 bg-black/50 animate-fade-in"
+        <div
+          className="animate-fade-in absolute inset-0 bg-black/50"
           onClick={onCancel}
           aria-hidden="true"
         />
-        
-        <div 
+
+        <div
           ref={focusTrapRef}
           tabIndex={-1}
-          className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-scale-in border border-neutral-200 dark:border-neutral-800 focus:outline-none"
+          className="animate-scale-in relative w-full max-w-md overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-xl focus:outline-none dark:border-neutral-800 dark:bg-neutral-900"
         >
-          <div className={`p-6 border-b ${
-            danger ? 'border-accent-rose-100 dark:border-accent-rose-900/30 bg-accent-rose-50/50 dark:bg-accent-rose-900/10' : 'border-neutral-100 dark:border-neutral-800'
-          }`}>
+          <div
+            className={`border-b p-6 ${
+              danger
+                ? 'border-accent-rose-100 dark:border-accent-rose-900/30 bg-accent-rose-50/50 dark:bg-accent-rose-900/10'
+                : 'border-neutral-100 dark:border-neutral-800'
+            }`}
+          >
             <div className="flex items-start gap-4">
-              <div className={`p-2 rounded-xl shrink-0 ${
-                danger 
-                  ? 'bg-accent-rose-100 text-accent-rose-600 dark:bg-accent-rose-900/30 dark:text-accent-rose-400' 
-                  : 'bg-brand-100 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400'
-              }`}>
-                {danger ? <IconAlertTriangle className="w-6 h-6" /> : <IconInfoCircle className="w-6 h-6" />}
+              <div
+                className={`shrink-0 rounded-xl p-2 ${
+                  danger
+                    ? 'bg-accent-rose-100 text-accent-rose-600 dark:bg-accent-rose-900/30 dark:text-accent-rose-400'
+                    : 'bg-brand-100 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400'
+                }`}
+              >
+                {danger ? (
+                  <IconAlertTriangle className="h-6 w-6" />
+                ) : (
+                  <IconInfoCircle className="h-6 w-6" />
+                )}
               </div>
               <div className="flex-1 pt-1">
-                <h3 id="dialog-title" className="text-lg font-bold text-neutral-900 dark:text-white leading-tight">
+                <h3
+                  id="dialog-title"
+                  className="text-lg leading-tight font-bold text-neutral-900 dark:text-white"
+                >
                   {title}
                 </h3>
-                <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                <p className="mt-2 text-sm leading-relaxed text-neutral-500 dark:text-neutral-400">
                   {message}
                 </p>
               </div>
             </div>
           </div>
-          
-          <div className="p-4 bg-neutral-50 dark:bg-neutral-950/50 flex gap-3 justify-end border-t border-neutral-200 dark:border-neutral-800">
+
+          <div className="flex justify-end gap-3 border-t border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-950/50">
             <Button
               variant="secondary"
               onClick={() => {

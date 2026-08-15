@@ -1,13 +1,13 @@
-import type { NextConfig } from "next";
-import withPWAInit from "@ducanh2912/next-pwa";
+import type { NextConfig } from 'next';
+import withPWAInit from '@ducanh2912/next-pwa';
 
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 });
 
 const withPWA = withPWAInit({
-  dest: "public",
-  disable: process.env.NODE_ENV === "development",
+  dest: 'public',
+  disable: process.env.NODE_ENV === 'development',
   fallbacks: {
     document: '/offline',
   },
@@ -16,15 +16,11 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production'
-      ? { exclude: ['error', 'warn'] }
-      : false,
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
   images: {
     formats: ['image/avif', 'image/webp'],
-    remotePatterns: [
-      { protocol: 'https', hostname: '*.supabase.co', pathname: '/storage/**' },
-    ],
+    remotePatterns: [{ protocol: 'https', hostname: '*.supabase.co', pathname: '/storage/**' }],
   },
   experimental: {
     optimizePackageImports: ['recharts', 'pdfmake', '@tabler/icons-react'],
@@ -42,7 +38,9 @@ const nextConfig: NextConfig = {
       style-src 'self' 'unsafe-inline';
       img-src 'self' data: https:;
       connect-src 'self' https://${supabaseHost} wss://${supabaseHost};
-    `.replace(/\s{2,}/g, ' ').trim();
+    `
+      .replace(/\s{2,}/g, ' ')
+      .trim();
 
     return [
       {

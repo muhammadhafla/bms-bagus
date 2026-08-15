@@ -4,7 +4,7 @@ const path = require('path');
 const migrationsDir = 'C:/project/inventory/supabase/migrations';
 
 function readFile(name) {
-    return fs.readFileSync(path.join(migrationsDir, name), 'utf8');
+  return fs.readFileSync(path.join(migrationsDir, name), 'utf8');
 }
 
 const dbSchema = readFile('20260101000000_database_schema.sql');
@@ -46,7 +46,10 @@ let policies = `-- CORE POLICIES\n\n`;
 // We just add all policies from dbSchema
 policies += '-- Base Policies\n' + dbSchemaParts[1].split('-- Insert some sample data')[0] + '\n';
 // POS Setup policies
-policies += '-- POS Policies\n' + posSetup.split('-- 5. ENABLE ROW LEVEL SECURITY (RLS)')[1].split('-- 6. GRANT PERMISSIONS')[0] + '\n';
+policies +=
+  '-- POS Policies\n' +
+  posSetup.split('-- 5. ENABLE ROW LEVEL SECURITY (RLS)')[1].split('-- 6. GRANT PERMISSIONS')[0] +
+  '\n';
 // V3 policies
 policies += '-- V3 Policies\n' + v3.split('-- Enable RLS')[1] + '\n';
 // Label policies
@@ -55,9 +58,13 @@ policies += '-- Label Policies\n' + labels.split('-- RLS Policies')[1] + '\n';
 // File 3: Functions
 let funcs = `-- CORE FUNCTIONS\n\n`;
 // functions from POS Setup
-funcs += '-- POS Functions\n' + posSetupParts[1].split('-- 5. ENABLE ROW LEVEL SECURITY (RLS)')[0] + '\n';
+funcs +=
+  '-- POS Functions\n' + posSetupParts[1].split('-- 5. ENABLE ROW LEVEL SECURITY (RLS)')[0] + '\n';
 // functions from V2
-funcs += '-- V2 Functions\n' + v2.split('-- Atomic pay_transaction RPC')[1].split('-- Grant permissions')[0] + '\n';
+funcs +=
+  '-- V2 Functions\n' +
+  v2.split('-- Atomic pay_transaction RPC')[1].split('-- Grant permissions')[0] +
+  '\n';
 // fix rpc
 funcs += '-- Fix RPC\n' + fixRpc + '\n';
 // inv funcs
@@ -82,12 +89,14 @@ fs.writeFileSync(path.join(migrationsDir, '20260101000003_core_realtime_and_seed
 // Clean up old files
 const files = fs.readdirSync(migrationsDir);
 for (const file of files) {
-    if (file !== '20260101000000_core_schema.sql' &&
-        file !== '20260101000001_core_policies.sql' &&
-        file !== '20260101000002_core_functions.sql' &&
-        file !== '20260101000003_core_realtime_and_seed.sql') {
-        fs.unlinkSync(path.join(migrationsDir, file));
-    }
+  if (
+    file !== '20260101000000_core_schema.sql' &&
+    file !== '20260101000001_core_policies.sql' &&
+    file !== '20260101000002_core_functions.sql' &&
+    file !== '20260101000003_core_realtime_and_seed.sql'
+  ) {
+    fs.unlinkSync(path.join(migrationsDir, file));
+  }
 }
 
 console.log('Squash complete.');

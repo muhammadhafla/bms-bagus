@@ -61,7 +61,7 @@ export const kategoriApi = {
   },
 
   async getOrCreateCategories(names: string[]) {
-    const uniqueNames = Array.from(new Set(names.map(n => n.trim()).filter(Boolean)));
+    const uniqueNames = Array.from(new Set(names.map((n) => n.trim()).filter(Boolean)));
     if (uniqueNames.length === 0) return { data: [], error: null };
 
     // Get all existing categories
@@ -70,15 +70,15 @@ export const kategoriApi = {
 
     const existingMap = new Map<string, Kategori>();
     const allCategories = existingRes.data || [];
-    
-    allCategories.forEach(c => {
+
+    allCategories.forEach((c) => {
       existingMap.set(c.nama.toLowerCase(), c);
     });
 
     const categoriesToReturn: Kategori[] = [];
     const missingNames: string[] = [];
 
-    uniqueNames.forEach(name => {
+    uniqueNames.forEach((name) => {
       const lowerName = name.toLowerCase();
       if (existingMap.has(lowerName)) {
         categoriesToReturn.push(existingMap.get(lowerName)!);
@@ -96,5 +96,5 @@ export const kategoriApi = {
     }
 
     return { data: categoriesToReturn, error: null };
-  }
+  },
 };

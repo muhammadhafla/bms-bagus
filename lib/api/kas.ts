@@ -39,10 +39,13 @@ export const kasApi = {
 
       let query = supabase
         .from('kas_log')
-        .select(`
+        .select(
+          `
           *,
           profiles!kas_log_created_by_fkey (nama)
-        `, { count: 'exact' })
+        `,
+          { count: 'exact' },
+        )
         .order(sortBy, { ascending: isAscending })
         .range(offset, offset + limit - 1);
 
@@ -61,7 +64,10 @@ export const kasApi = {
 
       const result = await safeQuery(async () => {
         const res = await query;
-        return { data: { data: res.data as KasLogItem[], count: res.count }, error: res.error as Error | null };
+        return {
+          data: { data: res.data as KasLogItem[], count: res.count },
+          error: res.error as Error | null,
+        };
       });
 
       if (result.error) {
@@ -78,15 +84,9 @@ export const kasApi = {
   /**
    * Menghitung total pemasukan, pengeluaran, dan saldo berdasarkan filter
    */
-  async getSummary(options: {
-    startDate?: string;
-    endDate?: string;
-    userId?: string;
-  }) {
+  async getSummary(options: { startDate?: string; endDate?: string; userId?: string }) {
     try {
-      let query = supabase
-        .from('kas_log')
-        .select('tipe, jumlah');
+      let query = supabase.from('kas_log').select('tipe, jumlah');
 
       if (options.startDate) {
         query = query.gte('created_at', options.startDate + 'T00:00:00+07:00');
@@ -100,7 +100,10 @@ export const kasApi = {
 
       const { data, error } = await safeQuery(async () => {
         const res = await query;
-        return { data: res.data as { tipe: string, jumlah: number }[], error: res.error as Error | null };
+        return {
+          data: res.data as { tipe: string; jumlah: number }[],
+          error: res.error as Error | null,
+        };
       });
 
       if (error || !data) {
@@ -122,7 +125,12 @@ export const kasApi = {
       return { pemasukan, pengeluaran, saldo: pemasukan - pengeluaran, error: null };
     } catch (err: any) {
       console.error('Error calculating kas summary:', err);
-      return { pemasukan: 0, pengeluaran: 0, saldo: 0, error: { message: err.message || 'Terjadi kesalahan' } };
+      return {
+        pemasukan: 0,
+        pengeluaran: 0,
+        saldo: 0,
+        error: { message: err.message || 'Terjadi kesalahan' },
+      };
     }
   },
 
@@ -135,10 +143,12 @@ export const kasApi = {
       // Ambil seluruh log di hari tersebut
       let query = supabase
         .from('kas_log')
-        .select(`
+        .select(
+          `
           tipe, jumlah, created_by, created_at,
           profiles!kas_log_created_by_fkey (nama)
-        `)
+        `,
+        )
         .gte('created_at', date + 'T00:00:00+07:00')
         .lte('created_at', date + 'T23:59:59+07:00')
         .order('created_at', { ascending: true });
@@ -155,17 +165,20 @@ export const kasApi = {
       if (error || !data) return { data: [], error };
 
       // Kelompokkan data per user
-      const userShifts: Record<string, {
-        userId: string;
-        userName: string;
-        pemasukan: number;
-        pengeluaran: number;
-        saldo: number;
-        lastActivity: string;
-        shiftClosed: boolean;
-      }> = {};
+      const userShifts: Record<
+        string,
+        {
+          userId: string;
+          userName: string;
+          pemasukan: number;
+          pengeluaran: number;
+          saldo: number;
+          lastActivity: string;
+          shiftClosed: boolean;
+        }
+      > = {};
 
-      data.forEach(row => {
+      data.forEach((row) => {
         const uid = row.created_by;
         if (!userShifts[uid]) {
           userShifts[uid] = {
@@ -175,7 +188,7 @@ export const kasApi = {
             pengeluaran: 0,
             saldo: 0,
             lastActivity: row.created_at,
-            shiftClosed: false
+            shiftClosed: false,
           };
         }
 
@@ -191,7 +204,7 @@ export const kasApi = {
       });
 
       // Hitung saldo final
-      Object.values(userShifts).forEach(shift => {
+      Object.values(userShifts).forEach((shift) => {
         shift.saldo = shift.pemasukan - shift.pengeluaran;
       });
 
@@ -219,10 +232,7 @@ export const kasApi = {
         .single();
 
       // 2. Ambil semua log sejak saat itu
-      let query = supabase
-        .from('kas_log')
-        .select('tipe, jumlah')
-        .eq('created_by', userId);
+      let query = supabase.from('kas_log').select('tipe, jumlah').eq('created_by', userId);
 
       if (lastTutup.data?.created_at) {
         query = query.gt('created_at', lastTutup.data.created_at);
@@ -230,7 +240,10 @@ export const kasApi = {
 
       const { data, error } = await safeQuery(async () => {
         const res = await query;
-        return { data: res.data as { tipe: string, jumlah: number }[], error: res.error as Error | null };
+        return {
+          data: res.data as { tipe: string; jumlah: number }[],
+          error: res.error as Error | null,
+        };
       });
 
       if (error || !data) return { pemasukan: 0, pengeluaran: 0, saldo: 0, error };
@@ -249,7 +262,12 @@ export const kasApi = {
       return { pemasukan, pengeluaran, saldo: pemasukan - pengeluaran, error: null };
     } catch (err: any) {
       console.error('Error calculating current shift balance:', err);
-      return { pemasukan: 0, pengeluaran: 0, saldo: 0, error: { message: err.message || 'Terjadi kesalahan' } };
+      return {
+        pemasukan: 0,
+        pengeluaran: 0,
+        saldo: 0,
+        error: { message: err.message || 'Terjadi kesalahan' },
+      };
     }
   },
 
@@ -273,22 +291,21 @@ export const kasApi = {
         jumlah: data.jumlah,
         catatan: data.catatan,
         created_by: userId,
-        payment_method: data.payment_method || 'CASH'
+        payment_method: data.payment_method || 'CASH',
       };
 
-      const result = await safeQuery(async () => {
-        const res = await supabase
-          .from('kas_log')
-          .insert([payload])
-          .select()
-          .single();
-        return { data: res.data as KasLogItem, error: res.error as Error | null };
-      }, { isMutation: true });
+      const result = await safeQuery(
+        async () => {
+          const res = await supabase.from('kas_log').insert([payload]).select().single();
+          return { data: res.data as KasLogItem, error: res.error as Error | null };
+        },
+        { isMutation: true },
+      );
 
       return result;
     } catch (err: any) {
       console.error('Error adding manual kas entry:', err);
       return { data: null, error: { message: err.message || 'Terjadi kesalahan' } };
     }
-  }
+  },
 };

@@ -68,24 +68,16 @@ export function DropdownMenu({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-brand-500 rounded-lg"
+        className="focus:ring-brand-500 inline-flex items-center gap-2 rounded-lg focus:ring-2 focus:outline-none"
       >
         {trigger}
-        <IconChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <IconChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
-      
+
       {isOpen && (
         <div
           ref={menuRef}
-          className={`
-            absolute top-full mt-1 z-50
-            min-w-[180px] py-1
-            bg-white dark:bg-neutral-900
-            border border-neutral-200 dark:border-neutral-800
-            rounded-xl shadow-lg
-            animate-fade-in-up
-            ${align === 'right' ? 'right-0' : 'left-0'}
-          `}
+          className={`animate-fade-in-up absolute top-full z-50 mt-1 min-w-[180px] rounded-xl border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-800 dark:bg-neutral-900 ${align === 'right' ? 'right-0' : 'left-0'} `}
         >
           {items.map((item, index) => (
             <button
@@ -104,25 +96,17 @@ export function DropdownMenu({
                   (e.currentTarget.previousElementSibling as HTMLElement)?.focus();
                 }
               }}
-              className={`
-                w-full px-4 py-2.5 text-left text-sm
-                flex items-center justify-between gap-2
-                hover:bg-neutral-100 dark:hover:bg-neutral-800
-                focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:outline-none
-                transition-colors
-                ${value === item.value 
-                  ? 'text-brand-600 dark:text-brand-400 font-medium' 
+              className={`flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-sm transition-colors hover:bg-neutral-100 focus:bg-neutral-100 focus:outline-none dark:hover:bg-neutral-800 dark:focus:bg-neutral-800 ${
+                value === item.value
+                  ? 'text-brand-600 dark:text-brand-400 font-medium'
                   : 'text-neutral-700 dark:text-neutral-300'
-                }
-              `}
+              } `}
             >
               <span className="flex items-center gap-2">
                 {item.icon}
                 {item.label}
               </span>
-              {value === item.value && (
-                <IconCheck className="w-4 h-4" />
-              )}
+              {value === item.value && <IconCheck className="h-4 w-4" />}
             </button>
           ))}
         </div>

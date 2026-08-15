@@ -13,9 +13,11 @@ export function MainContentWrapper({ children }: { children: React.ReactNode }) 
   return (
     <>
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${contentMargin} p-0 lg:p-3`}>
+      <div
+        className={`flex min-w-0 flex-1 flex-col transition-all duration-200 ${contentMargin} p-0 lg:p-3`}
+      >
         {/* Page content */}
-        <main className="flex-1 overflow-auto bg-white dark:bg-neutral-900 rounded-none lg:rounded-[2rem] shadow-none lg:shadow-sm border-0 lg:border border-neutral-200/50 dark:border-neutral-800/50 p-4 lg:p-6 relative pb-24 lg:pb-6">
+        <main className="relative flex-1 overflow-auto rounded-none border-0 border-neutral-200/50 bg-white p-4 pb-24 shadow-none lg:rounded-[2rem] lg:border lg:p-6 lg:pb-6 lg:shadow-sm dark:border-neutral-800/50 dark:bg-neutral-900">
           <UpdateBanner />
           <InstallBanner />
           {children}

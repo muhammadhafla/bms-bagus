@@ -65,7 +65,7 @@ export function LoginForm() {
     // Resolve username to email if it's not an email
     if (!loginEmail.includes('@')) {
       const { data, error: resolveError } = await supabase.rpc('resolve_username', {
-        p_username: loginEmail.toLowerCase()
+        p_username: loginEmail.toLowerCase(),
       });
 
       if (resolveError || !data) {
@@ -79,14 +79,21 @@ export function LoginForm() {
     if (result.success) {
       router.push('/dashboard');
     } else {
-      setError(result.error?.includes('Invalid') ? 'Email/username atau password salah' : result.error || 'Login gagal');
+      setError(
+        result.error?.includes('Invalid')
+          ? 'Email/username atau password salah'
+          : result.error || 'Login gagal',
+      );
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="bg-accent-rose-50 dark:bg-accent-rose-950/50 text-accent-rose-600 dark:text-accent-rose-400 p-4 rounded-xl text-sm border border-accent-rose-200 dark:border-accent-rose-800 animate-fade-in flex items-center gap-2" role="alert">
+        <div
+          className="bg-accent-rose-50 dark:bg-accent-rose-950/50 text-accent-rose-600 dark:text-accent-rose-400 border-accent-rose-200 dark:border-accent-rose-800 animate-fade-in flex items-center gap-2 rounded-xl border p-4 text-sm"
+          role="alert"
+        >
           <IconLock size={18} className="shrink-0" />
           <span>{error}</span>
         </div>
@@ -119,7 +126,7 @@ export function LoginForm() {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors p-3"
+            className="p-3 text-neutral-400 transition-colors hover:text-neutral-600 dark:hover:text-neutral-300"
             aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
           >
             {showPassword ? <IconEyeOff size={20} /> : <IconEye size={20} />}
@@ -135,7 +142,7 @@ export function LoginForm() {
         fullWidth
         size="lg"
         variant="primary"
-        className="mt-2 text-base tracking-wide shadow-brand"
+        className="shadow-brand mt-2 text-base tracking-wide"
         onClick={() => {
           if ('vibrate' in navigator) navigator.vibrate(15);
         }}

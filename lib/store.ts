@@ -15,7 +15,7 @@ interface PembelianStore {
   nomorNota: string;
   totalSupplier: number;
   editId: string | null;
-  
+
   loadPembelian: (pembelian: any) => void;
   addItem: (item: InventoryItem, initialQty?: number) => void;
   updateQty: (id: string, qty: number) => void;
@@ -27,7 +27,7 @@ interface PembelianStore {
   setNomorNota: (nota: string) => void;
   setTotalSupplier: (total: number) => void;
   reset: () => void;
-  
+
   getTotalSistem: () => number;
   getSelisih: () => number;
 }
@@ -35,118 +35,129 @@ interface PembelianStore {
 export const usePembelianStore = create<PembelianStore>()(
   persist(
     (set, get) => ({
-  items: [],
-  supplierId: null,
-  tanggal: new Date().toISOString().split('T')[0],
-  nomorNota: '',
-  totalSupplier: 0,
-  editId: null,
+      items: [],
+      supplierId: null,
+      tanggal: new Date().toISOString().split('T')[0],
+      nomorNota: '',
+      totalSupplier: 0,
+      editId: null,
 
-  loadPembelian: (pembelian) => set({
-    items: pembelian.items.map((item: any) => ({
-      id: item.inventory_id,
-      nama_barang: item.nama_barang,
-      qty: item.qty,
-      harga_beli: item.harga_beli,
-      harga_jual: item.harga_jual,
-      diskon: item.diskon || 0,
-      harga_final: item.harga_final,
-      subtotal: item.harga_final * item.qty,
-    })),
-    supplierId: pembelian.supplier_id,
-    tanggal: pembelian.tanggal,
-    nomorNota: pembelian.nomor_nota || '',
-    totalSupplier: pembelian.total_supplier || 0,
-    editId: pembelian.id
-  }),
+      loadPembelian: (pembelian) =>
+        set({
+          items: pembelian.items.map((item: any) => ({
+            id: item.inventory_id,
+            nama_barang: item.nama_barang,
+            qty: item.qty,
+            harga_beli: item.harga_beli,
+            harga_jual: item.harga_jual,
+            diskon: item.diskon || 0,
+            harga_final: item.harga_final,
+            subtotal: item.harga_final * item.qty,
+          })),
+          supplierId: pembelian.supplier_id,
+          tanggal: pembelian.tanggal,
+          nomorNota: pembelian.nomor_nota || '',
+          totalSupplier: pembelian.total_supplier || 0,
+          editId: pembelian.id,
+        }),
 
-  addItem: (item, initialQty = 1) => set((state) => {
-    const existingIndex = state.items.findIndex(
-      i => i.id === item.id && 
-           i.harga_beli === item.harga_beli
-    );
+      addItem: (item, initialQty = 1) =>
+        set((state) => {
+          const existingIndex = state.items.findIndex(
+            (i) => i.id === item.id && i.harga_beli === item.harga_beli,
+          );
 
-    if (existingIndex >= 0) {
-      return {
-        items: state.items.map((item, i) =>
-          i === existingIndex
-            ? { ...item, qty: item.qty + initialQty, subtotal: (item.qty + initialQty) * item.harga_final }
-            : item
-        )
-      };
-    }
+          if (existingIndex >= 0) {
+            return {
+              items: state.items.map((item, i) =>
+                i === existingIndex
+                  ? {
+                      ...item,
+                      qty: item.qty + initialQty,
+                      subtotal: (item.qty + initialQty) * item.harga_final,
+                    }
+                  : item,
+              ),
+            };
+          }
 
-    const harga_final = item.harga_beli || 0;
-    const newItem: CartItem = {
-      ...item,
-      qty: initialQty,
-      harga_final,
-      subtotal: harga_final * initialQty,
-    };
+          const harga_final = item.harga_beli || 0;
+          const newItem: CartItem = {
+            ...item,
+            qty: initialQty,
+            harga_final,
+            subtotal: harga_final * initialQty,
+          };
 
-    return { items: [...state.items, newItem] };
-  }),
+          return { items: [...state.items, newItem] };
+        }),
 
-  updateQty: (id, qty) => set((state) => {
-    if (qty <= 0) {
-      return { items: state.items.filter(item => item.id !== id) };
-    }
-    return {
-      items: state.items.map(item =>
-        item.id === id ? { ...item, qty, subtotal: qty * item.harga_final } : item
-      )
-    };
-  }),
+      updateQty: (id, qty) =>
+        set((state) => {
+          if (qty <= 0) {
+            return { items: state.items.filter((item) => item.id !== id) };
+          }
+          return {
+            items: state.items.map((item) =>
+              item.id === id ? { ...item, qty, subtotal: qty * item.harga_final } : item,
+            ),
+          };
+        }),
 
-  updateHargaBeli: (id, harga) => set((state) => {
-    return {
-      items: state.items.map(item => {
-        if (item.id !== id) return item;
-        const harga_final = harga;
-        return { ...item, harga_beli: harga, harga_final, subtotal: item.qty * harga_final };
-      })
-    };
-  }),
+      updateHargaBeli: (id, harga) =>
+        set((state) => {
+          return {
+            items: state.items.map((item) => {
+              if (item.id !== id) return item;
+              const harga_final = harga;
+              return { ...item, harga_beli: harga, harga_final, subtotal: item.qty * harga_final };
+            }),
+          };
+        }),
 
-  updateHargaJual: (id, harga) => set((state) => {
-    return {
-      items: state.items.map(item => {
-        if (item.id !== id) return item;
-        return { ...item, harga_jual: harga };
-      })
-    };
-  }),
+      updateHargaJual: (id, harga) =>
+        set((state) => {
+          return {
+            items: state.items.map((item) => {
+              if (item.id !== id) return item;
+              return { ...item, harga_jual: harga };
+            }),
+          };
+        }),
 
-  removeItem: (id) => set((state) => ({
-    items: state.items.filter(item => item.id !== id)
-  })),
+      removeItem: (id) =>
+        set((state) => ({
+          items: state.items.filter((item) => item.id !== id),
+        })),
 
-  setSupplier: (id) => set({ supplierId: id }),
-  setTanggal: (tanggal) => set({ tanggal }),
-  setNomorNota: (nota) => set({ nomorNota: nota }),
-  setTotalSupplier: (total) => set({ totalSupplier: total }),
+      setSupplier: (id) => set({ supplierId: id }),
+      setTanggal: (tanggal) => set({ tanggal }),
+      setNomorNota: (nota) => set({ nomorNota: nota }),
+      setTotalSupplier: (total) => set({ totalSupplier: total }),
 
-  reset: () => set({ 
-    items: [], 
-    supplierId: null, 
-    tanggal: new Date().toISOString().split('T')[0],
-    nomorNota: '',
-    totalSupplier: 0,
-    editId: null
-  }),
+      reset: () =>
+        set({
+          items: [],
+          supplierId: null,
+          tanggal: new Date().toISOString().split('T')[0],
+          nomorNota: '',
+          totalSupplier: 0,
+          editId: null,
+        }),
 
-  getTotalSistem: () => {
-    return get().items.reduce((sum, item) => sum + item.subtotal, 0);
-  },
+      getTotalSistem: () => {
+        return get().items.reduce((sum, item) => sum + item.subtotal, 0);
+      },
 
-  getSelisih: () => {
-    return get().totalSupplier - get().getTotalSistem();
-  },
-}),
-  {
-    name: 'pembelian-draft-storage',
-  }
-));
+      getSelisih: () => {
+        return get().totalSupplier - get().getTotalSistem();
+      },
+    }),
+    {
+      name: 'pembelian-draft-storage',
+    },
+  ),
+);
 
 export interface PrintItem extends InventoryItem {
   qty: number;
@@ -154,7 +165,7 @@ export interface PrintItem extends InventoryItem {
 
 interface BulkPrintStore {
   items: PrintItem[];
-  
+
   addItem: (item: InventoryItem, initialQty?: number) => void;
   updateQty: (id: string, qty: number) => void;
   removeItem: (id: string) => void;
@@ -164,44 +175,43 @@ interface BulkPrintStore {
 export const useBulkPrintStore = create<BulkPrintStore>((set) => ({
   items: [],
 
-  addItem: (item, initialQty = 1) => set((state) => {
-    const existingIndex = state.items.findIndex(i => i.id === item.id);
+  addItem: (item, initialQty = 1) =>
+    set((state) => {
+      const existingIndex = state.items.findIndex((i) => i.id === item.id);
 
-    if (existingIndex >= 0) {
-      return {
-        items: state.items.map((item, i) =>
-          i === existingIndex
-            ? { ...item, qty: item.qty + initialQty }
-            : item
-        )
+      if (existingIndex >= 0) {
+        return {
+          items: state.items.map((item, i) =>
+            i === existingIndex ? { ...item, qty: item.qty + initialQty } : item,
+          ),
+        };
+      }
+
+      const newItem: PrintItem = {
+        ...item,
+        qty: initialQty,
       };
-    }
 
-    const newItem: PrintItem = {
-      ...item,
-      qty: initialQty,
-    };
+      return { items: [...state.items, newItem] };
+    }),
 
-    return { items: [...state.items, newItem] };
-  }),
+  updateQty: (id, qty) =>
+    set((state) => {
+      if (qty <= 0) {
+        return { items: state.items.filter((item) => item.id !== id) };
+      }
+      return {
+        items: state.items.map((item) => (item.id === id ? { ...item, qty } : item)),
+      };
+    }),
 
-  updateQty: (id, qty) => set((state) => {
-    if (qty <= 0) {
-      return { items: state.items.filter(item => item.id !== id) };
-    }
-    return {
-      items: state.items.map(item =>
-        item.id === id ? { ...item, qty } : item
-      )
-    };
-  }),
+  removeItem: (id) =>
+    set((state) => ({
+      items: state.items.filter((item) => item.id !== id),
+    })),
 
-  removeItem: (id) => set((state) => ({
-    items: state.items.filter(item => item.id !== id)
-  })),
-
-  reset: () => set({
-    items: [],
-  }),
+  reset: () =>
+    set({
+      items: [],
+    }),
 }));
-

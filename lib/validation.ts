@@ -1,7 +1,10 @@
 import { z } from 'zod';
 
 export const inventoryItemSchema = z.object({
-  nama_barang: z.string().min(1, 'Nama barang wajib diisi').max(255, 'Nama barang maksimal 255 karakter'),
+  nama_barang: z
+    .string()
+    .min(1, 'Nama barang wajib diisi')
+    .max(255, 'Nama barang maksimal 255 karakter'),
   barcode: z.string().optional(),
   kategori: z.string().optional(),
 });
@@ -9,28 +12,35 @@ export const inventoryItemSchema = z.object({
 export const inventoryUpdateSchema = z.object({
   harga_jual: z.number().min(0, 'Harga jual tidak boleh negatif').optional(),
   diskon: z.number().min(0, 'Diskon tidak boleh negatif').optional(),
-  minimum_stock: z.number().int('Minimal stock harus bilangan bulat').min(0, 'Minimal stock tidak boleh negatif').optional(),
+  minimum_stock: z
+    .number()
+    .int('Minimal stock harus bilangan bulat')
+    .min(0, 'Minimal stock tidak boleh negatif')
+    .optional(),
 });
 
-export const pembelianItemSchema = z.object({
-  inventory_id: z.string().min(1, 'Inventory ID wajib diisi'),
-  barcode: z.string(),
-  nama_barang: z.string().max(255, 'Nama barang maksimal 255 karakter'),
-  qty: z.number().int('Qty harus bilangan bulat').min(1, 'Qty minimal 1'),
-  harga_beli: z.number().min(0, 'Harga beli tidak boleh negatif'),
-  diskon: z.number().min(0, 'Diskon tidak boleh negatif').optional(),
-  harga_final: z.number().min(0, 'Harga final tidak boleh negatif'),
-  subtotal: z.number().min(0, 'Subtotal tidak boleh negatif'),
-}).refine(
-  (data) => {
-    const expectedFinal = data.harga_beli - (data.diskon || 0);
-    return Math.abs(data.harga_final - expectedFinal) < 1;
-  },
-  { message: 'Harga final tidak konsisten dengan harga beli - diskon', path: ['harga_final'] }
-).refine(
-  (data) => Math.abs(data.subtotal - (data.qty * data.harga_final)) < 1,
-  { message: 'Subtotal tidak konsisten dengan qty × harga final', path: ['subtotal'] }
-);
+export const pembelianItemSchema = z
+  .object({
+    inventory_id: z.string().min(1, 'Inventory ID wajib diisi'),
+    barcode: z.string(),
+    nama_barang: z.string().max(255, 'Nama barang maksimal 255 karakter'),
+    qty: z.number().int('Qty harus bilangan bulat').min(1, 'Qty minimal 1'),
+    harga_beli: z.number().min(0, 'Harga beli tidak boleh negatif'),
+    diskon: z.number().min(0, 'Diskon tidak boleh negatif').optional(),
+    harga_final: z.number().min(0, 'Harga final tidak boleh negatif'),
+    subtotal: z.number().min(0, 'Subtotal tidak boleh negatif'),
+  })
+  .refine(
+    (data) => {
+      const expectedFinal = data.harga_beli - (data.diskon || 0);
+      return Math.abs(data.harga_final - expectedFinal) < 1;
+    },
+    { message: 'Harga final tidak konsisten dengan harga beli - diskon', path: ['harga_final'] },
+  )
+  .refine((data) => Math.abs(data.subtotal - data.qty * data.harga_final) < 1, {
+    message: 'Subtotal tidak konsisten dengan qty × harga final',
+    path: ['subtotal'],
+  });
 
 export const pembelianSubmitSchema = z.object({
   supplier_id: z.string().uuid('Format supplier ID tidak valid').nullable(),

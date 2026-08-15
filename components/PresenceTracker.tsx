@@ -7,7 +7,7 @@ import { usePresenceStore } from '@/lib/presence';
 export function PresenceTracker() {
   const user = useAuthStore((s) => s.user);
   const { initializePresence, cleanupPresence } = usePresenceStore();
-  
+
   useEffect(() => {
     if (user?.id) {
       initializePresence(user.id);

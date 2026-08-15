@@ -38,7 +38,12 @@ export const receiptApi = {
   },
 
   async getActiveTemplate(type: 'SALE' | 'RETURN' = 'SALE') {
-    const query = supabase.from('receipt_templates').select('*').eq('is_active', true).eq('type', type).limit(1);
+    const query = supabase
+      .from('receipt_templates')
+      .select('*')
+      .eq('is_active', true)
+      .eq('type', type)
+      .limit(1);
     const result = await safeQuery<ReceiptTemplate[]>(async () => {
       const result = await query;
       return { data: result.data, error: result.error as Error | null };
@@ -62,7 +67,7 @@ export const receiptApi = {
         header: [],
         body: { show_discount: data.type === 'SALE' },
         footer: [],
-        logo: { enabled: false, mode: 'bitmap' }
+        logo: { enabled: false, mode: 'bitmap' },
       },
       is_active: data.is_active,
     };
@@ -79,33 +84,51 @@ export const receiptApi = {
       type?: 'SALE' | 'RETURN';
       template?: ReceiptTemplate['template'];
       is_active?: boolean;
-    }
+    },
   ) {
     const payload: Record<string, unknown> = {};
     if (data.name !== undefined) payload.name = data.name;
     if (data.type !== undefined) payload.type = data.type;
     if (data.is_active !== undefined) payload.is_active = data.is_active;
     if (data.template !== undefined) payload.template = data.template;
-    
+
     return safeQuery(async () => {
-      const result = await supabase.from('receipt_templates').update(payload).eq('id', id).select().single();
+      const result = await supabase
+        .from('receipt_templates')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single();
       return { data: result.data, error: result.error as Error | null };
     });
   },
 
   async setActiveTemplate(id: string) {
     const resetResult = await safeQuery<any>(async () => {
-      const result = await supabase.from('receipt_templates').update({ is_active: false }).eq('is_active', true);
+      const result = await supabase
+        .from('receipt_templates')
+        .update({ is_active: false })
+        .eq('is_active', true);
       return { data: result.data, error: result.error as Error | null };
     });
     if (resetResult.error) {
       return safeQuery(async () => {
-        const result = await supabase.from('receipt_templates').update({ is_active: true }).eq('id', id).select().single();
+        const result = await supabase
+          .from('receipt_templates')
+          .update({ is_active: true })
+          .eq('id', id)
+          .select()
+          .single();
         return { data: result.data, error: result.error as Error | null };
       });
     }
     return safeQuery(async () => {
-      const result = await supabase.from('receipt_templates').update({ is_active: true }).eq('id', id).select().single();
+      const result = await supabase
+        .from('receipt_templates')
+        .update({ is_active: true })
+        .eq('id', id)
+        .select()
+        .single();
       return { data: result.data, error: result.error as Error | null };
     });
   },
@@ -130,20 +153,21 @@ export const receiptApi = {
       .from('assets')
       .upload(fileName, file, {
         cacheControl: '3600',
-        upsert: false
+        upsert: false,
       });
 
-    if (uploadError) return { data: null, error: { message: uploadError.message, details: uploadError.name } };
+    if (uploadError)
+      return { data: null, error: { message: uploadError.message, details: uploadError.name } };
 
     const { data: urlData } = supabase.storage.from('assets').getPublicUrl(fileName);
 
-    return { 
-      data: { 
-        path: fileName, 
+    return {
+      data: {
+        path: fileName,
         publicUrl: urlData.publicUrl,
-        bucket: 'assets'
-      }, 
-      error: null 
+        bucket: 'assets',
+      },
+      error: null,
     };
   },
 

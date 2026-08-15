@@ -10,9 +10,10 @@ export function createAdminClient() {
   });
 }
 
-export async function verifyAuth(request: Request): Promise<
-  | { user: { id: string; email?: string }; error: null }
-  | { user: null; error: NextResponse }
+export async function verifyAuth(
+  request: Request,
+): Promise<
+  { user: { id: string; email?: string }; error: null } | { user: null; error: NextResponse }
 > {
   const token = request.headers.get('Authorization')?.split('Bearer ')[1];
   if (!token) {
@@ -20,7 +21,10 @@ export async function verifyAuth(request: Request): Promise<
   }
 
   const admin = createAdminClient();
-  const { data: { user }, error } = await admin.auth.getUser(token);
+  const {
+    data: { user },
+    error,
+  } = await admin.auth.getUser(token);
 
   if (error || !user) {
     return { user: null, error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };

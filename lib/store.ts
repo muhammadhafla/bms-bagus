@@ -172,46 +172,54 @@ interface BulkPrintStore {
   reset: () => void;
 }
 
-export const useBulkPrintStore = create<BulkPrintStore>((set) => ({
-  items: [],
-
-  addItem: (item, initialQty = 1) =>
-    set((state) => {
-      const existingIndex = state.items.findIndex((i) => i.id === item.id);
-
-      if (existingIndex >= 0) {
-        return {
-          items: state.items.map((item, i) =>
-            i === existingIndex ? { ...item, qty: item.qty + initialQty } : item,
-          ),
-        };
-      }
-
-      const newItem: PrintItem = {
-        ...item,
-        qty: initialQty,
-      };
-
-      return { items: [...state.items, newItem] };
-    }),
-
-  updateQty: (id, qty) =>
-    set((state) => {
-      if (qty <= 0) {
-        return { items: state.items.filter((item) => item.id !== id) };
-      }
-      return {
-        items: state.items.map((item) => (item.id === id ? { ...item, qty } : item)),
-      };
-    }),
-
-  removeItem: (id) =>
-    set((state) => ({
-      items: state.items.filter((item) => item.id !== id),
-    })),
-
-  reset: () =>
-    set({
+export const useBulkPrintStore = create<BulkPrintStore>()(
+  persist(
+    (set) => ({
       items: [],
+
+      addItem: (item, initialQty = 1) =>
+        set((state) => {
+          const existingIndex = state.items.findIndex((i) => i.id === item.id);
+
+          if (existingIndex >= 0) {
+            return {
+              items: state.items.map((item, i) =>
+                i === existingIndex ? { ...item, qty: item.qty + initialQty } : item,
+              ),
+            };
+          }
+
+          const newItem: PrintItem = {
+            ...item,
+            qty: initialQty,
+          };
+
+          return { items: [...state.items, newItem] };
+        }),
+
+      updateQty: (id, qty) =>
+        set((state) => {
+          if (qty <= 0) {
+            return { items: state.items.filter((item) => item.id !== id) };
+          }
+          return {
+            items: state.items.map((item) => (item.id === id ? { ...item, qty } : item)),
+          };
+        }),
+
+      removeItem: (id) =>
+        set((state) => ({
+          items: state.items.filter((item) => item.id !== id),
+        })),
+
+      reset: () =>
+        set({
+          items: [],
+        }),
     }),
-}));
+    {
+      name: 'bulk-print-draft-storage',
+    },
+  ),
+);
+

@@ -15,18 +15,17 @@ export function usePwaUpdate() {
     ) {
       const wb = window.workbox;
 
-      const handleWaiting = (event: any) => {
-        // Service worker baru sedang menunggu
+      const handleWaiting = (_event: any) => {
+        // Service worker baru sedang menunggu — beri tahu user
         setUpdateAvailable(true);
-        // Registrasi diperlukan jika ingin memanggil postMessage
-        if (event.sw) {
-          // We'll rely on wb.messageSkipWaiting() later
-        }
       };
 
       const handleControlling = () => {
-        // Saat SW baru mengambil kendali, reload halaman
-        window.location.reload();
+        // SW baru sudah mengambil alih.
+        // JANGAN auto-reload di sini — itu menyebabkan halaman reload
+        // tiba-tiba saat user sedang input data.
+        // Cukup tampilkan notifikasi agar user bisa reload sendiri.
+        setUpdateAvailable(true);
       };
 
       wb.addEventListener('waiting', handleWaiting);

@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export function usePwaUpdate() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  // Flag: apakah reload ini dipicu oleh user (klik tombol) atau otomatis oleh SW?
+  const userTriggeredRef = useRef(false);
 
   useEffect(() => {
     if (
@@ -16,22 +18,25 @@ export function usePwaUpdate() {
       const wb = window.workbox;
 
       const handleWaiting = (_event: any) => {
-        // Service worker baru sedang menunggu — beri tahu user
+        // SW baru sedang menunggu — tampilkan banner ke user
         setUpdateAvailable(true);
       };
 
       const handleControlling = () => {
         // SW baru sudah mengambil alih.
-        // JANGAN auto-reload di sini — itu menyebabkan halaman reload
-        // tiba-tiba saat user sedang input data.
-        // Cukup tampilkan notifikasi agar user bisa reload sendiri.
-        setUpdateAvailable(true);
+        // Reload HANYA jika dipicu oleh klik tombol user, bukan secara otomatis.
+        // Ini mencegah halaman reload tiba-tiba saat user sedang input data.
+        if (userTriggeredRef.current) {
+          window.location.reload();
+        } else {
+          // Auto-takeover oleh SW (misalnya setelah deploy) — hanya tampilkan banner.
+          setUpdateAvailable(true);
+        }
       };
 
       wb.addEventListener('waiting', handleWaiting);
       wb.addEventListener('controlling', handleControlling);
 
-      // Anda juga bisa memeriksa pendaftaran
       let isMounted = true;
       navigator.serviceWorker.ready.then((reg) => {
         if (isMounted) setRegistration(reg);
@@ -46,11 +51,16 @@ export function usePwaUpdate() {
   }, []);
 
   const updatePwa = () => {
+    // Tandai bahwa reload ini berasal dari aksi user
+    userTriggeredRef.current = true;
+
     if (window.workbox) {
-      // Memicu SKIP_WAITING ke service worker
       window.workbox.messageSkipWaiting();
     } else if (registration && registration.waiting) {
       registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    } else {
+      // Fallback: tidak ada SW yang menunggu, langsung reload
+      window.location.reload();
     }
   };
 

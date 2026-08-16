@@ -1,18 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export function usePwaUpdate() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
-  // Flag: apakah reload ini dipicu oleh user (klik tombol) atau otomatis oleh SW?
-  const userTriggeredRef = useRef(false);
 
   useEffect(() => {
     if (
       typeof window !== 'undefined' &&
       'serviceWorker' in navigator &&
-      // Workbox ditangani oleh @ducanh2912/next-pwa
       window.workbox !== undefined
     ) {
       const wb = window.workbox;
@@ -23,15 +20,10 @@ export function usePwaUpdate() {
       };
 
       const handleControlling = () => {
-        // SW baru sudah mengambil alih.
-        // Reload HANYA jika dipicu oleh klik tombol user, bukan secara otomatis.
-        // Ini mencegah halaman reload tiba-tiba saat user sedang input data.
-        if (userTriggeredRef.current) {
-          window.location.reload();
-        } else {
-          // Auto-takeover oleh SW (misalnya setelah deploy) — hanya tampilkan banner.
-          setUpdateAvailable(true);
-        }
+        // SW baru sudah auto-takeover.
+        // JANGAN reload di sini — user mungkin sedang input data.
+        // Cukup tampilkan banner agar user reload sendiri.
+        setUpdateAvailable(true);
       };
 
       wb.addEventListener('waiting', handleWaiting);
@@ -51,17 +43,19 @@ export function usePwaUpdate() {
   }, []);
 
   const updatePwa = () => {
-    // Tandai bahwa reload ini berasal dari aksi user
-    userTriggeredRef.current = true;
-
+    // Aktifkan SW baru yang sedang menunggu (jika ada).
+    // messageSkipWaiting() bersifat no-op jika tidak ada SW yang waiting,
+    // sehingga aman dipanggil di kedua skenario.
     if (window.workbox) {
       window.workbox.messageSkipWaiting();
     } else if (registration && registration.waiting) {
       registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-    } else {
-      // Fallback: tidak ada SW yang menunggu, langsung reload
-      window.location.reload();
     }
+    // Langsung reload — tidak bergantung pada controlling event.
+    // Ini menangani kedua skenario:
+    // A) SW masih "waiting" → messageSkipWaiting() mengaktifkannya, lalu reload.
+    // B) SW sudah auto-takeover → tidak ada yang waiting, langsung reload.
+    window.location.reload();
   };
 
   return { updateAvailable, updatePwa };

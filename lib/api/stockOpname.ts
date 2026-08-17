@@ -105,6 +105,82 @@ export const stockOpnameApi = {
     return { data: opnamesWithCreator, error: null };
   },
 
+  async getPaginated(options: { page?: number; limit?: number }) {
+    const page = Math.max(1, options.page || 1);
+    const limit = Math.min(100, Math.max(1, options.limit || 20));
+    const offset = (page - 1) * limit;
+
+    const result = await safeQuery<{
+      data: StockOpnameWithProfile[];
+      total: number;
+      page: number;
+      limit: number;
+      hasMore: boolean;
+    }>(async () => {
+      const countResult = await supabase
+        .from('stock_opname')
+        .select('*', { count: 'exact', head: true });
+
+      if (countResult.error) throw countResult.error;
+      const total = countResult.count || 0;
+
+      const dataResult = await supabase
+        .from('stock_opname')
+        .select('*, stock_opname_items(id, difference)')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (dataResult.error) throw dataResult.error;
+
+      const opnames = dataResult.data || [];
+      const uniqueUserIds = [...new Set(opnames.map((o) => o.created_by).filter(Boolean))];
+
+      let profilesMap: Record<string, { nama: string }> = {};
+      if (uniqueUserIds.length > 0) {
+        const profilesResult = await supabase.from('profiles').select('id, nama').in('id', uniqueUserIds);
+        if (profilesResult.data) {
+          profilesResult.data.forEach((p) => {
+            profilesMap[p.id] = { nama: p.nama };
+          });
+        }
+      }
+
+      const opnamesWithCreator: StockOpnameWithProfile[] = opnames.map((opname: any) => {
+        const items = opname.stock_opname_items || [];
+        const total_items = items.length;
+        const total_selisih = items.reduce(
+          (sum: number, item: any) => sum + (item.difference || 0),
+          0,
+        );
+
+        const { stock_opname_items, ...rest } = opname;
+        return {
+          ...rest,
+          profiles: rest.created_by ? profilesMap[rest.created_by] : null,
+          total_items,
+          total_selisih,
+        };
+      });
+
+      return {
+        data: {
+          data: opnamesWithCreator,
+          total,
+          page,
+          limit,
+          hasMore: offset + opnamesWithCreator.length < total,
+        },
+        error: null,
+      };
+    });
+
+    if (result.error) {
+      return { data: [], total: 0, page, limit, hasMore: false, error: result.error };
+    }
+
+    return { ...(result.data as any), error: null };
+  },
+
   async getById(id: string) {
     const result = await safeQuery<StockOpnameWithProfile>(async () => {
       const result = await supabase

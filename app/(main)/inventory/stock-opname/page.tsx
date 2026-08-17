@@ -19,7 +19,7 @@ import dynamic from 'next/dynamic';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { Breadcrumb, Button, Badge, AmbientLayout } from '@/components/ui';
+import { Breadcrumb, Button, Badge, AmbientLayout, ModernPagination } from '@/components/ui';
 import { toast } from 'sonner';
 import { API_ERROR_MESSAGES, UI_MESSAGES, STOCK_OPNAME_MESSAGES } from '@/lib/constants';
 import { formatDateWIB } from '@/lib/utils';
@@ -47,18 +47,24 @@ export default function StockOpnameListPage() {
   const [creating, setCreating] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const ITEMS_PER_PAGE = 20;
 
   const fetchOpnames = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const result = await stockOpnameApi.getAll();
+    const result = await stockOpnameApi.getPaginated({ page, limit: ITEMS_PER_PAGE });
     if (!result.error && result.data) {
-      setOpnames(result.data);
+      setOpnames(result.data.data);
+      setTotal(result.total);
+      setTotalPages(Math.ceil(result.total / ITEMS_PER_PAGE) || 1);
     } else if (result.error) {
       setError(result.error.message || API_ERROR_MESSAGES.FETCH_FAILED);
     }
     setLoading(false);
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     fetchOpnames();
@@ -93,9 +99,12 @@ export default function StockOpnameListPage() {
   };
 
   const handleRefresh = async () => {
-    const result = await stockOpnameApi.getAll();
+    setPage(1);
+    const result = await stockOpnameApi.getPaginated({ page: 1, limit: ITEMS_PER_PAGE });
     if (!result.error && result.data) {
-      setOpnames(result.data);
+      setOpnames(result.data.data);
+      setTotal(result.total);
+      setTotalPages(Math.ceil(result.total / ITEMS_PER_PAGE) || 1);
     }
   };
 
@@ -309,6 +318,18 @@ export default function StockOpnameListPage() {
                     </tbody>
                   </table>
                 </div>
+
+                {totalPages > 1 && (
+                  <div className="mt-auto">
+                    <ModernPagination
+                      page={page}
+                      totalPages={totalPages}
+                      total={total}
+                      limit={ITEMS_PER_PAGE}
+                      onPageChange={setPage}
+                    />
+                  </div>
+                )}
               </>
             )}
           </div>

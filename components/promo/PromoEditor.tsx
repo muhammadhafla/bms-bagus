@@ -20,7 +20,7 @@ import DateInput from '@/components/ui/DateInput';
 import { PriceInput } from '@/components/ui/PriceInput';
 import { DateRangePicker } from '@/components/ui/DateRangePicker';
 import { formatCurrency, normalizeBarcode, debounce } from '@/lib/utils';
-import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
+import { useHotkeys } from 'react-hotkeys-hook';
 import { AdminOnly } from '@/components/role';
 
 export default function PromoEditor({ id }: { id?: string }) {
@@ -222,29 +222,20 @@ export default function PromoEditor({ id }: { id?: string }) {
     setSelectedIndex(null);
   };
 
-  useKeyboardShortcuts([
-    {
-      key: 'F3',
-      handler: () => {
-        if (items.length > 0) {
-          setSelectedIndex(0);
-          setEditMode('diskon');
-          setEditValue(items[0].diskon_nominal);
-        }
-      },
-      description: 'Edit Diskon baris pertama',
-      allowInInput: true,
-    },
-    {
-      key: 'Escape',
-      handler: () => {
-        setEditMode(null);
-        setSelectedIndex(null);
-      },
-      description: 'Batal edit',
-      allowInInput: true,
-    },
-  ]);
+  useHotkeys('f3', (e) => {
+    e.preventDefault();
+    if (items.length > 0) {
+      setSelectedIndex(0);
+      setEditMode('diskon');
+      setEditValue(items[0].diskon_nominal);
+    }
+  }, { enableOnFormTags: true });
+
+  useHotkeys('escape', (e) => {
+    e.preventDefault();
+    setEditMode(null);
+    setSelectedIndex(null);
+  }, { enableOnFormTags: true });
 
   if (loading) {
     return (

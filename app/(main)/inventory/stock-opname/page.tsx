@@ -57,7 +57,7 @@ export default function StockOpnameListPage() {
     setError(null);
     const result = await stockOpnameApi.getPaginated({ page, limit: ITEMS_PER_PAGE });
     if (!result.error && result.data) {
-      setOpnames(result.data.data);
+      setOpnames(result.data);
       setTotal(result.total);
       setTotalPages(Math.ceil(result.total / ITEMS_PER_PAGE) || 1);
     } else if (result.error) {
@@ -102,7 +102,7 @@ export default function StockOpnameListPage() {
     setPage(1);
     const result = await stockOpnameApi.getPaginated({ page: 1, limit: ITEMS_PER_PAGE });
     if (!result.error && result.data) {
-      setOpnames(result.data.data);
+      setOpnames(result.data);
       setTotal(result.total);
       setTotalPages(Math.ceil(result.total / ITEMS_PER_PAGE) || 1);
     }

@@ -44,7 +44,7 @@ import { Button, AmbientLayout, Badge, Banner, Modal, TextInput } from '@/compon
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Portal } from '@/components/ui/Portal';
 import { AdminOnly } from '@/components/role';
-import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
+import { useHotkeys } from 'react-hotkeys-hook';
 import { NewItemDialog } from './NewItemDialog';
 import { ItemCart } from './ItemCart';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -235,82 +235,58 @@ function PembelianPageContent() {
     }
   }, [confirmDiscontinuedItem, performAddItem]);
 
-  useKeyboardShortcuts([
-    {
-      key: 'F2',
-      handler: () => {
-        if (items.length > 0) {
-          setSelectedIndex(0);
-          setEditMode('qty');
-          setEditValue(items[0].qty);
-        }
-      },
-      description: 'Edit Qty baris pertama',
-      allowInInput: true,
-    },
-    {
-      key: 'F3',
-      handler: () => {
-        if (items.length > 0) {
-          setSelectedIndex(0);
-          setEditMode('harga');
-          setEditValue(items[0].harga_beli || 0);
-        }
-      },
-      description: 'Edit Harga baris pertama',
-      allowInInput: true,
-    },
-    {
-      key: 'F4',
-      handler: () => {
-        if (items.length > 0) {
-          setSelectedIndex(0);
-          setEditMode('harga_jual');
-          setEditValue(items[0].harga_jual || 0);
-        }
-      },
-      description: 'Edit Harga Jual baris pertama',
-      allowInInput: true,
-    },
-    {
-      key: 'Delete',
-      handler: () => {
-        if (selectedIndex !== null && items[selectedIndex]) {
-          removeItem(items[selectedIndex].id);
-          setSelectedIndex((prev) => (prev === null ? null : Math.max(0, prev - 1)));
-        }
-      },
-      description: 'Hapus item terpilih',
-      allowInInput: true,
-    },
-    {
-      key: 'Escape',
-      handler: () => {
-        setEditMode(null);
-        setSelectedIndex(null);
-      },
-      description: 'Batal edit',
-      allowInInput: true,
-    },
-    {
-      key: 'F6',
-      handler: () => {
-        setShowResetConfirm(true);
-      },
-      description: 'Reset form',
-      allowInInput: true,
-    },
-    {
-      key: 'F9',
-      handler: () => {
-        if (items.length > 0 && !submitting) {
-          handleSimpan();
-        }
-      },
-      description: 'Simpan Pembelian',
-      allowInInput: true,
-    },
-  ]);
+  useHotkeys('f2', (e) => {
+    e.preventDefault();
+    if (items.length > 0) {
+      setSelectedIndex(0);
+      setEditMode('qty');
+      setEditValue(items[0].qty);
+    }
+  }, { enableOnFormTags: true });
+
+  useHotkeys('f3', (e) => {
+    e.preventDefault();
+    if (items.length > 0) {
+      setSelectedIndex(0);
+      setEditMode('harga');
+      setEditValue(items[0].harga_beli || 0);
+    }
+  }, { enableOnFormTags: true });
+
+  useHotkeys('f4', (e) => {
+    e.preventDefault();
+    if (items.length > 0) {
+      setSelectedIndex(0);
+      setEditMode('harga_jual');
+      setEditValue(items[0].harga_jual || 0);
+    }
+  }, { enableOnFormTags: true });
+
+  useHotkeys('delete', (e) => {
+    e.preventDefault();
+    if (selectedIndex !== null && items[selectedIndex]) {
+      removeItem(items[selectedIndex].id);
+      setSelectedIndex((prev) => (prev === null ? null : Math.max(0, prev - 1)));
+    }
+  }, { enableOnFormTags: true });
+
+  useHotkeys('escape', (e) => {
+    e.preventDefault();
+    setEditMode(null);
+    setSelectedIndex(null);
+  }, { enableOnFormTags: true });
+
+  useHotkeys('f6', (e) => {
+    e.preventDefault();
+    setShowResetConfirm(true);
+  }, { enableOnFormTags: true });
+
+  useHotkeys('f9', (e) => {
+    e.preventDefault();
+    if (items.length > 0 && !submitting) {
+      handleSimpan();
+    }
+  }, { enableOnFormTags: true });
 
   useEffect(() => {
     focusInput();

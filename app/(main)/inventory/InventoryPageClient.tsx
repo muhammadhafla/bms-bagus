@@ -38,21 +38,14 @@ const ImportInventoryCSVWizard = dynamic(
     ssr: false,
   },
 );
-import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
+import { useHotkeys } from 'react-hotkeys-hook';
 import CheckboxInput from '@/components/ui/CheckboxInput';
 import { API_ERROR_MESSAGES, UI_MESSAGES, INVENTORY_MESSAGES } from '@/lib/constants';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useKategoris } from '@/lib/hooks/useKategoris';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-interface Shortcut {
-  key: string;
-  ctrl?: boolean;
-  shift?: boolean;
-  alt?: boolean;
-  handler: () => void;
-  description: string;
-}
+
 
 export default function InventoryPageClient() {
   const [search, setSearch] = useState('');
@@ -151,36 +144,31 @@ export default function InventoryPageClient() {
     searchInputRef.current?.focus();
   }, []);
 
-  const shortcuts: Shortcut[] = useMemo(
-    () => [
-      {
-        key: 'k',
-        ctrl: true,
-        handler: handleFocusSearch,
-        description: 'Fokus ke pencarian (Ctrl+K)',
-      },
-      {
-        key: '?',
-        handler: () => setShowShortcutsHelp((prev) => !prev),
-        description: 'Tampilkan bantuan shortcut',
-      },
-      {
-        key: 'Escape',
-        handler: () => {
-          setSearch('');
-          setKategori('');
-          setLowStockOnly(false);
-          setActiveStatus('all');
-          setSortBy('nama_barang');
-          setSortDir('asc');
-        },
-        description: 'Reset filter',
-      },
-    ],
-    [handleFocusSearch],
-  );
+  useHotkeys('ctrl+k, cmd+k', (e) => {
+    e.preventDefault();
+    handleFocusSearch();
+  }, { enableOnFormTags: true });
 
-  useKeyboardShortcuts(shortcuts);
+  useHotkeys('shift+/', (e) => {
+    e.preventDefault();
+    setShowShortcutsHelp((prev) => !prev);
+  }, { enableOnFormTags: true });
+
+  useHotkeys('escape', (e) => {
+    e.preventDefault();
+    setSearch('');
+    setKategori('');
+    setLowStockOnly(false);
+    setActiveStatus('all');
+    setSortBy('nama_barang');
+    setSortDir('asc');
+  }, { enableOnFormTags: true });
+
+  const shortcuts = [
+    { key: 'K', ctrl: true, description: 'Fokus ke pencarian (Ctrl+K)' },
+    { key: '?', description: 'Tampilkan bantuan shortcut' },
+    { key: 'Escape', description: 'Reset filter' },
+  ];
 
   return (
     <ErrorBoundary>
@@ -214,7 +202,6 @@ export default function InventoryPageClient() {
                     Keyboard Shortcuts
                   </h2>
                   <ul className="space-y-3">
-                    {/* eslint-disable-next-line react-hooks/refs */}
                     {shortcuts.map((s, i) => (
                       <li
                         key={i}
@@ -255,11 +242,18 @@ export default function InventoryPageClient() {
                 </div>
               </div>
               <div className="animate-fade-in-up flex items-center gap-2 sm:gap-3">
-                {lowStockCount > 0 && (
-                  <span className="bg-accent-rose-50 dark:bg-accent-rose-950/40 text-accent-rose-600 dark:text-accent-rose-300 border-accent-rose-200 dark:border-accent-rose-800 hidden items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold sm:flex">
-                    <span className="bg-accent-rose-500 h-2 w-2 animate-pulse rounded-full"></span>
+                {(lowStockCount > 0 || lowStockOnly) && (
+                  <button
+                    onClick={() => setLowStockOnly(!lowStockOnly)}
+                    className={`hidden items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-all sm:flex cursor-pointer btn-press ${
+                      lowStockOnly
+                        ? 'bg-accent-rose-500 text-white border-accent-rose-500 dark:bg-accent-rose-600 dark:border-accent-rose-600 shadow-sm'
+                        : 'bg-accent-rose-50 dark:bg-accent-rose-950/40 text-accent-rose-600 dark:text-accent-rose-300 border-accent-rose-200 dark:border-accent-rose-800 hover:bg-accent-rose-100 dark:hover:bg-accent-rose-900/60'
+                    }`}
+                  >
+                    <span className={`h-2 w-2 animate-pulse rounded-full ${lowStockOnly ? 'bg-white' : 'bg-accent-rose-500'}`}></span>
                     {lowStockCount} low stock
-                  </span>
+                  </button>
                 )}
                 <Button
                   variant="secondary"
@@ -272,12 +266,19 @@ export default function InventoryPageClient() {
               </div>
             </div>
 
-            {lowStockCount > 0 && (
+            {(lowStockCount > 0 || lowStockOnly) && (
               <div className="animate-fade-in-up mb-4 sm:hidden">
-                <span className="bg-accent-rose-50 dark:bg-accent-rose-950/40 text-accent-rose-600 dark:text-accent-rose-300 border-accent-rose-200 dark:border-accent-rose-800 flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold">
-                  <span className="bg-accent-rose-500 h-2 w-2 animate-pulse rounded-full"></span>
+                <button
+                  onClick={() => setLowStockOnly(!lowStockOnly)}
+                  className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold transition-all cursor-pointer btn-press ${
+                    lowStockOnly
+                      ? 'bg-accent-rose-500 text-white border-accent-rose-500 dark:bg-accent-rose-600 dark:border-accent-rose-600 shadow-sm'
+                      : 'bg-accent-rose-50 dark:bg-accent-rose-950/40 text-accent-rose-600 dark:text-accent-rose-300 border-accent-rose-200 dark:border-accent-rose-800 hover:bg-accent-rose-100 dark:hover:bg-accent-rose-900/60'
+                  }`}
+                >
+                  <span className={`h-2 w-2 animate-pulse rounded-full ${lowStockOnly ? 'bg-white' : 'bg-accent-rose-500'}`}></span>
                   {lowStockCount} barang low stock
-                </span>
+                </button>
               </div>
             )}
 

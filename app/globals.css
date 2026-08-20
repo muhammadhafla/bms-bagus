@@ -14,6 +14,7 @@
   --color-brand-700: #93311e;
   --color-brand-800: #752819;
   --color-brand-900: #622318;
+  --color-brand-950: #4a1a12;
 
   /* Accent Orange - For CTA & Highlights */
   --color-accent-orange-50: #fcebe8;
@@ -26,6 +27,7 @@
   --color-accent-orange-700: #93311e;
   --color-accent-orange-800: #752819;
   --color-accent-orange-900: #622318;
+  --color-accent-orange-950: #4a1a12;
 
   /* Accent - Teal (Success/Growth) */
   --color-accent-teal-50: var(--color-teal-50);
@@ -38,6 +40,7 @@
   --color-accent-teal-700: var(--color-teal-700);
   --color-accent-teal-800: var(--color-teal-800);
   --color-accent-teal-900: var(--color-teal-900);
+  --color-accent-teal-950: var(--color-teal-950);
 
   /* Accent - Indigo (Info/Tech) */
   --color-accent-indigo-50: var(--color-indigo-50);
@@ -50,6 +53,7 @@
   --color-accent-indigo-700: var(--color-indigo-700);
   --color-accent-indigo-800: var(--color-indigo-800);
   --color-accent-indigo-900: var(--color-indigo-900);
+  --color-accent-indigo-950: var(--color-indigo-950);
 
   /* Accent - Rose (Danger/Alerts) */
   --color-accent-rose-50: var(--color-rose-50);
@@ -62,6 +66,7 @@
   --color-accent-rose-700: var(--color-rose-700);
   --color-accent-rose-800: var(--color-rose-800);
   --color-accent-rose-900: var(--color-rose-900);
+  --color-accent-rose-950: var(--color-rose-950);
 
   /* Accent - Amber (Warning) */
   --color-accent-amber-50: var(--color-amber-50);
@@ -74,6 +79,7 @@
   --color-accent-amber-700: var(--color-amber-700);
   --color-accent-amber-800: var(--color-amber-800);
   --color-accent-amber-900: var(--color-amber-900);
+  --color-accent-amber-950: var(--color-amber-950);
 
   /* Neutrals - Slate (Clean & Modern) */
   --color-neutral-50: var(--color-slate-50);

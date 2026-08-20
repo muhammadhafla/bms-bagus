@@ -15,13 +15,13 @@ import {
   IconCamera,
   IconDeviceFloppy,
   IconRefresh,
-  IconSearch,
   IconArrowLeft,
+  IconBarcode,
 } from '@tabler/icons-react';
 import SelectInput from '@/components/ui/SelectInput';
 import { Button, AmbientLayout } from '@/components/ui';
 import { toast } from 'sonner';
-import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
+import { useHotkeys } from 'react-hotkeys-hook';
 import { ItemCart } from './ItemCart';
 
 export default function BulkPrintPage() {
@@ -147,59 +147,41 @@ export default function BulkPrintPage() {
     [addItem, focusInput, activePromosMap],
   );
 
-  useKeyboardShortcuts([
-    {
-      key: 'F2',
-      handler: () => {
-        if (items.length > 0) {
-          setSelectedIndex(0);
-          setEditMode('qty');
-          setEditValue(items[0].qty);
-        }
-      },
-      description: 'Edit Qty baris pertama',
-      allowInInput: true,
-    },
-    {
-      key: 'Delete',
-      handler: () => {
-        if (selectedIndex !== null && items[selectedIndex]) {
-          removeItem(items[selectedIndex].id);
-          setSelectedIndex((prev) => (prev === null ? null : Math.max(0, prev - 1)));
-        }
-      },
-      description: 'Hapus item terpilih',
-      allowInInput: true,
-    },
-    {
-      key: 'F4',
-      handler: () => {
-        reset();
-        focusInput();
-      },
-      description: 'Reset keranjang cetak massal',
-      allowInInput: true,
-    },
-    {
-      key: 'F9',
-      handler: () => {
-        if (items.length > 0 && !submitting) {
-          handleSubmit();
-        }
-      },
-      description: 'Cetak Semua Label',
-      allowInInput: true,
-    },
-    {
-      key: 'Escape',
-      handler: () => {
-        setEditMode(null);
-        setSelectedIndex(null);
-      },
-      description: 'Batal edit',
-      allowInInput: true,
-    },
-  ]);
+  useHotkeys('f2', (e) => {
+    e.preventDefault();
+    if (items.length > 0) {
+      setSelectedIndex(0);
+      setEditMode('qty');
+      setEditValue(items[0].qty);
+    }
+  }, { enableOnFormTags: true });
+
+  useHotkeys('delete', (e) => {
+    e.preventDefault();
+    if (selectedIndex !== null && items[selectedIndex]) {
+      removeItem(items[selectedIndex].id);
+      setSelectedIndex((prev) => (prev === null ? null : Math.max(0, prev - 1)));
+    }
+  }, { enableOnFormTags: true });
+
+  useHotkeys('f4', (e) => {
+    e.preventDefault();
+    reset();
+    focusInput();
+  }, { enableOnFormTags: true });
+
+  useHotkeys('f9', (e) => {
+    e.preventDefault();
+    if (items.length > 0 && !submitting) {
+      handleSubmit();
+    }
+  }, { enableOnFormTags: true });
+
+  useHotkeys('escape', (e) => {
+    e.preventDefault();
+    setEditMode(null);
+    setSelectedIndex(null);
+  }, { enableOnFormTags: true });
 
   useEffect(() => {
     focusInput();
@@ -440,8 +422,8 @@ export default function BulkPrintPage() {
               }}
               className="relative max-w-2xl flex-1"
             >
-              <div className="absolute top-1/2 left-4 -translate-y-1/2 text-neutral-400">
-                <IconSearch size={20} />
+              <div className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 text-neutral-500">
+                <IconBarcode size={20} />
               </div>
               <input
                 ref={inputRef}

@@ -5,7 +5,7 @@ import { IconCheck, IconX, IconBarcode, IconSearch, IconAlertCircle } from '@tab
 import { PriceInput } from '@/components/ui/PriceInput';
 import { Button, Modal, MobileAutocompleteSheet, TextInput } from '@/components/ui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
+import { useHotkeys } from 'react-hotkeys-hook';
 import { useKategoris } from '@/lib/hooks/useKategoris';
 
 interface NewItemDialogProps {
@@ -119,22 +119,12 @@ export function NewItemDialog({
     }
   };
 
-  useKeyboardShortcuts(
-    open
-      ? [
-          {
-            key: 'F9',
-            allowInInput: true,
-            description: 'Simpan Data',
-            handler: () => {
-              if (nama_barang.trim()) {
-                handleSubmit(new Event('submit') as unknown as React.FormEvent);
-              }
-            },
-          },
-        ]
-      : [],
-  );
+  useHotkeys('f9', (e) => {
+    e.preventDefault();
+    if (nama_barang.trim()) {
+      handleSubmit(new Event('submit') as unknown as React.FormEvent);
+    }
+  }, { enableOnFormTags: true, enabled: open });
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {

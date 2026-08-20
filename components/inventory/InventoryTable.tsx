@@ -27,7 +27,7 @@ import TextInput from '@/components/ui/TextInput';
 import SelectInput from '@/components/ui/SelectInput';
 import Button from '@/components/ui/Button';
 import { ModernPagination } from '@/components/ui';
-import { useKeyboardShortcuts } from '@/lib/keyboardShortcuts';
+import { useHotkeys } from 'react-hotkeys-hook';
 import { PurchaseHistoryModal } from './PurchaseHistoryModal';
 
 interface PaginationProps {
@@ -160,21 +160,10 @@ export const InventoryTable = React.memo(function InventoryTable({
     closeSlideOver();
   }, [selectedItem, onUpdate, closeSlideOver]);
 
-  useKeyboardShortcuts(
-    isSlideOverOpen
-      ? [
-          {
-            key: 's',
-            ctrl: true,
-            allowInInput: true,
-            description: 'Simpan Perubahan',
-            handler: () => {
-              handleSave();
-            },
-          },
-        ]
-      : [],
-  );
+  useHotkeys('ctrl+s, cmd+s', (e) => {
+    e.preventDefault();
+    handleSave();
+  }, { enableOnFormTags: true, enabled: isSlideOverOpen });
 
   const openPrintModal = async () => {
     if (!selectedItem) return;

@@ -24,6 +24,7 @@ import {
 } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { SharedBarcodeSearch } from '@/components/inventory/SharedBarcodeSearch';
 import { Portal } from '@/components/ui/Portal';
 import SelectInput from '@/components/ui/SelectInput';
 import TextareaInput from '@/components/ui/TextareaInput';
@@ -54,14 +55,8 @@ export default function StockOpnameDetailPage() {
   const [rejectNote, setRejectNote] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [searchAdd, setSearchAdd] = useState('');
-  const [searchFilter, setSearchFilter] = useState('');
-  const [inventorySearchResults, setInventorySearchResults] = useState<
-    (import('@/types/inventory').InventoryItem & { similarity?: number })[]
-  >([]);
-  const [showAddDropdown, setShowAddDropdown] = useState(false);
-  const [searchSelectedIndex, setSearchSelectedIndex] = useState<number>(-1);
   const [showConfirmDiscard, setShowConfirmDiscard] = useState(false);
+  const [searchFilter, setSearchFilter] = useState('');
 
   const { data: inventoryData } = useQuery({
     queryKey: ['inventory', 'all'],
@@ -169,93 +164,10 @@ export default function StockOpnameDetailPage() {
     addToast({ type: 'info', message: 'Perubahan dibatalkan' });
   };
 
-  const handleSearchInventory = async (
-    query: string,
-    currentItems: StockOpnameItem[],
-    allInventory: import('@/types/inventory').InventoryItem[],
-  ) => {
-    if (query.length < 2) {
-      setInventorySearchResults([]);
-      setShowAddDropdown(false);
-      setSearchSelectedIndex(-1);
-      return;
-    }
-
-    // Gunakan fuzzy search sama seperti di halaman pembelian
-    const result = await inventoryApi.fuzzySearch(query, allInventory);
-    if (!result.error && result.data) {
-      const existingIds = currentItems.map((i) => i.inventory_id);
-      const filtered = result.data.filter(
-        (i: import('@/types/inventory').InventoryItem) => !existingIds.includes(i.id),
-      );
-      setInventorySearchResults(
-        filtered as (import('@/types/inventory').InventoryItem & { similarity?: number })[],
-      );
-      setShowAddDropdown(filtered.length > 0);
-    }
-  };
-
-  const debouncedSearch = useMemo(
-    () =>
-      debounce(
-        (
-          query: string,
-          currentItems: StockOpnameItem[],
-          allInventory: import('@/types/inventory').InventoryItem[],
-        ) => handleSearchInventory(query, currentItems, allInventory),
-        300,
-      ),
-    [],
-  );
-
-  useEffect(() => {
-    if (searchSelectedIndex >= 0) {
-      const el = document.getElementById(`search-item-${searchSelectedIndex}`);
-      if (el) {
-        el.scrollIntoView({ block: 'nearest' });
-      }
-    }
-  }, [searchSelectedIndex]);
-
-  const handleBarcodeSubmit = async (input: string) => {
-    const normalized = normalizeBarcode(input);
-    if (!normalized) return;
-
-    const existingIds = items.map((i) => i.inventory_id);
-
-    // Check exact barcode
-    const exactResult = await inventoryApi.getByExactBarcode(normalized);
-    if (exactResult.data && !existingIds.includes(exactResult.data.id)) {
-      addItemToOpname(exactResult.data);
-      return;
-    } else if (exactResult.data && existingIds.includes(exactResult.data.id)) {
-      addToast({ type: 'info', message: 'Barang sudah ada di daftar opname' });
-      return;
-    }
-
-    // Check fuzzy match for 100% similarity (e.g. exact name match)
-    const fuzzyResult = await inventoryApi.fuzzySearch(normalized, inventoryData || []);
-    if (fuzzyResult.data && fuzzyResult.data.length > 0) {
-      const fuzzyItems = fuzzyResult.data as Array<
-        import('@/types/inventory').InventoryItem & { similarity: number }
-      >;
-      const exactMatch = fuzzyItems.find(
-        (item) => item.similarity === 100 && !existingIds.includes(item.id),
-      );
-      if (exactMatch) {
-        addItemToOpname(exactMatch);
-        return;
-      }
-    }
-
-    addToast({ type: 'error', message: 'Barang tidak ditemukan atau sudah ditambahkan.' });
-  };
+  // Manual search logic was replaced by SharedBarcodeSearch
 
   const addItemToOpname = async (inventory: import('@/types/inventory').InventoryItem) => {
-    // Segera tutup dropdown dan reset input untuk mencegah race condition
-    setShowAddDropdown(false);
-    setSearchAdd('');
-    setInventorySearchResults([]);
+    // The search component handles resetting its own state internally
 
     const result = await stockOpnameApi.addItem(opnameId, inventory.id);
     if (!result.error && result.data) {
@@ -602,80 +514,16 @@ export default function StockOpnameDetailPage() {
 
       {isDraft && (
         <div className="sticky top-[72px] z-40 mb-6 flex flex-col gap-3 rounded-2xl border border-white/40 bg-white/70 p-2 shadow-sm backdrop-blur-xl lg:flex-row lg:gap-4 dark:border-white/10 dark:bg-neutral-900/60">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleBarcodeSubmit(searchAdd);
-            }}
-            className="relative max-w-xl flex-1"
-          >
-            <div className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 text-neutral-400">
-              <IconBarcode size={22} />
-            </div>
-            <input
-              ref={addSearchRef}
-              type="text"
+          <div className="relative max-w-xl flex-1">
+            <SharedBarcodeSearch
+              onItemSelected={addItemToOpname}
+              allowCreateNew={false}
+              filterPredicate={(inventoryItem: import('@/types/inventory').InventoryItem) => !items.map((i) => i.inventory_id).includes(inventoryItem.id)}
+              disabled={saving}
               placeholder="Scan barcode atau cari barang..."
-              value={searchAdd}
-              onChange={(e) => {
-                setSearchAdd(e.target.value);
-                setSearchSelectedIndex(-1);
-                debouncedSearch(e.target.value, items, inventoryData || []);
-              }}
-              onFocus={() => {
-                if (searchAdd.length >= 2 && inventorySearchResults.length > 0)
-                  setShowAddDropdown(true);
-              }}
-              onBlur={() => setTimeout(() => setShowAddDropdown(false), 200)}
-              onKeyDown={(e) => {
-                if (!showAddDropdown) return;
-                if (e.key === 'ArrowDown') {
-                  e.preventDefault();
-                  setSearchSelectedIndex((prev) =>
-                    Math.min(prev + 1, inventorySearchResults.length - 1),
-                  );
-                } else if (e.key === 'ArrowUp') {
-                  e.preventDefault();
-                  setSearchSelectedIndex((prev) => Math.max(prev - 1, -1));
-                } else if (e.key === 'Enter') {
-                  e.preventDefault();
-                  if (
-                    searchSelectedIndex >= 0 &&
-                    searchSelectedIndex < inventorySearchResults.length
-                  ) {
-                    addItemToOpname(inventorySearchResults[searchSelectedIndex]);
-                  } else {
-                    handleBarcodeSubmit(searchAdd);
-                  }
-                }
-              }}
-              className="focus:ring-brand-500 w-full rounded-xl border border-neutral-200 bg-white py-3.5 pr-4 pl-12 text-base shadow-sm backdrop-blur-md transition-all focus:ring-2 focus:outline-none focus:ring-inset lg:text-lg dark:border-neutral-700 dark:bg-neutral-900"
+              icon="barcode"
             />
-            {showAddDropdown && searchAdd.length >= 2 && inventorySearchResults.length > 0 && (
-              <div className="absolute z-20 mt-2 max-h-[40vh] w-full overflow-auto rounded-xl border border-neutral-200 bg-white shadow-xl md:max-h-64 dark:border-neutral-700 dark:bg-neutral-900">
-                {inventorySearchResults.map((inventory, idx) => (
-                  <button
-                    key={inventory.id}
-                    id={`search-item-${idx}`}
-                    onClick={() => addItemToOpname(inventory)}
-                    className={`flex w-full items-center justify-between px-4 py-2 text-left transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800 ${searchSelectedIndex === idx ? 'bg-neutral-50 dark:bg-neutral-800' : ''}`}
-                  >
-                    <div>
-                      <div className="font-medium text-neutral-900 dark:text-neutral-100">
-                        {inventory.nama_barang}
-                      </div>
-                      <div className="mt-0.5 font-mono text-xs text-neutral-500 dark:text-neutral-400">
-                        {inventory.kode_barcode || 'Tanpa barcode'} | Stok Sistem: {inventory.stok}
-                      </div>
-                    </div>
-                    <div className="bg-success-100 dark:bg-success-900/40 text-success-700 dark:text-success-300 ml-2 rounded-full px-2 py-1 text-xs whitespace-nowrap">
-                      {inventory.similarity}% cocok
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </form>
+          </div>
 
           <div className="mt-3 flex w-full gap-2 lg:mt-0 lg:ml-auto lg:w-auto">
             {items.length > 0 && (

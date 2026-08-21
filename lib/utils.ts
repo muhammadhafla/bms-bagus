@@ -240,10 +240,11 @@ export const formatTimeWIB = (
 ): string => {
   if (!date) return '-';
   const d = parseUTCDate(date);
-  return d.toLocaleTimeString('id-ID', {
+  const formatted = d.toLocaleTimeString('id-ID', {
     timeZone: 'Asia/Jakarta',
     ...options,
   });
+  return formatted.replace(/(\d{1,2})\.(\d{2})\.(\d{2})/, '$1:$2:$3');
 };
 
 /**
@@ -255,10 +256,11 @@ export const formatDateTimeWIB = (
 ): string => {
   if (!date) return '-';
   const d = parseUTCDate(date);
-  return d.toLocaleString('id-ID', {
+  const formatted = d.toLocaleString('id-ID', {
     timeZone: 'Asia/Jakarta',
     ...options,
   });
+  return formatted.replace(/(\d{1,2})\.(\d{2})\.(\d{2})/, '$1:$2:$3');
 };
 
 /**

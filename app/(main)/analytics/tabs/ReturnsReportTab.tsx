@@ -18,6 +18,7 @@ export function ReturnsReportTab({ startDate, endDate }: ReturnsReportTabProps) 
       analyticsApi
         .getReturnAnalytics(startDate || undefined, endDate || undefined)
         .then((res) => res.data),
+    staleTime: 1000 * 60 * 5,
   });
 
   const returnData: ReturnAnalytics = data || {

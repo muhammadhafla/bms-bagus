@@ -24,10 +24,11 @@ export function StockReportTab({ startDate, endDate }: StockReportTabProps) {
         page,
         limit: ITEMS_PER_PAGE,
       }),
+    staleTime: 1000 * 60 * 5,
   });
 
   const stockMutations = useMemo(() => data?.data || [], [data?.data]);
-  const totalPages = Math.ceil((data?.total || 0) / ITEMS_PER_PAGE) || 1;
+  const hasMore = data?.hasMore || false;
 
   const handleExportCSV = async () => {
     try {
@@ -226,7 +227,7 @@ export function StockReportTab({ startDate, endDate }: StockReportTabProps) {
 
         <ReportPagination
           page={page}
-          totalPages={totalPages}
+          hasMore={hasMore}
           onPageChange={setPage}
           actions={exportButton}
         />

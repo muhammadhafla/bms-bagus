@@ -152,6 +152,7 @@ export function RiwayatReturPembelianTab({
     <>
       <TransactionHistoryTable<ReturRecord>
         fetchFn={returnApi.getAllPembelianReturns}
+        queryKeyPrefix={['retur_pembelian']}
         search={search}
         startDate={startDate}
         endDate={endDate}

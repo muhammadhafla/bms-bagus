@@ -26,3 +26,5 @@ VALUES (
     'Pesan otomatis setelah pelanggan berhasil melakukan checkout',
     'Halo [Nama], terima kasih sudah berbelanja di toko kami! Semoga harimu menyenangkan. Jangan lupa mampir lagi ya! 😊'
 ) ON CONFLICT (name) DO NOTHING;
+
+ALTER TABLE wa_outbox ADD COLUMN IF NOT EXISTS error_message TEXT;

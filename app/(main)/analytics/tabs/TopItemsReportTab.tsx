@@ -45,6 +45,7 @@ export function TopItemsReportTab({
         categoryId || undefined,
         FETCH_LIMIT,
       ),
+    staleTime: 1000 * 60 * 5,
   });
 
   const rawTopItems = useMemo(() => data?.data || [], [data?.data]);

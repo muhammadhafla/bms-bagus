@@ -37,10 +37,13 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
         categoryId || undefined,
         { page, limit: ITEMS_PER_PAGE },
       ),
+    staleTime: 1000 * 60 * 5,
   });
 
   const profitSummary = useMemo(() => data?.data || [], [data?.data]);
   const totalPages = Math.ceil((data?.total || 0) / ITEMS_PER_PAGE) || 1;
+  const grandTotal = data?.grandTotal || { modal: 0, penjualan: 0, profit: 0 };
+  const grandMargin = grandTotal.penjualan > 0 ? (grandTotal.profit / grandTotal.penjualan) * 100 : 0;
 
   const handleExportCSV = async () => {
     try {
@@ -73,10 +76,6 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
   };
 
   const chartData = useMemo(() => [...profitSummary].reverse(), [profitSummary]);
-  const totalProfit = useMemo(
-    () => profitSummary.reduce((sum, item) => sum + item.total_profit, 0),
-    [profitSummary],
-  );
 
   const pageTotalModal = useMemo(
     () => profitSummary.reduce((sum, item) => sum + item.total_modal, 0),
@@ -264,15 +263,39 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
         isEmpty={!isLoading && profitSummary.length === 0}
         emptyIcon={<IconTrendingUp className="h-16 w-16" />}
       >
-        <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5 md:p-6 dark:border-neutral-800 dark:bg-neutral-900">
-          <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
-            Total Profit (Halaman Ini)
-          </p>
-          <p
-            className={`mt-1 text-3xl font-extrabold tracking-tight md:text-4xl ${totalProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}
-          >
-            {formatCurrency(totalProfit)}
-          </p>
+        <div className="mb-6 rounded-xl border border-brand-200 bg-brand-50 p-5 md:p-6 dark:border-brand-900/50 dark:bg-brand-900/20">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+            <div>
+              <p className="text-sm font-bold text-brand-700 dark:text-brand-400">
+                Grand Total Profit
+              </p>
+              <p className={`mt-1 text-3xl font-extrabold tracking-tight md:text-4xl ${grandTotal.profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                {formatCurrency(grandTotal.profit)}
+              </p>
+            </div>
+
+            <div className="hidden h-px w-full bg-brand-200 sm:block md:mx-4 md:h-12 md:w-px dark:bg-brand-800" />
+            <div className="my-1 h-px w-full bg-brand-200 sm:hidden dark:bg-brand-800" />
+
+            <div className="grid grid-cols-2 gap-4 md:flex md:gap-8">
+              <div>
+                <p className="text-xs font-bold text-brand-600 md:text-sm dark:text-brand-400">
+                  Grand Total Penjualan
+                </p>
+                <p className="mt-0.5 text-lg font-bold text-neutral-900 md:text-xl dark:text-white">
+                  {formatCurrency(grandTotal.penjualan)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-brand-600 md:text-sm dark:text-brand-400">
+                  Margin Profit
+                </p>
+                <p className={`mt-0.5 text-lg font-bold md:text-xl ${grandMargin >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                  {grandMargin.toFixed(2)}%
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="mb-6 overflow-hidden rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">

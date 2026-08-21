@@ -1,23 +1,18 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { purchasesApi, purchaseApi, PembelianItem } from '@/lib/api/pembelian';
+import { purchasesApi, PembelianItem } from '@/lib/api/pembelian';
 import { inventoryApi } from '@/lib/api';
 import { useBulkPrintStore } from '@/lib/store';
 import { formatCurrency, formatDateWIB, formatDateTimeWIB } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
 import {
-  IconSearch,
-  IconEye,
-  IconChevronLeft,
   IconChevronRight,
   IconPrinter,
   IconEdit,
-  IconTrash,
-  IconCheck,
-  IconX as IconClose,
 } from '@tabler/icons-react';
-import { Button, ModernPagination } from '@/components/ui';
+import { Button } from '@/components/ui';
 import { SlideOver } from '@/components/ui/SlideOver';
 import { TransactionHistoryTable } from './TransactionHistoryTable';
 
@@ -54,65 +49,34 @@ export function RiwayatPembelianTab({
   sortDir,
 }: RiwayatPembelianTabProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [detail, setDetail] = useState<PembelianDetail | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState<string | null>(null);
   const [slideOverOpen, setSlideOverOpen] = useState(false);
 
-  const abortControllerRef = useRef<AbortController | null>(null);
   const router = useRouter();
   const resetBulkPrint = useBulkPrintStore((state) => state.reset);
   const addBulkPrintItem = useBulkPrintStore((state) => state.addItem);
 
-  useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
+  const { data: detail, isLoading: detailLoading, error: queryError } = useQuery({
+    queryKey: ['purchaseDetail', selectedId],
+    queryFn: async () => {
+      if (!selectedId) return null;
+      const res = await purchasesApi.getById(selectedId);
+      if (res.error) throw new Error(res.error.message);
+      return res.data as PembelianDetail;
+    },
+    enabled: slideOverOpen && !!selectedId,
+  });
 
-  const handleViewDetail = async (id: string) => {
+  const detailError = queryError ? queryError.message : null;
+
+  const handleViewDetail = (id: string) => {
     setSelectedId(id);
     setSlideOverOpen(true);
-    setDetailLoading(true);
-    setDetailError(null);
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    const fetchPromise = purchasesApi.getById(id);
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Request timeout - coba lagi')), 15000),
-    );
-
-    try {
-      const result = (await Promise.race([fetchPromise, timeoutPromise])) as any;
-      if (controller.signal.aborted) return;
-
-      if (!result.error && result.data) {
-        setDetail(result.data as PembelianDetail);
-      } else if (result.error) {
-        setDetailError(result.error.message);
-      }
-    } catch (err: any) {
-      if (controller.signal.aborted) return;
-      setDetailError(err.message || 'Terjadi kesalahan');
-    } finally {
-      if (!controller.signal.aborted) {
-        setDetailLoading(false);
-      }
-    }
   };
 
   const handleCloseSlideOver = () => {
     setSlideOverOpen(false);
-    setSelectedId(null);
-    setDetail(null);
+    // Optionally we can wait a bit before clearing ID to let slideover close animation play
+    setTimeout(() => setSelectedId(null), 300);
   };
 
   const handleCetakLabel = async () => {
@@ -253,6 +217,7 @@ export function RiwayatPembelianTab({
     <>
       <TransactionHistoryTable<PembelianRecord>
         fetchFn={purchasesApi.getAll}
+        queryKeyPrefix={['pembelian']}
         search={search}
         startDate={startDate}
         endDate={endDate}

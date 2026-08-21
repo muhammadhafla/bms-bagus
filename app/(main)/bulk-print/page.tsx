@@ -23,6 +23,8 @@ import { Button, AmbientLayout } from '@/components/ui';
 import { toast } from 'sonner';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ItemCart } from './ItemCart';
+import { useTableNavigation } from '@/components/inventory/useTableNavigation';
+import { SharedBarcodeSearch } from '@/components/inventory/SharedBarcodeSearch';
 
 export default function BulkPrintPage() {
   const router = useRouter();
@@ -50,40 +52,8 @@ export default function BulkPrintPage() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [editMode, setEditMode] = useState<'qty' | null>(null);
-  const [editValue, setEditValue] = useState<number>(0);
 
-  const [inventorySearchResults, setInventorySearchResults] = useState<
-    (InventoryItem & { similarity: number })[]
-  >([]);
-  const [showAddDropdown, setShowAddDropdown] = useState(false);
-  const [searchSelectedIndex, setSearchSelectedIndex] = useState<number>(-1);
-
-  const handleSearchInventory = async (query: string, allInventory: InventoryItem[]) => {
-    if (query.length < 2) {
-      setInventorySearchResults([]);
-      setShowAddDropdown(false);
-      setSearchSelectedIndex(-1);
-      return;
-    }
-    const result = await inventoryApi.fuzzySearch(query, allInventory);
-    if (!result.error && result.data) {
-      setInventorySearchResults(result.data as (InventoryItem & { similarity: number })[]);
-      setShowAddDropdown(result.data.length > 0);
-    }
-  };
-
-  const debouncedSearch = useMemo(
-    () =>
-      debounce(
-        (query: string, allInventory: InventoryItem[]) =>
-          handleSearchInventory(query, allInventory),
-        300,
-      ),
-    [],
-  );
-
+  // no op
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -120,8 +90,29 @@ export default function BulkPrintPage() {
     setTimeout(() => inputRef.current?.focus(), 0);
   }, []);
 
+  const {
+    selectedIndex,
+    setSelectedIndex,
+    editMode,
+    setEditMode,
+    editValue,
+    setEditValue,
+    handleEditSubmit,
+    handleEditKeyDown,
+  } = useTableNavigation({
+    items,
+    onRemoveItem: removeItem,
+    onUpdateQty: updateQty,
+    focusInput,
+  });
+
   const handleAddResolvedItem = useCallback(
     (item: InventoryItem & { barcode?: string }) => {
+      if (item.is_discontinued) {
+        setError('Barang ini sudah tidak aktif (discontinue) sehingga tidak dapat dicetak.');
+        return;
+      }
+
       const activePromoDiskon = activePromosMap?.[item.id];
       const appliedDiskon = activePromoDiskon !== undefined ? activePromoDiskon : item.diskon || 0;
 
@@ -139,9 +130,6 @@ export default function BulkPrintPage() {
         },
         1,
       ); // default qty is 1
-      setBarcodeInput('');
-      setShowAddDropdown(false);
-      setInventorySearchResults([]);
       focusInput();
       setLoading(false);
     },
@@ -185,19 +173,6 @@ export default function BulkPrintPage() {
   }, { enableOnFormTags: true });
 
   useEffect(() => {
-    focusInput();
-  }, [focusInput]);
-
-  useEffect(() => {
-    if (searchSelectedIndex >= 0) {
-      const el = document.getElementById(`search-item-${searchSelectedIndex}`);
-      if (el) {
-        el.scrollIntoView({ block: 'nearest' });
-      }
-    }
-  }, [searchSelectedIndex]);
-
-  useEffect(() => {
     if (error) {
       const timer = setTimeout(() => setError(null), 3000);
       return () => clearTimeout(timer);
@@ -210,52 +185,6 @@ export default function BulkPrintPage() {
       return () => clearTimeout(timer);
     }
   }, [success]);
-
-  const handleBarcodeSubmit = useCallback(
-    async (input: string) => {
-      if (loading || submitting) return;
-
-      const normalized = normalizeBarcode(input);
-      if (!normalized) return;
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const exactResult = await inventoryApi.getByExactBarcode(normalized);
-
-        if (exactResult.data) {
-          if (exactResult.data.is_discontinued) {
-            setError('Barang ini sudah tidak aktif (discontinue) sehingga tidak dapat dicetak.');
-            setLoading(false);
-            return;
-          }
-          handleAddResolvedItem(exactResult.data);
-          return;
-        }
-
-        const fuzzyResult = await inventoryApi.fuzzySearch(normalized, inventoryData || []);
-
-        if (fuzzyResult.data && fuzzyResult.data.length > 0) {
-          const fuzzyItems = fuzzyResult.data as Array<InventoryItem & { similarity: number }>;
-          const exactMatch = fuzzyItems.find((item) => item.similarity === 100);
-
-          if (exactMatch) {
-            handleAddResolvedItem(exactMatch);
-            return;
-          }
-        }
-
-        setError('Barang tidak ditemukan di database.');
-        setLoading(false);
-      } catch (err) {
-        console.error('Error:', err);
-        setError('Terjadi kesalahan saat memproses barcode');
-        setLoading(false);
-      }
-    },
-    [loading, submitting, handleAddResolvedItem, inventoryData],
-  );
 
   const handleSubmit = useCallback(async () => {
     if (items.length === 0) return;
@@ -320,61 +249,6 @@ export default function BulkPrintPage() {
     }
   }, [items, selectedTemplate, submitting, reset, focusInput]);
 
-  const handleEditSubmit = useCallback(() => {
-    if (selectedIndex === null || !editMode) return;
-
-    const value = editValue;
-    if (isNaN(value) || value < 0) return;
-
-    const itemId = items[selectedIndex].id;
-
-    if (editMode === 'qty') {
-      if (value === 0) {
-        removeItem(itemId);
-      } else {
-        updateQty(itemId, value);
-      }
-    }
-
-    setEditMode(null);
-    setSelectedIndex(null);
-    focusInput();
-  }, [items, selectedIndex, editMode, editValue, updateQty, removeItem, focusInput]);
-
-  const handleEditKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>, index: number) => {
-      if (['Enter', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const nextIndex = e.key === 'ArrowUp' ? Math.max(0, index - 1) : index + 1;
-
-        if (editMode === 'qty') {
-          const value = editValue;
-          if (!isNaN(value) && value >= 0) {
-            const itemId = items[index].id;
-            if (value === 0) {
-              removeItem(itemId);
-            } else {
-              updateQty(itemId, value);
-            }
-          }
-        }
-
-        if (items[nextIndex]) {
-          setSelectedIndex(nextIndex);
-          setEditMode('qty');
-          setEditValue(items[nextIndex].qty);
-        } else {
-          setEditMode(null);
-          setSelectedIndex(null);
-          focusInput();
-        }
-      }
-    },
-    [items, editMode, editValue, updateQty, removeItem, focusInput],
-  );
-
   return (
     <AmbientLayout>
       <div className="flex min-h-[calc(100vh-2rem)] flex-col lg:h-[calc(100vh-2rem)]">
@@ -416,85 +290,14 @@ export default function BulkPrintPage() {
           </div>
 
           <div className="relative z-10 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleBarcodeSubmit(barcodeInput);
-              }}
-              className="relative max-w-2xl flex-1"
-            >
-              <div className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 text-neutral-500">
-                <IconBarcode size={20} />
-              </div>
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder="Cari atau scan barcode barang..."
-                value={barcodeInput}
-                onChange={(e) => {
-                  setBarcodeInput(e.target.value);
-                  setSearchSelectedIndex(-1);
-                  debouncedSearch(e.target.value, inventoryData || []);
-                }}
-                onFocus={() => {
-                  if (barcodeInput.length >= 2 && inventorySearchResults.length > 0)
-                    setShowAddDropdown(true);
-                }}
-                onBlur={() => {
-                  setTimeout(() => setShowAddDropdown(false), 200);
-                }}
-                onKeyDown={(e) => {
-                  if (!showAddDropdown) return;
-                  if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    setSearchSelectedIndex((prev) =>
-                      Math.min(prev + 1, inventorySearchResults.length - 1),
-                    );
-                  } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    setSearchSelectedIndex((prev) => Math.max(prev - 1, -1));
-                  } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (
-                      searchSelectedIndex >= 0 &&
-                      searchSelectedIndex < inventorySearchResults.length
-                    ) {
-                      handleAddResolvedItem(inventorySearchResults[searchSelectedIndex]);
-                    } else {
-                      handleBarcodeSubmit(barcodeInput);
-                    }
-                  }
-                }}
-                disabled={loading}
-                className="focus:ring-brand-500 w-full rounded-xl border border-neutral-200 bg-white py-3.5 pr-4 pl-12 text-base shadow-sm backdrop-blur-md transition-all focus:ring-2 focus:outline-none focus:ring-inset lg:text-lg dark:border-neutral-700 dark:bg-neutral-900"
-                autoFocus
+            <div className="relative max-w-2xl flex-1">
+              <SharedBarcodeSearch
+                onItemSelected={handleAddResolvedItem}
+                allowCreateNew={false} // Users shouldn't create new items during bulk print
+                disabled={loading || submitting}
+                icon="barcode"
               />
-              {showAddDropdown && barcodeInput.length >= 2 && inventorySearchResults.length > 0 && (
-                <div className="absolute z-20 mt-2 max-h-[40vh] w-full overflow-auto rounded-xl border border-neutral-200 bg-white shadow-xl md:max-h-64 dark:border-neutral-700 dark:bg-neutral-900">
-                  {inventorySearchResults.map((inventory, idx) => (
-                    <button
-                      key={inventory.id}
-                      id={`search-item-${idx}`}
-                      type="button"
-                      onClick={() => handleAddResolvedItem(inventory)}
-                      className={`flex w-full items-center justify-between border-b border-neutral-100 px-4 py-3 text-left transition-colors last:border-0 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800 ${searchSelectedIndex === idx ? 'bg-neutral-50 dark:bg-neutral-800' : ''}`}
-                    >
-                      <div>
-                        <div className="font-medium text-neutral-900 dark:text-neutral-100">
-                          {inventory.nama_barang}
-                        </div>
-                        <div className="mt-0.5 font-mono text-xs text-neutral-500 dark:text-neutral-400">
-                          {inventory.kode_barcode || 'Tanpa barcode'} | Stok: {inventory.stok}
-                        </div>
-                      </div>
-                      <div className="bg-success-100 dark:bg-success-900/40 text-success-700 dark:text-success-300 ml-2 rounded-full px-2 py-1 text-xs whitespace-nowrap">
-                        {inventory.similarity}% cocok
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </form>
+            </div>
           </div>
 
           {error && (
@@ -514,7 +317,7 @@ export default function BulkPrintPage() {
           <ItemCart
             items={items}
             selectedIndex={selectedIndex}
-            editMode={editMode}
+            editMode={editMode as 'qty' | null}
             editValue={editValue}
             setSelectedIndex={setSelectedIndex}
             setEditMode={setEditMode}

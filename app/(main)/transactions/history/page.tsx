@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import {
   IconHistory,
@@ -25,15 +25,7 @@ import dynamic from 'next/dynamic';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 
-const RiwayatPenjualanTab = dynamic(
-  () => import('@/components/transactions/RiwayatPenjualanTab').then((m) => m.RiwayatPenjualanTab),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-[400px] animate-pulse rounded-2xl bg-neutral-100 dark:bg-neutral-900" />
-    ),
-  },
-);
+import { RiwayatPenjualanTab } from '@/components/transactions/RiwayatPenjualanTab';
 
 const RiwayatPembelianTab = dynamic(
   () => import('@/components/transactions/RiwayatPembelianTab').then((m) => m.RiwayatPembelianTab),
@@ -97,11 +89,21 @@ function TransactionsHistoryContent() {
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  const [search, setSearch] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [sortBy, setSortBy] = useState('created_at');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const updateFilters = (newFilters: { search?: string; startDate?: string; endDate?: string; sortBy?: string; sortDir?: string }) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (newFilters.search !== undefined) newFilters.search ? params.set('search', newFilters.search) : params.delete('search');
+    if (newFilters.startDate !== undefined) newFilters.startDate ? params.set('startDate', newFilters.startDate) : params.delete('startDate');
+    if (newFilters.endDate !== undefined) newFilters.endDate ? params.set('endDate', newFilters.endDate) : params.delete('endDate');
+    if (newFilters.sortBy !== undefined) newFilters.sortBy ? params.set('sortBy', newFilters.sortBy) : params.delete('sortBy');
+    if (newFilters.sortDir !== undefined) newFilters.sortDir ? params.set('sortDir', newFilters.sortDir) : params.delete('sortDir');
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  const search = searchParams.get('search') || '';
+  const startDate = searchParams.get('startDate') || '';
+  const endDate = searchParams.get('endDate') || '';
+  const sortBy = searchParams.get('sortBy') || 'created_at';
+  const sortDir = (searchParams.get('sortDir') as 'asc' | 'desc') || 'desc';
 
   // Temporary state for the filter SlideOver
   const [tempSearch, setTempSearch] = useState('');
@@ -113,7 +115,7 @@ function TransactionsHistoryContent() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const isAdminUser = useIsAdmin();
 
-  const tabItems = [
+  const tabItems = useMemo(() => [
     { id: 'penjualan', label: 'Penjualan', icon: <IconShoppingCart className="h-4 w-4" /> },
     {
       id: 'retur_penjualan',
@@ -130,7 +132,7 @@ function TransactionsHistoryContent() {
           },
         ]
       : []),
-  ];
+  ], [isAdminUser]);
 
   const handleOpenFilter = () => {
     setTempSearch(search);
@@ -142,40 +144,31 @@ function TransactionsHistoryContent() {
   };
 
   const handleApplyFilter = () => {
-    setSearch(tempSearch);
-    setStartDate(tempStartDate);
-    setEndDate(tempEndDate);
-    setSortBy(tempSortBy);
-    setSortDir(tempSortDir);
+    updateFilters({
+      search: tempSearch,
+      startDate: tempStartDate,
+      endDate: tempEndDate,
+      sortBy: tempSortBy,
+      sortDir: tempSortDir,
+    });
     setIsFilterOpen(false);
   };
 
   const handleResetFilter = () => {
-    setTempSearch('');
-    setTempStartDate('');
-    setTempEndDate('');
-    setTempSortBy('created_at');
-    setTempSortDir('desc');
-    setSearch('');
-    setStartDate('');
-    setEndDate('');
-    setSortBy('created_at');
-    setSortDir('desc');
+    updateFilters({ search: '', startDate: '', endDate: '', sortBy: 'created_at', sortDir: 'desc' });
+    setIsFilterOpen(false);
   };
 
   const getActiveFilters = () => {
     const badges = [];
     if (search) {
-      badges.push({ id: 'search', label: `Cari: ${search}`, onRemove: () => setSearch('') });
+      badges.push({ id: 'search', label: `Cari: ${search}`, onRemove: () => updateFilters({ search: '' }) });
     }
     if (startDate && endDate) {
       badges.push({
         id: 'date',
         label: `${startDate} - ${endDate}`,
-        onRemove: () => {
-          setStartDate('');
-          setEndDate('');
-        },
+        onRemove: () => updateFilters({ startDate: '', endDate: '' }),
       });
     }
     return badges;

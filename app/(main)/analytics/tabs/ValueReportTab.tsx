@@ -15,10 +15,11 @@ export function ValueReportTab() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['report', 'inventory_value', page],
     queryFn: () => reportApi.getInventoryValue({ page, limit: ITEMS_PER_PAGE }),
+    staleTime: 1000 * 60 * 5,
   });
 
   const inventoryValue = useMemo(() => data?.data || [], [data?.data]);
-  const totalPages = Math.ceil((data?.total || 0) / ITEMS_PER_PAGE) || 1;
+  const hasMore = data?.hasMore || false;
 
   const handleExportCSV = async () => {
     try {
@@ -269,7 +270,7 @@ export function ValueReportTab() {
 
         <ReportPagination
           page={page}
-          totalPages={totalPages}
+          hasMore={hasMore}
           onPageChange={setPage}
           actions={exportButton}
         />

@@ -228,4 +228,26 @@ export const analyticsApi = {
       error: result.error,
     };
   },
+
+  async getDashboardSummary(startDate?: string, endDate?: string) {
+    const result = await safeQuery<any>(async () => {
+      const res = await supabase.rpc('get_dashboard_summary', {
+        p_start_date: startDate || null,
+        p_end_date: endDate || null,
+      });
+      return { data: res.data, error: res.error as Error | null };
+    });
+    
+    // Parse numeric fields properly if needed
+    const data = result.data || {
+      busiest_hours: [],
+      categories: [],
+      payments: { total_cash: 0, total_qris: 0, transaction_count: 0 },
+      stock_velocity: [],
+      profitability: [],
+      atv: { avg_transaction_value: 0, items_per_ticket: 0 },
+    };
+
+    return { data, error: result.error };
+  },
 };

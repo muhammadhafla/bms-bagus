@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, ReactNode } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { IconSearch } from '@tabler/icons-react';
 import { ModernPagination } from '@/components/ui';
+import { useQuery } from '@tanstack/react-query';
 
 export interface PaginationOptions {
   limit: number;
@@ -18,6 +19,7 @@ interface TransactionHistoryTableProps<T> {
   fetchFn: (
     options: PaginationOptions,
   ) => Promise<{ data: T[] | null; total?: number; error: any }>;
+  queryKeyPrefix: string[];
   search: string;
   startDate: string;
   endDate: string;
@@ -32,6 +34,7 @@ interface TransactionHistoryTableProps<T> {
 
 export function TransactionHistoryTable<T extends { id: string }>({
   fetchFn,
+  queryKeyPrefix,
   search,
   startDate,
   endDate,
@@ -43,40 +46,45 @@ export function TransactionHistoryTable<T extends { id: string }>({
   sortBy,
   sortDir,
 }: TransactionHistoryTableProps<T>) {
-  const [records, setRecords] = useState<T[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
 
+  // Reset page to 1 when filters change
   useEffect(() => {
     setPage(1);
   }, [search, startDate, endDate]);
 
-  const fetchRecords = useCallback(async () => {
-    setLoading(true);
-    const offset = (page - 1) * limit;
-    const result = await fetchFn({
-      limit,
-      offset,
-      search: search || undefined,
-      startDate: startDate || undefined,
-      endDate: endDate || undefined,
-      sortBy,
-      sortDir,
-    });
-    if (!result.error && result.data) {
-      setRecords(result.data);
-      setTotal(result.total || 0);
-    }
-    setLoading(false);
-  }, [fetchFn, page, limit, search, startDate, endDate, sortBy, sortDir]);
+  const offset = (page - 1) * limit;
 
-  useEffect(() => {
-    fetchRecords();
-  }, [fetchRecords]);
+  const { data: queryResult, isLoading } = useQuery({
+    queryKey: [...queryKeyPrefix, { limit, offset, search, startDate, endDate, sortBy, sortDir }],
+    queryFn: async () => {
+      const result = await fetchFn({
+        limit,
+        offset,
+        search: search || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        sortBy,
+        sortDir,
+      });
+      if (result.error) {
+        throw new Error(result.error.message || 'Terjadi kesalahan saat memuat data');
+      }
+      return {
+        records: result.data || [],
+        total: result.total || 0,
+      };
+    },
+    // Keep previous data while fetching new page for smoother UX
+    // (requires importing keepPreviousData if using React Query v5, but we'll stick to basic v4 behavior if we're not sure, wait `keepPreviousData` is a boolean in v4, or a function in v5. Let's just omit it to avoid breaking changes or syntax errors if we don't know the exact version)
+  });
+
+  const records = queryResult?.records || [];
+  const total = queryResult?.total || 0;
+  const loading = isLoading;
 
   const totalPages = Math.ceil(total / limit) || 1;
-  const pageOffset = (page - 1) * limit;
+  const pageOffset = offset;
 
   return (
     <div className="shadow-elevated flex min-h-[400px] flex-1 flex-col overflow-hidden rounded-3xl border border-white/40 bg-white/70 backdrop-blur-xl dark:border-white/10 dark:bg-neutral-900/60">
@@ -97,7 +105,7 @@ export function TransactionHistoryTable<T extends { id: string }>({
             <p className="mt-1 text-sm">Coba sesuaikan filter pencarian.</p>
           </div>
         ) : (
-          records.map((record, index) => renderMobileCard(record, index))
+          records.map((record, index) => renderMobileCard(record as T, index))
         )}
       </div>
 
@@ -130,7 +138,7 @@ export function TransactionHistoryTable<T extends { id: string }>({
                 </td>
               </tr>
             ) : (
-              records.map((record, index) => renderTableRow(record, index, pageOffset))
+              records.map((record, index) => renderTableRow(record as T, index, pageOffset))
             )}
           </tbody>
         </table>
@@ -149,3 +157,4 @@ export function TransactionHistoryTable<T extends { id: string }>({
     </div>
   );
 }
+

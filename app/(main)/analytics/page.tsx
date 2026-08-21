@@ -186,36 +186,24 @@ function AnalyticsContent() {
   const [startDate, setStartDate] = useState<string>(formatDateForInputWIB(thirtyDaysAgo));
   const [endDate, setEndDate] = useState<string>(formatDateForInputWIB(today));
 
-  // Overview Queries
-  const { data: categoriesData, isLoading: isLoadingCategories } = useQuery({
-    queryKey: ['analytics', 'categories', startDate, endDate],
-    queryFn: () => analyticsApi.getCategoryPerformance(startDate, endDate).then((res) => res.data),
+  // Overview Dashboard Summary
+  const { data: dashboardData, isLoading: isLoadingDashboard } = useQuery({
+    queryKey: ['analytics', 'dashboard_summary', startDate, endDate],
+    queryFn: () => analyticsApi.getDashboardSummary(startDate, endDate).then((res) => res.data),
     enabled: activeTab === 'overview',
+    staleTime: 1000 * 60 * 5, // Cache 5 menit
   });
-
-  const { data: payments, isLoading: isLoadingPayments } = useQuery({
-    queryKey: ['analytics', 'payments', startDate, endDate],
-    queryFn: () => analyticsApi.getPaymentMethods(startDate, endDate).then((res) => res.data),
-    enabled: activeTab === 'overview',
-  });
-
-  const { data: stockVelocity, isLoading: isLoadingVelocity } = useQuery({
-    queryKey: ['analytics', 'velocity', startDate, endDate],
-    queryFn: () => analyticsApi.getStockVelocity(startDate, endDate).then((res) => res.data),
-    enabled: activeTab === 'overview',
-  });
-
-  const { data: profitability, isLoading: isLoadingProfitability } = useQuery({
-    queryKey: ['analytics', 'profitability', startDate, endDate],
-    queryFn: () => analyticsApi.getProfitability(startDate, endDate).then((res) => res.data),
-    enabled: activeTab === 'overview',
-  });
-
-  const { data: atv, isLoading: isLoadingAtv } = useQuery({
-    queryKey: ['analytics', 'atv', startDate, endDate],
-    queryFn: () => analyticsApi.getAtv(startDate, endDate).then((res) => res.data),
-    enabled: activeTab === 'overview',
-  });
+  
+  const categoriesData = dashboardData?.categories;
+  const payments = dashboardData?.payments;
+  const stockVelocity = dashboardData?.stock_velocity;
+  const profitability = dashboardData?.profitability;
+  const atv = dashboardData?.atv;
+  const isLoadingCategories = isLoadingDashboard;
+  const isLoadingPayments = isLoadingDashboard;
+  const isLoadingVelocity = isLoadingDashboard;
+  const isLoadingProfitability = isLoadingDashboard;
+  const isLoadingAtv = isLoadingDashboard;
 
   // Report Filter State
   const [categoryId, setCategoryId] = useState('');

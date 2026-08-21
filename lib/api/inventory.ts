@@ -2,10 +2,6 @@ import { supabase } from './client';
 import { safeQuery } from './utils';
 import { stringSimilarity } from '@/lib/utils';
 import { InventoryItem } from '@/types/inventory';
-import Fuse from 'fuse.js';
-
-let cachedFuse: Fuse<InventoryItem> | null = null;
-let cachedInventoryList: InventoryItem[] | null = null;
 
 export const inventoryApi = {
   async getAll() {
@@ -34,6 +30,7 @@ export const inventoryApi = {
     page?: number;
     limit?: number;
     search?: string;
+    categoryId?: string;
     categoryName?: string;
     lowStockOnly?: boolean;
     activeStatus?: 'all' | 'active' | 'discontinued';
@@ -47,75 +44,70 @@ export const inventoryApi = {
     const sortBy = options.sortBy || 'nama_barang';
     const isAscending = options.sortDir !== 'desc'; // default is ascending
 
-    let countQuery;
-    let dataQuery;
+    let query;
 
     if (options.lowStockOnly) {
-      countQuery = supabase.rpc('get_low_stock_items', {}, { count: 'exact', head: true });
-      dataQuery = supabase
-        .rpc('get_low_stock_items', {})
-        .select('*, id_kategori:id_kategori(*)')
-        .order(sortBy, { ascending: isAscending })
-        .range(offset, offset + limit - 1);
+      query = supabase
+        .rpc('get_low_stock_items', {}, { count: 'exact' })
+        .select('*, id_kategori:id_kategori(*)');
     } else {
-      countQuery = supabase.from('inventory').select('*', { count: 'exact', head: true });
-      dataQuery = supabase
+      query = supabase
         .from('inventory')
-        .select('*, id_kategori:id_kategori(*)')
-        .order(sortBy, { ascending: isAscending })
-        .range(offset, offset + limit - 1);
+        .select('*, id_kategori:id_kategori(*)', { count: 'exact' });
     }
+
+    // Apply sorting and pagination
+    query = query.order(sortBy, { ascending: isAscending }).range(offset, offset + limit - 1);
 
     if (options.search) {
       const safeQueryString = options.search.replace(/%/g, '').toLowerCase();
       const orCondition = `nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`;
-      countQuery = countQuery.or(orCondition);
-      dataQuery = dataQuery.or(orCondition);
+      query = query.or(orCondition);
     }
 
     if (options.activeStatus === 'active') {
-      countQuery = countQuery.eq('is_discontinued', false);
-      dataQuery = dataQuery.eq('is_discontinued', false);
+      query = query.eq('is_discontinued', false);
     } else if (options.activeStatus === 'discontinued') {
-      countQuery = countQuery.eq('is_discontinued', true);
-      dataQuery = dataQuery.eq('is_discontinued', true);
+      query = query.eq('is_discontinued', true);
     }
 
-    let categoryId = null;
-    if (options.categoryName) {
+    let resolvedCategoryId = options.categoryId;
+    
+    // Fallback to query by categoryName if categoryId is not provided
+    if (!resolvedCategoryId && options.categoryName) {
       const catResult = await supabase
         .from('kategori')
         .select('id')
         .eq('nama', options.categoryName)
         .single();
       if (catResult.data) {
-        categoryId = catResult.data.id;
-        countQuery = countQuery.eq('id_kategori', categoryId);
-        dataQuery = dataQuery.eq('id_kategori', categoryId);
+        resolvedCategoryId = catResult.data.id;
       }
     }
 
-    const [countResult, dataResult] = await Promise.all([countQuery, dataQuery]);
+    if (resolvedCategoryId) {
+      query = query.eq('id_kategori', resolvedCategoryId);
+    }
 
-    if (countResult.error)
-      return { data: [], total: 0, page, limit, hasMore: false, error: countResult.error as Error };
-    if (dataResult.error)
-      return { data: [], total: 0, page, limit, hasMore: false, error: dataResult.error as Error };
+    const { data, count, error } = await query;
 
-    const total = countResult.count || 0;
-    const data = dataResult.data as InventoryItem[];
+    if (error)
+      return { data: [], total: 0, page, limit, hasMore: false, error: error as Error };
+
+    const total = count || 0;
+    const items = data as InventoryItem[];
 
     return {
-      data,
+      data: items,
       total,
       page,
       limit,
-      hasMore: offset + data.length < total,
+      hasMore: offset + items.length < total,
       error: null,
     };
   },
 
-  async getLowStockCount(options: { search?: string; categoryName?: string } = {}) {
+  async getLowStockCount(options: { search?: string; categoryId?: string; categoryName?: string } = {}) {
     let countQuery = supabase.rpc(
       'get_low_stock_items',
       {},
@@ -128,15 +120,20 @@ export const inventoryApi = {
       countQuery = countQuery.or(orCondition);
     }
 
-    if (options.categoryName) {
+    let resolvedCategoryId = options.categoryId;
+    if (!resolvedCategoryId && options.categoryName) {
       const catResult = await supabase
         .from('kategori')
         .select('id')
         .eq('nama', options.categoryName)
         .single();
       if (catResult.data) {
-        countQuery = countQuery.eq('id_kategori', catResult.data.id);
+        resolvedCategoryId = catResult.data.id;
       }
+    }
+
+    if (resolvedCategoryId) {
+      countQuery = countQuery.eq('id_kategori', resolvedCategoryId);
     }
 
     const { count, error } = await countQuery;
@@ -177,72 +174,17 @@ export const inventoryApi = {
     });
   },
 
-  async fuzzySearch(query: string, inventoryList: InventoryItem[], limit = 20) {
+  async fuzzySearch(query: string, _inventoryList?: any[], limit = 20) {
     const queryLower = query.toLowerCase().trim();
     if (queryLower.length < 2) return { data: [], error: null };
 
-    if (!inventoryList || inventoryList.length === 0) return { data: [], error: null };
-    // Tier 1 & 2: Exact matches and Starts With
-    const exactMatches: Array<InventoryItem & { similarity: number }> = [];
-    const startsWithMatches: Array<InventoryItem & { similarity: number }> = [];
-
-    for (const item of inventoryList) {
-      const barcodeLower = (item.kode_barcode || '').toLowerCase();
-      const nameLower = (item.nama_barang || '').toLowerCase();
-
-      if (barcodeLower === queryLower) {
-        exactMatches.push({ ...item, similarity: 100 });
-      } else if (nameLower === queryLower) {
-        exactMatches.push({ ...item, similarity: 99 });
-      } else if (nameLower.startsWith(queryLower)) {
-        startsWithMatches.push({ ...item, similarity: 95 });
-      }
-    }
-
-    // Tier 3: Fuzzy Search
-    const options = {
-      keys: [
-        { name: 'nama_barang', weight: 2.5 },
-        { name: 'kode_barcode', weight: 1.0 },
-      ],
-      includeScore: true,
-      threshold: 0.4,
-      ignoreLocation: true,
-    };
-
-    let fuse: Fuse<InventoryItem>;
-    if (cachedFuse && cachedInventoryList === inventoryList) {
-      fuse = cachedFuse;
-    } else {
-      fuse = new Fuse(inventoryList, options);
-      cachedFuse = fuse;
-      cachedInventoryList = inventoryList;
-    }
-
-    const results = fuse.search(queryLower);
-
-    const fuseMatches = results.map((result) => ({
-      ...result.item,
-      similarity: Math.round((1 - (result.score || 0)) * 100),
-    }));
-
-    // Combine all tiers and deduplicate
-    const combined = [...exactMatches, ...startsWithMatches, ...fuseMatches];
-
-    const seen = new Set();
-    const uniqueResults: Array<InventoryItem & { similarity: number }> = [];
-
-    for (const item of combined) {
-      if (!seen.has(item.id)) {
-        seen.add(item.id);
-        uniqueResults.push(item);
-      }
-    }
-
-    // Sort strictly by similarity (Tier 1 > Tier 2 > Tier 3)
-    uniqueResults.sort((a, b) => b.similarity - a.similarity);
-
-    return { data: uniqueResults.slice(0, limit), error: null };
+    return safeQuery<Array<InventoryItem & { similarity: number }>>(async () => {
+      const result = await supabase.rpc('search_inventory', {
+        search_query: queryLower,
+        limit_val: limit,
+      });
+      return { data: result.data as Array<InventoryItem & { similarity: number }>, error: result.error as Error | null };
+    });
   },
 
   async getByExactBarcode(barcode: string) {

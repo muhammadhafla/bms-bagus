@@ -16,7 +16,7 @@ interface ItemCartProps {
   removeItem: (id: string) => void;
 }
 
-export function ItemCart({
+export const ItemCart = React.memo(function ItemCart({
   items,
   selectedIndex,
   editMode,
@@ -357,4 +357,4 @@ export function ItemCart({
       </div>
     </div>
   );
-}
+});

@@ -8,7 +8,11 @@ export const metadata = {
   title: 'Stok Barang',
 };
 
-export default async function InventoryPage() {
+type Props = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}
+
+export default async function InventoryPage(props: Props) {
   const queryClient = new QueryClient();
 
   const cookieStore = await cookies();
@@ -24,41 +28,88 @@ export default async function InventoryPage() {
     },
   );
 
-  // Default query parameter yang persis sama dengan InventoryPageClient
+  const searchParams = await props.searchParams;
+  const page = Number(searchParams?.page) || 1;
+  const search = typeof searchParams?.search === 'string' ? searchParams.search : '';
+  const categoryName = typeof searchParams?.kategori === 'string' ? searchParams.kategori : '';
+  const lowStockOnly = searchParams?.lowStockOnly === 'true';
+  const activeStatus = (typeof searchParams?.activeStatus === 'string' ? searchParams.activeStatus : 'all') as 'all' | 'active' | 'discontinued';
+  const sortBy = typeof searchParams?.sortBy === 'string' ? searchParams.sortBy : 'nama_barang';
+  const sortDir = (typeof searchParams?.sortDir === 'string' ? searchParams.sortDir : 'asc') as 'asc' | 'desc';
+
+  const limit = 20;
+  const offset = (page - 1) * limit;
+
+  let categoryId = undefined;
+  if (categoryName) {
+    const catResult = await supabaseServer
+      .from('kategori')
+      .select('id')
+      .eq('nama', categoryName)
+      .single();
+    if (catResult.data) {
+      categoryId = catResult.data.id;
+    }
+  }
+
   const queryKey = [
     'inventory',
     {
-      page: 1,
-      search: '',
-      categoryName: '',
-      lowStockOnly: false,
-      activeStatus: 'all',
-      sortBy: 'nama_barang',
-      sortDir: 'asc',
+      page,
+      search,
+      categoryId,
+      lowStockOnly,
+      activeStatus,
+      sortBy,
+      sortDir,
     },
   ];
 
-  // Prefetch data inventory halaman pertama menggunakan SSR (tanpa HTTP fetch)
   await queryClient.prefetchQuery({
     queryKey,
     queryFn: async () => {
-      // Meniru behavior inventoryApi.getPaginated() untuk default state
-      const [countResult, dataResult] = await Promise.all([
-        supabaseServer.from('inventory').select('*', { count: 'exact', head: true }),
-        supabaseServer
+      let query;
+
+      if (lowStockOnly) {
+        query = supabaseServer
+          .rpc('get_low_stock_items', {}, { count: 'exact' })
+          .select('*, id_kategori:id_kategori(*)');
+      } else {
+        query = supabaseServer
           .from('inventory')
-          .select('*, id_kategori:id_kategori(*)')
-          .order('nama_barang', { ascending: true })
-          .range(0, 19),
-      ]);
+          .select('*, id_kategori:id_kategori(*)', { count: 'exact' });
+      }
+
+      query = query.order(sortBy, { ascending: sortDir !== 'desc' }).range(offset, offset + limit - 1);
+
+      if (search) {
+        const safeQueryString = search.replace(/%/g, '').toLowerCase();
+        const orCondition = `nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`;
+        query = query.or(orCondition);
+      }
+
+      if (activeStatus === 'active') {
+        query = query.eq('is_discontinued', false);
+      } else if (activeStatus === 'discontinued') {
+        query = query.eq('is_discontinued', true);
+      }
+
+      if (categoryId) {
+        query = query.eq('id_kategori', categoryId);
+      }
+
+      const { data, count, error } = await query;
+
+      const total = count || 0;
+      const items = data || [];
 
       return {
-        data: dataResult.data || [],
-        total: countResult.count || 0,
-        page: 1,
-        limit: 20,
-        hasMore: (dataResult.data?.length || 0) < (countResult.count || 0),
-        error: null,
+        data: items,
+        total,
+        page,
+        limit,
+        hasMore: offset + items.length < total,
+        error: error ? error.message : null,
       };
     },
   });

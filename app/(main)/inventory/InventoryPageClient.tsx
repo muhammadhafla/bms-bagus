@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { InventoryItem } from '@/types/inventory';
 import { inventoryApi, kategoriApi } from '@/lib/api';
 import { debounce } from '@/lib/utils';
@@ -48,14 +49,18 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 
 export default function InventoryPageClient() {
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [kategori, setKategori] = useState('');
-  const [lowStockOnly, setLowStockOnly] = useState(false);
-  const [activeStatus, setActiveStatus] = useState<'all' | 'active' | 'discontinued'>('all');
-  const [sortBy, setSortBy] = useState('nama_barang');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-  const [page, setPage] = useState(1);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get('search') || '');
+  const [kategori, setKategori] = useState(searchParams.get('kategori') || '');
+  const [lowStockOnly, setLowStockOnly] = useState(searchParams.get('lowStockOnly') === 'true');
+  const [activeStatus, setActiveStatus] = useState<'all' | 'active' | 'discontinued'>((searchParams.get('activeStatus') as any) || 'all');
+  const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'nama_barang');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>((searchParams.get('sortDir') as any) || 'asc');
+  const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
   const ITEMS_PER_PAGE = 20;
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -63,6 +68,27 @@ export default function InventoryPageClient() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+
+  // Sync state to URL
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set('search', debouncedSearch);
+    if (kategori) params.set('kategori', kategori);
+    if (lowStockOnly) params.set('lowStockOnly', 'true');
+    if (activeStatus !== 'all') params.set('activeStatus', activeStatus);
+    if (sortBy !== 'nama_barang') params.set('sortBy', sortBy);
+    if (sortDir !== 'asc') params.set('sortDir', sortDir);
+    if (page > 1) params.set('page', page.toString());
+
+    const queryString = params.toString();
+    const newUrl = `${pathname}${queryString ? '?' + queryString : ''}`;
+    
+    const currentQueryString = searchParams.toString();
+    if (queryString !== currentQueryString) {
+      router.replace(newUrl, { scroll: false });
+    }
+  }, [debouncedSearch, kategori, lowStockOnly, activeStatus, sortBy, sortDir, page, pathname, router, searchParams]);
+
   // Debounce search
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -76,6 +102,14 @@ export default function InventoryPageClient() {
     setPage(1);
   }, [debouncedSearch, kategori, lowStockOnly, activeStatus, sortBy, sortDir]);
 
+  const { data: kategoriResponse } = useKategoris();
+
+  const categoryId = useMemo(() => {
+    if (!kategori || !kategoriResponse) return undefined;
+    const cat = kategoriResponse.find(c => c.nama === kategori);
+    return cat?.id;
+  }, [kategori, kategoriResponse]);
+
   const {
     data: inventoryData,
     isLoading: loading,
@@ -87,7 +121,7 @@ export default function InventoryPageClient() {
       {
         page,
         search: debouncedSearch,
-        categoryName: kategori,
+        categoryId,
         lowStockOnly,
         activeStatus,
         sortBy,
@@ -99,6 +133,7 @@ export default function InventoryPageClient() {
         page,
         limit: ITEMS_PER_PAGE,
         search: debouncedSearch,
+        categoryId,
         categoryName: kategori,
         lowStockOnly,
         activeStatus,
@@ -108,17 +143,15 @@ export default function InventoryPageClient() {
   });
 
   const { data: globalLowStockCount } = useQuery({
-    queryKey: ['inventory', 'low-stock-count', { search: debouncedSearch, categoryName: kategori }],
+    queryKey: ['inventory', 'low-stock-count', { search: debouncedSearch, categoryId }],
     queryFn: () =>
-      inventoryApi.getLowStockCount({ search: debouncedSearch, categoryName: kategori }),
+      inventoryApi.getLowStockCount({ search: debouncedSearch, categoryId, categoryName: kategori }),
   });
-
-  const { data: kategoriResponse } = useKategoris();
 
   const items = inventoryData?.data || [];
   const totalPages = Math.ceil((inventoryData?.total || 0) / ITEMS_PER_PAGE) || 1;
   const error = queryError ? queryError.message : inventoryData?.error?.message || null;
-  const kategoriList = (kategoriResponse || []).map((k) => k.nama);
+  const kategoriList = useMemo(() => (kategoriResponse || []).map((k) => k.nama), [kategoriResponse]);
 
   const handleUpdate = useCallback(
     (id: string, data: Partial<InventoryItem>) => {

@@ -141,6 +141,7 @@ export function RiwayatReturPenjualanTab({
     <>
       <TransactionHistoryTable<ReturRecord>
         fetchFn={returnApi.getAllPenjualanReturns}
+        queryKeyPrefix={['retur_penjualan']}
         search={search}
         startDate={startDate}
         endDate={endDate}

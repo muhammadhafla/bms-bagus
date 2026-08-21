@@ -131,34 +131,34 @@ export function SalesReportTab({ startDate, endDate, categoryId }: SalesReportTa
         isEmpty={!isLoading && salesSummary.length === 0}
         emptyIcon={<IconShoppingCart className="h-16 w-16" />}
       >
-        <div className="mb-6 rounded-xl border border-brand-200 bg-brand-50 p-5 md:p-6 dark:border-brand-900/50 dark:bg-brand-900/20">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4 md:p-6 dark:border-neutral-800 dark:bg-neutral-900">
+          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center md:gap-4">
             <div>
-              <p className="text-sm font-bold text-brand-700 dark:text-brand-400">
+              <p className="text-xs font-bold text-neutral-600 md:text-sm dark:text-neutral-400">
                 Grand Total Penjualan
               </p>
-              <p className="mt-1 text-3xl font-extrabold tracking-tight text-neutral-900 md:text-4xl dark:text-white">
+              <p className="text-2xl font-extrabold tracking-tight text-neutral-900 md:text-4xl dark:text-white">
                 {formatCurrency(grandTotal.sales)}
               </p>
             </div>
 
-            <div className="hidden h-px w-full bg-brand-200 sm:block md:mx-4 md:h-12 md:w-px dark:bg-brand-800" />
-            <div className="my-1 h-px w-full bg-brand-200 sm:hidden dark:bg-brand-800" />
+            <div className="hidden h-px w-full bg-neutral-200 sm:block md:mx-4 md:h-12 md:w-px dark:bg-neutral-800" />
+            <div className="my-0.5 h-px w-full bg-neutral-200 sm:hidden dark:bg-neutral-800" />
 
-            <div className="grid grid-cols-2 gap-4 md:flex md:gap-8">
+            <div className="grid grid-cols-2 gap-3 md:flex md:gap-8">
               <div>
-                <p className="text-xs font-bold text-brand-600 md:text-sm dark:text-brand-400">
+                <p className="text-xs font-bold text-neutral-500 md:text-sm dark:text-neutral-400">
                   Total Cash
                 </p>
-                <p className="mt-0.5 text-lg font-bold text-emerald-600 md:text-xl dark:text-emerald-400">
+                <p className="text-base font-bold text-emerald-600 md:text-xl dark:text-emerald-400">
                   {formatCurrency(grandTotal.cash)}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-bold text-brand-600 md:text-sm dark:text-brand-400">
+                <p className="text-xs font-bold text-neutral-500 md:text-sm dark:text-neutral-400">
                   Total QRIS
                 </p>
-                <p className="text-brand-600 mt-0.5 text-lg font-bold md:text-xl dark:text-brand-400">
+                <p className="text-base font-bold text-purple-600 md:text-xl dark:text-purple-400">
                   {formatCurrency(grandTotal.qris)}
                 </p>
               </div>

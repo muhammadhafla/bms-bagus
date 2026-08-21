@@ -107,7 +107,8 @@ export default function BulkPrintPage() {
       if (data) {
         setTemplates(data);
         if (data.length > 0) {
-          setSelectedTemplate(data[0].id);
+          const defaultTemplate = data.find((t) => t.name.toLowerCase() === 'label harga');
+          setSelectedTemplate(defaultTemplate ? defaultTemplate.id : data[0].id);
         }
       }
     } catch (err) {

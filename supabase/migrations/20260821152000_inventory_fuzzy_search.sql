@@ -13,8 +13,8 @@ RETURNS TABLE (
   harga_jual numeric,
   diskon numeric,
   is_discontinued boolean,
-  created_at timestamptz,
-  updated_at timestamptz,
+  created_at timestamp,
+  updated_at timestamp,
   kategori jsonb,
   similarity_score real
 )

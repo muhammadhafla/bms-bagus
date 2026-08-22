@@ -143,46 +143,21 @@ export const dashboardApi = {
   },
 
   async getRecentTransactions(): Promise<{ data: RecentTransaction[]; error: unknown }> {
-    const [penjualan, pembelian] = await Promise.all([
-      safeQuery<{ id: string; total: number; tanggal: string; created_at: string }[]>(async () => {
-        const result = await supabase
-          .from('penjualan')
-          .select('id, total, tanggal, created_at')
-          .order('created_at', { ascending: false })
-          .limit(10);
-        return { data: result.data, error: result.error as Error | null };
-      }),
-      safeQuery<{ id: string; total_sistem: number; tanggal: string; created_at: string }[]>(
-        async () => {
-          const result = await supabase
-            .from('pembelian')
-            .select('id, total_sistem, tanggal, created_at')
-            .order('created_at', { ascending: false })
-            .limit(10);
-          return { data: result.data, error: result.error as Error | null };
-        },
-      ),
-    ]);
+    const result = await safeQuery<RecentTransaction[]>(async () => {
+      const res = await supabase
+        .from('v_recent_transactions')
+        .select('id, type, total, tanggal, created_at')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      return { data: res.data as RecentTransaction[] | null, error: res.error as Error | null };
+    });
 
-    if (penjualan.error || pembelian.error) {
-      return { data: [], error: penjualan.error || pembelian.error };
+    if (result.error) {
+      return { data: [], error: result.error };
     }
 
-    const transactions: RecentTransaction[] = [
-      ...(penjualan.data || []).map((t) => ({ ...t, type: 'penjualan' as const })),
-      ...(pembelian.data || []).map((t) => ({
-        ...t,
-        total: t.total_sistem || 0,
-        type: 'pembelian' as const,
-      })),
-    ];
-
-    transactions.sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
-
     return {
-      data: transactions.slice(0, 10),
+      data: result.data || [],
       error: null,
     };
   },

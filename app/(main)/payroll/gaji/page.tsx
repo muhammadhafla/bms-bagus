@@ -79,7 +79,7 @@ function DompetContent() {
         
         <div className="relative z-10 flex flex-col items-center text-center">
           <p className="text-brand-100 mb-1 text-sm font-medium">
-            {saldo < 0 ? 'Sisa Pinjaman/Kasbon' : 'Saldo Hak Gaji'}
+            {saldo < 0 ? 'Total Pinjaman/Kasbon' : 'Total Saldo Saat Ini'}
           </p>
           <h1 className="text-4xl font-black tracking-tight mb-6">
             {saldo < 0 ? '-' : ''}Rp {Math.abs(saldo).toLocaleString('id-ID')}
@@ -93,6 +93,13 @@ function DompetContent() {
           >
             Tarik Dana / Kasbon
           </Button>
+          
+          <button 
+            onClick={() => toast.info('Fitur Slip Gaji akan segera hadir')}
+            className="mt-4 text-sm font-medium text-brand-100 hover:text-white underline decoration-brand-400/50 hover:decoration-white underline-offset-4 transition-all"
+          >
+            Lihat Rincian / Slip Gaji
+          </button>
         </div>
       </div>
 
@@ -181,9 +188,21 @@ function DompetContent() {
         isBottomSheetOnMobile={true}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-2">
-          <div className="rounded-xl bg-blue-50 p-3 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 text-sm">
-            Pengajuan ini akan memotong saldo Anda setelah disetujui oleh Admin.
-          </div>
+          {(() => {
+            const num = Number(nominal.replace(/\D/g, ''));
+            const isKasbon = num > saldo;
+            return (
+              <div className={`rounded-xl p-3 text-sm border ${
+                isKasbon 
+                  ? 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50' 
+                  : 'bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/50'
+              }`}>
+                {isKasbon 
+                  ? 'Nominal pengajuan melebihi saldo. Pengajuan ini akan dicatat sebagai Kasbon (Pinjaman).' 
+                  : 'Pengajuan ini akan memotong saldo Anda setelah disetujui.'}
+              </div>
+            );
+          })()}
           
           <TextInput
             label="Nominal (Rp)"

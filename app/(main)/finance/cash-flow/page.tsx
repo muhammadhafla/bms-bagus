@@ -189,7 +189,7 @@ export default function CashFlowPage() {
                   <h1 className="text-xl font-extrabold tracking-tight text-neutral-900 lg:text-3xl dark:text-white">
                     {isAdmin ? 'Arus Kas' : 'Kas Shift Anda'}
                   </h1>
-                  <p className="mt-0.5 text-xs font-medium text-neutral-500 lg:mt-2 lg:text-base dark:text-neutral-400">
+                  <p className="mt-0.5 hidden md:block text-xs font-medium text-neutral-500 lg:mt-2 lg:text-base dark:text-neutral-400">
                     {isAdmin
                       ? 'Pantau pergerakan kas dari semua pengguna.'
                       : 'Pantau penerimaan dan pengeluaran kas.'}

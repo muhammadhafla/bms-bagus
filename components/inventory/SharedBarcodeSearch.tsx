@@ -16,7 +16,12 @@ export interface SharedBarcodeSearchProps {
   filterPredicate?: (item: InventoryItem) => boolean;
 }
 
-export function SharedBarcodeSearch({
+export interface SharedBarcodeSearchRef {
+  clearInput: () => void;
+  focus: () => void;
+}
+
+export const SharedBarcodeSearch = React.forwardRef<SharedBarcodeSearchRef, SharedBarcodeSearchProps>(({
   onItemSelected,
   allowCreateNew = false,
   onCreateNew,
@@ -24,7 +29,7 @@ export function SharedBarcodeSearch({
   placeholder = 'Cari atau scan barcode...',
   icon = 'scan',
   filterPredicate,
-}: SharedBarcodeSearchProps) {
+}, ref) => {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [showAddDropdown, setShowAddDropdown] = useState(false);
   const [searchSelectedIndex, setSearchSelectedIndex] = useState<number>(-1);
@@ -40,6 +45,15 @@ export function SharedBarcodeSearch({
   const focusInput = useCallback(() => {
     setTimeout(() => inputRef.current?.focus(), 0);
   }, []);
+
+  React.useImperativeHandle(ref, () => ({
+    clearInput: () => {
+      setBarcodeInput('');
+      setShowAddDropdown(false);
+      setSearchSelectedIndex(-1);
+    },
+    focus: focusInput,
+  }));
 
   // Expose focus to parent if needed, but for now we auto-focus on mount
   useEffect(() => {
@@ -270,4 +284,6 @@ export function SharedBarcodeSearch({
       )}
     </form>
   );
-}
+});
+
+SharedBarcodeSearch.displayName = 'SharedBarcodeSearch';

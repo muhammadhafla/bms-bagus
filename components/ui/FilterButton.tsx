@@ -18,7 +18,7 @@ export const FilterButton: React.FC<FilterButtonProps> = ({
       variant="secondary"
       onClick={onClick}
       // Mobile: h-10 w-10 (40x40px), no text. Desktop: h-10 w-auto, with padding
-      className={`relative mt-1.5 mr-1.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl p-0 sm:mt-0 sm:mr-0 sm:w-auto sm:px-4 ${className}`}
+      className={`relative mt-1.5 mr-1.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl !min-h-0 !p-0 sm:mt-0 sm:mr-0 sm:w-auto sm:!px-4 sm:!py-2 ${className}`}
     >
       <IconFilter size={18} className="shrink-0" />
       <span className="ml-2 hidden font-medium sm:inline">Filter</span>

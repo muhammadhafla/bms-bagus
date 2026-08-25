@@ -108,4 +108,6 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withBundleAnalyzer(withPWA(nextConfig));
+export default process.env.NODE_ENV === 'development'
+  ? withBundleAnalyzer(nextConfig)
+  : withBundleAnalyzer(withPWA(nextConfig));

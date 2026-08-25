@@ -13,21 +13,25 @@ const defaultSidebarState = {
 type SidebarState = typeof defaultSidebarState;
 
 export function useSidebarState() {
-  const [state, setState] = useState<SidebarState>(() => {
-    if (typeof window === 'undefined') return defaultSidebarState;
-    try {
-      const stored = localStorage.getItem('bms-sidebar-state');
-      return stored ? { ...defaultSidebarState, ...JSON.parse(stored) } : defaultSidebarState;
-    } catch {
-      return defaultSidebarState;
-    }
-  });
+  const [state, setState] = useState<SidebarState>(defaultSidebarState);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
+    try {
+      const stored = localStorage.getItem('bms-sidebar-state');
+      if (stored) {
+        setState((prev) => ({ ...prev, ...JSON.parse(stored) }));
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
     try {
       localStorage.setItem('bms-sidebar-state', JSON.stringify(state));
     } catch {}
-  }, [state]);
+  }, [state, isMounted]);
 
   const setField = <K extends keyof SidebarState>(
     key: K,

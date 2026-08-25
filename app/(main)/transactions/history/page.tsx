@@ -195,17 +195,17 @@ function TransactionsHistoryContent() {
       <AmbientLayout>
         <div className="flex min-h-[calc(100vh-2rem)] flex-col lg:h-[calc(100vh-2rem)] lg:min-h-0">
           <div>
-            <div className="animate-fade-in-up mb-5 flex flex-row items-start justify-between gap-3">
-              <div className="flex items-start gap-3 lg:items-center lg:gap-4">
+            <div className="animate-fade-in-up mb-3 lg:mb-5 flex flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3 lg:gap-4">
                 <IconHistory
-                  className="text-brand-500 mt-0.5 h-6 w-6 shrink-0 lg:mt-0 lg:h-8 lg:w-8"
+                  className="text-brand-500 h-6 w-6 shrink-0 lg:h-8 lg:w-8"
                   stroke={1.5}
                 />
                 <div>
                   <h1 className="text-xl leading-tight font-extrabold tracking-tight text-neutral-900 lg:text-3xl dark:text-white">
                     Riwayat Transaksi
                   </h1>
-                  <p className="mt-1 text-xs font-medium text-neutral-500 lg:mt-2 lg:text-base dark:text-neutral-400">
+                  <p className="mt-1 hidden md:block text-xs font-medium text-neutral-500 lg:mt-2 lg:text-base dark:text-neutral-400">
                     Rekapitulasi aktivitas penjualan dan pembelian
                   </p>
                 </div>
@@ -220,11 +220,11 @@ function TransactionsHistoryContent() {
               items={tabItems}
               activeId={historyType}
               onChange={setHistoryType}
-              className="mb-3"
+              className="mb-0 sm:mb-3"
             />
           </div>
 
-          <div className="no-scrollbar mb-2 flex w-full items-center gap-2 overflow-x-auto py-2 whitespace-nowrap">
+          <div className={`no-scrollbar flex w-full items-center gap-2 overflow-x-auto whitespace-nowrap ${activeFilters.length > 0 ? 'mb-2 py-2' : 'hidden sm:flex mb-2 py-2'}`}>
             {activeFilters.length === 0 && (
               <span className="text-sm text-neutral-500 italic dark:text-neutral-400">
                 Menampilkan semua data (100 transaksi terakhir)

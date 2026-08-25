@@ -28,7 +28,6 @@ import {
   dashboardApi,
   DashboardStats,
   LowStockItem,
-  TrendData,
   RecentTransaction,
   kasApi,
 } from '@/lib/api';
@@ -36,20 +35,13 @@ import { Card } from '@/components/ui';
 
 import { LowStockAlert } from '@/components/dashboard/LowStockAlert';
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
+import { SoftPromptBanner } from '@/components/SoftPromptBanner';
+import { HRAlerts } from '@/components/dashboard/HRAlerts';
 import { MobileLaunchpad } from '@/components/dashboard/MobileLaunchpad';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 
-const TrendChart = dynamic(
-  () => import('@/components/dashboard/TrendChart').then((mod) => mod.TrendChart),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-[350px] animate-pulse rounded-3xl border border-white/20 bg-white/50 backdrop-blur dark:border-white/5 dark:bg-neutral-900/40" />
-    ),
-  },
-);
 
 function HomeContent() {
   const { user, initialized } = useAuthStore();
@@ -80,16 +72,6 @@ function HomeContent() {
   } = useQuery({
     queryKey: ['dashboard', 'lowStock'],
     queryFn: () => dashboardApi.getLowStockItems().then((res) => res.data),
-    refetchInterval: 300000,
-  });
-
-  const {
-    data: trend,
-    isLoading: trendLoading,
-    refetch: refetchTrend,
-  } = useQuery({
-    queryKey: ['dashboard', 'trend'],
-    queryFn: () => dashboardApi.get7DayTrend().then((res) => res.data),
     refetchInterval: 300000,
   });
 
@@ -147,7 +129,6 @@ function HomeContent() {
     await Promise.all([
       refetchStats(),
       refetchLowStock(),
-      refetchTrend(),
       refetchTx(),
       refetchKas(),
     ]);
@@ -167,6 +148,10 @@ function HomeContent() {
         </div>
       }
     >
+      <div className="p-4 lg:p-0">
+        <SoftPromptBanner />
+      </div>
+      
       {/* Mobile View (Launchpad) */}
       {!isDesktop && (
         <div className="block lg:hidden">
@@ -192,7 +177,7 @@ function HomeContent() {
                 <h1 className="text-xl font-extrabold tracking-tight text-neutral-900 lg:text-3xl dark:text-white">
                   Dashboard
                 </h1>
-                <p className="mt-1 text-sm font-medium text-neutral-500 lg:text-base dark:text-neutral-400">
+                <p className="mt-1 hidden md:block text-sm font-medium text-neutral-500 lg:text-base dark:text-neutral-400">
                   Ringkasan performa dan stok barang.
                 </p>
               </div>
@@ -294,9 +279,11 @@ function HomeContent() {
             {/* Baris 2 & 3: Bento Layout */}
             <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {isAdminUser && (
-                <div className="animate-fade-in-up flex flex-col [animation-delay:300ms]">
-                  <TrendChart data={trend || []} isLoading={trendLoading} />
-                </div>
+                <>
+                  <div className="animate-fade-in-up flex flex-col [animation-delay:320ms]">
+                    <HRAlerts />
+                  </div>
+                </>
               )}
 
               <div className="animate-fade-in-up flex flex-col [animation-delay:350ms]">

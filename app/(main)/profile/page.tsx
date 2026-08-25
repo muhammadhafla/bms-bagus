@@ -5,6 +5,7 @@ import { useAuthStore } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { AmbientLayout } from '@/components/ui';
 import { toast } from 'sonner';
+import { PushNotificationManager } from '@/components/PushNotificationManager';
 import {
   IconUser,
   IconCamera,
@@ -21,6 +22,7 @@ import {
   IconReport,
   IconTruck,
   IconPackage,
+  IconClock,
 } from '@tabler/icons-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -277,6 +279,11 @@ export default function ProfilePage() {
                 />
               </div>
             )}
+            <hr className="my-4 border-neutral-200 dark:border-neutral-800" />
+
+            <div className="py-2">
+              <PushNotificationManager />
+            </div>
           </div>
 
           <div className="flex justify-end pt-4">
@@ -377,15 +384,26 @@ export default function ProfilePage() {
             </div>
 
             {/* Secondary Menus */}
-            <div className="flex flex-col overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-              <div className="px-4 pt-3 pb-1">
-                <p className="text-[10px] font-bold tracking-wider text-neutral-400 uppercase">
-                  Manajemen & Sistem
-                </p>
-              </div>
+            {isAdminUser && (
+              <div className="flex flex-col overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                <div className="px-4 pt-3 pb-1">
+                  <p className="text-[10px] font-bold tracking-wider text-neutral-400 uppercase">
+                    Manajemen & Sistem
+                  </p>
+                </div>
+                  <Link
+                    href="/admin/payroll/kehadiran"
+                    className="flex items-center gap-4 border-b border-neutral-100 p-4 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-50 dark:bg-cyan-900/30">
+                      <IconClock className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                    </div>
+                    <div className="flex-1 text-sm font-semibold text-neutral-900 dark:text-white">
+                      Kelola Kehadiran
+                    </div>
+                    <IconChevronRight className="h-4 w-4 text-neutral-400" />
+                  </Link>
 
-              {isAdminUser && (
-                <>
                   <Link
                     href="/users"
                     className="flex items-center gap-4 border-b border-neutral-100 p-4 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800"
@@ -476,9 +494,8 @@ export default function ProfilePage() {
                     </div>
                     <IconChevronRight className="h-4 w-4 text-neutral-400" />
                   </Link>
-                </>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Logout Button */}
             <div className="pt-2">

@@ -110,7 +110,7 @@ export default function MemberTiersPage() {
                   <h1 className="text-xl font-extrabold tracking-tight text-neutral-900 lg:text-3xl dark:text-white">
                     Konfigurasi Tier
                   </h1>
-                  <p className="mt-0.5 text-xs font-medium text-neutral-500 lg:mt-2 lg:text-base dark:text-neutral-400">
+                  <p className="mt-0.5 hidden md:block text-xs font-medium text-neutral-500 lg:mt-2 lg:text-base dark:text-neutral-400">
                     Atur persentase diskon dan nilai poin untuk tiap tingkatan member
                   </p>
                 </div>

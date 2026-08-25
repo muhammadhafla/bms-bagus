@@ -43,5 +43,6 @@ export {
 } from './analytics';
 export { kasApi, type KasLogItem } from './kas';
 export { promoApi, type Promo, type PromoItem } from './promo';
+export * from './payroll';
 
 export type { ApiError } from './utils';

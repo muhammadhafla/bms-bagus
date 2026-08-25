@@ -269,7 +269,7 @@ export default function InventoryPageClient() {
                   <h1 className="text-xl font-extrabold tracking-tight text-neutral-900 lg:text-3xl dark:text-white">
                     Stok
                   </h1>
-                  <p className="mt-0.5 text-xs font-medium text-neutral-500 lg:mt-2 lg:text-base dark:text-neutral-400">
+                  <p className="mt-0.5 hidden md:block text-xs font-medium text-neutral-500 lg:mt-2 lg:text-base dark:text-neutral-400">
                     Kelola data dan stok barang.
                   </p>
                 </div>
@@ -278,42 +278,26 @@ export default function InventoryPageClient() {
                 {(lowStockCount > 0 || lowStockOnly) && (
                   <button
                     onClick={() => setLowStockOnly(!lowStockOnly)}
-                    className={`hidden items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-all sm:flex cursor-pointer btn-press ${
+                    className={`flex items-center gap-1.5 sm:gap-2 rounded-xl border px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer btn-press h-10 sm:h-auto ${
                       lowStockOnly
                         ? 'bg-accent-rose-500 text-white border-accent-rose-500 dark:bg-accent-rose-600 dark:border-accent-rose-600 shadow-sm'
                         : 'bg-accent-rose-50 dark:bg-accent-rose-950/40 text-accent-rose-600 dark:text-accent-rose-300 border-accent-rose-200 dark:border-accent-rose-800 hover:bg-accent-rose-100 dark:hover:bg-accent-rose-900/60'
                     }`}
                   >
-                    <span className={`h-2 w-2 animate-pulse rounded-full ${lowStockOnly ? 'bg-white' : 'bg-accent-rose-500'}`}></span>
-                    {lowStockCount} low stock
+                    <span className={`h-1.5 w-1.5 sm:h-2 sm:w-2 animate-pulse rounded-full shrink-0 ${lowStockOnly ? 'bg-white' : 'bg-accent-rose-500'}`}></span>
+                    <span>{lowStockCount} <span className="hidden sm:inline">low stock</span><span className="sm:hidden">low</span></span>
                   </button>
                 )}
                 <Button
                   variant="secondary"
                   onClick={() => setShowImportModal(true)}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-xl !p-0 shadow-sm transition-shadow hover:shadow-md sm:h-auto sm:w-auto sm:!px-4 sm:!py-2"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-xl !min-h-0 !p-0 shadow-sm transition-shadow hover:shadow-md sm:h-auto sm:w-auto sm:!px-4 sm:!py-2"
                 >
                   <IconUpload size={20} className="shrink-0" />
                   <span className="hidden font-medium sm:inline">Import CSV</span>
                 </Button>
               </div>
             </div>
-
-            {(lowStockCount > 0 || lowStockOnly) && (
-              <div className="animate-fade-in-up mb-4 sm:hidden">
-                <button
-                  onClick={() => setLowStockOnly(!lowStockOnly)}
-                  className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold transition-all cursor-pointer btn-press ${
-                    lowStockOnly
-                      ? 'bg-accent-rose-500 text-white border-accent-rose-500 dark:bg-accent-rose-600 dark:border-accent-rose-600 shadow-sm'
-                      : 'bg-accent-rose-50 dark:bg-accent-rose-950/40 text-accent-rose-600 dark:text-accent-rose-300 border-accent-rose-200 dark:border-accent-rose-800 hover:bg-accent-rose-100 dark:hover:bg-accent-rose-900/60'
-                  }`}
-                >
-                  <span className={`h-2 w-2 animate-pulse rounded-full ${lowStockOnly ? 'bg-white' : 'bg-accent-rose-500'}`}></span>
-                  {lowStockCount} barang low stock
-                </button>
-              </div>
-            )}
 
             <div className="flex flex-col gap-3">
               <div
@@ -450,6 +434,7 @@ export default function InventoryPageClient() {
                     { value: 'stok', label: 'Sisa Stok' },
                     { value: 'harga_jual', label: 'Harga Jual' },
                     { value: 'created_at', label: 'Waktu Ditambahkan' },
+                    { value: 'updated_at', label: 'Terakhir Diperbaharui' },
                   ]}
                   className="w-full"
                 />

@@ -275,7 +275,7 @@ export default function ReturnPage() {
                 <h1 className="from-brand-600 to-brand-400 dark:from-brand-400 dark:to-brand-200 bg-gradient-to-r bg-clip-text text-xl font-extrabold tracking-tight text-transparent lg:text-3xl">
                   Retur Barang
                 </h1>
-                <p className="mt-0.5 text-xs font-medium text-neutral-500 lg:text-base dark:text-neutral-400">
+                <p className="mt-0.5 hidden md:block text-xs font-medium text-neutral-500 lg:text-base dark:text-neutral-400">
                   Pengembalian barang ke supplier
                 </p>
               </div>

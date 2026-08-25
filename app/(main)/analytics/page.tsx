@@ -281,7 +281,7 @@ function AnalyticsContent() {
             <h1 className="text-xl font-extrabold tracking-tight text-neutral-900 lg:text-3xl dark:text-white">
               Analisis & Laporan
             </h1>
-            <p className="mt-1 text-sm font-medium text-neutral-500 lg:text-base dark:text-neutral-400">
+            <p className="mt-1 hidden md:block text-sm font-medium text-neutral-500 lg:text-base dark:text-neutral-400">
               Wawasan mendalam mengenai performa penjualan dan produk.
             </p>
           </div>

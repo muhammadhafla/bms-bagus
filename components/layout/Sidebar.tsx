@@ -27,9 +27,11 @@ import {
   IconChevronRight,
   IconTruck,
   IconTags,
-  IconPrinter,
   IconChartBar,
   IconTicket,
+  IconWallet,
+  IconPrinter,
+  IconClock,
 } from '@tabler/icons-react';
 
 import { useSidebarContext } from './SidebarProvider';
@@ -62,6 +64,18 @@ const PRINTING_ITEMS = [
 ];
 
 const FINANCE_ITEMS = [{ href: '/finance/cash-flow', title: 'Arus Kas', icon: IconReport }];
+
+const PAYROLL_ITEMS = [
+  { href: '/admin/payroll/kehadiran', title: 'Data Kehadiran', icon: IconClock },
+  { href: '/admin/payroll/karyawan', title: 'Data Karyawan', icon: IconUsers },
+  { href: '/admin/payroll/kasbon', title: 'Persetujuan Kasbon', icon: IconWallet },
+  { href: '/admin/payroll/gaji', title: 'Tutup Buku Gaji', icon: IconReport },
+];
+
+const PAYROLL_ITEMS_STAFF = [
+  { href: '/payroll', title: 'Absensi', icon: IconClock },
+  { href: '/payroll/gaji', title: 'Dompet Saya', icon: IconWallet },
+];
 
 interface SidebarLinkProps {
   href: string;
@@ -106,6 +120,7 @@ export function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { theme, toggleTheme } = useDarkMode();
+  const [payrollExpanded, setPayrollExpanded] = React.useState(false);
 
   const {
     sidebarHovered,
@@ -283,7 +298,9 @@ export function Sidebar() {
             )}
             {inventoryExpanded && (isSidebarVisible || mobileMenuOpen) ? (
               <div className="space-y-1 pl-2">
-                {INVENTORY_ITEMS.map((item) => (
+                {INVENTORY_ITEMS.filter(
+                  (item) => isAdminUser || item.href !== '/inventory/promo',
+                ).map((item) => (
                   <SidebarLink
                     key={item.href}
                     href={item.href}
@@ -387,6 +404,39 @@ export function Sidebar() {
                 {PRINTING_ITEMS.filter(
                   (item) => isAdminUser || item.href !== '/master/label-templates',
                 ).map((item) => (
+                  <SidebarLink
+                    key={item.href}
+                    href={item.href}
+                    title={item.title}
+                    icon={item.icon}
+                    isActive={pathname === item.href}
+                    sidebarCollapsed={!isSidebarVisible}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          {/* HR & Payroll Group */}
+          <div className="space-y-1">
+            {(isSidebarVisible || mobileMenuOpen) && (
+              <button
+                type="button"
+                onClick={() => setPayrollExpanded((prev: boolean) => !prev)}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase transition-colors hover:bg-neutral-200/50 dark:text-neutral-500 dark:hover:bg-neutral-800/50"
+                aria-expanded={payrollExpanded}
+              >
+                <span className="flex-1 text-left">HR & Payroll</span>
+                {isSidebarVisible && (
+                  <IconChevronRight
+                    className={`h-3 w-3 transition-transform ${payrollExpanded ? 'rotate-90' : ''}`}
+                  />
+                )}
+              </button>
+            )}
+            {payrollExpanded && (isSidebarVisible || mobileMenuOpen) ? (
+              <div className="space-y-1 pl-2">
+                {(isAdminUser ? PAYROLL_ITEMS : PAYROLL_ITEMS_STAFF).map((item) => (
                   <SidebarLink
                     key={item.href}
                     href={item.href}

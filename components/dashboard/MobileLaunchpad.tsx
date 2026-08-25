@@ -16,6 +16,8 @@ import {
   IconEye,
   IconUsersGroup,
   IconReport,
+  IconClock,
+  IconWallet,
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -25,6 +27,7 @@ import { useState } from 'react';
 import { TransactionModal } from './TransactionModal';
 import { formatTimeWIB, formatDateWIB } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
+import { HRAlerts } from '@/components/dashboard/HRAlerts';
 import { inventoryApi } from '@/lib/api/inventory';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -106,6 +109,34 @@ export function MobileLaunchpad({
       bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
+      href: '/payroll',
+      title: 'Absensi',
+      icon: IconClock,
+      color: 'text-orange-600',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
+    },
+    {
+      href: '/admin/payroll/karyawan',
+      title: 'Karyawan',
+      icon: IconUsersGroup,
+      color: 'text-pink-600',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
+    },
+    {
+      href: '/admin/payroll/kasbon',
+      title: 'Kasbon',
+      icon: IconWallet,
+      color: 'text-amber-600',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
+    },
+    {
+      href: '/admin/payroll/gaji',
+      title: 'Gaji',
+      icon: IconReport,
+      color: 'text-cyan-600',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
+    },
+    {
       href: '/finance/cash-flow',
       title: 'Arus Kas',
       icon: IconReport,
@@ -136,6 +167,20 @@ export function MobileLaunchpad({
   ];
 
   const staffMenus = [
+    {
+      href: '/payroll',
+      title: 'Absensi',
+      icon: IconClock,
+      color: 'text-orange-600',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
+    },
+    {
+      href: '/payroll/gaji',
+      title: 'Dompet',
+      icon: IconWallet,
+      color: 'text-cyan-600',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
+    },
     {
       href: '/inventory',
       title: 'Stok',
@@ -250,6 +295,13 @@ export function MobileLaunchpad({
         </div>
       </div>
 
+      {/* HR & Payroll Alerts (Admin Only) */}
+      {isAdminUser && (
+        <div className="mb-6">
+          <HRAlerts variant="mobile" />
+        </div>
+      )}
+
       {/* Low Stock Alert */}
       {!isLoading && lowStock && lowStock.length > 0 && (
         <div className="mb-8">
@@ -329,6 +381,8 @@ export function MobileLaunchpad({
           </div>
         </div>
       )}
+
+
 
       <TransactionModal
         isOpen={!!selectedTxId}

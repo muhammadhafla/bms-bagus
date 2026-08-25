@@ -136,10 +136,10 @@ function PembelianPageContent() {
   const { data: supplierList = [] } = useSuppliers();
 
   // Focus management
+  const searchRef = useRef<import('@/components/inventory/SharedBarcodeSearch').SharedBarcodeSearchRef>(null);
+  
   const focusInput = useCallback(() => {
-    // The SharedBarcodeSearch handles its own focus, but we might want to trigger it.
-    // For now we don't strictly need to do anything since the SharedBarcodeSearch auto-focuses.
-    // We can just define it as a no-op or wire a ref if strictly necessary.
+    searchRef.current?.focus();
   }, []);
 
   const {
@@ -331,6 +331,7 @@ function PembelianPageContent() {
             kategori: result.data.id_kategori ?? { id: '', nama: data.kategori },
           });
           setShowNewItemDialog(false);
+          searchRef.current?.clearInput();
         } else if (result.error) {
           setError(result.error.message || 'Gagal membuat barang baru');
         }
@@ -369,7 +370,7 @@ function PembelianPageContent() {
                     <h1 className="text-xl font-extrabold tracking-tight text-neutral-900 lg:text-3xl dark:text-white">
                       {editId ? 'Revisi Transaksi' : 'Transaksi Baru'}
                     </h1>
-                    <p className="mt-0.5 text-xs font-medium text-neutral-500 lg:mt-2 lg:text-base dark:text-neutral-400">
+                    <p className="mt-0.5 hidden md:block text-xs font-medium text-neutral-500 lg:mt-2 lg:text-base dark:text-neutral-400">
                       {editId
                         ? 'Ubah detail barang, supplier, dan faktur untuk transaksi pembelian'
                         : 'Catat pembelian barang dari supplier (barang masuk)'}
@@ -401,6 +402,7 @@ function PembelianPageContent() {
               <div className="relative z-10 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                 <div className="flex w-full flex-1 gap-2">
                   <SharedBarcodeSearch
+                    ref={searchRef}
                     onItemSelected={handleAddResolvedItem}
                     allowCreateNew={true}
                     onCreateNew={(barcode) => {

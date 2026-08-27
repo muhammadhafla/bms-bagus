@@ -294,20 +294,19 @@ function AnalyticsContent() {
                 setStartDate(start);
                 setEndDate(end);
               }}
-              label="Rentang Waktu Laporan"
               className="w-full sm:w-[320px]"
             />
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="animate-fade-in-up mb-4 [animation-delay:50ms]">
+        <div className="animate-fade-in-up mb-2 [animation-delay:50ms]">
           <Tabs items={tabItems} activeId={activeTab} onChange={setActiveTab} />
         </div>
 
         {/* Global Filter Bar (Only for non-overview if they have specific filters) */}
         {showFilterButton && (
-          <div className="animate-fade-in-up mb-4 flex w-full items-center justify-between gap-2 [animation-delay:75ms] md:mb-6">
+          <div className="animate-fade-in-up mb-2 flex w-full items-center justify-between gap-2 [animation-delay:75ms] md:mb-4">
             <FilterButton
               onClick={() => setIsFilterOpen(true)}
               activeCount={activeFilters.length}

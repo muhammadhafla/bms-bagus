@@ -80,7 +80,7 @@ export function StockReportTab({ startDate, endDate }: StockReportTabProps) {
       disabled={stockMutations.length === 0}
       variant="secondary"
       size="sm"
-      className="h-[40px] w-full shrink-0 sm:w-auto"
+      className="h-9 w-auto shrink-0"
     >
       <IconDownload size={18} />
       <span>Export CSV</span>

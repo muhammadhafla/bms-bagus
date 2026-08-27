@@ -148,18 +148,24 @@ export const reportApi = {
     const { page, limit } = calculatePagination(pagination?.page, pagination?.limit);
     const offset = (page - 1) * limit;
 
-    const result = await safeQuery<any[]>(async () => {
-      const result = await supabase
-        .from('inventory')
-        .select('*, id_kategori:id_kategori(nama)')
-        .order('nama_barang')
-        .range(offset, offset + limit); // +1 to check hasMore
-      return { data: result.data, error: result.error as Error | null };
-    });
+    const [summaryResult, listResult] = await Promise.all([
+      safeQuery<any[]>(async () => {
+        const res = await supabase.rpc('get_inventory_summary');
+        return { data: res.data, error: res.error as Error | null };
+      }),
+      safeQuery<any[]>(async () => {
+        const result = await supabase
+          .from('inventory')
+          .select('*, id_kategori:id_kategori(nama)')
+          .order('nama_barang')
+          .range(offset, offset + limit); // +1 to check hasMore
+        return { data: result.data, error: result.error as Error | null };
+      }),
+    ]);
 
-    if (result.error) return { data: null, error: { message: result.error.message } };
+    if (listResult.error) return { data: null, error: { message: listResult.error.message } };
 
-    const resData = result.data || [];
+    const resData = listResult.data || [];
     const hasMore = resData.length > limit;
     if (hasMore) {
       resData.pop();
@@ -176,13 +182,21 @@ export const reportApi = {
       total_value: item.stok * (item.harga_beli_terakhir || 0),
     }));
 
+    const summaryData = summaryResult.data?.[0];
+    const grandTotal = summaryData ? {
+      totalItems: Number(summaryData.total_items),
+      totalStok: Number(summaryData.total_stok),
+      totalValue: Number(summaryData.total_value),
+    } : undefined;
+
     return {
       data: values,
       error: null,
-      total: 0,
+      total: grandTotal?.totalItems || 0,
       page,
       limit,
       hasMore,
+      grandTotal,
     };
   },
 

@@ -67,7 +67,7 @@ export function ValueReportTab() {
       disabled={inventoryValue.length === 0}
       variant="secondary"
       size="sm"
-      className="h-[40px] w-full shrink-0 sm:w-auto"
+      className="h-9 w-auto shrink-0"
     >
       <IconDownload size={18} />
       <span>Export CSV</span>
@@ -84,34 +84,67 @@ export function ValueReportTab() {
         isEmpty={!isLoading && inventoryValue.length === 0}
         emptyIcon={<IconCash className="h-16 w-16" />}
       >
-        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-4 md:p-5 dark:border-neutral-800 dark:bg-neutral-900">
-            <div className="mb-2 flex items-center gap-2 md:gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
-                <IconCash className="h-4 w-4 md:h-5 md:w-5" />
+        <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {/* Card 1: Data Keseluruhan */}
+          <div className="rounded-xl border border-neutral-200 bg-white p-3.5 dark:border-neutral-800 dark:bg-neutral-900">
+            <div className="mb-2.5 flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
+                <IconCash className="h-4 w-4" />
               </div>
-              <h3 className="text-xs font-semibold leading-tight text-neutral-900 md:text-sm dark:text-white">
-                Total Nilai (Halaman Ini)
+              <h3 className="text-sm font-bold text-neutral-900 dark:text-white">
+                Data Keseluruhan
               </h3>
             </div>
-            <div className="mt-2">
-              <div className="text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl dark:text-white">
-                {formatCurrency(pageTotalValue)}
+            
+            {/* Bento Inner Grid */}
+            <div className="grid grid-cols-2 gap-3 divide-x divide-neutral-100 dark:divide-neutral-800">
+              <div>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                  Total Nilai
+                </p>
+                <p className="mt-0.5 text-base font-bold tracking-tight text-neutral-900 md:text-lg dark:text-white">
+                  {formatCurrency(data?.grandTotal?.totalValue || 0)}
+                </p>
+              </div>
+              <div className="pl-3">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                  Total Stok
+                </p>
+                <p className="mt-0.5 text-base font-bold tracking-tight text-neutral-900 md:text-lg dark:text-white">
+                  {data?.grandTotal?.totalStok || 0}
+                </p>
               </div>
             </div>
           </div>
-          <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-4 md:p-5 dark:border-neutral-800 dark:bg-neutral-900">
-            <div className="mb-2 flex items-center gap-2 md:gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
-                <IconPackage className="h-4 w-4 md:h-5 md:w-5" />
+
+          {/* Card 2: Data Halaman Ini */}
+          <div className="rounded-xl border border-neutral-200 bg-white p-3.5 dark:border-neutral-800 dark:bg-neutral-900">
+            <div className="mb-2.5 flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-50 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
+                <IconPackage className="h-4 w-4" />
               </div>
-              <h3 className="text-xs font-semibold leading-tight text-neutral-900 md:text-sm dark:text-white">
-                Total Stok Item (Halaman Ini)
+              <h3 className="text-sm font-bold text-neutral-900 dark:text-white">
+                Data Halaman Ini
               </h3>
             </div>
-            <div className="mt-2">
-              <div className="text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl dark:text-white">
-                {pageTotalStok}
+            
+            {/* Bento Inner Grid */}
+            <div className="grid grid-cols-2 gap-3 divide-x divide-neutral-100 dark:divide-neutral-800">
+              <div>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                  Total Nilai
+                </p>
+                <p className="mt-0.5 text-base font-bold tracking-tight text-neutral-900 md:text-lg dark:text-white">
+                  {formatCurrency(pageTotalValue)}
+                </p>
+              </div>
+              <div className="pl-3">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                  Total Stok
+                </p>
+                <p className="mt-0.5 text-base font-bold tracking-tight text-neutral-900 md:text-lg dark:text-white">
+                  {pageTotalStok}
+                </p>
               </div>
             </div>
           </div>

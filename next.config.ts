@@ -12,6 +12,9 @@ const withPWA = withPWAInit({
     document: '/offline',
   },
   customWorkerSrc: 'worker',
+  workboxOptions: {
+    inlineWorkboxRuntime: true,
+  },
 });
 
 const nextConfig: NextConfig = {

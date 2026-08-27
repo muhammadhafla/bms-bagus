@@ -50,12 +50,29 @@ export default function AdminKasbonClient() {
   };
 
   useEffect(() => {
-    if (statusFilter === 'disetujui') {
-      toast.info('Informasi Mutasi', {
-        description: 'Kasbon dengan status Disetujui otomatis masuk ke Buku Besar Mutasi Gaji sebagai saldo potongan (debit).',
-        duration: 5000,
-      });
+    const toastId = 'info-mutasi-kasbon';
+    const storageKey = 'hide_info_mutasi_kasbon';
+
+    if (statusFilter === 'disetujui' && typeof window !== 'undefined') {
+      const isHidden = localStorage.getItem(storageKey);
+      
+      if (!isHidden) {
+        toast.info('Informasi Mutasi', {
+          id: toastId,
+          description: 'Kasbon dengan status Disetujui otomatis masuk ke Buku Besar Mutasi Gaji sebagai saldo potongan (debit).',
+          duration: 6000,
+          closeButton: true,
+          action: {
+            label: 'Mengerti',
+            onClick: () => localStorage.setItem(storageKey, 'true')
+          }
+        });
+      }
     }
+
+    return () => {
+      toast.dismiss(toastId);
+    };
   }, [statusFilter]);
 
   const { data: kasbonData, isLoading, refetch } = useQuery({
@@ -278,7 +295,7 @@ export default function AdminKasbonClient() {
       }
     >
       <div className="flex flex-col gap-2 px-2 py-4 w-full md:p-4 lg:p-8 pb-20">
-        <div className="flex flex-row items-start justify-between gap-2 mb-1">
+        <div className="flex flex-row items-center justify-between gap-2 mb-1">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
               <IconWallet className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -288,7 +305,7 @@ export default function AdminKasbonClient() {
               <p className="hidden md:block text-[11px] sm:text-sm text-neutral-500 leading-snug">Kelola pengajuan kasbon karyawan.</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex items-center gap-2">
             <FilterButton onClick={handleOpenFilter} activeCount={activeFilters.length} className="!m-0 !h-10 !min-h-[40px]" />
             <Button 
               variant="primary" 

@@ -148,26 +148,39 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
         >
           <IconArrowLeft className="h-6 w-6 text-neutral-600 dark:text-neutral-400" />
         </button>
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-neutral-900 dark:text-white leading-tight">
-            {profile ? profile.nama : 'Detail Mutasi Karyawan'}
-          </h1>
-          <p className="text-neutral-500 mt-1 hidden md:block">Kelola pencairan dan kasbon karyawan ini.</p>
+        <div className="flex items-center gap-3">
+          {profile && (
+            <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 flex items-center justify-center font-bold text-lg shrink-0">
+              {profile.nama?.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-neutral-900 dark:text-white leading-tight capitalize">
+              {profile ? profile.nama : 'Detail Mutasi Karyawan'}
+            </h1>
+            <p className="text-neutral-500 mt-1 hidden md:block">Kelola pencairan dan kasbon karyawan ini.</p>
+          </div>
         </div>
       </div>
 
       {/* Saldo Card */}
       <div className="rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-5 shadow-sm">
         <div className="flex flex-row items-center gap-4">
-          <div className="bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400 p-3.5 rounded-2xl">
+          <div className={`p-3.5 rounded-2xl ${
+            saldo > 0 ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
+            : saldo < 0 ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400'
+            : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
+          }`}>
             <IconWallet className="h-9 w-9 md:h-10 md:w-10" />
           </div>
           <div>
             <p className="text-xs md:text-sm font-medium text-neutral-500 uppercase tracking-wider mb-0.5 md:mb-1">
-              {saldo < 0 ? 'Sisa Pinjaman/Kasbon' : 'Tanggungan Gaji Perusahaan'}
+              {saldo < 0 ? 'Total Pinjaman/Kasbon' : 'Total Saldo Saat Ini'}
             </p>
             <h2 className={`text-2xl md:text-3xl font-black ${
-              saldo < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+              saldo > 0 ? 'text-emerald-600 dark:text-emerald-400' 
+              : saldo < 0 ? 'text-rose-600 dark:text-rose-400'
+              : 'text-neutral-900 dark:text-white'
             }`}>
               {saldo < 0 ? '-' : ''}Rp {Math.abs(saldo).toLocaleString('id-ID')}
             </h2>
@@ -176,15 +189,15 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
         
         <div className="flex w-full md:w-auto gap-3">
           <Button 
-            variant="secondary" 
-            className="w-full md:w-auto"
+            variant="primary" 
+            className="w-full md:w-auto shadow-sm"
             onClick={() => {
                // Pre-fill with positive saldo if any
                setCairkanNominal(saldo > 0 ? saldo.toString() : '');
                setIsCairkanOpen(true);
             }}
           >
-            Cairkan Dana
+            Cairkan / Beri Kasbon
           </Button>
         </div>
       </div>
@@ -382,11 +395,11 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
       <Modal
         isOpen={isCairkanOpen}
         onClose={() => setIsCairkanOpen(false)}
-        title="Cairkan Dana Manual"
+        title="Pencairan Dana / Beri Kasbon"
       >
         <form onSubmit={handleCairkan} className="flex flex-col gap-4 mt-4">
           <div className="rounded-xl bg-emerald-50 p-3 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 text-sm">
-            Gunakan fitur ini saat Anda mencairkan (transfer/cash) gaji ke karyawan. Transaksi ini akan memotong saldo karyawan.
+            Gunakan fitur ini saat Anda memberikan dana (transfer/cash) ke karyawan. Transaksi ini akan memotong saldo karyawan (menjadi Kasbon jika saldo kurang).
           </div>
           
           <TextInput

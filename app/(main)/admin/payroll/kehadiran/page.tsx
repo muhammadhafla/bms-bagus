@@ -290,7 +290,7 @@ function AdminKehadiranContent() {
 
   return (
     <div className="flex flex-col gap-2 px-2 py-4 w-full md:p-4 lg:p-8 pb-20">
-      <div className="flex flex-row items-start justify-between gap-2 mb-1">
+      <div className="flex flex-row items-center justify-between gap-2 mb-1">
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400">
             <IconClock className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -301,7 +301,7 @@ function AdminKehadiranContent() {
           </div>
         </div>
 
-        <div className="shrink-0 mt-0.5">
+        <div className="shrink-0">
           <FilterButton onClick={handleOpenFilter} activeCount={activeFilters.length} />
         </div>
       </div>

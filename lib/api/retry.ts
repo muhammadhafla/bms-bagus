@@ -11,7 +11,8 @@ export async function retryWithBackoff<T>(
     try {
       return await fn();
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = error instanceof Error ? error.message : (error as any)?.message || String(error);
+      lastError = error instanceof Error ? error : new Error(errorMessage);
       if (i < retries - 1) {
         await new Promise((resolve) => setTimeout(resolve, delay * (i + 1)));
       }

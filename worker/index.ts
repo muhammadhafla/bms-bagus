@@ -1,16 +1,44 @@
 /// <reference lib="webworker" />
+import { type PrecacheEntry, Serwist, type SerwistGlobalConfig } from 'serwist';
+import { defaultCache } from '@serwist/next/worker';
 
 export {};
+declare global {
+  interface WorkerGlobalScope extends SerwistGlobalConfig {
+    __SW_MANIFEST: (PrecacheEntry | string)[] | undefined;
+  }
+}
+
 declare const self: ServiceWorkerGlobalScope;
 
+const serwist = new Serwist({
+  precacheEntries: self.__SW_MANIFEST,
+  skipWaiting: false, // We will handle this manually via postMessage
+  clientsClaim: true,
+  navigationPreload: true,
+  runtimeCaching: defaultCache,
+  fallbacks: {
+    entries: [
+      {
+        url: '/offline',
+        matcher({ request }: { request: Request }) {
+          return request.destination === 'document';
+        },
+      },
+    ],
+  },
+});
+
+serwist.addEventListeners();
+
 // Mendengarkan pesan dari aplikasi (client)
-self.addEventListener('message', (event) => {
+self.addEventListener('message', (event: any) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
 
-self.addEventListener('push', (event) => {
+self.addEventListener('push', (event: any) => {
   if (event.data) {
     try {
       const data = event.data.json();
@@ -32,7 +60,7 @@ self.addEventListener('push', (event) => {
   }
 });
 
-self.addEventListener('notificationclick', (event) => {
+self.addEventListener('notificationclick', (event: any) => {
   event.notification.close();
   
   if (event.notification.data && event.notification.data.url) {

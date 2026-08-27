@@ -37,8 +37,14 @@ export async function safeQuery<T>(
       result = await retryWithBackoff(operation);
     }
   } catch (err) {
-    const error = err instanceof Error ? err : new Error(String(err));
-    return { data: null, error: createError(error.message, (error as any).name) };
+    let errorMessage = err instanceof Error ? err.message : (err as any)?.message || String(err);
+    const errorName = err instanceof Error ? err.name : (err as any)?.name || 'Error';
+    
+    if (errorMessage.includes('Failed to fetch') || errorMessage.includes('FetchError') || errorMessage.includes('Network request failed')) {
+      errorMessage = 'Error koneksi jaringan. Silakan periksa koneksi internet Anda.';
+    }
+    
+    return { data: null, error: createError(errorMessage, errorName) };
   }
 
   // Check if operation returned an error (e.g., auth error, 400, etc.)

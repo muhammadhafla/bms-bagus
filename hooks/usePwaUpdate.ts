@@ -9,60 +9,61 @@ export function usePwaUpdate() {
   useEffect(() => {
     if (
       typeof window !== 'undefined' &&
-      'serviceWorker' in navigator &&
-      window.workbox !== undefined
+      'serviceWorker' in navigator
     ) {
-      const wb = window.workbox;
-
-      const handleWaiting = (_event: any) => {
-        // SW baru sedang menunggu — tampilkan banner ke user
-        setUpdateAvailable(true);
-      };
-
-      const handleControlling = () => {
-        // SW baru sudah auto-takeover.
-        // JANGAN reload di sini — user mungkin sedang input data.
-        // Cukup tampilkan banner agar user reload sendiri.
-        setUpdateAvailable(true);
-      };
-
-      wb.addEventListener('waiting', handleWaiting);
-      wb.addEventListener('controlling', handleControlling);
-
       let isMounted = true;
+      let refreshing = false;
+
+      // Handle controller change (when new service worker takes over)
+      const handleControllerChange = () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      };
+
+      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+
+      // Check current registration
       navigator.serviceWorker.ready.then((reg) => {
-        if (isMounted) setRegistration(reg);
+        if (!isMounted) return;
+        setRegistration(reg);
+
+        // If there's already a waiting service worker
+        if (reg.waiting) {
+          setUpdateAvailable(true);
+        }
+
+        // Listen for new service workers installing
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              // Only trigger if we already have a controller (meaning it's an update, not the first install)
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                setUpdateAvailable(true);
+              }
+            });
+          }
+        });
       });
 
       return () => {
         isMounted = false;
-        wb.removeEventListener('waiting', handleWaiting);
-        wb.removeEventListener('controlling', handleControlling);
+        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
       };
     }
   }, []);
 
   const updatePwa = () => {
-    // Aktifkan SW baru yang sedang menunggu (jika ada).
-    // messageSkipWaiting() bersifat no-op jika tidak ada SW yang waiting,
-    // sehingga aman dipanggil di kedua skenario.
-    if (window.workbox) {
-      window.workbox.messageSkipWaiting();
-    } else if (registration && registration.waiting) {
+    if (registration && registration.waiting) {
+      // Trigger SKIP_WAITING to activate the waiting service worker
       registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    } else {
+      // Fallback reload
+      window.location.reload();
     }
-    // Langsung reload — tidak bergantung pada controlling event.
-    // Ini menangani kedua skenario:
-    // A) SW masih "waiting" → messageSkipWaiting() mengaktifkannya, lalu reload.
-    // B) SW sudah auto-takeover → tidak ada yang waiting, langsung reload.
-    window.location.reload();
   };
 
   return { updateAvailable, updatePwa };
-}
-
-declare global {
-  interface Window {
-    workbox: any;
-  }
 }

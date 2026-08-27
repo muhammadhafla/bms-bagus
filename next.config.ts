@@ -1,20 +1,15 @@
 import type { NextConfig } from 'next';
-import withPWAInit from '@ducanh2912/next-pwa';
+import withSerwistInit from '@serwist/next';
 
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 });
 
-const withPWA = withPWAInit({
-  dest: 'public',
+const withSerwist = withSerwistInit({
+  swSrc: 'worker/index.ts',
+  swDest: 'public/sw.js',
   disable: process.env.NODE_ENV === 'development',
-  fallbacks: {
-    document: '/offline',
-  },
-  customWorkerSrc: 'worker',
-  workboxOptions: {
-    inlineWorkboxRuntime: true,
-  },
+  reloadOnOnline: true,
 });
 
 const nextConfig: NextConfig = {
@@ -113,4 +108,4 @@ const nextConfig: NextConfig = {
 
 export default process.env.NODE_ENV === 'development'
   ? withBundleAnalyzer(nextConfig)
-  : withBundleAnalyzer(withPWA(nextConfig));
+  : withBundleAnalyzer(withSerwist(nextConfig));

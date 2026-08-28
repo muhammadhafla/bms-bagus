@@ -55,6 +55,32 @@ export default function PayrollDashboardPage() {
     queryFn: () => lokasiKerjaApi.getActive().then((res) => res.data || []),
   });
 
+  const [retryCount, setRetryCount] = useState(0);
+  
+  const handleManualRetry = () => {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      setGeoStatus('checking');
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setCoords({ lat: latitude, lng: longitude });
+          // Increment retryCount to also restart the watcher
+          setRetryCount(prev => prev + 1);
+        },
+        (error) => {
+          if (error.code === error.PERMISSION_DENIED) {
+            setGeoStatus('denied');
+            toast.error('Izin akses lokasi ditolak oleh browser.');
+          } else {
+            setGeoStatus('error');
+            toast.error('Gagal membaca GPS, coba lagi.');
+          }
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+  };
+
   // Track GPS Location
   useEffect(() => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
@@ -81,7 +107,7 @@ export default function PayrollDashboardPage() {
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
+  }, [retryCount]);
 
   // Validate coords against stores
   useEffect(() => {
@@ -282,15 +308,26 @@ export default function PayrollDashboardPage() {
 
         {/* GPS Indicator Banner */}
         {!isSelesaiOrTidakHadir && (
-          <div className={`mx-auto flex items-center justify-center gap-2 px-4 py-2 rounded-full border shadow-sm backdrop-blur-sm transition-all duration-300 ${
-            geoStatus === 'valid' ? 'bg-emerald-100/50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-400' :
-            geoStatus === 'checking' ? 'bg-blue-100/50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-400 animate-pulse' :
-            'bg-rose-100/50 border-rose-200 text-rose-700 dark:bg-rose-900/30 dark:border-rose-800 dark:text-rose-400'
-          }`}>
-            {geoStatus === 'valid' ? <IconMapPin size={16} /> : <IconMapPinOff size={16} />}
-            <span className="text-xs font-bold uppercase tracking-wide">
-              {getGeoMessage()}
-            </span>
+          <div className="flex flex-col items-center gap-2">
+            <div className={`mx-auto flex items-center justify-center gap-2 px-4 py-2 rounded-full border shadow-sm backdrop-blur-sm transition-all duration-300 ${
+              geoStatus === 'valid' ? 'bg-emerald-100/50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-400' :
+              geoStatus === 'checking' ? 'bg-blue-100/50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-400 animate-pulse' :
+              'bg-rose-100/50 border-rose-200 text-rose-700 dark:bg-rose-900/30 dark:border-rose-800 dark:text-rose-400'
+            }`}>
+              {geoStatus === 'valid' ? <IconMapPin size={16} /> : <IconMapPinOff size={16} />}
+              <span className="text-xs font-bold uppercase tracking-wide">
+                {getGeoMessage()}
+              </span>
+            </div>
+            
+            {(geoStatus === 'error' || geoStatus === 'denied') && (
+              <button 
+                onClick={handleManualRetry}
+                className="text-xs text-blue-600 dark:text-blue-400 underline font-medium hover:text-blue-700 px-4 py-1"
+              >
+                Coba Deteksi Ulang
+              </button>
+            )}
           </div>
         )}
 

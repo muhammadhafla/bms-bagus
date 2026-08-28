@@ -1,3 +1,4 @@
+import { format } from 'date-fns';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { reportApi, TopSellingItem } from '@/lib/api';
@@ -100,7 +101,7 @@ export function TopItemsReportTab({
       exportToCSV(
         csvData,
         ['Rank', 'ID', 'Nama Barang', 'Kategori', 'Qty Terjual', 'Total Penjualan', 'Total Profit'],
-        `report_top_items_${new Date().toISOString().split('T')[0]}.csv`,
+        `report_top_items_${format(new Date(), 'yyyy-MM-dd')}.csv`,
       );
     } catch (err) {
       toast.error('Terjadi kesalahan saat mengekspor');
@@ -428,3 +429,4 @@ export function TopItemsReportTab({
     </div>
   );
 }
+

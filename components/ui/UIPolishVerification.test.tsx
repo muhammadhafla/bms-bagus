@@ -54,19 +54,21 @@ const mockAutoHideEnabled = vi.fn();
 
 vi.mock('@/hooks/useSidebarState', () => ({
   useSidebarState: vi.fn(() => ({
-    sidebarCollapsed: false,
+    operasionalExpanded: true,
     inventoryExpanded: true,
-    purchasingExpanded: true,
-    transactionsExpanded: true,
-    printingExpanded: true,
     financeExpanded: true,
+    payrollExpanded: true,
+    reportsExpanded: true,
+    masterExpanded: true,
     autoHideEnabled: false,
+    sidebarCollapsed: false,
     setSidebarCollapsed: mockSidebarCollapsed,
+    setOperasionalExpanded: vi.fn(),
     setInventoryExpanded: vi.fn(),
-    setPurchasingExpanded: vi.fn(),
-    setTransactionsExpanded: vi.fn(),
-    setPrintingExpanded: vi.fn(),
     setFinanceExpanded: vi.fn(),
+    setPayrollExpanded: vi.fn(),
+    setReportsExpanded: vi.fn(),
+    setMasterExpanded: vi.fn(),
     setAutoHideEnabled: mockAutoHideEnabled,
   })),
 }));
@@ -209,19 +211,21 @@ describe('UI Polish Verification Tests', () => {
     it('wraps sidebar links in Tooltips when sidebar is collapsed', () => {
       const useSidebarStateMock = vi.mocked(useSidebarState);
       useSidebarStateMock.mockReturnValue({
-        sidebarCollapsed: true,
+        operasionalExpanded: false,
         inventoryExpanded: false,
-        purchasingExpanded: false,
-        transactionsExpanded: false,
-        printingExpanded: false,
         financeExpanded: false,
+        payrollExpanded: false,
+        reportsExpanded: false,
+        masterExpanded: false,
         autoHideEnabled: true, // autoHideEnabled = true AND sidebarHovered = false => isSidebarVisible = false => sidebarCollapsed = true
+        sidebarCollapsed: true,
         setSidebarCollapsed: mockSidebarCollapsed,
+        setOperasionalExpanded: vi.fn(),
         setInventoryExpanded: vi.fn(),
-        setPurchasingExpanded: vi.fn(),
-        setTransactionsExpanded: vi.fn(),
-        setPrintingExpanded: vi.fn(),
         setFinanceExpanded: vi.fn(),
+        setPayrollExpanded: vi.fn(),
+        setReportsExpanded: vi.fn(),
+        setMasterExpanded: vi.fn(),
         setAutoHideEnabled: mockAutoHideEnabled,
       });
 
@@ -245,19 +249,21 @@ describe('UI Polish Verification Tests', () => {
     it('does not wrap sidebar links in Tooltips when sidebar is expanded', () => {
       const useSidebarStateMock = vi.mocked(useSidebarState);
       useSidebarStateMock.mockReturnValue({
-        sidebarCollapsed: false,
+        operasionalExpanded: true,
         inventoryExpanded: true,
-        purchasingExpanded: true,
-        transactionsExpanded: true,
-        printingExpanded: true,
         financeExpanded: true,
+        payrollExpanded: true,
+        reportsExpanded: true,
+        masterExpanded: true,
         autoHideEnabled: false, // autoHideEnabled = false => isSidebarVisible = true => sidebarCollapsed = false
+        sidebarCollapsed: false,
         setSidebarCollapsed: mockSidebarCollapsed,
+        setOperasionalExpanded: vi.fn(),
         setInventoryExpanded: vi.fn(),
-        setPurchasingExpanded: vi.fn(),
-        setTransactionsExpanded: vi.fn(),
-        setPrintingExpanded: vi.fn(),
         setFinanceExpanded: vi.fn(),
+        setPayrollExpanded: vi.fn(),
+        setReportsExpanded: vi.fn(),
+        setMasterExpanded: vi.fn(),
         setAutoHideEnabled: mockAutoHideEnabled,
       });
 

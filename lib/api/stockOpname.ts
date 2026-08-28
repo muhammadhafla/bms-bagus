@@ -1,3 +1,4 @@
+import { format } from 'date-fns';
 import { supabase } from './client';
 import { safeQuery } from './utils';
 
@@ -229,7 +230,7 @@ export const stockOpnameApi = {
       return { data: null, error: new Error('User not authenticated') };
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = format(new Date(), 'yyyy-MM-dd');
 
     const opnameResult = await safeQuery<StockOpname>(
       async () => {
@@ -435,3 +436,4 @@ export const stockOpnameApi = {
     );
   },
 };
+

@@ -1,4 +1,5 @@
 'use client';
+import { format } from 'date-fns';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { returnApi, AvailableReturnItem } from '@/lib/api/return';
@@ -151,7 +152,7 @@ export default function ReturnPage() {
       return;
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = format(new Date(), 'yyyy-MM-dd');
     const previewDataToShow = {
       tanggal: today,
       supplier_nama: selectedSupplier.nama,
@@ -803,3 +804,4 @@ export default function ReturnPage() {
     </AmbientLayout>
   );
 }
+

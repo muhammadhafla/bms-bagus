@@ -3,6 +3,8 @@
 import React, { useState, useRef, useEffect, useId } from 'react';
 import { IconCalendarEvent, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
+import { parse, format, getYear } from 'date-fns';
+import { id as idLocale } from 'date-fns/locale';
 
 export interface MonthPickerProps {
   value: string; // YYYY-MM
@@ -30,15 +32,15 @@ export function MonthPicker({
   const focusTrapRef = useFocusTrap(isOpen);
 
   // Parse current value
-  const initialYear = value ? parseInt(value.split('-')[0]) : new Date().getFullYear();
-  const initialMonth = value ? parseInt(value.split('-')[1]) - 1 : new Date().getMonth();
+  const initialDate = value ? parse(value, 'yyyy-MM', new Date()) : new Date();
+  const initialYear = getYear(initialDate);
 
   const [viewYear, setViewYear] = useState(initialYear);
 
   // Sync view year when opening if value changed externally
   useEffect(() => {
     if (isOpen && value) {
-      setViewYear(parseInt(value.split('-')[0]));
+      setViewYear(getYear(parse(value, 'yyyy-MM', new Date())));
     }
   }, [isOpen, value]);
 
@@ -72,12 +74,12 @@ export function MonthPicker({
 
   const getDisplayValue = () => {
     if (!value) return 'Pilih Bulan';
-    const parts = value.split('-');
-    if (parts.length === 2) {
-      const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1);
-      return d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+    try {
+      const d = parse(value, 'yyyy-MM', new Date());
+      return format(d, 'MMMM yyyy', { locale: idLocale });
+    } catch {
+      return value;
     }
-    return value;
   };
 
   return (

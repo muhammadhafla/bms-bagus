@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mutasiApi, gajiApi, PayrollMutasi } from '@/lib/api/payroll';
 import { downloadMutasiPdf, downloadSlipGajiPdf } from '@/lib/payroll-pdf-utils';
-import { Card, Button, Modal, TextInput, TextareaInput, ModernPagination, MonthPicker } from '@/components/ui';
+import { Card, Button, Modal, TextInput, TextareaInput, ModernPagination, MonthPicker, DataTable, type Column, Badge } from '@/components/ui';
 import { IconArrowLeft, IconWallet, IconCheck, IconX, IconArrowUpRight, IconArrowDownLeft, IconClock, IconPrinter, IconFileText } from '@tabler/icons-react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -137,8 +137,85 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
     }
   };
 
+  const columns: Column<PayrollMutasi>[] = [
+    { 
+      key: 'tanggal',
+      header: 'Tanggal', 
+      render: (row) => format(new Date(row.tanggal), 'd MMM yyyy, HH:mm', { locale: localeId }) 
+    },
+    { 
+      key: 'kategori', 
+      header: 'Kategori', 
+      render: (row) => (
+        <span className="capitalize text-neutral-600 dark:text-neutral-400">
+          {row.kategori}
+        </span>
+      )
+    },
+    { 
+      key: 'jenis', 
+      header: 'Jenis', 
+      render: (row) => (
+        <Badge variant={row.jenis === 'kredit' ? 'success' : 'danger'}>
+          {row.jenis === 'kredit' ? 'Masuk' : 'Keluar'}
+        </Badge>
+      )
+    },
+    { key: 'keterangan', header: 'Keterangan', render: (row) => row.keterangan || '-' },
+    { 
+      key: 'nominal', 
+      header: 'Nominal', 
+      render: (row) => (
+        <span className={`font-bold ${
+          row.status === 'pending' 
+            ? 'text-amber-600 dark:text-amber-500' 
+            : row.jenis === 'kredit' 
+              ? 'text-emerald-600 dark:text-emerald-400' 
+              : 'text-neutral-900 dark:text-white'
+        }`}>
+          {row.jenis === 'kredit' ? '' : '-'}Rp {row.nominal.toLocaleString('id-ID')}
+        </span>
+      )
+    },
+    { 
+      key: 'status', 
+      header: 'Status', 
+      render: (row) => {
+        let variant: 'warning' | 'success' | 'danger' | 'default' = 'default';
+        if (row.status === 'pending') variant = 'warning';
+        if (row.status === 'disetujui') variant = 'success';
+        if (row.status === 'ditolak') variant = 'danger';
+        
+        return (
+          <Badge variant={variant}>
+            {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
+          </Badge>
+        );
+      }
+    },
+    { 
+      key: 'aksi',
+      header: 'Aksi', 
+      render: (row) => {
+        if (row.status === 'pending') {
+          return (
+             <Button 
+                size="sm" 
+                variant="primary" 
+                className="bg-amber-500 hover:bg-amber-600 border-none px-3 py-1 text-xs"
+                onClick={() => setSelectedMutasi(row)}
+              >
+                Proses
+              </Button>
+          );
+        }
+        return null;
+      }
+    }
+  ];
+
   return (
-    <div className="flex flex-col gap-4 md:gap-6 px-4 pt-1 pb-6 md:p-6 lg:p-8 md:pb-20 max-w-4xl mx-auto">
+    <div className="flex flex-col gap-4 md:gap-6 px-4 pt-1 pb-6 md:p-6 lg:p-8 md:pb-20 w-full mx-auto">
       
       {/* Header */}
       <div className="flex items-center gap-3">
@@ -230,7 +307,35 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
           </div>
         </div>
         
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-4 sm:p-6 shadow-sm flex flex-col">
+        {/* Desktop Table Layout */}
+        <div className="hidden lg:flex overflow-hidden flex-col rounded-xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+          {isLoading ? (
+            <div className="p-8 text-center text-sm text-neutral-500">Memuat data...</div>
+          ) : !list || list.length === 0 ? (
+            <div className="p-8 text-center text-sm text-neutral-500">Belum ada riwayat mutasi.</div>
+          ) : (
+            <div className="flex flex-1 flex-col">
+              <DataTable 
+                columns={columns}
+                data={list}
+                keyField="id"
+                className="border-none flex-1"
+              />
+              {totalPages > 1 && (
+                <ModernPagination
+                  page={page}
+                  totalPages={totalPages}
+                  total={totalItems}
+                  limit={limit}
+                  onPageChange={setPage}
+                />
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Card Layout */}
+        <div className="flex lg:hidden bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-4 sm:p-6 shadow-sm flex-col">
           {isLoading ? (
             <div className="p-8 text-center text-sm text-neutral-500">Memuat data...</div>
           ) : !list || list.length === 0 ? (
@@ -262,9 +367,14 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
                     </div>
                     
                     <div className="min-w-0 truncate">
-                      <p className="font-bold text-sm text-neutral-900 dark:text-white truncate">
-                        {item.keterangan}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-sm text-neutral-900 dark:text-white truncate">
+                          {item.keterangan || 'Tanpa Keterangan'}
+                        </p>
+                        <Badge variant="default" className="text-[10px] px-1.5 py-0 min-h-0 h-4 capitalize">
+                          {item.kategori}
+                        </Badge>
+                      </div>
                       <p className="text-xs text-neutral-500 mt-0.5">
                         {format(new Date(item.tanggal), 'd MMM yyyy, HH:mm', { locale: localeId })}
                       </p>

@@ -8,7 +8,6 @@ export interface Kasbon {
   nominal: number;
   keterangan: string | null;
   status: 'pending' | 'disetujui' | 'ditolak';
-  approved_by: string | null;
   created_at: string;
   updated_at: string;
   // join
@@ -37,7 +36,7 @@ export interface KasbonPaginatedResponse {
 
 export const kasbonApi = {
   /**
-   * Mengambil riwayat kasbon saya (Untuk Karyawan)
+   * Mengambil riwayat kasbon/penarikan saya (Untuk Karyawan)
    */
   async getMine(params: GetKasbonParams = {}): Promise<KasbonPaginatedResponse> {
     try {
@@ -58,9 +57,10 @@ export const kasbonApi = {
       const offset = (page - 1) * limit;
 
       let query = supabase
-        .from('kasbon')
+        .from('payroll_mutasi')
         .select(`*`, { count: 'exact' })
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .eq('jenis', 'debit');
 
       if (status && status !== 'all') query = query.eq('status', status);
       if (startDate) query = query.gte('tanggal', startDate);
@@ -81,7 +81,7 @@ export const kasbonApi = {
   },
 
   /**
-   * Mengambil semua kasbon (Untuk Admin, bisa filter pending)
+   * Mengambil semua kasbon/penarikan (Untuk Admin, bisa filter pending)
    */
   async getAll(params: GetKasbonParams = {}): Promise<KasbonPaginatedResponse> {
     try {
@@ -99,8 +99,9 @@ export const kasbonApi = {
 
       // Use inner join on profiles if searching by profile name
       let query = supabase
-        .from('kasbon')
-        .select(`*, profiles!inner(nama)`, { count: 'exact' });
+        .from('payroll_mutasi')
+        .select(`*, profiles!inner(nama)`, { count: 'exact' })
+        .eq('jenis', 'debit');
       
       if (status && status !== 'all') query = query.eq('status', status);
       if (startDate) query = query.gte('tanggal', startDate);
@@ -161,6 +162,8 @@ export const kasbonApi = {
 
       const payload = {
         user_id: userId,
+        jenis: 'debit',
+        kategori: 'kasbon',
         nominal,
         keterangan,
         status: 'pending'
@@ -168,7 +171,7 @@ export const kasbonApi = {
 
       const result = await safeQuery(
         async () => {
-          const res = await supabase.from('kasbon').insert([payload]).select().single();
+          const res = await supabase.from('payroll_mutasi').insert([payload]).select().single();
           return { data: res.data as Kasbon, error: res.error as Error | null };
         },
         { isMutation: true }
@@ -190,15 +193,16 @@ export const kasbonApi = {
 
       const payload = {
         user_id: userId,
+        jenis: 'debit',
+        kategori: 'kasbon',
         nominal,
         keterangan,
-        status,
-        approved_by: status === 'disetujui' ? adminId : undefined
+        status
       };
 
       const result = await safeQuery(
         async () => {
-          const res = await supabase.from('kasbon').insert([payload]).select().single();
+          const res = await supabase.from('payroll_mutasi').insert([payload]).select().single();
           return { data: res.data as Kasbon, error: res.error as Error | null };
         },
         { isMutation: true }
@@ -219,13 +223,12 @@ export const kasbonApi = {
       if (!adminId) throw new Error('Not authenticated');
 
       const payload = {
-        status,
-        approved_by: status === 'disetujui' ? adminId : undefined
+        status
       };
 
       const result = await safeQuery(
         async () => {
-          const res = await supabase.from('kasbon').update(payload).eq('id', id).select().single();
+          const res = await supabase.from('payroll_mutasi').update(payload).eq('id', id).select().single();
           return { data: res.data as Kasbon, error: res.error as Error | null };
         },
         { isMutation: true }

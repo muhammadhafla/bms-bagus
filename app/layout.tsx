@@ -79,7 +79,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} min-h-screen transition-colors`}>
-        <NextTopLoader color="#0ea5e9" showSpinner={false} />
+        <NextTopLoader color="#db4a2c" showSpinner={false} />
         <DarkModeProvider>
           {children}
           <OfflineIndicator />

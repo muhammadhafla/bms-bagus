@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { analyticsApi, kategoriApi } from '@/lib/api';
+import { subDays } from 'date-fns';
 import {
   IconDashboard,
   IconPackage,
@@ -179,8 +180,7 @@ function AnalyticsContent() {
   };
 
   const today = new Date();
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(today.getDate() - 30);
+  const thirtyDaysAgo = subDays(today, 30);
 
   // Unified Date State
   const [startDate, setStartDate] = useState<string>(formatDateForInputWIB(thirtyDaysAgo));

@@ -58,7 +58,7 @@ export const gajiApi = {
 
       let query = supabase
         .from('slip_gaji')
-        .select(`*`, { count: 'exact' })
+        .select(`*, profiles(nama)`, { count: 'exact' })
         .eq('user_id', userId)
         .order(sortBy, { ascending: sortDir === 'asc' })
         .range(offset, offset + limit - 1);

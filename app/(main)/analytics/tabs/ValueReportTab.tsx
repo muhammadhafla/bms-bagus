@@ -1,3 +1,4 @@
+import { format } from 'date-fns';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { reportApi, InventoryValue } from '@/lib/api';
@@ -45,7 +46,7 @@ export function ValueReportTab() {
       exportToCSV(
         csvData,
         ['Barcode', 'Nama Barang', 'Kategori', 'Stok', 'Harga Beli', 'Harga Jual', 'Nilai Total'],
-        `report_inventory_value_${new Date().toISOString().split('T')[0]}.csv`,
+        `report_inventory_value_${format(new Date(), 'yyyy-MM-dd')}.csv`,
       );
     } catch (err) {
       toast.error('Terjadi kesalahan saat mengekspor');
@@ -311,3 +312,4 @@ export function ValueReportTab() {
     </div>
   );
 }
+

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 
 const defaultSidebarState = {
+  operasionalExpanded: true,
   inventoryExpanded: true,
-  purchasingExpanded: true,
-  transactionsExpanded: true,
-  printingExpanded: true,
   financeExpanded: true,
+  payrollExpanded: true,
+  reportsExpanded: true,
+  masterExpanded: true,
   autoHideEnabled: false,
   sidebarCollapsed: false,
 };
@@ -46,15 +47,19 @@ export function useSidebarState() {
     ...state,
     setSidebarCollapsed: (v: boolean | ((p: boolean) => boolean)) =>
       setField('sidebarCollapsed', v),
+    setOperasionalExpanded: (v: boolean | ((p: boolean) => boolean)) =>
+      setField('operasionalExpanded', v),
     setInventoryExpanded: (v: boolean | ((p: boolean) => boolean)) =>
       setField('inventoryExpanded', v),
-    setPurchasingExpanded: (v: boolean | ((p: boolean) => boolean)) =>
-      setField('purchasingExpanded', v),
-    setTransactionsExpanded: (v: boolean | ((p: boolean) => boolean)) =>
-      setField('transactionsExpanded', v),
-    setPrintingExpanded: (v: boolean | ((p: boolean) => boolean)) =>
-      setField('printingExpanded', v),
-    setFinanceExpanded: (v: boolean | ((p: boolean) => boolean)) => setField('financeExpanded', v),
-    setAutoHideEnabled: (v: boolean | ((p: boolean) => boolean)) => setField('autoHideEnabled', v),
+    setFinanceExpanded: (v: boolean | ((p: boolean) => boolean)) => 
+      setField('financeExpanded', v),
+    setPayrollExpanded: (v: boolean | ((p: boolean) => boolean)) => 
+      setField('payrollExpanded', v),
+    setReportsExpanded: (v: boolean | ((p: boolean) => boolean)) => 
+      setField('reportsExpanded', v),
+    setMasterExpanded: (v: boolean | ((p: boolean) => boolean)) => 
+      setField('masterExpanded', v),
+    setAutoHideEnabled: (v: boolean | ((p: boolean) => boolean)) => 
+      setField('autoHideEnabled', v),
   };
 }

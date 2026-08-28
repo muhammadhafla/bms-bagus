@@ -6,6 +6,7 @@ import { Button } from './Button';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 import { DayPicker, DateRange } from 'react-day-picker';
 import 'react-day-picker/style.css';
+import { format, subDays, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
 export interface DateRangePickerProps {
@@ -55,7 +56,7 @@ export function DateRangePicker({
     {
       label: 'Hari Ini',
       getDates: () => {
-        const d = new Date().toISOString().split('T')[0];
+        const d = format(new Date(), 'yyyy-MM-dd');
         return [d, d];
       },
     },
@@ -63,45 +64,26 @@ export function DateRangePicker({
       label: '7 Hari Terakhir',
       getDates: () => {
         const end = new Date();
-        const start = new Date();
-        start.setDate(start.getDate() - 6);
-        const formatLocal = (d: Date) => {
-          const year = d.getFullYear();
-          const month = String(d.getMonth() + 1).padStart(2, '0');
-          const day = String(d.getDate()).padStart(2, '0');
-          return `${year}-${month}-${day}`;
-        };
-        return [formatLocal(start), formatLocal(end)];
+        const start = subDays(new Date(), 6);
+        return [format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd')];
       },
     },
     {
       label: 'Bulan Ini',
       getDates: () => {
         const now = new Date();
-        const start = new Date(now.getFullYear(), now.getMonth(), 1);
-        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        const formatLocal = (d: Date) => {
-          const year = d.getFullYear();
-          const month = String(d.getMonth() + 1).padStart(2, '0');
-          const day = String(d.getDate()).padStart(2, '0');
-          return `${year}-${month}-${day}`;
-        };
-        return [formatLocal(start), formatLocal(end)];
+        const start = startOfMonth(now);
+        const end = endOfMonth(now);
+        return [format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd')];
       },
     },
     {
       label: 'Bulan Lalu',
       getDates: () => {
-        const now = new Date();
-        const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const end = new Date(now.getFullYear(), now.getMonth(), 0);
-        const formatLocal = (d: Date) => {
-          const year = d.getFullYear();
-          const month = String(d.getMonth() + 1).padStart(2, '0');
-          const day = String(d.getDate()).padStart(2, '0');
-          return `${year}-${month}-${day}`;
-        };
-        return [formatLocal(start), formatLocal(end)];
+        const lastMonth = subMonths(new Date(), 1);
+        const start = startOfMonth(lastMonth);
+        const end = endOfMonth(lastMonth);
+        return [format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd')];
       },
     },
     { label: 'Semua Waktu', getDates: () => ['', ''] },
@@ -117,23 +99,8 @@ export function DateRangePicker({
     if (!dateStr) return '';
     try {
       const date = new Date(dateStr);
-      const months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'Mei',
-        'Jun',
-        'Jul',
-        'Agu',
-        'Sep',
-        'Okt',
-        'Nov',
-        'Des',
-      ];
-      const currentYear = new Date().getFullYear();
-      const yearStr = date.getFullYear() !== currentYear ? ` ${date.getFullYear()}` : '';
-      return `${date.getDate()} ${months[date.getMonth()]}${yearStr}`;
+      const isCurrentYear = date.getFullYear() === new Date().getFullYear();
+      return format(date, isCurrentYear ? 'd MMM' : 'd MMM yyyy', { locale: idLocale });
     } catch {
       return dateStr;
     }
@@ -249,10 +216,7 @@ export function DateRangePicker({
                   onSelect={(range) => {
                     const formatLocal = (d: Date | undefined) => {
                       if (!d) return '';
-                      const year = d.getFullYear();
-                      const month = String(d.getMonth() + 1).padStart(2, '0');
-                      const day = String(d.getDate()).padStart(2, '0');
-                      return `${year}-${month}-${day}`;
+                      return format(d, 'yyyy-MM-dd');
                     };
                     onChange(formatLocal(range?.from), formatLocal(range?.to));
                   }}

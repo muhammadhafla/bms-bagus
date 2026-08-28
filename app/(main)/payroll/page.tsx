@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import { format, differenceInMinutes, set, isAfter } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { kehadiranApi, karyawanApi } from '@/lib/api/payroll';
 import { IconClock, IconFingerprint, IconLogout, IconCalendarEvent } from '@tabler/icons-react';
@@ -76,25 +76,23 @@ export default function PayrollDashboardPage() {
       // Sudah absen masuk, belum pulang
       const masuk = new Date(todayStatus.waktu_masuk);
       const sekarang = new Date();
-      const menit_kerja = Math.floor((sekarang.getTime() - masuk.getTime()) / 60000);
+      const menit_kerja = differenceInMinutes(sekarang, masuk);
       
       let menit_telat = 0;
       let menit_lembur = 0;
       if (profile) {
-        const standardMasuk = new Date();
         const [mHour, mMin] = profile.jam_masuk.split(':');
-        standardMasuk.setHours(Number(mHour), Number(mMin), 0, 0);
+        const standardMasuk = set(new Date(), { hours: Number(mHour), minutes: Number(mMin), seconds: 0, milliseconds: 0 });
         
-        if (masuk > standardMasuk) {
-          menit_telat = Math.floor((masuk.getTime() - standardMasuk.getTime()) / 60000);
+        if (isAfter(masuk, standardMasuk)) {
+          menit_telat = differenceInMinutes(masuk, standardMasuk);
         }
 
-        const standardPulang = new Date();
         const [pHour, pMin] = profile.jam_pulang.split(':');
-        standardPulang.setHours(Number(pHour), Number(pMin), 0, 0);
+        const standardPulang = set(new Date(), { hours: Number(pHour), minutes: Number(pMin), seconds: 0, milliseconds: 0 });
 
-        if (sekarang > standardPulang) {
-          menit_lembur = Math.floor((sekarang.getTime() - standardPulang.getTime()) / 60000);
+        if (isAfter(sekarang, standardPulang)) {
+          menit_lembur = differenceInMinutes(sekarang, standardPulang);
         }
       }
 

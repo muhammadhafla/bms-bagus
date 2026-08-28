@@ -1,3 +1,4 @@
+import { format } from 'date-fns';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { reportApi, StockMutation } from '@/lib/api';
@@ -52,7 +53,7 @@ export function StockReportTab({ startDate, endDate }: StockReportTabProps) {
       exportToCSV(
         csvData,
         ['Tanggal', 'Barcode', 'Nama Barang', 'Tipe', 'Qty'],
-        `report_stock_${new Date().toISOString().split('T')[0]}.csv`,
+        `report_stock_${format(new Date(), 'yyyy-MM-dd')}.csv`,
       );
     } catch (err) {
       toast.error('Terjadi kesalahan saat mengekspor');
@@ -235,3 +236,4 @@ export function StockReportTab({ startDate, endDate }: StockReportTabProps) {
     </div>
   );
 }
+

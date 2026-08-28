@@ -22,6 +22,7 @@ import { DateRangePicker } from '@/components/ui/DateRangePicker';
 import { formatCurrency, normalizeBarcode, debounce } from '@/lib/utils';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { AdminOnly } from '@/components/role';
+import { format, startOfHour, addDays } from 'date-fns';
 
 export default function PromoEditor({ id }: { id?: string }) {
   const router = useRouter();
@@ -33,15 +34,10 @@ export default function PromoEditor({ id }: { id?: string }) {
   // Promo Header State
   const [nama, setNama] = useState('');
   const [tanggalMulai, setTanggalMulai] = useState(() => {
-    const d = new Date();
-    d.setMinutes(0, 0, 0);
-    return d.toISOString().slice(0, 16);
+    return format(startOfHour(new Date()), "yyyy-MM-dd'T'HH:mm");
   });
   const [tanggalSelesai, setTanggalSelesai] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    d.setMinutes(0, 0, 0);
-    return d.toISOString().slice(0, 16);
+    return format(startOfHour(addDays(new Date(), 7)), "yyyy-MM-dd'T'HH:mm");
   });
   const [status, setStatus] = useState<'aktif' | 'nonaktif'>('aktif');
 
@@ -293,7 +289,7 @@ export default function PromoEditor({ id }: { id?: string }) {
               onChange={(e) => {
                 const date = tanggalMulai
                   ? tanggalMulai.split('T')[0]
-                  : new Date().toISOString().split('T')[0];
+                  : format(new Date(), 'yyyy-MM-dd');
                 setTanggalMulai(`${date}T${e.target.value}`);
               }}
             />
@@ -312,7 +308,7 @@ export default function PromoEditor({ id }: { id?: string }) {
               onChange={(e) => {
                 const date = tanggalSelesai
                   ? tanggalSelesai.split('T')[0]
-                  : new Date().toISOString().split('T')[0];
+                  : format(new Date(), 'yyyy-MM-dd');
                 setTanggalSelesai(`${date}T${e.target.value}`);
               }}
             />

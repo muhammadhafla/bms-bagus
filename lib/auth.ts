@@ -539,5 +539,5 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 // Custom hook to check if current user is an admin
 export const useIsAdmin = () => {
-  return useAuthStore((state) => state.profile?.role === 'admin');
+  return useAuthStore((state) => state.profile?.role?.toLowerCase() === 'admin');
 };

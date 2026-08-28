@@ -1,3 +1,4 @@
+import { format } from 'date-fns';
 import { supabase } from '../client';
 import { safeQuery } from '../utils';
 
@@ -31,9 +32,7 @@ export const kehadiranApi = {
 
       // Ambil tanggal lokal hari ini format YYYY-MM-DD
       // Penting: karena timezone, lebih aman query >= awal hari
-      const today = new Date();
-      // YYYY-MM-DD
-      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const dateStr = format(new Date(), 'yyyy-MM-dd');
 
       const result = await safeQuery(async () => {
         const res = await supabase
@@ -59,8 +58,7 @@ export const kehadiranApi = {
       const userId = authData.user?.id;
       if (!userId) throw new Error('Not authenticated');
 
-      const today = new Date();
-      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const dateStr = format(new Date(), 'yyyy-MM-dd');
 
       // Hitung keterlambatan (Opsional: bisa dihitung dari frontend atau di backend/database. 
       // Untuk MVP kita taruh 0 dulu, akan dihitung akurat saat integrasi date-fns)
@@ -268,6 +266,28 @@ export const kehadiranApi = {
             .from('kehadiran')
             .update(payload)
             .eq('id', id)
+            .select()
+            .single();
+          return { data: res.data as Kehadiran, error: res.error as Error | null };
+        },
+        { isMutation: true }
+      );
+      return result;
+    } catch (err: any) {
+      return { data: null, error: { message: err.message || 'Terjadi kesalahan' } };
+    }
+  },
+
+  /**
+   * Buat entri kehadiran baru (Admin)
+   */
+  async createKehadiran(payload: Omit<Kehadiran, 'id' | 'created_at' | 'profiles'>) {
+    try {
+      const result = await safeQuery(
+        async () => {
+          const res = await supabase
+            .from('kehadiran')
+            .insert([payload])
             .select()
             .single();
           return { data: res.data as Kehadiran, error: res.error as Error | null };

@@ -45,7 +45,7 @@ import { API_ERROR_MESSAGES, UI_MESSAGES, INVENTORY_MESSAGES } from '@/lib/const
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useKategoris } from '@/lib/hooks/useKategoris';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 
 export default function InventoryPageClient() {
@@ -61,7 +61,8 @@ export default function InventoryPageClient() {
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'nama_barang');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>((searchParams.get('sortDir') as any) || 'asc');
   const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
-  const ITEMS_PER_PAGE = 20;
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const ITEMS_PER_PAGE = isMobile ? 20 : 50;
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -120,6 +121,7 @@ export default function InventoryPageClient() {
       'inventory',
       {
         page,
+        limit: ITEMS_PER_PAGE,
         search: debouncedSearch,
         categoryId,
         lowStockOnly,

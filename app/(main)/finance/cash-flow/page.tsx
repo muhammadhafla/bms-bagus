@@ -1,4 +1,5 @@
 'use client';
+import { format, subDays } from 'date-fns';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -34,8 +35,7 @@ export default function CashFlowPage() {
 
   const [defaultFilters] = useState(() => {
     const today = new Date();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(today.getDate() - 30);
+    const thirtyDaysAgo = subDays(today, 30);
     return {
       startDate: formatDateForInputWIB(thirtyDaysAgo),
       endDate: formatDateForInputWIB(today),
@@ -317,3 +317,4 @@ export default function CashFlowPage() {
     </ErrorBoundary>
   );
 }
+

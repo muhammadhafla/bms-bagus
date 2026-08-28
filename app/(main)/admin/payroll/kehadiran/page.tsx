@@ -7,7 +7,7 @@ import { kehadiranApi, Kehadiran } from '@/lib/api/payroll';
 import { karyawanApi } from '@/lib/api/payroll/karyawan';
 import { Card, DataTable, Button, Modal, TextInput, Badge, SelectInput, DateRangePicker, FilterButton, ModernPagination, type Column } from '@/components/ui';
 import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
-import { IconClock, IconEdit, IconX, IconSearch, IconCalendarEvent, IconCheck, IconChevronRight } from '@tabler/icons-react';
+import { IconClock, IconEdit, IconX, IconSearch, IconCalendarEvent, IconCheck, IconChevronRight, IconPlus } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -121,6 +121,18 @@ function AdminKehadiranContent() {
     return opts;
   }, [karyawanList]);
 
+  const karyawanIdOptions = useMemo(() => {
+    const opts: { label: string, value: string }[] = [];
+    if (karyawanList) {
+      karyawanList.forEach(k => {
+        if (k.user_id && k.profiles?.nama) {
+          opts.push({ label: k.profiles.nama, value: k.user_id });
+        }
+      });
+    }
+    return opts;
+  }, [karyawanList]);
+
   // Client-side filtering
   const filteredList = useMemo(() => {
     if (!list) return [];
@@ -159,10 +171,75 @@ function AdminKehadiranContent() {
   const [editStatusHadir, setEditStatusHadir] = useState<string>('');
   const [editStatusLembur, setEditStatusLembur] = useState<string>('');
 
+  // Create State
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createDate, setCreateDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [createUserId, setCreateUserId] = useState('');
+  const [createStatusHadir, setCreateStatusHadir] = useState('hadir');
+  const [createStatusLembur, setCreateStatusLembur] = useState('tidak_ada');
+
   const handleOpenEdit = (item: Kehadiran) => {
     setSelectedKehadiran(item);
     setEditStatusHadir(item.status_hadir);
     setEditStatusLembur(item.status_lembur);
+  };
+
+  const createMutation = useMutation({
+    mutationFn: (payload: Omit<Kehadiran, 'id' | 'created_at' | 'profiles'>) => {
+      return kehadiranApi.createKehadiran(payload);
+    },
+    onSuccess: (res) => {
+      if (res.error) {
+        if (res.error.message?.includes('duplicate key') || res.error.message?.includes('kehadiran_user_id_tanggal_key') || res.error.message?.includes('409')) {
+          toast.error('Karyawan ini sudah memiliki entri pada tanggal tersebut. Silakan edit entri yang sudah ada.');
+        } else {
+          toast.error('Gagal membuat entri: ' + res.error.message);
+        }
+        return;
+      }
+      toast.success('Entri kehadiran berhasil dibuat!');
+      setIsCreateOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_kehadiran'] });
+    },
+    onError: () => toast.error('Terjadi kesalahan sistem'),
+  });
+
+  const handleCreateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!createUserId) {
+      toast.error('Pilih karyawan terlebih dahulu');
+      return;
+    }
+
+    const fd = new FormData(e.currentTarget);
+    const status_hadir = createStatusHadir as any;
+    const waktu_masuk_time = fd.get('waktu_masuk') as string;
+    const waktu_pulang_time = fd.get('waktu_pulang') as string;
+    
+    let waktu_masuk_iso = new Date(`${createDate}T00:00:00`).toISOString();
+    if (waktu_masuk_time) {
+      const d = new Date(`${createDate}T${waktu_masuk_time}:00`);
+      if (!isNaN(d.getTime())) waktu_masuk_iso = d.toISOString();
+    }
+
+    let waktu_pulang_iso = null;
+    if (waktu_pulang_time) {
+      const d = new Date(`${createDate}T${waktu_pulang_time}:00`);
+      if (!isNaN(d.getTime())) waktu_pulang_iso = d.toISOString();
+    }
+
+    createMutation.mutate({
+      user_id: createUserId,
+      tanggal: createDate,
+      status_hadir,
+      waktu_masuk: waktu_masuk_iso,
+      waktu_pulang: waktu_pulang_iso,
+      menit_kerja: 0,
+      menit_telat: Number(fd.get('menit_telat') || 0),
+      menit_lembur_aktual: 0,
+      menit_lembur_disetujui: Number(fd.get('menit_lembur_disetujui') || 0),
+      status_lembur: fd.get('status_lembur') as any || 'tidak_ada',
+    });
   };
 
   const updateMutation = useMutation({
@@ -301,8 +378,16 @@ function AdminKehadiranContent() {
           </div>
         </div>
 
-        <div className="shrink-0">
-          <FilterButton onClick={handleOpenFilter} activeCount={activeFilters.length} />
+        <div className="shrink-0 flex items-center gap-2">
+          <Button 
+            variant="primary" 
+            onClick={() => setIsCreateOpen(true)}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl !min-h-0 !p-0 sm:w-auto sm:!px-4 sm:!py-2"
+          >
+            <IconPlus size={18} className="shrink-0" />
+            <span className="hidden font-medium sm:inline">Tambah Entri</span>
+          </Button>
+          <FilterButton onClick={handleOpenFilter} activeCount={activeFilters.length} className="!mt-0 !mr-0" />
         </div>
       </div>
 
@@ -589,6 +674,105 @@ function AdminKehadiranContent() {
               loading={updateMutation.isPending}
             >
               Simpan Perubahan
+            </Button>
+          </form>
+        </Modal>
+      )}
+
+      {/* Create Modal */}
+      {isCreateOpen && (
+        <Modal
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          title="Tambah Entri Kehadiran"
+          isBottomSheetOnMobile
+        >
+          <form onSubmit={handleCreateSubmit} className="flex flex-col gap-4 mt-4">
+            <SelectInput
+              label="Karyawan"
+              name="user_id"
+              value={createUserId}
+              onChange={setCreateUserId}
+              options={[{ label: 'Pilih Karyawan', value: '' }, ...karyawanIdOptions]}
+              required
+            />
+            
+            <TextInput
+              label="Tanggal"
+              name="tanggal"
+              type="date"
+              value={createDate}
+              onChange={(e) => setCreateDate(e.target.value)}
+              required
+            />
+
+            <SelectInput
+              label="Status Kehadiran"
+              name="status_hadir"
+              value={createStatusHadir}
+              onChange={setCreateStatusHadir}
+              options={[
+                { label: 'Hadir', value: 'hadir' },
+                { label: 'Izin', value: 'izin' },
+                { label: 'Sakit', value: 'sakit' },
+                { label: 'Alpha', value: 'alpha' },
+                { label: 'Off', value: 'off' },
+              ]}
+              required
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <TextInput
+                label="Waktu Masuk"
+                name="waktu_masuk"
+                type="time"
+                defaultValue="09:00"
+              />
+              <TextInput
+                label="Waktu Pulang"
+                name="waktu_pulang"
+                type="time"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <TextInput
+                label="Menit Telat"
+                name="menit_telat"
+                type="number"
+                min={0}
+                defaultValue="0"
+              />
+              <TextInput
+                label="Lembur Disetujui (Menit)"
+                name="menit_lembur_disetujui"
+                type="number"
+                min={0}
+                defaultValue="0"
+              />
+            </div>
+
+            <SelectInput
+              label="Status Lembur"
+              name="status_lembur"
+              value={createStatusLembur}
+              onChange={setCreateStatusLembur}
+              options={[
+                { label: 'Tidak Ada', value: 'tidak_ada' },
+                { label: 'Pending', value: 'pending' },
+                { label: 'Disetujui', value: 'disetujui' },
+                { label: 'Ditolak', value: 'ditolak' },
+              ]}
+            />
+
+            <Button 
+              type="submit" 
+              variant="primary" 
+              fullWidth 
+              className="mt-4"
+              loading={createMutation.isPending}
+            >
+              Simpan Entri
             </Button>
           </form>
         </Modal>

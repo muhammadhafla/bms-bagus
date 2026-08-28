@@ -1,3 +1,4 @@
+import { format } from 'date-fns';
 import { supabase } from './client';
 import { safeQuery } from './utils';
 
@@ -35,7 +36,7 @@ export interface RecentTransaction {
 
 export const dashboardApi = {
   async getStats(): Promise<{ data: DashboardStats | null; error: unknown }> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = format(new Date(), 'yyyy-MM-dd');
 
     const [statsResult, todayProfitResult] = await Promise.all([
       safeQuery<{ total_inventory_value: number; total_items: number; low_stock_items: number }>(
@@ -162,3 +163,4 @@ export const dashboardApi = {
     };
   },
 };
+

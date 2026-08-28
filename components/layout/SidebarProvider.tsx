@@ -18,16 +18,18 @@ interface SidebarContextType {
   // Expose zustand state for convenience
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (v: boolean | ((prev: boolean) => boolean)) => void;
+  operasionalExpanded: boolean;
+  setOperasionalExpanded: (v: boolean | ((prev: boolean) => boolean)) => void;
   inventoryExpanded: boolean;
   setInventoryExpanded: (v: boolean | ((prev: boolean) => boolean)) => void;
-  purchasingExpanded: boolean;
-  setPurchasingExpanded: (v: boolean | ((prev: boolean) => boolean)) => void;
-  transactionsExpanded: boolean;
-  setTransactionsExpanded: (v: boolean | ((prev: boolean) => boolean)) => void;
-  printingExpanded: boolean;
-  setPrintingExpanded: (v: boolean | ((prev: boolean) => boolean)) => void;
   financeExpanded: boolean;
   setFinanceExpanded: (v: boolean | ((prev: boolean) => boolean)) => void;
+  payrollExpanded: boolean;
+  setPayrollExpanded: (v: boolean | ((prev: boolean) => boolean)) => void;
+  reportsExpanded: boolean;
+  setReportsExpanded: (v: boolean | ((prev: boolean) => boolean)) => void;
+  masterExpanded: boolean;
+  setMasterExpanded: (v: boolean | ((prev: boolean) => boolean)) => void;
   autoHideEnabled: boolean;
   setAutoHideEnabled: (v: boolean | ((prev: boolean) => boolean)) => void;
 
@@ -48,16 +50,18 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const {
     sidebarCollapsed,
     setSidebarCollapsed,
+    operasionalExpanded,
+    setOperasionalExpanded,
     inventoryExpanded,
     setInventoryExpanded,
-    purchasingExpanded,
-    setPurchasingExpanded,
-    transactionsExpanded,
-    setTransactionsExpanded,
-    printingExpanded,
-    setPrintingExpanded,
     financeExpanded,
     setFinanceExpanded,
+    payrollExpanded,
+    setPayrollExpanded,
+    reportsExpanded,
+    setReportsExpanded,
+    masterExpanded,
+    setMasterExpanded,
     autoHideEnabled,
     setAutoHideEnabled,
   } = useSidebarZustand();
@@ -81,16 +85,18 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
         setMobileMenuOpen,
         sidebarCollapsed,
         setSidebarCollapsed,
+        operasionalExpanded,
+        setOperasionalExpanded,
         inventoryExpanded,
         setInventoryExpanded,
-        purchasingExpanded,
-        setPurchasingExpanded,
-        transactionsExpanded,
-        setTransactionsExpanded,
-        printingExpanded,
-        setPrintingExpanded,
         financeExpanded,
         setFinanceExpanded,
+        payrollExpanded,
+        setPayrollExpanded,
+        reportsExpanded,
+        setReportsExpanded,
+        masterExpanded,
+        setMasterExpanded,
         autoHideEnabled,
         setAutoHideEnabled,
         isSidebarVisible,

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import { reportApi, SalesSummary } from '@/lib/api';
 import { formatCurrency, exportToCSV } from '@/lib/utils';
 import { Button } from '@/components/ui';
@@ -82,7 +83,7 @@ export function SalesReportTab({ startDate, endDate, categoryId }: SalesReportTa
       exportToCSV(
         csvData,
         ['Tanggal', 'Jumlah Transaksi', 'Cash', 'QRIS', 'Total Penjualan'],
-        `report_sales_${new Date().toISOString().split('T')[0]}.csv`,
+        `report_sales_${format(new Date(), 'yyyy-MM-dd')}.csv`,
       );
     } catch (err) {
       toast.error('Terjadi kesalahan saat mengekspor');

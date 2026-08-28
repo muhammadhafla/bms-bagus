@@ -148,9 +148,7 @@ function HomeContent() {
         </div>
       }
     >
-      <div className="p-4 lg:p-0">
-        <SoftPromptBanner />
-      </div>
+      <SoftPromptBanner />
       
       {/* Mobile View (Launchpad) */}
       {!isDesktop && (
@@ -220,6 +218,7 @@ function HomeContent() {
                           prefix="Rp "
                           icon={<IconCurrencyDollar size={20} />}
                           variant="default"
+                          onClick={() => router.push('/inventory')}
                         />
                       </div>
                       <div className="animate-fade-in-up [animation-delay:100ms]">
@@ -229,6 +228,7 @@ function HomeContent() {
                           prefix="Rp "
                           icon={<IconShoppingCart size={20} />}
                           variant="warning"
+                          onClick={() => router.push('/purchasing')}
                         />
                       </div>
                     </>
@@ -241,6 +241,7 @@ function HomeContent() {
                       prefix="Rp "
                       icon={<IconWallet size={20} />}
                       variant="success"
+                      onClick={isAdminUser ? () => router.push('/finance/cash-flow') : undefined}
                     />
                   </div>
 
@@ -251,6 +252,7 @@ function HomeContent() {
                       icon={<IconPackage size={20} />}
                       suffix=" SKU"
                       variant="default"
+                      onClick={() => router.push('/inventory')}
                     />
                   </div>
                   
@@ -261,6 +263,7 @@ function HomeContent() {
                       icon={<IconAlertTriangle size={20} />}
                       suffix=" item"
                       variant={stats && stats.lowStockItems > 0 ? 'danger' : 'default'}
+                      onClick={() => router.push('/inventory')}
                     />
                   </div>
                   
@@ -270,6 +273,7 @@ function HomeContent() {
                       value={stats?.todayTransactions || 0}
                       icon={<IconShoppingCart size={20} />}
                       variant="default"
+                      onClick={() => router.push('/transactions/history')}
                     />
                   </div>
                 </div>

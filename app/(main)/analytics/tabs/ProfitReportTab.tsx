@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import { reportApi, ProfitSummary } from '@/lib/api';
 import { formatCurrency, exportToCSV } from '@/lib/utils';
 import { Button } from '@/components/ui';
@@ -68,7 +69,7 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
       exportToCSV(
         csvData,
         ['Tanggal', 'Total Modal (HPP)', 'Total Penjualan', 'Profit', 'Margin %'],
-        `report_profit_${new Date().toISOString().split('T')[0]}.csv`,
+        `report_profit_${format(new Date(), 'yyyy-MM-dd')}.csv`,
       );
     } catch (err) {
       toast.error('Terjadi kesalahan saat mengekspor');

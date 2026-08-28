@@ -14,6 +14,8 @@ import {
   IconShoppingCart,
   IconArrowBack,
   IconReport,
+  IconReceipt,
+  IconBook,
   IconClipboardCheck,
   IconUsers,
   IconUsersGroup,
@@ -36,45 +38,52 @@ import {
 
 import { useSidebarContext } from './SidebarProvider';
 
-// Constants
-const NAV_ITEMS = [{ href: '/dashboard', title: 'Dashboard', icon: IconLayoutDashboard }];
+const DASHBOARD_ITEMS = [{ href: '/dashboard', title: 'Dashboard', icon: IconLayoutDashboard }];
+
+const OPERASIONAL_ITEMS = [
+  { href: '/purchasing', title: 'Transaksi Baru', icon: IconShoppingCart },
+  { href: '/transactions/history', title: 'Riwayat Transaksi', icon: IconHistory },
+  { href: '/transactions/return', title: 'Retur', icon: IconArrowBack },
+  { href: '/inventory/promo', title: 'Manajemen Promo', icon: IconTicket },
+];
 
 const INVENTORY_ITEMS = [
   { href: '/inventory', title: 'Stok', icon: IconPackage },
-  { href: '/inventory/kategori', title: 'Kategori', icon: IconTags },
   { href: '/inventory/stock-opname', title: 'Stok Opname', icon: IconClipboardCheck },
-  { href: '/inventory/promo', title: 'Manajemen Promo', icon: IconTicket },
-  { href: '/inventory/reports/difference', title: 'Laporan Selisih', icon: IconReport },
-];
-
-const PURCHASING_ITEMS = [
-  { href: '/purchasing', title: 'Transaksi Baru', icon: IconShoppingCart },
-  { href: '/purchasing/supplier', title: 'Supplier', icon: IconTruck },
-];
-
-const TRANSACTIONS_ITEMS = [
-  { href: '/transactions/history', title: 'Riwayat Transaksi', icon: IconHistory },
-  { href: '/transactions/return', title: 'Retur', icon: IconArrowBack },
-];
-
-const PRINTING_ITEMS = [
   { href: '/bulk-print', title: 'Cetak Massal', icon: IconPrinter },
   { href: '/print-history', title: 'Riwayat Cetak', icon: IconHistory },
-  { href: '/master/label-templates', title: 'Template Label', icon: IconTags },
 ];
 
-const FINANCE_ITEMS = [{ href: '/finance/cash-flow', title: 'Arus Kas', icon: IconReport }];
+const FINANCE_ITEMS = [
+  { href: '/finance/cash-flow', title: 'Arus Kas', icon: IconReport },
+  { href: '/finance/operasional', title: 'Pengeluaran', icon: IconReceipt },
+  { href: '/finance/ledger', title: 'Buku Besar', icon: IconBook },
+];
 
 const PAYROLL_ITEMS = [
   { href: '/admin/payroll/kehadiran', title: 'Data Kehadiran', icon: IconClock },
   { href: '/admin/payroll/karyawan', title: 'Data Karyawan', icon: IconUsers },
   { href: '/admin/payroll/kasbon', title: 'Persetujuan Kasbon', icon: IconWallet },
-  { href: '/admin/payroll/gaji', title: 'Tutup Buku Gaji', icon: IconReport },
+  { href: '/admin/payroll/gaji', title: 'Dashboard Keuangan', icon: IconReport },
 ];
 
 const PAYROLL_ITEMS_STAFF = [
   { href: '/payroll', title: 'Absensi', icon: IconClock },
   { href: '/payroll/gaji', title: 'Dompet Saya', icon: IconWallet },
+];
+
+const REPORT_ITEMS = [
+  { href: '/analytics', title: 'Analisis & Laporan', icon: IconChartBar },
+  { href: '/inventory/reports/difference', title: 'Laporan Selisih', icon: IconReport },
+];
+
+const MASTER_ITEMS = [
+  { href: '/users', title: 'Data Pengguna', icon: IconUsers },
+  { href: '/members', title: 'Master Member', icon: IconUsersGroup },
+  { href: '/members/tiers', title: 'Konfigurasi Tier', icon: IconSettings },
+  { href: '/inventory/kategori', title: 'Kategori Barang', icon: IconTags },
+  { href: '/purchasing/supplier', title: 'Data Supplier', icon: IconTruck },
+  { href: '/master/label-templates', title: 'Template Label', icon: IconTags },
 ];
 
 interface SidebarLinkProps {
@@ -120,8 +129,6 @@ export function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { theme, toggleTheme } = useDarkMode();
-  const [payrollExpanded, setPayrollExpanded] = React.useState(false);
-
   const {
     sidebarHovered,
     setSidebarHovered,
@@ -135,16 +142,18 @@ export function Sidebar() {
     setMobileMenuOpen,
     sidebarCollapsed,
     setSidebarCollapsed,
+    operasionalExpanded,
+    setOperasionalExpanded,
     inventoryExpanded,
     setInventoryExpanded,
-    purchasingExpanded,
-    setPurchasingExpanded,
-    transactionsExpanded,
-    setTransactionsExpanded,
-    printingExpanded,
-    setPrintingExpanded,
     financeExpanded,
     setFinanceExpanded,
+    payrollExpanded,
+    setPayrollExpanded,
+    reportsExpanded,
+    setReportsExpanded,
+    masterExpanded,
+    setMasterExpanded,
     autoHideEnabled,
     setAutoHideEnabled,
     isSidebarVisible,
@@ -179,16 +188,16 @@ export function Sidebar() {
     setMobileMenuOpen(false);
   }, [pathname, setMobileMenuOpen]);
 
-  const navItems = useMemo(() => {
-    const items = [...NAV_ITEMS];
-    if (isAdminUser) {
-      items.push({ href: '/analytics', title: 'Analisis & Laporan', icon: IconChartBar });
-      items.push({ href: '/users', title: 'Pengguna', icon: IconUsers });
-      items.push({ href: '/members', title: 'Master Member', icon: IconUsersGroup });
-      items.push({ href: '/members/tiers', title: 'Konfigurasi Tier', icon: IconSettings });
-    }
-    return items;
-  }, [isAdminUser]);
+  const operasionalItems = useMemo(() => OPERASIONAL_ITEMS.filter(item => {
+    if (item.href === '/purchasing' && !isAdminUser) return false;
+    if (item.href === '/inventory/promo' && !isAdminUser) return false;
+    return true;
+  }), [isAdminUser]);
+
+  const masterItems = useMemo(() => MASTER_ITEMS.filter(item => {
+    if (item.href === '/inventory/kategori') return true;
+    return isAdminUser;
+  }), [isAdminUser]);
 
   const handleSignOut = useCallback(() => {
     setIsLoggingOut(true);
@@ -267,7 +276,7 @@ export function Sidebar() {
         <nav className="flex-1 space-y-4 overflow-x-hidden overflow-y-auto px-3 py-4">
           {/* Main Navigation */}
           <div className="space-y-1">
-            {navItems.map((item) => (
+            {DASHBOARD_ITEMS.map((item) => (
               <SidebarLink
                 key={item.href}
                 href={item.href}
@@ -279,62 +288,27 @@ export function Sidebar() {
             ))}
           </div>
 
-          {/* Inventory Group */}
-          <div className="space-y-1">
-            {(isSidebarVisible || mobileMenuOpen) && (
-              <button
-                type="button"
-                onClick={() => setInventoryExpanded((prev: boolean) => !prev)}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase transition-colors hover:bg-neutral-200/50 dark:text-neutral-500 dark:hover:bg-neutral-800/50"
-                aria-expanded={inventoryExpanded}
-              >
-                <span className="flex-1 text-left">Stok</span>
-                {isSidebarVisible && (
-                  <IconChevronRight
-                    className={`h-3 w-3 transition-transform ${inventoryExpanded ? 'rotate-90' : ''}`}
-                  />
-                )}
-              </button>
-            )}
-            {inventoryExpanded && (isSidebarVisible || mobileMenuOpen) ? (
-              <div className="space-y-1 pl-2">
-                {INVENTORY_ITEMS.filter(
-                  (item) => isAdminUser || item.href !== '/inventory/promo',
-                ).map((item) => (
-                  <SidebarLink
-                    key={item.href}
-                    href={item.href}
-                    title={item.title}
-                    icon={item.icon}
-                    isActive={pathname === item.href}
-                    sidebarCollapsed={!isSidebarVisible}
-                  />
-                ))}
-              </div>
-            ) : null}
-          </div>
-
-          {/* Purchasing Group */}
-          {isAdminUser && (
+          {/* Operasional Group */}
+          {operasionalItems.length > 0 && (
             <div className="space-y-1">
               {(isSidebarVisible || mobileMenuOpen) && (
                 <button
                   type="button"
-                  onClick={() => setPurchasingExpanded((prev: boolean) => !prev)}
+                  onClick={() => setOperasionalExpanded((prev: boolean) => !prev)}
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase transition-colors hover:bg-neutral-200/50 dark:text-neutral-500 dark:hover:bg-neutral-800/50"
-                  aria-expanded={purchasingExpanded}
+                  aria-expanded={operasionalExpanded}
                 >
-                  <span className="flex-1 text-left">Pembelian</span>
+                  <span className="flex-1 text-left">Operasional</span>
                   {isSidebarVisible && (
                     <IconChevronRight
-                      className={`h-3 w-3 transition-transform ${purchasingExpanded ? 'rotate-90' : ''}`}
+                      className={`h-3 w-3 transition-transform ${operasionalExpanded ? 'rotate-90' : ''}`}
                     />
                   )}
                 </button>
               )}
-              {purchasingExpanded && (isSidebarVisible || mobileMenuOpen) ? (
+              {operasionalExpanded && (isSidebarVisible || mobileMenuOpen) ? (
                 <div className="space-y-1 pl-2">
-                  {PURCHASING_ITEMS.map((item) => (
+                  {operasionalItems.map((item) => (
                     <SidebarLink
                       key={item.href}
                       href={item.href}
@@ -349,26 +323,26 @@ export function Sidebar() {
             </div>
           )}
 
-          {/* Transactions Group */}
+          {/* Inventory Group */}
           <div className="space-y-1">
             {(isSidebarVisible || mobileMenuOpen) && (
               <button
                 type="button"
-                onClick={() => setTransactionsExpanded((prev: boolean) => !prev)}
+                onClick={() => setInventoryExpanded((prev: boolean) => !prev)}
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase transition-colors hover:bg-neutral-200/50 dark:text-neutral-500 dark:hover:bg-neutral-800/50"
-                aria-expanded={transactionsExpanded}
+                aria-expanded={inventoryExpanded}
               >
-                <span className="flex-1 text-left">Transaksi</span>
+                <span className="flex-1 text-left">Manajemen Stok</span>
                 {isSidebarVisible && (
                   <IconChevronRight
-                    className={`h-3 w-3 transition-transform ${transactionsExpanded ? 'rotate-90' : ''}`}
+                    className={`h-3 w-3 transition-transform ${inventoryExpanded ? 'rotate-90' : ''}`}
                   />
                 )}
               </button>
             )}
-            {transactionsExpanded && (isSidebarVisible || mobileMenuOpen) ? (
+            {inventoryExpanded && (isSidebarVisible || mobileMenuOpen) ? (
               <div className="space-y-1 pl-2">
-                {TRANSACTIONS_ITEMS.map((item) => (
+                {INVENTORY_ITEMS.map((item) => (
                   <SidebarLink
                     key={item.href}
                     href={item.href}
@@ -382,40 +356,40 @@ export function Sidebar() {
             ) : null}
           </div>
 
-          {/* Printing Group */}
-          <div className="space-y-1">
-            {(isSidebarVisible || mobileMenuOpen) && (
-              <button
-                type="button"
-                onClick={() => setPrintingExpanded((prev: boolean) => !prev)}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase transition-colors hover:bg-neutral-200/50 dark:text-neutral-500 dark:hover:bg-neutral-800/50"
-                aria-expanded={printingExpanded}
-              >
-                <span className="flex-1 text-left">Pencetakan Label</span>
-                {isSidebarVisible && (
-                  <IconChevronRight
-                    className={`h-3 w-3 transition-transform ${printingExpanded ? 'rotate-90' : ''}`}
-                  />
-                )}
-              </button>
-            )}
-            {printingExpanded && (isSidebarVisible || mobileMenuOpen) ? (
-              <div className="space-y-1 pl-2">
-                {PRINTING_ITEMS.filter(
-                  (item) => isAdminUser || item.href !== '/master/label-templates',
-                ).map((item) => (
-                  <SidebarLink
-                    key={item.href}
-                    href={item.href}
-                    title={item.title}
-                    icon={item.icon}
-                    isActive={pathname === item.href}
-                    sidebarCollapsed={!isSidebarVisible}
-                  />
-                ))}
-              </div>
-            ) : null}
-          </div>
+          {/* Laporan Group */}
+          {isAdminUser && (
+            <div className="space-y-1">
+              {(isSidebarVisible || mobileMenuOpen) && (
+                <button
+                  type="button"
+                  onClick={() => setReportsExpanded((prev: boolean) => !prev)}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase transition-colors hover:bg-neutral-200/50 dark:text-neutral-500 dark:hover:bg-neutral-800/50"
+                  aria-expanded={reportsExpanded}
+                >
+                  <span className="flex-1 text-left">Laporan & Analitik</span>
+                  {isSidebarVisible && (
+                    <IconChevronRight
+                      className={`h-3 w-3 transition-transform ${reportsExpanded ? 'rotate-90' : ''}`}
+                    />
+                  )}
+                </button>
+              )}
+              {reportsExpanded && (isSidebarVisible || mobileMenuOpen) ? (
+                <div className="space-y-1 pl-2">
+                  {REPORT_ITEMS.map((item) => (
+                    <SidebarLink
+                      key={item.href}
+                      href={item.href}
+                      title={item.title}
+                      icon={item.icon}
+                      isActive={pathname === item.href}
+                      sidebarCollapsed={!isSidebarVisible}
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
 
           {/* HR & Payroll Group */}
           <div className="space-y-1">
@@ -471,6 +445,41 @@ export function Sidebar() {
               {financeExpanded && (isSidebarVisible || mobileMenuOpen) ? (
                 <div className="space-y-1 pl-2">
                   {FINANCE_ITEMS.map((item) => (
+                    <SidebarLink
+                      key={item.href}
+                      href={item.href}
+                      title={item.title}
+                      icon={item.icon}
+                      isActive={pathname === item.href}
+                      sidebarCollapsed={!isSidebarVisible}
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {/* Master Data Group */}
+          {masterItems.length > 0 && (
+            <div className="space-y-1">
+              {(isSidebarVisible || mobileMenuOpen) && (
+                <button
+                  type="button"
+                  onClick={() => setMasterExpanded((prev: boolean) => !prev)}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase transition-colors hover:bg-neutral-200/50 dark:text-neutral-500 dark:hover:bg-neutral-800/50"
+                  aria-expanded={masterExpanded}
+                >
+                  <span className="flex-1 text-left">Data Master & Pengaturan</span>
+                  {isSidebarVisible && (
+                    <IconChevronRight
+                      className={`h-3 w-3 transition-transform ${masterExpanded ? 'rotate-90' : ''}`}
+                    />
+                  )}
+                </button>
+              )}
+              {masterExpanded && (isSidebarVisible || mobileMenuOpen) ? (
+                <div className="space-y-1 pl-2">
+                  {masterItems.map((item) => (
                     <SidebarLink
                       key={item.href}
                       href={item.href}

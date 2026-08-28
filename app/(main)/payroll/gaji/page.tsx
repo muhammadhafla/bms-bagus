@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { mutasiApi, PayrollMutasi } from '@/lib/api/payroll';
-import { Card, Button, ModernPagination, Modal, TextInput, TextareaInput } from '@/components/ui';
-import { IconWallet, IconArrowUpRight, IconArrowDownLeft, IconClock, IconReceipt2 } from '@tabler/icons-react';
-import { format } from 'date-fns';
+import { Card, Button, ModernPagination, Modal, TextInput, TextareaInput, DataTable, type Column, Badge } from '@/components/ui';
+import { IconWallet, IconArrowUpRight, IconArrowDownLeft, IconClock, IconReceipt2, IconCalendarEvent, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths, isSameDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { toast } from 'sonner';
 
@@ -17,6 +17,11 @@ function DompetContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const page = Number(searchParams.get('page')) || 1;
   const limit = 20;
@@ -47,6 +52,32 @@ function DompetContent() {
   const [nominal, setNominal] = useState('');
   const [keterangan, setKeterangan] = useState('');
 
+  // Calendar Modal State
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+  const monthStart = startOfMonth(calendarMonth);
+  const monthEnd = endOfMonth(calendarMonth);
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  
+  const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+
+  const startDateStr = format(monthStart, 'yyyy-MM-dd');
+  const endDateStr = format(monthEnd, 'yyyy-MM-dd');
+
+  const { data: mutasiMonthData, isLoading: isLoadingMutasiMonth } = useQuery({
+    queryKey: ['payroll', 'my_mutasi_month', startDateStr, endDateStr],
+    queryFn: () => mutasiApi.getMyMutasiByRange(startDateStr, endDateStr).then(res => res.data),
+    enabled: isCalendarModalOpen,
+  });
+
+  const selectedDateEvents = useMemo(() => {
+    if (!selectedDate || !mutasiMonthData) return [];
+    return mutasiMonthData.filter(m => isSameDay(new Date(m.tanggal), selectedDate));
+  }, [selectedDate, mutasiMonthData]);
+
   const submitMutation = useMutation({
     mutationFn: () => mutasiApi.requestPenarikan(Number(nominal.replace(/\D/g, '')), keterangan),
     onSuccess: (res) => {
@@ -69,15 +100,64 @@ function DompetContent() {
     submitMutation.mutate();
   };
 
+  const columns: Column<PayrollMutasi>[] = [
+    { 
+      key: 'tanggal',
+      header: 'Tanggal', 
+      render: (row) => format(new Date(row.tanggal), 'd MMM yyyy, HH:mm', { locale: localeId }) 
+    },
+    { key: 'keterangan', header: 'Keterangan', render: (row) => row.keterangan || (row.kategori === 'gaji' ? 'Penerimaan Gaji' : 'Penarikan Dana') },
+    { 
+      key: 'nominal', 
+      header: 'Nominal', 
+      render: (row) => (
+        <span className={`font-bold ${
+          row.status === 'pending' 
+            ? 'text-amber-600 dark:text-amber-500' 
+            : row.jenis === 'kredit' 
+              ? 'text-emerald-600 dark:text-emerald-400' 
+              : 'text-neutral-900 dark:text-white'
+        }`}>
+          {row.jenis === 'kredit' ? '+' : '-'}Rp {row.nominal.toLocaleString('id-ID')}
+        </span>
+      )
+    },
+    { 
+      key: 'status', 
+      header: 'Status', 
+      render: (row) => {
+        let variant: 'warning' | 'success' | 'danger' | 'default' = 'default';
+        if (row.status === 'pending') variant = 'warning';
+        if (row.status === 'disetujui') variant = 'success';
+        if (row.status === 'ditolak') variant = 'danger';
+        
+        return (
+          <Badge variant={variant}>
+            {row.status === 'pending' ? 'PENDING' : row.status === 'ditolak' ? 'DITOLAK' : 'BERHASIL'}
+          </Badge>
+        );
+      }
+    }
+  ];
+
   return (
-    <div className="flex flex-col gap-6 p-4 max-w-md mx-auto md:max-w-4xl pt-8 pb-20">
+    <div className="flex flex-col gap-6 p-4 w-full mx-auto pt-8 pb-20">
       
       {/* Header & Balance Card */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 to-brand-800 p-6 text-white shadow-xl">
         <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
         <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
         
-        <div className="relative z-10 flex flex-col items-center text-center">
+        {/* Top Right Calendar Button */}
+        <button
+          onClick={() => setIsCalendarModalOpen(true)}
+          className="absolute top-4 right-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+          title="Lihat Kalender Gaji"
+        >
+          <IconCalendarEvent size={20} />
+        </button>
+
+        <div className="relative z-10 flex flex-col items-center text-center mt-2">
           <p className="text-brand-100 mb-1 text-sm font-medium">
             {saldo < 0 ? 'Total Pinjaman/Kasbon' : 'Total Saldo Saat Ini'}
           </p>
@@ -95,7 +175,7 @@ function DompetContent() {
           </Button>
           
           <button 
-            onClick={() => toast.info('Fitur Slip Gaji akan segera hadir')}
+            onClick={() => router.push('/payroll/slip')}
             className="mt-4 text-sm font-medium text-brand-100 hover:text-white underline decoration-brand-400/50 hover:decoration-white underline-offset-4 transition-all"
           >
             Lihat Rincian / Slip Gaji
@@ -107,7 +187,40 @@ function DompetContent() {
       <div>
         <h2 className="text-lg font-bold text-neutral-900 dark:text-white mb-4">Riwayat Mutasi</h2>
         
-        <div className="flex flex-col gap-3">
+        {/* Desktop Table Layout */}
+        <div className="hidden md:flex overflow-hidden flex-col rounded-xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+          {isLoadingMutasi ? (
+            <div className="p-8 text-center text-sm text-neutral-500">Memuat data...</div>
+          ) : !list || list.length === 0 ? (
+            <div className="p-8 text-center text-sm text-neutral-500 flex flex-col items-center gap-3">
+              <IconReceipt2 className="h-10 w-10 text-neutral-300" />
+              <p>Belum ada riwayat transaksi.</p>
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col">
+              <DataTable 
+                columns={columns}
+                data={list}
+                keyField="id"
+                className="border-none flex-1"
+              />
+              {totalPages > 1 && (
+                <div className="mt-4 pb-4">
+                  <ModernPagination
+                    page={page}
+                    totalPages={totalPages}
+                    total={totalItems}
+                    limit={limit}
+                    onPageChange={updatePage}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Card Layout */}
+        <div className="flex md:hidden flex-col gap-3">
           {isLoadingMutasi ? (
             <Card className="p-8 text-center text-sm text-neutral-500">Memuat data...</Card>
           ) : !list || list.length === 0 ? (
@@ -235,6 +348,139 @@ function DompetContent() {
           </div>
         </form>
       </Modal>
+
+      {/* Modal Kalender */}
+      {isMounted && (
+        <Modal
+          isOpen={isCalendarModalOpen}
+          onClose={() => {
+            setIsCalendarModalOpen(false);
+            setSelectedDate(null);
+          }}
+          title="Kalender Gaji & Kasbon"
+          isBottomSheetOnMobile={true}
+        >
+        <div className="flex flex-col mt-2">
+          {/* Calendar Header */}
+          <div className="flex items-center justify-between mb-4">
+            <button 
+              onClick={() => setCalendarMonth(subMonths(calendarMonth, 1))}
+              className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              <IconChevronLeft className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+            </button>
+            <h3 className="font-bold text-neutral-900 dark:text-white capitalize">
+              {format(calendarMonth, 'MMMM yyyy', { locale: localeId })}
+            </h3>
+            <button 
+              onClick={() => setCalendarMonth(addMonths(calendarMonth, 1))}
+              className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              <IconChevronRight className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+            </button>
+          </div>
+
+          {/* Days Header */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map(day => (
+              <div key={day} className="text-center text-[10px] font-bold text-neutral-400 dark:text-neutral-500">
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar Grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays.map((day, idx) => {
+              const isCurrentMonth = isSameMonth(day, calendarMonth);
+              const isSelected = selectedDate ? isSameDay(day, selectedDate) : false;
+              const isTodayDate = isToday(day);
+              
+              // Find events for this day
+              const dayEvents = mutasiMonthData?.filter(m => isSameDay(new Date(m.tanggal), day)) || [];
+              
+              return (
+                <button 
+                  key={idx}
+                  onClick={() => setSelectedDate(day)}
+                  className={`
+                    aspect-square p-1 flex flex-col items-center justify-start rounded-lg border transition-all
+                    ${!isCurrentMonth ? 'opacity-30 border-transparent' : 'border-transparent hover:bg-neutral-50 dark:hover:bg-neutral-800/50'}
+                    ${isSelected ? 'ring-2 ring-brand-500 bg-brand-50/50 dark:bg-brand-900/20' : ''}
+                    ${isTodayDate && !isSelected ? 'bg-neutral-100 dark:bg-neutral-800' : ''}
+                  `}
+                >
+                  <span className={`text-xs ${isTodayDate ? 'font-bold text-brand-600 dark:text-brand-400' : 'font-medium text-neutral-700 dark:text-neutral-300'}`}>
+                    {format(day, 'd')}
+                  </span>
+                  
+                  {/* Dots Container */}
+                  <div className="mt-auto flex flex-wrap gap-0.5 justify-center pb-1 px-0.5">
+                    {dayEvents.map(m => (
+                      <div 
+                        key={m.id} 
+                        className={`w-1.5 h-1.5 rounded-full ${m.jenis === 'kredit' ? 'bg-emerald-500' : 'bg-orange-500'}`}
+                      />
+                    ))}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {isLoadingMutasiMonth && (
+            <div className="mt-4 flex justify-center">
+              <div className="h-5 w-5 rounded-full border-2 border-neutral-200 border-t-brand-500 animate-spin"></div>
+            </div>
+          )}
+
+          {/* Legend */}
+          <div className="flex justify-center gap-4 mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-[10px] text-neutral-500 dark:text-neutral-400 font-medium">Penerimaan/Gaji</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-orange-500" />
+              <span className="text-[10px] text-neutral-500 dark:text-neutral-400 font-medium">Penarikan/Kasbon</span>
+            </div>
+          </div>
+          
+          {/* Selected Date Details */}
+          {selectedDate && (
+            <div className="mt-4 bg-neutral-50 dark:bg-neutral-900/50 rounded-xl p-4 border border-neutral-100 dark:border-neutral-800 animate-in fade-in slide-in-from-top-2">
+              <h4 className="font-bold text-sm text-neutral-900 dark:text-white mb-3 capitalize">
+                {format(selectedDate, 'EEEE, d MMMM yyyy', { locale: localeId })}
+              </h4>
+              
+              {selectedDateEvents.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {selectedDateEvents.map(m => (
+                    <div key={m.id} className="flex justify-between items-center bg-white dark:bg-neutral-800 p-3 rounded-lg border border-neutral-100 dark:border-neutral-700 shadow-sm">
+                      <div>
+                        <p className="font-semibold text-xs text-neutral-900 dark:text-white">
+                          {m.keterangan || (m.kategori === 'gaji' ? 'Penerimaan Gaji' : 'Penarikan Dana')}
+                        </p>
+                        <p className="text-[10px] text-neutral-500 dark:text-neutral-400 mt-0.5">
+                          Jam {format(new Date(m.tanggal), 'HH:mm')}
+                        </p>
+                      </div>
+                      <span className={`font-bold text-sm ${m.jenis === 'kredit' ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-600 dark:text-orange-500'}`}>
+                        {m.jenis === 'kredit' ? '+' : '-'} Rp {m.nominal.toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">Tidak ada transaksi mutasi pada tanggal ini.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        </Modal>
+      )}
     </div>
   );
 }

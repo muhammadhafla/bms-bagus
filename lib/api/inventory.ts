@@ -286,6 +286,43 @@ export const inventoryApi = {
     );
   },
 
+  async snoozeLowStock(id: string, days: number) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: new Error('User not authenticated') };
+
+    return safeQuery<InventoryItem>(
+      async () => {
+        const result = await supabase
+          .rpc('snooze_low_stock_item', { p_id: id, p_days: days, p_user: user.id })
+          .single();
+        return { data: result.data as InventoryItem, error: result.error as Error | null };
+      },
+      { isMutation: true }
+    );
+  },
+
+  async snoozeLowStockBulk(ids: string[], days: number) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: new Error('User not authenticated') };
+
+    const snoozedUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+
+    return safeQuery<any>(
+      async () => {
+        const result = await supabase
+          .from('inventory')
+          .update({
+            snoozed_until: snoozedUntil,
+            updated_by: user.id,
+            updated_at: new Date().toISOString()
+          })
+          .in('id', ids);
+        return { data: result.data, error: result.error as Error | null };
+      },
+      { isMutation: true }
+    );
+  },
+
   async getPurchaseHistory(inventory_id: string, options: { page?: number; limit?: number } = {}) {
     const page = Math.max(1, options.page || 1);
     const limit = Math.min(100, Math.max(1, options.limit || 10));

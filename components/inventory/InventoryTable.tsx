@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   IconPackage,
   IconDotsVertical,
@@ -61,6 +61,59 @@ export const InventoryTable = React.memo(function InventoryTable({
   pagination,
   kategoriList,
 }: InventoryTableProps) {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkSnoozing, setIsBulkSnoozing] = useState(false);
+  const [showBulkSnoozeOpts, setShowBulkSnoozeOpts] = useState(false);
+  const bulkSnoozeRef = useRef<HTMLDivElement>(null);
+  
+  // Close bulk snooze popup when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (bulkSnoozeRef.current && !bulkSnoozeRef.current.contains(event.target as Node)) {
+        setShowBulkSnoozeOpts(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleBulkSnooze = async (days: number) => {
+    if (selectedIds.size === 0) return;
+    setIsBulkSnoozing(true);
+    try {
+      const idsArray = Array.from(selectedIds);
+      await inventoryApi.snoozeLowStockBulk(idsArray, days);
+      toast.success(`${idsArray.length} barang berhasil di-snooze`);
+      setSelectedIds(new Set());
+      // A full refresh of data would normally happen via a callback, 
+      // but since we are modifying locally, we can just trigger a reload or leave it to user to refresh
+      window.location.reload(); 
+    } catch (err) {
+      toast.error('Gagal melakukan snooze massal');
+    } finally {
+      setIsBulkSnoozing(false);
+      setShowBulkSnoozeOpts(false);
+    }
+  };
+
+  const toggleSelectAll = useCallback(() => {
+    if (selectedIds.size === items.length && items.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(items.map(item => item.id)));
+    }
+  }, [items, selectedIds]);
+
+  const toggleSelect = useCallback((id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
   const [editForm, setEditForm] = useState<EditForm>({
@@ -233,10 +286,64 @@ export const InventoryTable = React.memo(function InventoryTable({
 
   return (
     <>
+      {selectedIds.size > 0 && (
+        <div className="mb-4 hidden items-center justify-between rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 shadow-sm lg:flex dark:border-brand-900/50 dark:bg-brand-900/20">
+          <div className="flex items-center gap-2 text-sm font-semibold text-brand-700 dark:text-brand-300">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-xs dark:bg-brand-800">
+              {selectedIds.size}
+            </span>
+            Barang Dipilih
+          </div>
+          
+          <div className="relative" ref={bulkSnoozeRef}>
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              onClick={() => setShowBulkSnoozeOpts(!showBulkSnoozeOpts)}
+              className="border-brand-300 text-brand-700 hover:bg-brand-100 dark:border-brand-800 dark:text-brand-300 dark:hover:bg-brand-800"
+            >
+              🕒 Snooze Massal
+            </Button>
+            
+            {showBulkSnoozeOpts && (
+              <div className="shadow-elevated absolute right-0 top-10 z-30 w-40 rounded-lg border border-neutral-200 bg-white p-2 dark:border-neutral-700 dark:bg-neutral-800">
+                <p className="mb-2 px-1 text-xs font-semibold text-neutral-500 dark:text-neutral-400">Pilih Durasi</p>
+                <div className="flex flex-col gap-1">
+                  {[
+                    { label: '1 Hari', days: 1, icon: '⏱️' },
+                    { label: '3 Hari', days: 3, icon: '🚚' },
+                    { label: '1 Minggu', days: 7, icon: '📅' },
+                    { label: '1 Bulan', days: 30, icon: '📦' },
+                  ].map(opt => (
+                    <button
+                      key={opt.days}
+                      onClick={() => handleBulkSnooze(opt.days)}
+                      disabled={isBulkSnoozing}
+                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-neutral-700 hover:bg-neutral-100 disabled:opacity-50 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                    >
+                      <span className="text-base">{opt.icon}</span>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="shadow-elevated hidden overflow-auto rounded-3xl border border-white/40 bg-white/70 backdrop-blur-xl lg:block dark:border-white/10 dark:bg-neutral-900/60">
         <table className="w-full min-w-[900px]">
           <thead className="sticky top-0 z-10 border-b border-neutral-200/50 bg-white/50 backdrop-blur-md dark:border-neutral-800/50 dark:bg-neutral-950/50">
             <tr>
+              <th className="w-12 px-4 py-3 text-center">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 cursor-pointer rounded border-neutral-300 text-brand-600 focus:ring-brand-500 dark:border-neutral-600 dark:bg-neutral-800 dark:checked:bg-brand-500"
+                  checked={items.length > 0 && selectedIds.size === items.length}
+                  onChange={toggleSelectAll}
+                />
+              </th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
                 Barcode
               </th>
@@ -278,6 +385,14 @@ export const InventoryTable = React.memo(function InventoryTable({
                   onClick={() => openSlideOver(item)}
                   className={`group cursor-pointer transition-colors ${item.is_discontinued ? 'bg-neutral-50/50 opacity-60 hover:bg-neutral-100/50 dark:bg-neutral-900/30 dark:hover:bg-neutral-800/40' : isLowStock ? 'bg-accent-rose-50/30 dark:bg-accent-rose-900/20 hover:bg-accent-rose-100/60 dark:hover:bg-accent-rose-900/50' : 'hover:bg-neutral-50/80 dark:hover:bg-neutral-800/60'}`}
                 >
+                  <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 cursor-pointer rounded border-neutral-300 text-brand-600 focus:ring-brand-500 dark:border-neutral-600 dark:bg-neutral-800 dark:checked:bg-brand-500"
+                      checked={selectedIds.has(item.id)}
+                      onChange={(e) => toggleSelect(item.id, e as any)}
+                    />
+                  </td>
                   <td className="px-4 py-3 font-mono text-sm text-neutral-900 dark:text-neutral-100">
                     {item.kode_barcode}
                   </td>

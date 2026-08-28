@@ -18,6 +18,7 @@ import {
   IconReport,
   IconClock,
   IconWallet,
+  IconReceipt,
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -56,6 +57,7 @@ export function MobileLaunchpad({
   const [selectedTxType, setSelectedTxType] = useState<'penjualan' | 'pembelian' | null>(null);
   const [selectedLowStock, setSelectedLowStock] = useState<LowStockItem | null>(null);
   const [isDiscontinuing, setIsDiscontinuing] = useState(false);
+  const [isSnoozing, setIsSnoozing] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -64,6 +66,21 @@ export function MobileLaunchpad({
     await onRefresh();
     setTimeout(() => setIsRefreshing(false), 500);
   };
+
+  const handleSnooze = async (itemId: string, days: number) => {
+    setIsSnoozing(true);
+    try {
+      await inventoryApi.snoozeLowStock(itemId, days);
+      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      onRefresh();
+    } catch (error) {
+      console.error('Failed to snooze item:', error);
+    } finally {
+      setIsSnoozing(false);
+      setSelectedLowStock(null);
+    }
+  };
+
 
   const handleDiscontinue = async (itemId: string) => {
     setIsDiscontinuing(true);
@@ -116,9 +133,9 @@ export function MobileLaunchpad({
       bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
-      href: '/admin/payroll/karyawan',
-      title: 'Karyawan',
-      icon: IconUsersGroup,
+      href: '/finance/operasional',
+      title: 'Pengeluaran',
+      icon: IconReceipt,
       color: 'text-pink-600',
       bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
@@ -219,53 +236,81 @@ export function MobileLaunchpad({
     recentTransactions?.filter((trx) => (isAdminUser ? true : trx.type === 'penjualan')) || [];
 
   return (
-    <div className="flex flex-col pb-6">
-      {/* Header Lightweight */}
-      <div className="mb-4 flex items-center justify-between px-1">
-        <div>
-          <h1 className="text-xl leading-tight font-bold text-neutral-900 dark:text-white">
-            Halo, {profile?.nama?.split(' ')[0] || 'User'} 👋
-          </h1>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">{todayStr}</p>
-        </div>
-        <div className="flex items-center gap-3">
+    <div className="flex flex-col pb-6 pt-2">
+      {/* Header (Admin = Card, Non-Admin = Text Only) */}
+      {isAdminUser ? (
+        <div className="mb-6 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-4 shadow-lg shadow-brand-500/20 text-white">
+          <Link href="/profile" className="mb-3 flex items-center justify-between transition-opacity active:opacity-70">
+            <div>
+              <h1 className="text-xl leading-tight font-bold text-white">
+                Halo, {profile?.nama?.split(' ')[0] || 'User'} 👋
+              </h1>
+              <p className="text-xs text-brand-100">{todayStr}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {profile?.avatar_url ? (
+                <div className="relative h-9 w-9 overflow-hidden rounded-full border-2 border-white/20">
+                  <Image
+                    src={profile.avatar_url}
+                    alt="Avatar"
+                    fill
+                    sizes="36px"
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white backdrop-blur-sm">
+                  {profile?.nama?.charAt(0)?.toUpperCase() ||
+                    user?.email?.charAt(0)?.toUpperCase() ||
+                    'U'}
+                </div>
+              )}
+            </div>
+          </Link>
 
-          <Link href="/profile">
-            {profile?.avatar_url ? (
-              <div className="border-brand-100 dark:border-brand-900 relative h-9 w-9 overflow-hidden rounded-full border-2">
-                <Image
-                  src={profile.avatar_url}
-                  alt="Avatar"
-                  fill
-                  sizes="36px"
-                  className="object-cover"
-                />
-              </div>
-            ) : (
-              <div className="bg-brand-500 flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white">
-                {profile?.nama?.charAt(0)?.toUpperCase() ||
-                  user?.email?.charAt(0)?.toUpperCase() ||
-                  'U'}
-              </div>
-            )}
+          <Link href="/transactions/history" className="flex flex-col gap-0.5 pt-3 border-t border-white/10 transition-opacity active:opacity-70">
+            <div className="flex items-end gap-3">
+              <p className="text-[2rem] leading-none font-black tracking-tighter text-white">
+                {isLoading ? '...' : `Rp ${(stats?.todaySales || 0).toLocaleString('id-ID')}`}
+              </p>
+              {stats && stats.todaySales > 0 && (
+                <span className="mb-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
+                  +{(stats.todayTransactions || 0)} Trx
+                </span>
+              )}
+            </div>
+            <p className="text-sm font-medium text-brand-100">Penjualan hari ini</p>
           </Link>
         </div>
-      </div>
-
-      {/* Info Bar (Split) */}
-      {isAdminUser && (
-        <div className="mb-6 flex flex-col gap-0.5">
-          <div className="flex items-end gap-3">
-            <p className="text-[2rem] leading-none font-black tracking-tighter text-neutral-900 dark:text-white">
-              {isLoading ? '...' : `Rp ${(stats?.todaySales || 0).toLocaleString('id-ID')}`}
-            </p>
-            {stats && stats.todaySales > 0 && (
-              <span className="mb-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                +{(stats.todayTransactions || 0)} Trx
-              </span>
-            )}
+      ) : (
+        <div className="mb-6 flex items-center justify-between px-1">
+          <div>
+            <h1 className="text-xl leading-tight font-bold text-neutral-900 dark:text-white">
+              Halo, {profile?.nama?.split(' ')[0] || 'User'} 👋
+            </h1>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">{todayStr}</p>
           </div>
-          <p className="text-sm font-bold text-neutral-500 dark:text-neutral-400">Penjualan hari ini</p>
+          <div className="flex items-center gap-3">
+            <Link href="/profile">
+              {profile?.avatar_url ? (
+                <div className="border-brand-100 dark:border-brand-900 relative h-9 w-9 overflow-hidden rounded-full border-2">
+                  <Image
+                    src={profile.avatar_url}
+                    alt="Avatar"
+                    fill
+                    sizes="36px"
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="bg-brand-500 flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white">
+                  {profile?.nama?.charAt(0)?.toUpperCase() ||
+                    user?.email?.charAt(0)?.toUpperCase() ||
+                    'U'}
+                </div>
+              )}
+            </Link>
+          </div>
         </div>
       )}
 
@@ -308,7 +353,7 @@ export function MobileLaunchpad({
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xs font-bold tracking-widest text-neutral-400 uppercase">Stok Perlu Dicek</h2>
             <Link
-              href="/inventory?filter=low-stock"
+              href="/inventory?lowStockOnly=true"
               className="text-[10px] font-bold tracking-wider text-brand-600 hover:text-brand-700 uppercase"
             >
               Lihat Semua
@@ -445,6 +490,30 @@ export function MobileLaunchpad({
               <p className="text-xs text-neutral-500">Buat transaksi pembelian baru</p>
             </div>
           </Link>
+
+          {/* SNOOZE SECTION */}
+          <div className="mt-2 border-t border-neutral-200 dark:border-neutral-800 pt-4 pb-2">
+            <p className="mb-1 text-sm font-semibold text-neutral-900 dark:text-white">Tunda Peringatan (Snooze)</p>
+            <p className="mb-3 text-xs text-neutral-500">Sembunyikan dari widget sementara waktu</p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: '1 Hari', days: 1, icon: '⏱️' },
+                { label: '3 Hari', days: 3, icon: '🚚' },
+                { label: '1 Minggu', days: 7, icon: '📅' },
+                { label: '1 Bulan', days: 30, icon: '📦' },
+              ].map((opt) => (
+                <button
+                  key={opt.days}
+                  onClick={() => selectedLowStock && handleSnooze(selectedLowStock.id, opt.days)}
+                  disabled={isSnoozing}
+                  className="flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white p-2.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                >
+                  <span>{opt.icon}</span>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {isAdminUser && (
             <button

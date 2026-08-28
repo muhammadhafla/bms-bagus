@@ -141,7 +141,13 @@ export function DataTable<T>({
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400"
+                  className={`px-4 py-3 text-sm font-semibold text-neutral-600 dark:text-neutral-400 ${
+                    col.align === 'right'
+                      ? 'text-right'
+                      : col.align === 'center'
+                        ? 'text-center'
+                        : 'text-left'
+                  }`}
                   style={{ width: col.width }}
                   aria-sort={
                     col.sortable

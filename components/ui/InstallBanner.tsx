@@ -4,7 +4,7 @@ import { IconDownload, IconX } from '@tabler/icons-react';
 import Image from 'next/image';
 
 export function InstallBanner() {
-  const { canInstall, install, dismiss } = useInstallPrompt();
+  const { canInstall, isIosPrompt, install, dismiss } = useInstallPrompt();
 
   if (!canInstall) return null;
 
@@ -17,17 +17,21 @@ export function InstallBanner() {
         <p className="text-brand-900 dark:text-brand-100 text-sm leading-tight font-semibold">
           Install BMS
         </p>
-        <p className="text-brand-600 dark:text-brand-400 truncate text-xs">
-          Akses lebih cepat dari home screen
+        <p className="text-brand-600 dark:text-brand-400 text-xs">
+          {isIosPrompt
+            ? "Ketuk ikon Share/Menu browser, lalu 'Add to Home Screen'"
+            : "Akses lebih cepat dari home screen"}
         </p>
       </div>
-      <button
-        onClick={install}
-        className="bg-brand-600 hover:bg-brand-700 flex min-h-[32px] shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-all active:scale-95"
-      >
-        <IconDownload className="h-3.5 w-3.5" />
-        Install
-      </button>
+      {!isIosPrompt && (
+        <button
+          onClick={install}
+          className="bg-brand-600 hover:bg-brand-700 flex min-h-[32px] shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-all active:scale-95"
+        >
+          <IconDownload className="h-3.5 w-3.5" />
+          Install
+        </button>
+      )}
       <button
         onClick={dismiss}
         className="text-brand-400 hover:text-brand-600 dark:text-brand-500 dark:hover:text-brand-300 shrink-0 rounded p-1 transition-colors"

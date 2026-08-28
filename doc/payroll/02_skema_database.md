@@ -5,7 +5,8 @@ Modul Payroll membutuhkan 4 tabel utama yang direlasikan ke dalam tabel otentika
 ## 1. Tabel `karyawan`
 Merupakan data HR spesifik untuk user.
 
-- `user_id` (UUID, PK, FK ke `auth.users.id`): Identitas akun.
+- `id` (UUID, PK)
+- `user_id` (UUID, FK ke `auth.users.id`, UNIQUE): Identitas akun.
 - `jam_masuk` (TIME): Standar jam masuk (misal `08:00`).
 - `jam_pulang` (TIME): Standar jam pulang (misal `17:00`).
 - `gaji_harian` (NUMERIC): Nominal gaji tetap harian (Rp).
@@ -26,9 +27,9 @@ Merupakan data HR spesifik untuk user.
 Log harian absensi.
 
 - `id` (UUID, PK)
-- `user_id` (UUID, FK ke `karyawan.user_id`)
+- `user_id` (UUID, FK ke `auth.users.id`)
 - `tanggal` (DATE)
-- `waktu_masuk` (TIMESTAMPTZ)
+- `waktu_masuk` (TIMESTAMPTZ, Nullable)
 - `waktu_pulang` (TIMESTAMPTZ, Nullable)
 - `status_hadir` (VARCHAR): `hadir`, `izin`, `sakit`, `alpha`, `off`
 - `menit_kerja` (INTEGER)
@@ -38,6 +39,8 @@ Log harian absensi.
 - `status_lembur` (VARCHAR): `tidak_ada`, `pending`, `disetujui`, `ditolak`
 - `created_at` (TIMESTAMPTZ)
 
+*Catatan: Kombinasi `user_id` dan `tanggal` bersifat unik (UNIQUE).*
+
 **Kebijakan RLS:**
 - **SELECT:** `user_id = auth.uid() OR is_admin()`
 - **INSERT:** `user_id = auth.uid() OR is_admin()`
@@ -46,31 +49,32 @@ Log harian absensi.
 
 ---
 
-## 3. Tabel `kasbon`
-Pencatatan kasbon dan persetujuan.
+## 3. Tabel `payroll_mutasi`
+Pencatatan ledger untuk Early Wage Access (EWA), gaji, dan penarikan/kasbon. Menggantikan tabel `kasbon`.
 
 - `id` (UUID, PK)
-- `user_id` (UUID, FK ke `karyawan.user_id`)
-- `tanggal` (DATE)
+- `user_id` (UUID, FK ke `auth.users.id`)
+- `tanggal` (TIMESTAMPTZ)
+- `jenis` (ENUM): `kredit` (penambahan), `debit` (pengurangan/penarikan)
+- `kategori` (ENUM): `gaji`, `kasbon`, `pencairan`, `lainnya`
 - `nominal` (NUMERIC)
 - `keterangan` (TEXT)
-- `status` (VARCHAR): `pending`, `disetujui`, `ditolak`, `lunas`
-- `approved_by` (UUID, FK ke `auth.users`, Nullable)
-- `created_at` (TIMESTAMPTZ)
+- `status` (ENUM): `pending`, `disetujui`, `ditolak`
+- `referensi_id` (TEXT, UNIQUE): ID referensi (misal dari ID kehadiran).
+- `created_at`, `updated_at` (TIMESTAMPTZ)
 
 **Kebijakan RLS:**
 - **SELECT:** `user_id = auth.uid() OR is_admin()`
-- **INSERT:** `user_id = auth.uid() OR is_admin()`
-- **UPDATE:** `is_admin()` (Karyawan tidak bisa menyetujui kasbonnya sendiri).
-- **DELETE:** `is_admin()`
+- **INSERT:** `user_id = auth.uid()` (Hanya untuk `status = 'pending'`) atau `is_admin()`
+- **UPDATE/DELETE:** `is_admin()`
 
 ---
 
 ## 4. Tabel `slip_gaji`
-Riwayat dan rekapitulasi gaji yang bersifat statis (Snapshot).
+Riwayat dan rekapitulasi gaji bulanan (Snapshot).
 
 - `id` (UUID, PK)
-- `user_id` (UUID, FK ke `karyawan.user_id`)
+- `user_id` (UUID, FK ke `auth.users.id`)
 - `periode_bulan` (VARCHAR): misal `2026-08`
 - `total_hari_hadir` (INTEGER)
 - `total_jam_telat` (NUMERIC)
@@ -79,10 +83,16 @@ Riwayat dan rekapitulasi gaji yang bersifat statis (Snapshot).
 - `total_denda_telat` (NUMERIC): (total_jam_telat * denda_telat_per_jam)
 - `total_gaji_lembur` (NUMERIC): (total_jam_lembur * lembur_per_jam)
 - `total_potongan_kasbon` (NUMERIC)
-- `gaji_bersih` (NUMERIC): (gaji_harian - denda + lembur - kasbon)
+- `saldo_awal` (NUMERIC): Saldo EWA dari bulan sebelumnya
+- `total_pendapatan_bersih` (NUMERIC): Total mutasi kredit yang disetujui
+- `total_penarikan` (NUMERIC): Total mutasi debit yang disetujui
+- `sisa_saldo_akhir` (NUMERIC): Saldo EWA akhir bulan (saldo_awal + total_pendapatan_bersih - total_penarikan)
+- `gaji_bersih` (NUMERIC): Pendapatan bersih di bulan berjalan
 - `status_pembayaran` (VARCHAR): `draft`, `dibayar`
 - `dibayar_pada` (TIMESTAMPTZ, Nullable)
 - `created_at` (TIMESTAMPTZ)
+
+*Catatan: Kombinasi `user_id` dan `periode_bulan` bersifat unik (UNIQUE).*
 
 **Kebijakan RLS:**
 - **SELECT:** `user_id = auth.uid() OR is_admin()`

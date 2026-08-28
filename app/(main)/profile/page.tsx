@@ -23,6 +23,7 @@ import {
   IconTruck,
   IconPackage,
   IconClock,
+  IconMapPin,
 } from '@tabler/icons-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -407,6 +408,19 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex-1 text-sm font-semibold text-neutral-900 dark:text-white">
                       Kelola Kehadiran
+                    </div>
+                    <IconChevronRight className="h-4 w-4 text-neutral-400" />
+                  </Link>
+
+                  <Link
+                    href="/admin/payroll/lokasi-kerja"
+                    className="flex items-center gap-3 border-b border-neutral-100 px-4 py-2.5 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/30">
+                      <IconMapPin className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1 text-sm font-semibold text-neutral-900 dark:text-white">
+                      Lokasi Outlet
                     </div>
                     <IconChevronRight className="h-4 w-4 text-neutral-400" />
                   </Link>

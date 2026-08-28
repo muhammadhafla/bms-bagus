@@ -6,7 +6,7 @@ export interface Kehadiran {
   id: string;
   user_id: string;
   tanggal: string;
-  waktu_masuk: string;
+  waktu_masuk: string | null;
   waktu_pulang: string | null;
   status_hadir: 'hadir' | 'izin' | 'sakit' | 'alpha' | 'off';
   menit_kerja: number;
@@ -50,68 +50,58 @@ export const kehadiranApi = {
   },
 
   /**
-   * Absen Masuk
+   * Absen Masuk dengan validasi GPS
    */
-  async absenMasuk(status_hadir: 'hadir' | 'izin' | 'sakit' | 'alpha' | 'off' = 'hadir') {
+  async absenMasuk(lat: number, lng: number, status_hadir: 'hadir' | 'izin' | 'sakit' | 'alpha' | 'off' = 'hadir') {
     try {
       const { data: authData } = await supabase.auth.getUser();
       const userId = authData.user?.id;
       if (!userId) throw new Error('Not authenticated');
 
-      const dateStr = format(new Date(), 'yyyy-MM-dd');
-
-      // Hitung keterlambatan (Opsional: bisa dihitung dari frontend atau di backend/database. 
-      // Untuk MVP kita taruh 0 dulu, akan dihitung akurat saat integrasi date-fns)
-      
-      const payload = {
-        user_id: userId,
-        tanggal: dateStr,
-        waktu_masuk: new Date().toISOString(),
-        status_hadir
-      };
-
       const result = await safeQuery(
         async () => {
-          const res = await supabase.from('kehadiran').insert([payload]).select().single();
-          return { data: res.data as Kehadiran, error: res.error as Error | null };
+          const res = await supabase.rpc('absen_masuk_with_gps', {
+            p_user_id: userId,
+            p_status_hadir: status_hadir,
+            p_lat: lat,
+            p_lng: lng
+          });
+          
+          if (res.error) throw res.error;
+          return { data: res.data as Kehadiran, error: null };
         },
         { isMutation: true }
       );
       return result;
     } catch (err: any) {
-      return { data: null, error: { message: err.message || 'Terjadi kesalahan' } };
+      return { data: null, error: { message: err.message || 'Terjadi kesalahan atau di luar area kerja' } };
     }
   },
 
   /**
-   * Absen Pulang
+   * Absen Pulang dengan validasi GPS
    */
-  async absenPulang(id: string, menit_kerja: number, menit_telat: number, menit_lembur_aktual: number) {
+  async absenPulang(id: string, menit_kerja: number, menit_telat: number, menit_lembur_aktual: number, lat: number, lng: number) {
     try {
-      // Logic status lembur
-      const isLembur = menit_lembur_aktual > 30; // Aturan grace period 30m
-      const status_lembur = isLembur ? 'pending' : 'tidak_ada';
-      // Aturan telat grace period 30m
-      const final_telat = menit_telat > 30 ? menit_telat : 0;
-
-      const payload = {
-        waktu_pulang: new Date().toISOString(),
-        menit_kerja,
-        menit_telat: final_telat,
-        menit_lembur_aktual,
-        status_lembur
-      };
-
       const result = await safeQuery(
         async () => {
-          const res = await supabase.from('kehadiran').update(payload).eq('id', id).select().single();
-          return { data: res.data as Kehadiran, error: res.error as Error | null };
+          const res = await supabase.rpc('absen_pulang_with_gps', {
+            p_kehadiran_id: id,
+            p_menit_kerja: menit_kerja,
+            p_menit_telat: menit_telat,
+            p_menit_lembur: menit_lembur_aktual,
+            p_lat: lat,
+            p_lng: lng
+          });
+          
+          if (res.error) throw res.error;
+          return { data: res.data as Kehadiran, error: null };
         },
         { isMutation: true }
       );
       return result;
     } catch (err: any) {
-      return { data: null, error: { message: err.message || 'Terjadi kesalahan' } };
+      return { data: null, error: { message: err.message || 'Terjadi kesalahan atau di luar area kerja' } };
     }
   },
 

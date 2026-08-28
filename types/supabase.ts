@@ -432,7 +432,7 @@ export type Database = {
           status_lembur: string
           tanggal: string
           user_id: string
-          waktu_masuk: string
+          waktu_masuk: string | null
           waktu_pulang: string | null
         }
         Insert: {
@@ -446,7 +446,7 @@ export type Database = {
           status_lembur?: string
           tanggal?: string
           user_id: string
-          waktu_masuk?: string
+          waktu_masuk?: string | null
           waktu_pulang?: string | null
         }
         Update: {
@@ -460,7 +460,7 @@ export type Database = {
           status_lembur?: string
           tanggal?: string
           user_id?: string
-          waktu_masuk?: string
+          waktu_masuk?: string | null
           waktu_pulang?: string | null
         }
         Relationships: [

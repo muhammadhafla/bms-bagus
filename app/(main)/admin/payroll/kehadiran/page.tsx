@@ -216,16 +216,21 @@ function AdminKehadiranContent() {
     const waktu_masuk_time = fd.get('waktu_masuk') as string;
     const waktu_pulang_time = fd.get('waktu_pulang') as string;
     
-    let waktu_masuk_iso = new Date(`${createDate}T00:00:00`).toISOString();
+    let waktu_masuk_iso: string | null = new Date(`${createDate}T00:00:00`).toISOString();
     if (waktu_masuk_time) {
       const d = new Date(`${createDate}T${waktu_masuk_time}:00`);
       if (!isNaN(d.getTime())) waktu_masuk_iso = d.toISOString();
     }
 
-    let waktu_pulang_iso = null;
+    let waktu_pulang_iso: string | null = null;
     if (waktu_pulang_time) {
       const d = new Date(`${createDate}T${waktu_pulang_time}:00`);
       if (!isNaN(d.getTime())) waktu_pulang_iso = d.toISOString();
+    }
+
+    if (status_hadir !== 'hadir') {
+      waktu_masuk_iso = null;
+      waktu_pulang_iso = null;
     }
 
     createMutation.mutate({
@@ -274,16 +279,21 @@ function AdminKehadiranContent() {
     // We must combine the original Date with the new Time.
     const originalDateStr = selectedKehadiran.tanggal; // 'YYYY-MM-DD'
     
-    let waktu_masuk_iso = selectedKehadiran.waktu_masuk;
+    let waktu_masuk_iso: string | null = selectedKehadiran.waktu_masuk;
     if (waktu_masuk_time) {
       const d = new Date(`${originalDateStr}T${waktu_masuk_time}:00`);
       if (!isNaN(d.getTime())) waktu_masuk_iso = d.toISOString();
     }
     
-    let waktu_pulang_iso = selectedKehadiran.waktu_pulang || null;
+    let waktu_pulang_iso: string | null = selectedKehadiran.waktu_pulang || null;
     if (waktu_pulang_time) {
       const d = new Date(`${originalDateStr}T${waktu_pulang_time}:00`);
       if (!isNaN(d.getTime())) waktu_pulang_iso = d.toISOString();
+    }
+
+    if (status_hadir !== 'hadir') {
+      waktu_masuk_iso = null;
+      waktu_pulang_iso = null;
     }
 
     updateMutation.mutate({
@@ -626,13 +636,15 @@ function AdminKehadiranContent() {
                 name="waktu_masuk"
                 type="time"
                 defaultValue={getTimeFromIso(selectedKehadiran.waktu_masuk)}
-                required
+                required={editStatusHadir === 'hadir'}
+                disabled={editStatusHadir !== 'hadir'}
               />
               <TextInput
                 label="Waktu Pulang"
                 name="waktu_pulang"
                 type="time"
                 defaultValue={getTimeFromIso(selectedKehadiran.waktu_pulang)}
+                disabled={editStatusHadir !== 'hadir'}
               />
             </div>
 
@@ -727,11 +739,14 @@ function AdminKehadiranContent() {
                 name="waktu_masuk"
                 type="time"
                 defaultValue="09:00"
+                required={createStatusHadir === 'hadir'}
+                disabled={createStatusHadir !== 'hadir'}
               />
               <TextInput
                 label="Waktu Pulang"
                 name="waktu_pulang"
                 type="time"
+                disabled={createStatusHadir !== 'hadir'}
               />
             </div>
 

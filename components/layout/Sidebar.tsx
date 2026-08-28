@@ -34,6 +34,7 @@ import {
   IconWallet,
   IconPrinter,
   IconClock,
+  IconMapPin,
 } from '@tabler/icons-react';
 
 import { useSidebarContext } from './SidebarProvider';
@@ -84,6 +85,7 @@ const MASTER_ITEMS = [
   { href: '/inventory/kategori', title: 'Kategori Barang', icon: IconTags },
   { href: '/purchasing/supplier', title: 'Data Supplier', icon: IconTruck },
   { href: '/master/label-templates', title: 'Template Label', icon: IconTags },
+  { href: '/admin/payroll/lokasi-kerja', title: 'Lokasi Outlet', icon: IconMapPin },
 ];
 
 interface SidebarLinkProps {

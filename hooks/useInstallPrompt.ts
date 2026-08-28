@@ -10,6 +10,7 @@ export function useInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [isIosPrompt, setIsIosPrompt] = useState(false);
 
   useEffect(() => {
     // Check jika sudah standalone / installed
@@ -26,6 +27,13 @@ export function useInstallPrompt() {
     if (dismissed) {
       setIsDismissed(true);
       return;
+    }
+
+    // Cek apakah perangkat iOS
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    if (isIosDevice) {
+      setIsIosPrompt(true);
     }
 
     const handleBeforeInstall = (e: Event) => {
@@ -58,7 +66,8 @@ export function useInstallPrompt() {
   };
 
   return {
-    canInstall: !!deferredPrompt && !isInstalled && !isDismissed,
+    canInstall: (!!deferredPrompt || isIosPrompt) && !isInstalled && !isDismissed,
+    isIosPrompt,
     install,
     dismiss,
     isInstalled,

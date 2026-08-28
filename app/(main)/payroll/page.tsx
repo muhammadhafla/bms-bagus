@@ -70,10 +70,10 @@ export default function PayrollDashboardPage() {
         (error) => {
           if (error.code === error.PERMISSION_DENIED) {
             setGeoStatus('denied');
-            toast.error('Izin akses lokasi ditolak oleh browser.');
+            toast.error(`Akses ditolak: ${error.message}`);
           } else {
             setGeoStatus('error');
-            toast.error('Gagal membaca GPS, coba lagi.');
+            toast.error(`GPS Error (${error.code}): ${error.message}`);
           }
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }

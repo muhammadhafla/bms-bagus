@@ -97,6 +97,7 @@ export default function AdminKasbonClient() {
       setConfirmReject(null);
       setRejectReason('');
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_kasbon'] });
+      queryClient.invalidateQueries({ queryKey: ['buku_besar'] });
     },
     onError: () => toast.error('Terjadi kesalahan sistem'),
   });
@@ -135,6 +136,7 @@ export default function AdminKasbonClient() {
       setCreateNominal('');
       setCreateKeterangan('');
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_kasbon'] });
+      queryClient.invalidateQueries({ queryKey: ['buku_besar'] });
     },
     onError: () => toast.error('Terjadi kesalahan sistem'),
   });

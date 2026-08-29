@@ -11,7 +11,8 @@ import {
   TextareaInput, 
   SelectInput, 
   ModernPagination, 
-  AmbientLayout 
+  AmbientLayout,
+  ConfirmDialog
 } from '@/components/ui';
 import { 
   IconReceipt, 
@@ -25,7 +26,7 @@ import { toast } from 'sonner';
 
 export default function PengeluaranOperasionalPage() {
   const queryClient = useQueryClient();
-  const { profile } = useAuthStore();
+  const { profile, initialized } = useAuthStore();
   const isAdmin = profile?.role === 'admin' || (profile?.role as string) === 'owner';
 
   const [page, setPage] = useState(1);
@@ -44,6 +45,7 @@ export default function PengeluaranOperasionalPage() {
 
   // Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [kategori, setKategori] = useState('Listrik');
   const [kategoriLainnya, setKategoriLainnya] = useState('');
   const [nominal, setNominal] = useState('');
@@ -66,6 +68,7 @@ export default function PengeluaranOperasionalPage() {
       setIsModalOpen(false);
       resetForm();
       queryClient.invalidateQueries({ queryKey: ['pengeluaran_operasional'] });
+      queryClient.invalidateQueries({ queryKey: ['buku_besar'] });
     },
     onError: (err: any) => {
       toast.error(err.message || 'Gagal mencatat pengeluaran');
@@ -77,6 +80,7 @@ export default function PengeluaranOperasionalPage() {
     onSuccess: () => {
       toast.success('Pengeluaran berhasil dihapus');
       queryClient.invalidateQueries({ queryKey: ['pengeluaran_operasional'] });
+      queryClient.invalidateQueries({ queryKey: ['buku_besar'] });
     },
     onError: (err: any) => {
       toast.error(err.message || 'Gagal menghapus pengeluaran');
@@ -96,6 +100,10 @@ export default function PengeluaranOperasionalPage() {
     if (!nominal) return toast.error('Nominal wajib diisi');
     insertMutation.mutate();
   };
+
+  if (!profile && !initialized) {
+    return <div className="p-8 text-center text-neutral-500">Memuat...</div>;
+  }
 
   if (!isAdmin) {
     return <div className="p-8 text-center text-red-500 font-bold">Akses Ditolak. Halaman ini hanya untuk Admin/Owner.</div>;
@@ -153,9 +161,7 @@ export default function PengeluaranOperasionalPage() {
                         variant="danger" 
                         className="!p-2 mx-auto" 
                         onClick={() => {
-                          if (confirm('Yakin ingin menghapus data ini? Mutasi di Buku Besar juga akan terhapus.')) {
-                            deleteMutation.mutate(item.id);
-                          }
+                          setDeleteId(item.id);
                         }}
                         title="Hapus Pengeluaran"
                       >
@@ -182,7 +188,7 @@ export default function PengeluaranOperasionalPage() {
               <button 
                 className="absolute top-3 right-3 text-neutral-300 hover:text-rose-500 transition-colors p-1"
                 onClick={() => {
-                  if (confirm('Yakin ingin menghapus?')) deleteMutation.mutate(item.id);
+                  setDeleteId(item.id);
                 }}
               >
                 <IconTrash size={16} />
@@ -284,6 +290,20 @@ export default function PengeluaranOperasionalPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={!!deleteId}
+        title="Hapus Pengeluaran"
+        message="Yakin ingin menghapus data ini? Mutasi di Buku Besar juga akan ikut terhapus secara otomatis."
+        confirmLabel="Hapus"
+        cancelLabel="Batal"
+        danger
+        onConfirm={() => {
+          if (deleteId) deleteMutation.mutate(deleteId);
+          setDeleteId(null);
+        }}
+        onCancel={() => setDeleteId(null)}
+      />
     </AmbientLayout>
   );
 }

@@ -1,12 +1,29 @@
 import { NextResponse } from 'next/server';
 import { sendPushNotification } from '@/lib/push';
-import { createAdminClient } from '@/lib/api/auth-guard';
+import { createAdminClient, verifyAuth } from '@/lib/api/auth-guard';
 
 export async function POST(request: Request) {
   try {
+    // Verifikasi otorisasi via webhook secret atau sesi terotentikasi
+    const secretHeader = request.headers.get('x-webhook-secret');
+    const expectedSecret = process.env.CRON_SECRET || process.env.WEBHOOK_SECRET;
+
+    let isAuthorized = false;
+    if (expectedSecret && secretHeader === expectedSecret) {
+      isAuthorized = true;
+    } else {
+      const { user } = await verifyAuth(request);
+      if (user) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     
-    // Validasi basic (sebaiknya gunakan webhook secret di header)
     if (!body.kasbon_id || !body.user_id) {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
@@ -23,15 +40,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to fetch admins' }, { status: 500 });
     }
     
-    // Ambil nama pemohon (opsional)
+    // Ambil nama pemohon dari kolom 'nama' (bukan 'full_name')
     const { data: pemohon } = await supabase
       .from('profiles')
-      .select('full_name')
+      .select('nama')
       .eq('id', body.user_id)
       .single();
       
-    const nama = pemohon?.full_name || 'Karyawan';
-    const nominalFormat = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(body.nominal);
+    const nama = pemohon?.nama || 'Karyawan';
+    const nominalFormat = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(body.nominal || 0);
 
     const payload = {
       title: 'Pengajuan Kasbon Baru',

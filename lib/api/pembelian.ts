@@ -147,7 +147,7 @@ export const purchasesApi = {
       const itemsResult = await safeQuery<any[]>(async () => {
         const result = await supabase
           .from('pembelian_items')
-          .select('*, inventory(harga_jual)')
+          .select('*, inventory(kode_barcode, harga_jual)')
           .eq('pembelian_id', id)
           .abortSignal(controller.signal);
         return { data: result.data, error: result.error as Error | null };
@@ -161,6 +161,8 @@ export const purchasesApi = {
 
       const formattedItems = (itemsResult.data || []).map((item: any) => ({
         ...item,
+        barcode: item.inventory?.kode_barcode || item.barcode || '',
+        kode_barcode: item.inventory?.kode_barcode || item.barcode || '',
         harga_jual: item.inventory?.harga_jual || 0,
       }));
 

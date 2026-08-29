@@ -92,16 +92,24 @@ function PembelianPageContent() {
   } = usePembelianStore();
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [lastPurchaseItems, setLastPurchaseItems] = useState<typeof items>([]);
+  const loadedEditIdRef = useRef<string | null>(null);
 
   // Load existing purchase if editId is provided
   useEffect(() => {
     if (editIdParam) {
+      if (loadedEditIdRef.current === editIdParam) {
+        return;
+      }
       let cancelled = false;
       setLoading(true);
       purchasesApi.getById(editIdParam).then((res: any) => {
         if (cancelled) return;
         if (res.data) {
+          loadedEditIdRef.current = editIdParam;
           loadPembelian(res.data);
+          if (res.data.supplier_id) {
+            setSelectedSupplierId(res.data.supplier_id);
+          }
         } else {
           toast.error('Gagal memuat data transaksi');
         }
@@ -111,11 +119,14 @@ function PembelianPageContent() {
         cancelled = true;
       };
     } else {
-      if (editId) {
+      if (loadedEditIdRef.current !== null) {
+        loadedEditIdRef.current = null;
         reset();
+        setSelectedSupplierId(null);
+        setSupplier('');
       }
     }
-  }, [editIdParam, editId, loadPembelian, reset]);
+  }, [editIdParam, loadPembelian, reset]);
 
   const [showImportWizard, setShowImportWizard] = useState(false);
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
@@ -191,6 +202,7 @@ function PembelianPageContent() {
 
         toast.success('Revisi transaksi berhasil disimpan');
         setLastPurchaseItems([...items]);
+        loadedEditIdRef.current = null;
         reset();
         setSelectedSupplierId(null);
         setSupplier('');
@@ -235,6 +247,13 @@ function PembelianPageContent() {
     }
   };
 
+  const isAnyModalOpen =
+    showNewItemDialog ||
+    showImportWizard ||
+    showSuccessDialog ||
+    showResetConfirm ||
+    Boolean(confirmDiscontinuedItem);
+
   usePembelianShortcuts({
     items,
     setSelectedIndex,
@@ -245,6 +264,7 @@ function PembelianPageContent() {
     setShowResetConfirm,
     handleSimpan,
     submitting,
+    enabled: !isAnyModalOpen,
   });
 
   const performAddItem = useCallback(

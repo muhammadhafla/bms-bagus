@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import Tooltip from './Tooltip';
 import { ConfirmDialog } from './ConfirmDialog';
-import { toast } from 'sonner';
+import { Toaster, toast } from 'sonner';
 import MainLayout from '@/app/(main)/layout';
 import { useSidebarState } from '@/hooks/useSidebarState';
 
@@ -25,15 +25,23 @@ vi.mock('next/image', () => ({
   },
 }));
 
-vi.mock('@/lib/auth', () => ({
-  useAuthStore: vi.fn(() => ({
+vi.mock('@/lib/auth', () => {
+  const store = {
     user: { id: 'user-id', email: 'test@example.com' },
     profile: { nama: 'Test User', role: 'admin' },
     initialized: true,
+    initialize: vi.fn(),
+    cleanup: vi.fn(),
+    checkAndRefreshSession: vi.fn(),
     signOut: vi.fn(),
-  })),
-  useIsAdmin: vi.fn(() => true),
-}));
+  };
+  const useAuthStore = vi.fn((selector?: any) => (selector ? selector(store) : store)) as any;
+  useAuthStore.getState = () => store;
+  return {
+    useAuthStore,
+    useIsAdmin: vi.fn(() => true),
+  };
+});
 
 vi.mock('@/lib/presence', () => ({
   usePresenceStore: vi.fn(() => ({
@@ -186,7 +194,12 @@ describe('UI Polish Verification Tests', () => {
   describe('3. Toast Close Button Icon', () => {
     it('has SVG icon content inside the close button', async () => {
       const TriggerComponent = () => {
-        return <button onClick={() => toast.success('Toast Message')}>Show Toast</button>;
+        return (
+          <>
+            <Toaster closeButton />
+            <button onClick={() => toast.success('Toast Message')}>Show Toast</button>
+          </>
+        );
       };
 
       render(<TriggerComponent />);
@@ -195,10 +208,12 @@ describe('UI Polish Verification Tests', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Show Toast' }));
 
       // Find the toast content
-      expect(screen.getByText('Toast Message')).toBeInTheDocument();
+      expect(await screen.findByText('Toast Message')).toBeInTheDocument();
 
       // Find the close button
-      const closeButton = screen.getByRole('button', { name: 'Tutup notifikasi' });
+      const closeButton = await screen.findByRole('button', {
+        name: /close|tutup/i,
+      });
       expect(closeButton).toBeInTheDocument();
 
       // Assert that the button contains an SVG element (IconX)

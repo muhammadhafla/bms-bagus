@@ -41,7 +41,7 @@ describe('DateRangePicker Accessibility', () => {
 
     // Group 1: Custom date inputs
     const customGroup = groups[0];
-    expect(customGroup).toHaveAttribute('aria-label', 'Input tanggal kustom');
+    expect(customGroup).toHaveAttribute('aria-label', 'Input rentang tanggal');
 
     // Group 2: Presets
     const presetGroup = groups[1];

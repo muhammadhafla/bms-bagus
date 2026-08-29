@@ -20,7 +20,6 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $$
 BEGIN
   RETURN QUERY

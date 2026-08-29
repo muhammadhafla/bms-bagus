@@ -236,4 +236,50 @@ describe('usePembelianStore', () => {
       expect(selisih).toBe(-20000);
     });
   });
+
+  describe('loadPembelian', () => {
+    it('should load purchase items with barcodes correctly', () => {
+      const mockPembelian = {
+        id: 'pem-123',
+        supplier_id: 'sup-456',
+        tanggal: '2026-08-29',
+        nomor_nota: 'NOTA-001',
+        total_supplier: 150000,
+        items: [
+          {
+            inventory_id: 'inv-1',
+            nama_barang: 'Barang A',
+            barcode: 'BC001',
+            qty: 5,
+            harga_beli: 10000,
+            harga_jual: 15000,
+            diskon: 0,
+            harga_final: 10000,
+          },
+          {
+            inventory_id: 'inv-2',
+            nama_barang: 'Barang B',
+            inventory: { kode_barcode: 'BC002', harga_jual: 25000 },
+            qty: 2,
+            harga_beli: 20000,
+            harga_jual: 25000,
+            diskon: 0,
+            harga_final: 20000,
+          },
+        ],
+      };
+
+      getStore().loadPembelian(mockPembelian);
+      const store = getStore();
+
+      expect(store.editId).toBe('pem-123');
+      expect(store.supplierId).toBe('sup-456');
+      expect(store.tanggal).toBe('2026-08-29');
+      expect(store.nomorNota).toBe('NOTA-001');
+      expect(store.totalSupplier).toBe(150000);
+      expect(store.items).toHaveLength(2);
+      expect(store.items[0].barcode).toBe('BC001');
+      expect(store.items[1].barcode).toBe('BC002');
+    });
+  });
 });

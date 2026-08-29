@@ -21,7 +21,7 @@ interface NewItemDialogProps {
     harga_beli: number;
     harga_jual: number;
     diskon: number;
-  }) => void;
+  }) => void | Promise<void>;
 }
 
 export function NewItemDialog({
@@ -36,6 +36,7 @@ export function NewItemDialog({
   const [barcode, setBarcode] = useState('');
   const [harga_beli, setHargaBeli] = useState(0);
   const [harga_jual, setHargaJual] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
   const { data: kategoriResponse } = useKategoris();
   const kategoriList = kategoriResponse?.map((k) => k.nama) || [];
   const [showKategoriSuggestions, setShowKategoriSuggestions] = useState(false);
@@ -101,27 +102,33 @@ export function NewItemDialog({
 
   const handleSubmit = async (e: React.FormEvent | Event) => {
     e.preventDefault();
-    if (marginWarning) return;
+    if (marginWarning || submitting) return;
 
     if (nama_barang.trim()) {
-      const kategoriResult = await kategoriApi.getOrCreate(kategori.trim());
-      const id_kategori = kategoriResult.data?.id;
+      try {
+        setSubmitting(true);
+        const kategoriResult = await kategoriApi.getOrCreate(kategori.trim());
+        const id_kategori = kategoriResult.data?.id;
 
-      onSubmit({
-        nama_barang: nama_barang.trim(),
-        barcode,
-        kategori,
-        id_kategori,
-        harga_beli,
-        harga_jual,
-        diskon: 0,
-      });
+        await onSubmit({
+          nama_barang: nama_barang.trim(),
+          barcode,
+          kategori,
+          id_kategori,
+          harga_beli,
+          harga_jual,
+          diskon: 0,
+        });
+      } finally {
+        setSubmitting(false);
+      }
     }
   };
 
   useHotkeys('f9', (e) => {
     e.preventDefault();
-    if (nama_barang.trim()) {
+    e.stopPropagation();
+    if (nama_barang.trim() && !submitting) {
       handleSubmit(new Event('submit') as unknown as React.FormEvent);
     }
   }, { enableOnFormTags: true, enabled: open });
@@ -291,8 +298,14 @@ export function NewItemDialog({
         )}
 
         <div className="flex gap-3">
-          <Button variant="primary" type="submit" className="w-full" disabled={marginWarning}>
-            Simpan (F9)
+          <Button
+            variant="primary"
+            type="submit"
+            className="w-full"
+            disabled={marginWarning || submitting || !nama_barang.trim()}
+            loading={submitting}
+          >
+            {submitting ? 'Menyimpan...' : 'Simpan (F9)'}
           </Button>
         </div>
       </form>

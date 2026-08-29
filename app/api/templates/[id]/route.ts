@@ -7,6 +7,21 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (authError) return authError;
 
     const supabase = createAdminClient();
+
+    // Check if requester is admin
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Forbidden. Hanya Admin yang bisa mengelola template label.' },
+        { status: 403 },
+      );
+    }
+
     const resolvedParams = await params;
     const id = resolvedParams.id;
     const body = await request.json();
@@ -47,6 +62,21 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     if (authError) return authError;
 
     const supabase = createAdminClient();
+
+    // Check if requester is admin
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Forbidden. Hanya Admin yang bisa menghapus template label.' },
+        { status: 403 },
+      );
+    }
+
     const resolvedParams = await params;
     const id = resolvedParams.id;
 

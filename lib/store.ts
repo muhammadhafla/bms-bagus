@@ -44,15 +44,17 @@ export const usePembelianStore = create<PembelianStore>()(
 
       loadPembelian: (pembelian) =>
         set({
-          items: pembelian.items.map((item: any) => ({
-            id: item.inventory_id,
+          items: (pembelian.items || []).map((item: any) => ({
+            id: item.inventory_id || item.id,
+            barcode: item.barcode || item.kode_barcode || item.inventory?.kode_barcode || '',
+            kode_barcode: item.kode_barcode || item.barcode || item.inventory?.kode_barcode || '',
             nama_barang: item.nama_barang,
             qty: item.qty,
             harga_beli: item.harga_beli,
             harga_jual: item.harga_jual,
             diskon: item.diskon || 0,
-            harga_final: item.harga_final,
-            subtotal: item.harga_final * item.qty,
+            harga_final: item.harga_final ?? item.harga_beli ?? 0,
+            subtotal: (item.harga_final ?? item.harga_beli ?? 0) * item.qty,
           })),
           supplierId: pembelian.supplier_id,
           tanggal: pembelian.tanggal,

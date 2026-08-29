@@ -185,7 +185,7 @@ export function DateRangePicker({
               <div
                 className="flex justify-center overflow-x-auto"
                 role="group"
-                aria-label="Pilih rentang kalender"
+                aria-label="Input rentang tanggal"
               >
                 <style
                   dangerouslySetInnerHTML={{

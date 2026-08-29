@@ -64,7 +64,7 @@ export const returnApi = {
     const safeQueryString = query.replace(/%/g, '').toLowerCase();
     return safeQuery<ReturnedTransaction[]>(async () => {
       const result = await supabase
-        .from('pembelian_transactions')
+        .from('pembelian')
         .select('*')
         .or(`id.ilike.%${safeQueryString}%,supplier_id.ilike.%${safeQueryString}%`)
         .order('created_at', { ascending: false })
@@ -77,7 +77,7 @@ export const returnApi = {
     const safeQueryString = query.replace(/%/g, '').toLowerCase();
     return safeQuery<Penjualan[]>(async () => {
       const result = await supabase
-        .from('penjualan_transactions')
+        .from('penjualan')
         .select('*')
         .or(`id.ilike.%${safeQueryString}%`)
         .order('created_at', { ascending: false })
@@ -91,7 +91,7 @@ export const returnApi = {
       const result = await supabase
         .from('pembelian_items')
         .select('*, inventory:inventory(*)')
-        .eq('transaction_id', transactionId);
+        .eq('pembelian_id', transactionId);
       return { data: result.data, error: result.error as Error | null };
     });
   },
@@ -101,7 +101,7 @@ export const returnApi = {
       const result = await supabase
         .from('penjualan_items')
         .select('*, inventory:inventory(*)')
-        .eq('transaction_id', transactionId);
+        .eq('penjualan_id', transactionId);
       return { data: result.data, error: result.error as Error | null };
     });
   },

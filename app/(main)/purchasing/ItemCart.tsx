@@ -90,7 +90,7 @@ export const ItemCart = React.memo(function ItemCart({
                 {index + 1}
               </td>
               <td className="px-4 py-3 font-mono text-sm text-neutral-900 dark:text-neutral-100">
-                {item.barcode}
+                {item.barcode || item.kode_barcode || '-'}
               </td>
               <td className="px-4 py-3 text-sm font-medium text-neutral-900 dark:text-neutral-100">
                 {item.nama_barang}
@@ -232,7 +232,7 @@ export const ItemCart = React.memo(function ItemCart({
                 {item.nama_barang}
               </div>
               <div className="font-mono text-xs text-neutral-500 dark:text-neutral-400">
-                {item.barcode}
+                {item.barcode || item.kode_barcode || '-'}
               </div>
             </div>
 

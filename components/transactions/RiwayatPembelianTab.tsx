@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { purchasesApi, PembelianItem } from '@/lib/api/pembelian';
 import { inventoryApi } from '@/lib/api';
@@ -11,6 +11,8 @@ import {
   IconChevronRight,
   IconPrinter,
   IconEdit,
+  IconSearch,
+  IconX,
 } from '@tabler/icons-react';
 import { Button } from '@/components/ui';
 import { SlideOver } from '@/components/ui/SlideOver';
@@ -50,6 +52,7 @@ export function RiwayatPembelianTab({
 }: RiwayatPembelianTabProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [slideOverOpen, setSlideOverOpen] = useState(false);
+  const [itemSearch, setItemSearch] = useState('');
 
   const router = useRouter();
   const resetBulkPrint = useBulkPrintStore((state) => state.reset);
@@ -68,12 +71,23 @@ export function RiwayatPembelianTab({
 
   const detailError = queryError ? queryError.message : null;
 
+  const filteredItems = useMemo(() => {
+    if (!detail?.items) return [];
+    if (!itemSearch.trim()) return detail.items;
+    const query = itemSearch.toLowerCase().trim();
+    return detail.items.filter((item) =>
+      item.nama_barang?.toLowerCase().includes(query),
+    );
+  }, [detail?.items, itemSearch]);
+
   const handleViewDetail = (id: string) => {
+    setItemSearch('');
     setSelectedId(id);
     setSlideOverOpen(true);
   };
 
   const handleCloseSlideOver = () => {
+    setItemSearch('');
     setSlideOverOpen(false);
     // Optionally we can wait a bit before clearing ID to let slideover close animation play
     setTimeout(() => setSelectedId(null), 300);
@@ -301,57 +315,111 @@ export function RiwayatPembelianTab({
               )}
 
               <div>
-                <h3 className="mb-3 text-base font-bold text-neutral-900 dark:text-white">
-                  Daftar Barang
-                </h3>
-                {detail.items && detail.items.length > 0 ? (
-                  <div className="overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-800">
-                    <table className="w-full text-sm">
-                      <thead className="bg-neutral-50 dark:bg-neutral-900">
-                        <tr>
-                          <th className="px-4 py-3 text-left font-semibold text-neutral-600 dark:text-neutral-400">
-                            Nama Barang
-                          </th>
-                          <th className="px-4 py-3 text-right font-semibold text-neutral-600 dark:text-neutral-400">
-                            Qty
-                          </th>
-                          <th className="px-4 py-3 text-right font-semibold text-neutral-600 dark:text-neutral-400">
-                            Harga
-                          </th>
-                          <th className="px-4 py-3 text-right font-semibold text-neutral-600 dark:text-neutral-400">
-                            Diskon
-                          </th>
-                          <th className="px-4 py-3 text-right font-semibold text-neutral-600 dark:text-neutral-400">
-                            Subtotal
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-                        {detail.items.map((item: any, idx: number) => {
-                          return (
-                            <tr
-                              key={idx}
-                              className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
-                            >
-                              <td className="px-4 py-3 font-medium text-neutral-900 dark:text-neutral-100">
-                                {item.nama_barang}
-                              </td>
-                              <td className="px-4 py-3 text-right">{item.qty}</td>
-                              <td className="px-4 py-3 text-right">
-                                {formatCurrency(item.harga_beli || 0)}
-                              </td>
-                              <td className="px-4 py-3 text-right text-neutral-500">
-                                {item.diskon ? formatCurrency(item.diskon) : '-'}
-                              </td>
-                              <td className="px-4 py-3 text-right font-semibold text-neutral-900 dark:text-neutral-100">
-                                {formatCurrency((item.harga_final || 0) * (item.qty || 0))}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                      Daftar Barang
+                    </h3>
+                    {detail.items && detail.items.length > 0 && (
+                      <span className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-semibold text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+                        {itemSearch.trim()
+                          ? `${filteredItems.length} dari ${detail.items.length}`
+                          : `${detail.items.length}`}
+                      </span>
+                    )}
                   </div>
+
+                  {detail.items && detail.items.length > 0 && (
+                    <div className="relative w-full sm:w-64">
+                      <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                      <input
+                        type="text"
+                        value={itemSearch}
+                        onChange={(e) => setItemSearch(e.target.value)}
+                        placeholder="Cari nama barang..."
+                        className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-1.5 pl-9 pr-8 text-sm text-neutral-900 transition-colors placeholder:text-neutral-400 focus:border-brand-500 focus:bg-white focus:outline-none dark:border-neutral-800 dark:bg-neutral-900 dark:text-white dark:focus:bg-neutral-950"
+                      />
+                      {itemSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setItemSearch('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+                          title="Hapus pencarian"
+                        >
+                          <IconX className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {detail.items && detail.items.length > 0 ? (
+                  filteredItems.length > 0 ? (
+                    <div className="overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-800">
+                      <table className="w-full text-sm">
+                        <thead className="bg-neutral-50 dark:bg-neutral-900">
+                          <tr>
+                            <th className="px-4 py-3 text-left font-semibold text-neutral-600 dark:text-neutral-400">
+                              Nama Barang
+                            </th>
+                            <th className="px-4 py-3 text-right font-semibold text-neutral-600 dark:text-neutral-400">
+                              Qty
+                            </th>
+                            <th className="px-4 py-3 text-right font-semibold text-neutral-600 dark:text-neutral-400">
+                              Harga
+                            </th>
+                            <th className="px-4 py-3 text-right font-semibold text-neutral-600 dark:text-neutral-400">
+                              Diskon
+                            </th>
+                            <th className="px-4 py-3 text-right font-semibold text-neutral-600 dark:text-neutral-400">
+                              Subtotal
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+                          {filteredItems.map((item: any, idx: number) => {
+                            return (
+                              <tr
+                                key={idx}
+                                className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
+                              >
+                                <td className="px-4 py-3 font-medium text-neutral-900 dark:text-neutral-100">
+                                  {item.nama_barang}
+                                </td>
+                                <td className="px-4 py-3 text-right">{item.qty}</td>
+                                <td className="px-4 py-3 text-right">
+                                  {formatCurrency(item.harga_beli || 0)}
+                                </td>
+                                <td className="px-4 py-3 text-right text-neutral-500">
+                                  {item.diskon ? formatCurrency(item.diskon) : '-'}
+                                </td>
+                                <td className="px-4 py-3 text-right font-semibold text-neutral-900 dark:text-neutral-100">
+                                  {formatCurrency((item.harga_final || 0) * (item.qty || 0))}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-neutral-200 p-8 text-center dark:border-neutral-800">
+                      <IconSearch className="mx-auto mb-2 h-8 w-8 text-neutral-400" />
+                      <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                        Tidak ada barang yang cocok
+                      </p>
+                      <p className="mt-1 text-xs text-neutral-500">
+                        Tidak ditemukan barang dengan kata kunci &quot;{itemSearch}&quot;
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setItemSearch('')}
+                        className="text-brand-600 hover:underline dark:text-brand-400 mt-3 text-xs font-semibold"
+                      >
+                        Reset Pencarian
+                      </button>
+                    </div>
+                  )
                 ) : (
                   <p className="text-sm text-neutral-500 italic">Tidak ada rincian barang</p>
                 )}

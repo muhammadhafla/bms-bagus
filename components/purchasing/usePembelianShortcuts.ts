@@ -10,6 +10,7 @@ interface PembelianShortcutsProps {
   setShowResetConfirm: (show: boolean) => void;
   handleSimpan: () => void;
   submitting: boolean;
+  enabled?: boolean;
 }
 
 export function usePembelianShortcuts({
@@ -22,6 +23,7 @@ export function usePembelianShortcuts({
   setShowResetConfirm,
   handleSimpan,
   submitting,
+  enabled = true,
 }: PembelianShortcutsProps) {
   useHotkeys('f2', (e) => {
     e.preventDefault();
@@ -30,7 +32,7 @@ export function usePembelianShortcuts({
       setEditMode('qty');
       setEditValue(items[0].qty);
     }
-  }, { enableOnFormTags: true });
+  }, { enableOnFormTags: true, enabled });
 
   useHotkeys('f3', (e) => {
     e.preventDefault();
@@ -39,7 +41,7 @@ export function usePembelianShortcuts({
       setEditMode('harga');
       setEditValue(items[0].harga_beli || 0);
     }
-  }, { enableOnFormTags: true });
+  }, { enableOnFormTags: true, enabled });
 
   useHotkeys('f4', (e) => {
     e.preventDefault();
@@ -48,7 +50,7 @@ export function usePembelianShortcuts({
       setEditMode('harga_jual');
       setEditValue(items[0].harga_jual || 0);
     }
-  }, { enableOnFormTags: true });
+  }, { enableOnFormTags: true, enabled });
 
   useHotkeys('delete', (e) => {
     e.preventDefault();
@@ -56,23 +58,23 @@ export function usePembelianShortcuts({
       removeItem(items[selectedIndex].id);
       setSelectedIndex((prev) => (prev === null ? null : Math.max(0, prev - 1)));
     }
-  }, { enableOnFormTags: true });
+  }, { enableOnFormTags: true, enabled });
 
   useHotkeys('escape', (e) => {
     e.preventDefault();
     setEditMode(null);
     setSelectedIndex(null);
-  }, { enableOnFormTags: true });
+  }, { enableOnFormTags: true, enabled });
 
   useHotkeys('f6', (e) => {
     e.preventDefault();
     setShowResetConfirm(true);
-  }, { enableOnFormTags: true });
+  }, { enableOnFormTags: true, enabled });
 
   useHotkeys('f9', (e) => {
     e.preventDefault();
     if (items.length > 0 && !submitting) {
       handleSimpan();
     }
-  }, { enableOnFormTags: true });
+  }, { enableOnFormTags: true, enabled });
 }

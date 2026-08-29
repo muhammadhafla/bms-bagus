@@ -94,6 +94,7 @@ describe('pembelianItemSchema', () => {
       nama_barang: 'Test Item',
       qty: 10,
       harga_beli: 50000,
+      diskon: 5000,
       harga_final: 45000,
       subtotal: 450000,
     };
@@ -108,6 +109,7 @@ describe('pembelianItemSchema', () => {
       nama_barang: 'Test Item',
       qty: 10,
       harga_beli: 50000,
+      diskon: 5000,
       harga_final: 45000,
       subtotal: 450000,
     };
@@ -122,6 +124,7 @@ describe('pembelianItemSchema', () => {
       nama_barang: 'Test Item',
       qty: 0,
       harga_beli: 50000,
+      diskon: 5000,
       harga_final: 45000,
       subtotal: 450000,
     };
@@ -136,8 +139,9 @@ describe('pembelianItemSchema', () => {
       nama_barang: 'Test Item',
       qty: 10,
       harga_beli: -50000,
-      harga_final: 45000,
-      subtotal: 450000,
+      diskon: 0,
+      harga_final: -50000,
+      subtotal: -500000,
     };
     const result = pembelianItemSchema.safeParse(data);
     expect(result.success).toBe(false);
@@ -162,7 +166,7 @@ describe('pembelianItemSchema', () => {
 describe('pembelianSubmitSchema', () => {
   it('should validate valid purchase submission', () => {
     const data = {
-      supplier_id: 'sup-123',
+      supplier_id: '123e4567-e89b-12d3-a456-426614174000',
       tanggal: '2024-01-01',
       items: [
         {
@@ -171,6 +175,7 @@ describe('pembelianSubmitSchema', () => {
           nama_barang: 'Test Item',
           qty: 10,
           harga_beli: 50000,
+          diskon: 5000,
           harga_final: 45000,
           subtotal: 450000,
         },
@@ -192,6 +197,7 @@ describe('pembelianSubmitSchema', () => {
           nama_barang: 'Test Item',
           qty: 10,
           harga_beli: 50000,
+          diskon: 5000,
           harga_final: 45000,
           subtotal: 450000,
         },

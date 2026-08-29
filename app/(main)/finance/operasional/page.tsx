@@ -26,7 +26,7 @@ import { toast } from 'sonner';
 
 export default function PengeluaranOperasionalPage() {
   const queryClient = useQueryClient();
-  const { profile, initialized } = useAuthStore();
+  const { user, profile, initialized } = useAuthStore();
   const isAdmin = profile?.role === 'admin' || (profile?.role as string) === 'owner';
 
   const [page, setPage] = useState(1);
@@ -101,7 +101,7 @@ export default function PengeluaranOperasionalPage() {
     insertMutation.mutate();
   };
 
-  if (!profile && !initialized) {
+  if (!initialized || (user && !profile)) {
     return <div className="p-8 text-center text-neutral-500">Memuat...</div>;
   }
 

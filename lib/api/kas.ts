@@ -229,7 +229,7 @@ export const kasApi = {
         .eq('tipe', 'TUTUP_SHIFT')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       // 2. Ambil semua log sejak saat itu
       let query = supabase.from('kas_log').select('tipe, jumlah').eq('created_by', userId);

@@ -11,8 +11,14 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
+const manifest = self.__SW_MANIFEST || [];
+const precacheEntries = [
+  ...manifest,
+  { url: '/offline', revision: '1' },
+];
+
 const serwist = new Serwist({
-  precacheEntries: self.__SW_MANIFEST,
+  precacheEntries,
   skipWaiting: false, // We will handle this manually via postMessage
   clientsClaim: true,
   navigationPreload: true,

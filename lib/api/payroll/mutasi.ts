@@ -92,9 +92,9 @@ export const mutasiApi = {
       .from('vw_payroll_saldo')
       .select('total_saldo')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') throw error; // ignore no rows
+    if (error) throw error;
     return (data?.total_saldo as number) || 0;
   },
 
@@ -104,9 +104,9 @@ export const mutasiApi = {
       .from('vw_payroll_saldo')
       .select('total_saldo')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') throw error;
+    if (error) throw error;
     return (data?.total_saldo as number) || 0;
   },
 

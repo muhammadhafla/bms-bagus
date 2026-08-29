@@ -46,7 +46,7 @@ export default async function InventoryPage(props: Props) {
       .from('kategori')
       .select('id')
       .eq('nama', categoryName)
-      .single();
+      .maybeSingle();
     if (catResult.data) {
       categoryId = catResult.data.id;
     }

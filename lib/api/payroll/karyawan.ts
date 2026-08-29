@@ -55,7 +55,7 @@ export const karyawanApi = {
           .from('karyawan')
           .select(`*, profiles!karyawan_user_id_fkey(nama, email)`)
           .eq('user_id', userId)
-          .single();
+          .maybeSingle();
         return { data: res.data as Karyawan, error: res.error as Error | null };
       });
       return result;

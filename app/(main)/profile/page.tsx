@@ -100,7 +100,7 @@ export default function ProfilePage() {
           .select('id')
           .eq('username', username)
           .neq('id', user.id)
-          .single();
+          .maybeSingle();
 
         if (existingUser) {
           throw new Error('Username sudah digunakan oleh pengguna lain');

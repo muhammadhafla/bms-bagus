@@ -17,7 +17,7 @@ export const kategoriApi = {
 
   async getByName(nama: string) {
     return safeQuery<Kategori>(async () => {
-      const result = await supabase.from('kategori').select('*').eq('nama', nama).single();
+      const result = await supabase.from('kategori').select('*').eq('nama', nama).maybeSingle();
       return { data: result.data, error: result.error as Error | null };
     });
   },

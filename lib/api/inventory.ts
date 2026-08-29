@@ -79,7 +79,7 @@ export const inventoryApi = {
         .from('kategori')
         .select('id')
         .eq('nama', options.categoryName)
-        .single();
+        .maybeSingle();
       if (catResult.data) {
         resolvedCategoryId = catResult.data.id;
       }
@@ -126,7 +126,7 @@ export const inventoryApi = {
         .from('kategori')
         .select('id')
         .eq('nama', options.categoryName)
-        .single();
+        .maybeSingle();
       if (catResult.data) {
         resolvedCategoryId = catResult.data.id;
       }

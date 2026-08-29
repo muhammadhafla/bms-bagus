@@ -5,7 +5,6 @@ import {
   IconPackage,
   IconTruck,
   IconClipboardCheck,
-  IconArrowBack,
   IconTags,
   IconChartBar,
   IconPrinter,
@@ -19,6 +18,7 @@ import {
   IconClock,
   IconWallet,
   IconReceipt,
+  IconBuildingWarehouse,
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -106,9 +106,16 @@ export function MobileLaunchpad({
     },
     {
       href: '/inventory',
-      title: 'Stok',
+      title: 'Katalog',
       icon: IconPackage,
       color: 'text-blue-600',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
+    },
+    {
+      href: '/warehouse/stocks',
+      title: 'Gudang',
+      icon: IconBuildingWarehouse,
+      color: 'text-teal-600',
       bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
@@ -116,13 +123,6 @@ export function MobileLaunchpad({
       title: 'Opname',
       icon: IconClipboardCheck,
       color: 'text-purple-600',
-      bg: 'bg-neutral-100 dark:bg-neutral-800',
-    },
-    {
-      href: '/transactions/return',
-      title: 'Retur',
-      icon: IconArrowBack,
-      color: 'text-rose-600',
       bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
@@ -200,9 +200,16 @@ export function MobileLaunchpad({
     },
     {
       href: '/inventory',
-      title: 'Stok',
+      title: 'Katalog',
       icon: IconPackage,
       color: 'text-blue-600',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
+    },
+    {
+      href: '/warehouse/stocks',
+      title: 'Gudang',
+      icon: IconBuildingWarehouse,
+      color: 'text-teal-600',
       bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
@@ -210,13 +217,6 @@ export function MobileLaunchpad({
       title: 'Opname',
       icon: IconClipboardCheck,
       color: 'text-purple-600',
-      bg: 'bg-neutral-100 dark:bg-neutral-800',
-    },
-    {
-      href: '/transactions/return',
-      title: 'Retur',
-      icon: IconArrowBack,
-      color: 'text-rose-600',
       bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {

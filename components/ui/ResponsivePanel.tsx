@@ -56,14 +56,14 @@ export function ResponsivePanel({
           )}
 
           {/* Header */}
-          <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
-            <Drawer.Title className="text-lg font-semibold text-neutral-900 dark:text-white">
+          <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-4 py-2.5 sm:px-5 sm:py-3.5 dark:border-neutral-800">
+            <Drawer.Title className="text-base font-semibold text-neutral-900 sm:text-lg dark:text-white truncate">
               {title}
             </Drawer.Title>
           </div>
 
           {/* Konten scrollable */}
-          <div className="flex-1 overflow-y-auto p-5">{children}</div>
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5">{children}</div>
         </Drawer.Content>
       </Drawer.Portal>
     </Drawer.Root>

@@ -43,8 +43,8 @@ export function PaymentMethodChart({
       <h3 className="mb-2 text-base font-semibold text-neutral-900 md:mb-4 dark:text-white">
         Distribusi Metode Pembayaran
       </h3>
-      <div className="h-[200px] w-full md:h-[250px]">
-        <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+      <div className="h-[200px] w-full min-w-0 md:h-[250px]">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={180}>
           <PieChart>
             <Pie
               data={chartData}

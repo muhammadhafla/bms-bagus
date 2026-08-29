@@ -22,6 +22,8 @@ interface SidebarContextType {
   setOperasionalExpanded: (v: boolean | ((prev: boolean) => boolean)) => void;
   inventoryExpanded: boolean;
   setInventoryExpanded: (v: boolean | ((prev: boolean) => boolean)) => void;
+  warehouseExpanded: boolean;
+  setWarehouseExpanded: (v: boolean | ((prev: boolean) => boolean)) => void;
   financeExpanded: boolean;
   setFinanceExpanded: (v: boolean | ((prev: boolean) => boolean)) => void;
   payrollExpanded: boolean;
@@ -54,6 +56,8 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     setOperasionalExpanded,
     inventoryExpanded,
     setInventoryExpanded,
+    warehouseExpanded,
+    setWarehouseExpanded,
     financeExpanded,
     setFinanceExpanded,
     payrollExpanded,
@@ -89,6 +93,8 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
         setOperasionalExpanded,
         inventoryExpanded,
         setInventoryExpanded,
+        warehouseExpanded,
+        setWarehouseExpanded,
         financeExpanded,
         setFinanceExpanded,
         payrollExpanded,

@@ -159,8 +159,8 @@ export function TopItemsReportTab({
           <h3 className="mb-4 text-lg font-bold text-neutral-800 dark:text-neutral-200">
             Top 10 Produk ({topItemsSort === 'qty' ? 'Kuantitas' : 'Profit'})
           </h3>
-          <div className="h-[300px] w-full md:h-[400px]">
-            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+          <div className="h-[300px] w-full min-w-0 md:h-[400px]">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={250}>
               <BarChart
                 layout="vertical"
                 data={chartData}

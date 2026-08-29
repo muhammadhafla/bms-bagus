@@ -228,6 +228,7 @@ describe('UI Polish Verification Tests', () => {
       useSidebarStateMock.mockReturnValue({
         operasionalExpanded: false,
         inventoryExpanded: false,
+        warehouseExpanded: false,
         financeExpanded: false,
         payrollExpanded: false,
         reportsExpanded: false,
@@ -237,6 +238,7 @@ describe('UI Polish Verification Tests', () => {
         setSidebarCollapsed: mockSidebarCollapsed,
         setOperasionalExpanded: vi.fn(),
         setInventoryExpanded: vi.fn(),
+        setWarehouseExpanded: vi.fn(),
         setFinanceExpanded: vi.fn(),
         setPayrollExpanded: vi.fn(),
         setReportsExpanded: vi.fn(),
@@ -266,6 +268,7 @@ describe('UI Polish Verification Tests', () => {
       useSidebarStateMock.mockReturnValue({
         operasionalExpanded: true,
         inventoryExpanded: true,
+        warehouseExpanded: true,
         financeExpanded: true,
         payrollExpanded: true,
         reportsExpanded: true,
@@ -275,6 +278,7 @@ describe('UI Polish Verification Tests', () => {
         setSidebarCollapsed: mockSidebarCollapsed,
         setOperasionalExpanded: vi.fn(),
         setInventoryExpanded: vi.fn(),
+        setWarehouseExpanded: vi.fn(),
         setFinanceExpanded: vi.fn(),
         setPayrollExpanded: vi.fn(),
         setReportsExpanded: vi.fn(),

@@ -39,7 +39,7 @@ export default function BottomNav() {
     {
       href: '/inventory',
       icon: IconPackage,
-      title: 'Stok',
+      title: 'Katalog',
     },
     // Admin gets Pembelian, Staff gets Cetak Label
     ...(isAdminUser

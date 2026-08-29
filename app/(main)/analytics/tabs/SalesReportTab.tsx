@@ -171,8 +171,8 @@ export function SalesReportTab({ startDate, endDate, categoryId }: SalesReportTa
           <h3 className="mb-4 text-lg font-bold text-neutral-800 dark:text-neutral-200">
             Tren Penjualan
           </h3>
-          <div className="h-[250px] w-full md:h-[350px]">
-            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+          <div className="h-[250px] w-full min-w-0 md:h-[350px]">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200}>
               <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
                 <defs>
                   <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">

@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -112,6 +112,59 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      gudang: {
+        Row: {
+          alamat: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          kode_gudang: string
+          kontak_pj: string | null
+          lokasi_kerja_id: string | null
+          nama: string
+          penanggung_jawab: string | null
+          tipe: Database["public"]["Enums"]["tipe_gudang"]
+          updated_at: string
+        }
+        Insert: {
+          alamat?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          kode_gudang: string
+          kontak_pj?: string | null
+          lokasi_kerja_id?: string | null
+          nama: string
+          penanggung_jawab?: string | null
+          tipe?: Database["public"]["Enums"]["tipe_gudang"]
+          updated_at?: string
+        }
+        Update: {
+          alamat?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          kode_gudang?: string
+          kontak_pj?: string | null
+          lokasi_kerja_id?: string | null
+          nama?: string
+          penanggung_jawab?: string | null
+          tipe?: Database["public"]["Enums"]["tipe_gudang"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gudang_lokasi_kerja_id_fkey"
+            columns: ["lokasi_kerja_id"]
+            isOneToOne: false
+            referencedRelation: "lokasi_kerja"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inventory: {
         Row: {
@@ -240,6 +293,57 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "inventory_barcodes_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_stocks: {
+        Row: {
+          created_at: string
+          gudang_id: string
+          id: string
+          inventory_id: string
+          max_stok: number | null
+          min_stok: number | null
+          rak_lokasi: string | null
+          stok: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          gudang_id: string
+          id?: string
+          inventory_id: string
+          max_stok?: number | null
+          min_stok?: number | null
+          rak_lokasi?: string | null
+          stok?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          gudang_id?: string
+          id?: string
+          inventory_id?: string
+          max_stok?: number | null
+          min_stok?: number | null
+          rak_lokasi?: string | null
+          stok?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_stocks_gudang_id_fkey"
+            columns: ["gudang_id"]
+            isOneToOne: false
+            referencedRelation: "gudang"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_stocks_inventory_id_fkey"
             columns: ["inventory_id"]
             isOneToOne: false
             referencedRelation: "inventory"
@@ -880,6 +984,109 @@ export type Database = {
           },
         ]
       }
+      pengeluaran_gudang: {
+        Row: {
+          catatan: string | null
+          created_at: string
+          created_by: string | null
+          gudang_id: string
+          id: string
+          nomor_dokumen: string
+          tanggal: string
+          tipe: Database["public"]["Enums"]["tipe_pengeluaran_gudang"]
+          updated_at: string
+        }
+        Insert: {
+          catatan?: string | null
+          created_at?: string
+          created_by?: string | null
+          gudang_id: string
+          id?: string
+          nomor_dokumen: string
+          tanggal?: string
+          tipe: Database["public"]["Enums"]["tipe_pengeluaran_gudang"]
+          updated_at?: string
+        }
+        Update: {
+          catatan?: string | null
+          created_at?: string
+          created_by?: string | null
+          gudang_id?: string
+          id?: string
+          nomor_dokumen?: string
+          tanggal?: string
+          tipe?: Database["public"]["Enums"]["tipe_pengeluaran_gudang"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pengeluaran_gudang_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pengeluaran_gudang_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "vw_payroll_saldo"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pengeluaran_gudang_gudang_id_fkey"
+            columns: ["gudang_id"]
+            isOneToOne: false
+            referencedRelation: "gudang"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pengeluaran_gudang_items: {
+        Row: {
+          alasan: string | null
+          created_at: string
+          harga_pokok: number
+          id: string
+          inventory_id: string
+          pengeluaran_id: string
+          qty: number
+        }
+        Insert: {
+          alasan?: string | null
+          created_at?: string
+          harga_pokok?: number
+          id?: string
+          inventory_id: string
+          pengeluaran_id: string
+          qty: number
+        }
+        Update: {
+          alasan?: string | null
+          created_at?: string
+          harga_pokok?: number
+          id?: string
+          inventory_id?: string
+          pengeluaran_id?: string
+          qty?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pengeluaran_gudang_items_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pengeluaran_gudang_items_pengeluaran_id_fkey"
+            columns: ["pengeluaran_id"]
+            isOneToOne: false
+            referencedRelation: "pengeluaran_gudang"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pengeluaran_operasional: {
         Row: {
           created_at: string | null
@@ -1407,6 +1614,7 @@ export type Database = {
           closing_cash: number | null
           created_at: string | null
           end_time: string | null
+          gudang_id: string | null
           id: string
           kasir_id: string
           kasir_name: string
@@ -1418,6 +1626,7 @@ export type Database = {
           closing_cash?: number | null
           created_at?: string | null
           end_time?: string | null
+          gudang_id?: string | null
           id: string
           kasir_id: string
           kasir_name: string
@@ -1429,6 +1638,7 @@ export type Database = {
           closing_cash?: number | null
           created_at?: string | null
           end_time?: string | null
+          gudang_id?: string | null
           id?: string
           kasir_id?: string
           kasir_name?: string
@@ -1436,7 +1646,15 @@ export type Database = {
           start_time?: string
           status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "shift_sessions_gudang_id_fkey"
+            columns: ["gudang_id"]
+            isOneToOne: false
+            referencedRelation: "gudang"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       slip_gaji: {
         Row: {
@@ -1584,6 +1802,8 @@ export type Database = {
       stock_movements: {
         Row: {
           created_at: string | null
+          gudang_id: string | null
+          gudang_tujuan_id: string | null
           id: string
           inventory_id: string
           qty: number | null
@@ -1592,6 +1812,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          gudang_id?: string | null
+          gudang_tujuan_id?: string | null
           id?: string
           inventory_id: string
           qty?: number | null
@@ -1600,6 +1822,8 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          gudang_id?: string | null
+          gudang_tujuan_id?: string | null
           id?: string
           inventory_id?: string
           qty?: number | null
@@ -1607,6 +1831,20 @@ export type Database = {
           tipe?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "stock_movements_gudang_id_fkey"
+            columns: ["gudang_id"]
+            isOneToOne: false
+            referencedRelation: "gudang"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_gudang_tujuan_id_fkey"
+            columns: ["gudang_tujuan_id"]
+            isOneToOne: false
+            referencedRelation: "gudang"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stock_movements_inventory_id_fkey"
             columns: ["inventory_id"]
@@ -1758,6 +1996,159 @@ export type Database = {
           nama?: string
         }
         Relationships: []
+      }
+      transfer_stok: {
+        Row: {
+          approved_by: string | null
+          catatan: string | null
+          created_at: string
+          created_by: string | null
+          gudang_asal_id: string
+          gudang_tujuan_id: string
+          id: string
+          kurir_pengirim: string | null
+          nomor_transfer: string
+          received_by: string | null
+          status: Database["public"]["Enums"]["status_transfer"]
+          tanggal_kirim: string | null
+          tanggal_terima: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          catatan?: string | null
+          created_at?: string
+          created_by?: string | null
+          gudang_asal_id: string
+          gudang_tujuan_id: string
+          id?: string
+          kurir_pengirim?: string | null
+          nomor_transfer: string
+          received_by?: string | null
+          status?: Database["public"]["Enums"]["status_transfer"]
+          tanggal_kirim?: string | null
+          tanggal_terima?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          catatan?: string | null
+          created_at?: string
+          created_by?: string | null
+          gudang_asal_id?: string
+          gudang_tujuan_id?: string
+          id?: string
+          kurir_pengirim?: string | null
+          nomor_transfer?: string
+          received_by?: string | null
+          status?: Database["public"]["Enums"]["status_transfer"]
+          tanggal_kirim?: string | null
+          tanggal_terima?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transfer_stok_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_stok_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "vw_payroll_saldo"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "transfer_stok_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_stok_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "vw_payroll_saldo"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "transfer_stok_gudang_asal_id_fkey"
+            columns: ["gudang_asal_id"]
+            isOneToOne: false
+            referencedRelation: "gudang"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_stok_gudang_tujuan_id_fkey"
+            columns: ["gudang_tujuan_id"]
+            isOneToOne: false
+            referencedRelation: "gudang"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_stok_received_by_fkey"
+            columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_stok_received_by_fkey"
+            columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "vw_payroll_saldo"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      transfer_stok_items: {
+        Row: {
+          catatan: string | null
+          created_at: string
+          id: string
+          inventory_id: string
+          qty_kirim: number
+          qty_terima: number | null
+          transfer_id: string
+        }
+        Insert: {
+          catatan?: string | null
+          created_at?: string
+          id?: string
+          inventory_id: string
+          qty_kirim: number
+          qty_terima?: number | null
+          transfer_id: string
+        }
+        Update: {
+          catatan?: string | null
+          created_at?: string
+          id?: string
+          inventory_id?: string
+          qty_kirim?: number
+          qty_terima?: number | null
+          transfer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transfer_stok_items_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_stok_items_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "transfer_stok"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wa_outbox: {
         Row: {
@@ -1968,6 +2359,8 @@ export type Database = {
         Args: { p_periode: string }
         Returns: undefined
       }
+      generate_nomor_pengeluaran_gudang: { Args: never; Returns: string }
+      generate_nomor_transfer: { Args: never; Returns: string }
       get_7day_trend_v2: {
         Args: { p_start_date?: string }
         Returns: {
@@ -2481,6 +2874,22 @@ export type Database = {
       payroll_mutasi_kategori: "gaji" | "kasbon" | "pencairan" | "lainnya"
       payroll_mutasi_status: "pending" | "disetujui" | "ditolak"
       receipt_type: "SALE" | "RETURN"
+      status_transfer:
+        | "DRAFT"
+        | "REQUESTED"
+        | "APPROVED"
+        | "IN_TRANSIT"
+        | "RECEIVED"
+        | "REJECTED"
+        | "CANCELED"
+      tipe_gudang: "PUSAT" | "CABANG" | "RETUR" | "TRANSIT"
+      tipe_pengeluaran_gudang:
+        | "RUSAK"
+        | "KADALUARSA"
+        | "PEMAKAIAN_SENDIRI"
+        | "SAMPEL_PROMOSI"
+        | "SELISIH_HILANG"
+        | "LAINNYA"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2622,7 +3031,24 @@ export const Constants = {
       payroll_mutasi_kategori: ["gaji", "kasbon", "pencairan", "lainnya"],
       payroll_mutasi_status: ["pending", "disetujui", "ditolak"],
       receipt_type: ["SALE", "RETURN"],
+      status_transfer: [
+        "DRAFT",
+        "REQUESTED",
+        "APPROVED",
+        "IN_TRANSIT",
+        "RECEIVED",
+        "REJECTED",
+        "CANCELED",
+      ],
+      tipe_gudang: ["PUSAT", "CABANG", "RETUR", "TRANSIT"],
+      tipe_pengeluaran_gudang: [
+        "RUSAK",
+        "KADALUARSA",
+        "PEMAKAIAN_SENDIRI",
+        "SAMPEL_PROMOSI",
+        "SELISIH_HILANG",
+        "LAINNYA",
+      ],
     },
   },
 } as const
-

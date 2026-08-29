@@ -26,42 +26,9 @@ import dynamic from 'next/dynamic';
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 
 import { RiwayatPenjualanTab } from '@/components/transactions/RiwayatPenjualanTab';
-
-const RiwayatPembelianTab = dynamic(
-  () => import('@/components/transactions/RiwayatPembelianTab').then((m) => m.RiwayatPembelianTab),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-[400px] animate-pulse rounded-2xl bg-neutral-100 dark:bg-neutral-900" />
-    ),
-  },
-);
-
-const RiwayatReturPenjualanTab = dynamic(
-  () =>
-    import('@/components/transactions/RiwayatReturPenjualanTab').then(
-      (m) => m.RiwayatReturPenjualanTab,
-    ),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-[400px] animate-pulse rounded-2xl bg-neutral-100 dark:bg-neutral-900" />
-    ),
-  },
-);
-
-const RiwayatReturPembelianTab = dynamic(
-  () =>
-    import('@/components/transactions/RiwayatReturPembelianTab').then(
-      (m) => m.RiwayatReturPembelianTab,
-    ),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-[400px] animate-pulse rounded-2xl bg-neutral-100 dark:bg-neutral-900" />
-    ),
-  },
-);
+import { RiwayatPembelianTab } from '@/components/transactions/RiwayatPembelianTab';
+import { RiwayatReturPenjualanTab } from '@/components/transactions/RiwayatReturPenjualanTab';
+import { RiwayatReturPembelianTab } from '@/components/transactions/RiwayatReturPembelianTab';
 import { useAuthStore, useIsAdmin } from '@/lib/auth';
 
 type HistoryType = 'penjualan' | 'pembelian' | 'retur_penjualan' | 'retur_pembelian';

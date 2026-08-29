@@ -123,8 +123,8 @@ export function ReturnsReportTab({ startDate, endDate }: ReturnsReportTabProps) 
               <h3 className="font-semibold text-neutral-900 dark:text-white">Alasan Retur</h3>
             </div>
 
-            <div className="h-64 flex-1">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-64 min-w-0 flex-1">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200}>
                 <PieChart>
                   <Pie
                     data={returnData.reasons}

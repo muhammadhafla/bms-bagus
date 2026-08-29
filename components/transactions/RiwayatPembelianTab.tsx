@@ -71,14 +71,15 @@ export function RiwayatPembelianTab({
 
   const detailError = queryError ? queryError.message : null;
 
+  const detailItems = detail?.items;
   const filteredItems = useMemo(() => {
-    if (!detail?.items) return [];
-    if (!itemSearch.trim()) return detail.items;
+    if (!detailItems) return [];
+    if (!itemSearch.trim()) return detailItems;
     const query = itemSearch.toLowerCase().trim();
-    return detail.items.filter((item) =>
+    return detailItems.filter((item) =>
       item.nama_barang?.toLowerCase().includes(query),
     );
-  }, [detail?.items, itemSearch]);
+  }, [detailItems, itemSearch]);
 
   const handleViewDetail = (id: string) => {
     setItemSearch('');

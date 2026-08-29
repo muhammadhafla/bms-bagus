@@ -99,11 +99,11 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
         style={{ minHeight: 350 }}
       >
         {/* Penjualan Chart */}
-        <div className="relative min-h-[120px] w-full flex-1 border-b border-neutral-100 pb-2 dark:border-neutral-800/50">
+        <div className="relative min-h-[120px] w-full min-w-0 flex-1 border-b border-neutral-100 pb-2 dark:border-neutral-800/50">
           <p className="absolute top-0 left-4 z-10 rounded-full bg-white/50 px-2 text-xs font-bold text-teal-500 shadow-sm backdrop-blur-sm dark:bg-neutral-800/50">
             Penjualan
           </p>
-          <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={120}>
             <AreaChart
               data={data}
               syncId="trendDashboard"
@@ -155,11 +155,11 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
         </div>
 
         {/* Pembelian Chart */}
-        <div className="relative min-h-[120px] w-full flex-1 pt-2">
+        <div className="relative min-h-[120px] w-full min-w-0 flex-1 pt-2">
           <p className="absolute top-0 left-4 z-10 rounded-full bg-white/50 px-2 text-xs font-bold text-orange-500 shadow-sm backdrop-blur-sm dark:bg-neutral-800/50">
             Pembelian
           </p>
-          <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={120}>
             <AreaChart
               data={data}
               syncId="trendDashboard"

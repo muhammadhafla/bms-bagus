@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import {
   IconPackage,
   IconDotsVertical,
@@ -12,12 +13,15 @@ import {
   IconBan,
   IconCheck,
   IconHistory,
+  IconBuildingWarehouse,
 } from '@tabler/icons-react';
 import { InventoryItem } from '@/types/inventory';
+import { InventoryStock } from '@/types/warehouse';
 import { supabase } from '@/lib/supabase';
 import { fetchApi } from '@/lib/fetchApi';
 import { formatCurrency } from '@/lib/utils';
 import { inventoryApi, kategoriApi } from '@/lib/api';
+import { warehouseStockApi } from '@/lib/api/warehouse';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { AdminOnly } from '@/components/role';
@@ -133,6 +137,8 @@ export const InventoryTable = React.memo(function InventoryTable({
   const [printForm, setPrintForm] = useState({ template_id: '', qty: 1 });
   const [isPrinting, setIsPrinting] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [warehouseStocks, setWarehouseStocks] = useState<InventoryStock[]>([]);
+  const [loadingWarehouseStocks, setLoadingWarehouseStocks] = useState(false);
   const isAdminUser = useIsAdmin();
 
   const openSlideOver = useCallback((item: InventoryItem) => {
@@ -147,11 +153,24 @@ export const InventoryTable = React.memo(function InventoryTable({
       minimum_stock: item.minimum_stock || 0,
     });
     setIsSlideOverOpen(true);
+    setLoadingWarehouseStocks(true);
+    warehouseStockApi.getStockByItem(item.id).then((res) => {
+      if (res.data) {
+        setWarehouseStocks(res.data);
+      } else {
+        setWarehouseStocks([]);
+      }
+      setLoadingWarehouseStocks(false);
+    }).catch(() => {
+      setWarehouseStocks([]);
+      setLoadingWarehouseStocks(false);
+    });
   }, []);
 
   const closeSlideOver = useCallback(() => {
     setIsSlideOverOpen(false);
     setSelectedItem(null);
+    setWarehouseStocks([]);
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -365,7 +384,9 @@ export const InventoryTable = React.memo(function InventoryTable({
                 Diskon
               </th>
               <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
-                Stok
+                <span className="inline-flex items-center gap-1 justify-end" title="Total stok akumulasi di semua gudang & cabang">
+                  Total Stok
+                </span>
               </th>
               <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
                 Minimal Stok
@@ -514,7 +535,7 @@ export const InventoryTable = React.memo(function InventoryTable({
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-neutral-500 dark:text-neutral-400">Stok</span>
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">Total Stok</span>
                   <span
                     className={`font-bold ${isLowStock ? 'text-accent-rose-600 dark:text-accent-rose-400' : 'text-neutral-900 dark:text-neutral-100'}`}
                   >
@@ -650,6 +671,62 @@ export const InventoryTable = React.memo(function InventoryTable({
             />
           </div>
         </AdminOnly>
+
+        {/* Rincian Stok per Lokasi Gudang */}
+        {selectedItem && (
+          <div className="mt-5 rounded-2xl border border-neutral-200/80 bg-neutral-50/70 p-4 dark:border-neutral-800 dark:bg-neutral-900/60">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-neutral-600 uppercase dark:text-neutral-300">
+                <IconBuildingWarehouse className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+                Rincian Stok per Gudang
+              </span>
+              <Link
+                href={`/warehouse/stocks?search=${encodeURIComponent(selectedItem.kode_barcode || selectedItem.nama_barang)}`}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline dark:text-brand-400 dark:hover:text-brand-300"
+              >
+                Kelola di Gudang &rarr;
+              </Link>
+            </div>
+
+            {loadingWarehouseStocks ? (
+              <div className="py-2 text-center text-xs text-neutral-400 animate-pulse">
+                Memuat rincian stok gudang...
+              </div>
+            ) : warehouseStocks.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-neutral-200 bg-white/60 p-3 text-center text-xs text-neutral-500 dark:border-neutral-800 dark:bg-neutral-950/40 dark:text-neutral-400">
+                Belum ada alokasi stok di modul gudang. Total stok saat ini: <strong className="text-neutral-800 dark:text-neutral-200">{selectedItem.stok} pcs</strong>.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {warehouseStocks.map((ws) => (
+                  <div
+                    key={ws.id}
+                    className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-3 py-2 text-xs shadow-2xs dark:border-neutral-800 dark:bg-neutral-800/80"
+                  >
+                    <div>
+                      <div className="font-semibold text-neutral-900 dark:text-white">
+                        {ws.gudang?.nama || ws.gudang?.kode_gudang || 'Gudang'}
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px] text-neutral-500 dark:text-neutral-400">
+                        <span>Rak: <strong className="font-medium text-neutral-700 dark:text-neutral-300">{ws.rak_lokasi || '-'}</strong></span>
+                        {ws.min_stok !== null && ws.min_stok !== undefined && (
+                          <span>• Min: {ws.min_stok}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-bold text-neutral-900 dark:text-white">
+                        {ws.stok}
+                      </span>
+                      <span className="text-[11px] text-neutral-500 ml-1">pcs</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <AdminOnly>
           <div className="mt-6 flex flex-col gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">
             <div className="flex gap-3">

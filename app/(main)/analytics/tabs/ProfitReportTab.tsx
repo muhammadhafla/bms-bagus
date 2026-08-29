@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import { ReportState } from '@/components/analytics/ReportState';
 import { ReportPagination } from '@/components/analytics/ReportPagination';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 interface ProfitReportTabProps {
   startDate: string;
@@ -27,6 +28,7 @@ interface ProfitReportTabProps {
 export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReportTabProps) {
   const [page, setPage] = useState(1);
   const [activeTab, setActiveTab] = useState<'sales' | 'profit'>('sales');
+  const isDesktop = useMediaQuery('(min-width: 768px)');
   const ITEMS_PER_PAGE = 50;
 
   const { data, isLoading, error } = useQuery({
@@ -106,11 +108,11 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
   );
 
   const renderSalesChart = () => (
-    <div className="relative min-h-[150px] w-full flex-1 border-b border-neutral-100 pb-2 dark:border-neutral-800/50">
+    <div className="relative min-h-[150px] w-full min-w-0 flex-1 border-b border-neutral-100 pb-2 dark:border-neutral-800/50">
       <p className="absolute top-0 left-4 z-10 rounded-full bg-white/50 px-2 text-xs font-bold text-blue-500 shadow-sm backdrop-blur-sm dark:bg-neutral-800/50">
         Total Penjualan
       </p>
-      <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
         <AreaChart data={chartData} margin={{ top: 20, right: 20, left: 20, bottom: 0 }}>
           <defs>
             <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
@@ -172,11 +174,11 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
   );
 
   const renderProfitChart = () => (
-    <div className="relative min-h-[150px] w-full flex-1 pt-2">
+    <div className="relative min-h-[150px] w-full min-w-0 flex-1 pt-2">
       <p className="absolute top-0 left-4 z-10 rounded-full bg-white/50 px-2 text-xs font-bold text-emerald-500 shadow-sm backdrop-blur-sm dark:bg-neutral-800/50">
         Total Profit
       </p>
-      <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
         <AreaChart data={chartData} margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
           <defs>
             <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
@@ -320,17 +322,17 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
             </button>
           </div>
 
-          <div className="flex h-[350px] w-full flex-col pt-2 md:h-[450px]">
-            {/* Mobile View (Tabbed) */}
-            <div className="flex h-full w-full flex-col md:hidden">
-              {activeTab === 'sales' ? renderSalesChart() : renderProfitChart()}
-            </div>
-
-            {/* Desktop View (Stacked) */}
-            <div className="hidden h-full w-full flex-col gap-4 md:flex">
-              {renderSalesChart()}
-              {renderProfitChart()}
-            </div>
+          <div className="flex h-[350px] w-full min-w-0 flex-col pt-2 md:h-[450px]">
+            {isDesktop ? (
+              <div className="flex h-full w-full min-w-0 flex-col gap-4">
+                {renderSalesChart()}
+                {renderProfitChart()}
+              </div>
+            ) : (
+              <div className="flex h-full w-full min-w-0 flex-col">
+                {activeTab === 'sales' ? renderSalesChart() : renderProfitChart()}
+              </div>
+            )}
           </div>
         </div>
 

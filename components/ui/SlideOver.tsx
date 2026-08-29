@@ -59,16 +59,16 @@ export function SlideOver({ isOpen, onClose, title, children, size = 'md' }: Sli
         ref={focusTrapRef}
         className={`relative w-full ${sizeClasses[size]} animate-slide-in flex h-full flex-col bg-white shadow-xl dark:bg-neutral-950`}
       >
-        <div className="flex items-center justify-between border-b border-neutral-200 p-4 dark:border-neutral-800">
-          <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">{title}</h2>
+        <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-2.5 sm:px-5 sm:py-3.5 dark:border-neutral-800">
+          <h2 className="text-base font-semibold text-neutral-900 sm:text-lg dark:text-white truncate mr-2">{title}</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+            className="-mr-1 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
           >
-            <IconX className="h-5 w-5" />
+            <IconX className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-4">{children}</div>
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5">{children}</div>
       </div>
     </div>,
     document.body,

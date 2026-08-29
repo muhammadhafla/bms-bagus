@@ -45,5 +45,11 @@ export { kasApi, type KasLogItem } from './kas';
 export { promoApi, type Promo, type PromoItem } from './promo';
 export * from './payroll';
 export { ledgerApi, type BukuBesar, type PengeluaranOperasional } from './ledger';
+export {
+  gudangApi,
+  warehouseStockApi,
+  transferStokApi,
+  pengeluaranGudangApi,
+} from './warehouse';
 
 export type { ApiError } from './utils';

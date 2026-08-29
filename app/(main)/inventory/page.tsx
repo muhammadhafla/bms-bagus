@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 
 // Metadata and server configuration
 export const metadata = {
-  title: 'Stok Barang',
+  title: 'Katalog Produk',
 };
 
 type Props = {

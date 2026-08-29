@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 const defaultSidebarState = {
   operasionalExpanded: true,
   inventoryExpanded: true,
+  warehouseExpanded: true,
   financeExpanded: true,
   payrollExpanded: true,
   reportsExpanded: true,
@@ -51,6 +52,8 @@ export function useSidebarState() {
       setField('operasionalExpanded', v),
     setInventoryExpanded: (v: boolean | ((p: boolean) => boolean)) =>
       setField('inventoryExpanded', v),
+    setWarehouseExpanded: (v: boolean | ((p: boolean) => boolean)) =>
+      setField('warehouseExpanded', v),
     setFinanceExpanded: (v: boolean | ((p: boolean) => boolean)) => 
       setField('financeExpanded', v),
     setPayrollExpanded: (v: boolean | ((p: boolean) => boolean)) => 

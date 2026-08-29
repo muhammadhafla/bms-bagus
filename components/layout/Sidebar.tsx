@@ -35,6 +35,8 @@ import {
   IconPrinter,
   IconClock,
   IconMapPin,
+  IconBuildingWarehouse,
+  IconTrash,
 } from '@tabler/icons-react';
 
 import { useSidebarContext } from './SidebarProvider';
@@ -49,10 +51,17 @@ const OPERASIONAL_ITEMS = [
 ];
 
 const INVENTORY_ITEMS = [
-  { href: '/inventory', title: 'Stok', icon: IconPackage },
+  { href: '/inventory', title: 'Katalog Produk', icon: IconPackage },
   { href: '/inventory/stock-opname', title: 'Stok Opname', icon: IconClipboardCheck },
   { href: '/bulk-print', title: 'Cetak Massal', icon: IconPrinter },
   { href: '/print-history', title: 'Riwayat Cetak', icon: IconHistory },
+];
+
+const WAREHOUSE_ITEMS = [
+  { href: '/warehouse', title: 'Ringkasan Gudang', icon: IconBuildingWarehouse },
+  { href: '/warehouse/stocks', title: 'Stok per Gudang', icon: IconPackage },
+  { href: '/warehouse/transfers', title: 'Mutasi & Transfer', icon: IconTruck },
+  { href: '/warehouse/outbound', title: 'Pengeluaran Khusus', icon: IconTrash },
 ];
 
 const FINANCE_ITEMS = [
@@ -63,7 +72,6 @@ const FINANCE_ITEMS = [
 
 const PAYROLL_ITEMS = [
   { href: '/admin/payroll/kehadiran', title: 'Data Kehadiran', icon: IconClock },
-  { href: '/admin/payroll/karyawan', title: 'Data Karyawan', icon: IconUsers },
   { href: '/admin/payroll/kasbon', title: 'Persetujuan Kasbon', icon: IconWallet },
   { href: '/admin/payroll/gaji', title: 'Dashboard Keuangan', icon: IconReport },
 ];
@@ -80,10 +88,12 @@ const REPORT_ITEMS = [
 
 const MASTER_ITEMS = [
   { href: '/users', title: 'Data Pengguna', icon: IconUsers },
+  { href: '/admin/payroll/karyawan', title: 'Data Karyawan', icon: IconUsers },
   { href: '/members', title: 'Master Member', icon: IconUsersGroup },
   { href: '/members/tiers', title: 'Konfigurasi Tier', icon: IconSettings },
   { href: '/inventory/kategori', title: 'Kategori Barang', icon: IconTags },
   { href: '/purchasing/supplier', title: 'Data Supplier', icon: IconTruck },
+  { href: '/warehouse/master', title: 'Master Gudang', icon: IconBuildingWarehouse },
   { href: '/master/label-templates', title: 'Template Label', icon: IconTags },
   { href: '/admin/payroll/lokasi-kerja', title: 'Lokasi Outlet', icon: IconMapPin },
 ];
@@ -148,6 +158,8 @@ export function Sidebar() {
     setOperasionalExpanded,
     inventoryExpanded,
     setInventoryExpanded,
+    warehouseExpanded,
+    setWarehouseExpanded,
     financeExpanded,
     setFinanceExpanded,
     payrollExpanded,
@@ -334,7 +346,7 @@ export function Sidebar() {
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase transition-colors hover:bg-neutral-200/50 dark:text-neutral-500 dark:hover:bg-neutral-800/50"
                 aria-expanded={inventoryExpanded}
               >
-                <span className="flex-1 text-left">Manajemen Stok</span>
+                <span className="flex-1 text-left">Produk & Katalog</span>
                 {isSidebarVisible && (
                   <IconChevronRight
                     className={`h-3 w-3 transition-transform ${inventoryExpanded ? 'rotate-90' : ''}`}
@@ -345,6 +357,39 @@ export function Sidebar() {
             {inventoryExpanded && (isSidebarVisible || mobileMenuOpen) ? (
               <div className="space-y-1 pl-2">
                 {INVENTORY_ITEMS.map((item) => (
+                  <SidebarLink
+                    key={item.href}
+                    href={item.href}
+                    title={item.title}
+                    icon={item.icon}
+                    isActive={pathname === item.href}
+                    sidebarCollapsed={!isSidebarVisible}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          {/* Warehouse Group */}
+          <div className="space-y-1">
+            {(isSidebarVisible || mobileMenuOpen) && (
+              <button
+                type="button"
+                onClick={() => setWarehouseExpanded((prev: boolean) => !prev)}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase transition-colors hover:bg-neutral-200/50 dark:text-neutral-500 dark:hover:bg-neutral-800/50"
+                aria-expanded={warehouseExpanded}
+              >
+                <span className="flex-1 text-left">Gudang & Logistik</span>
+                {isSidebarVisible && (
+                  <IconChevronRight
+                    className={`h-3 w-3 transition-transform ${warehouseExpanded ? 'rotate-90' : ''}`}
+                  />
+                )}
+              </button>
+            )}
+            {warehouseExpanded && (isSidebarVisible || mobileMenuOpen) ? (
+              <div className="space-y-1 pl-2">
+                {WAREHOUSE_ITEMS.map((item) => (
                   <SidebarLink
                     key={item.href}
                     href={item.href}

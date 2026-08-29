@@ -10,6 +10,7 @@ import {
   Area,
 } from 'recharts';
 import { analyticsApi } from '@/lib/api';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 const formatRupiah = (value: number) =>
   new Intl.NumberFormat('id-ID', {
@@ -67,6 +68,7 @@ const CustomTooltip = ({ active, payload, label, groupBy }: any) => {
 export function BusiestTimeChart({ startDate, endDate }: { startDate: string; endDate: string }) {
   const [groupBy, setGroupBy] = useState<'hour' | 'day' | 'date'>('hour');
   const [activeTab, setActiveTab] = useState<'revenue' | 'transaction'>('revenue');
+  const isDesktop = useMediaQuery('(min-width: 768px)');
 
   const { data, isLoading } = useQuery({
     queryKey: ['analytics', 'salesTrend', startDate, endDate, groupBy],
@@ -80,11 +82,11 @@ export function BusiestTimeChart({ startDate, endDate }: { startDate: string; en
   };
 
   const renderRevenueChart = () => (
-    <div className="relative min-h-[150px] w-full flex-1 border-b border-neutral-100 pb-2 dark:border-neutral-800/50">
+    <div className="relative min-h-[150px] w-full min-w-0 flex-1 border-b border-neutral-100 pb-2 dark:border-neutral-800/50">
       <p className="text-accent-teal-500 absolute top-0 left-4 z-10 rounded-full bg-white/50 px-2 text-xs font-bold shadow-sm backdrop-blur-sm dark:bg-neutral-800/50">
         Pendapatan
       </p>
-      <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
         <AreaChart data={data} margin={{ top: 20, right: 10, left: 20, bottom: 0 }}>
           <defs>
             <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
@@ -133,11 +135,11 @@ export function BusiestTimeChart({ startDate, endDate }: { startDate: string; en
   );
 
   const renderTransactionChart = () => (
-    <div className="relative min-h-[150px] w-full flex-1 pt-2">
+    <div className="relative min-h-[150px] w-full min-w-0 flex-1 pt-2">
       <p className="text-brand-500 absolute top-0 left-4 z-10 rounded-full bg-white/50 px-2 text-xs font-bold shadow-sm backdrop-blur-sm dark:bg-neutral-800/50">
         Transaksi
       </p>
-      <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
         <AreaChart data={data} margin={{ top: 20, right: 10, left: 20, bottom: 20 }}>
           <defs>
             <linearGradient id="colorTx" x1="0" y1="0" x2="0" y2="1">
@@ -197,17 +199,17 @@ export function BusiestTimeChart({ startDate, endDate }: { startDate: string; en
 
   const renderSynchronizedCharts = () => {
     return (
-      <div className="absolute inset-0 flex flex-col pt-2">
-        {/* Mobile View (Tabbed) */}
-        <div className="flex h-full w-full flex-col md:hidden">
-          {activeTab === 'revenue' ? renderRevenueChart() : renderTransactionChart()}
-        </div>
-
-        {/* Desktop View (Stacked) */}
-        <div className="hidden h-full w-full flex-col gap-4 md:flex">
-          {renderRevenueChart()}
-          {renderTransactionChart()}
-        </div>
+      <div className="absolute inset-0 flex min-w-0 flex-col pt-2">
+        {isDesktop ? (
+          <div className="flex h-full w-full min-w-0 flex-col gap-4">
+            {renderRevenueChart()}
+            {renderTransactionChart()}
+          </div>
+        ) : (
+          <div className="flex h-full w-full min-w-0 flex-col">
+            {activeTab === 'revenue' ? renderRevenueChart() : renderTransactionChart()}
+          </div>
+        )}
       </div>
     );
   };

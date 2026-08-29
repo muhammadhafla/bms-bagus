@@ -3,7 +3,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ledgerApi } from '@/lib/api/ledger';
-import { useAuthStore } from '@/lib/auth';
 import { 
   Button, 
   Modal, 
@@ -28,8 +27,6 @@ import { toast } from 'sonner';
 
 export default function LedgerPage() {
   const queryClient = useQueryClient();
-  const { user, profile, initialized } = useAuthStore();
-  const isAdmin = profile?.role === 'admin' || (profile?.role as string) === 'owner';
 
   const [dateRange, setDateRange] = useState<{ startDate: string; endDate: string }>({
     startDate: '',
@@ -45,7 +42,6 @@ export default function LedgerPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['buku_besar', startDateStr, endDateStr],
     queryFn: () => ledgerApi.getBukuBesar(startDateStr, endDateStr),
-    enabled: isAdmin
   });
 
   // Hitung Saldo Berjalan & Rekap
@@ -131,14 +127,6 @@ export default function LedgerPage() {
     // Basic export stub
     toast.info(`Ekspor ke ${format.toUpperCase()} akan segera tersedia.`);
   };
-
-  if (!initialized || (user && !profile)) {
-    return <div className="p-8 text-center text-neutral-500">Memuat...</div>;
-  }
-
-  if (!isAdmin) {
-    return <div className="p-8 text-center text-red-500 font-bold">Akses Ditolak. Halaman ini hanya untuk Admin/Owner.</div>;
-  }
 
   return (
     <AmbientLayout>

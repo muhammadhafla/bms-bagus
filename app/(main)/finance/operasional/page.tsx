@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ledgerApi } from '@/lib/api/ledger';
-import { useAuthStore } from '@/lib/auth';
 import { 
   Button, 
   Modal, 
@@ -26,8 +25,6 @@ import { toast } from 'sonner';
 
 export default function PengeluaranOperasionalPage() {
   const queryClient = useQueryClient();
-  const { user, profile, initialized } = useAuthStore();
-  const isAdmin = profile?.role === 'admin' || (profile?.role as string) === 'owner';
 
   const [page, setPage] = useState(1);
   const limit = 50;
@@ -35,7 +32,6 @@ export default function PengeluaranOperasionalPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['pengeluaran_operasional'],
     queryFn: () => ledgerApi.getPengeluaranOperasional(),
-    enabled: isAdmin
   });
 
   const list = data || [];
@@ -100,14 +96,6 @@ export default function PengeluaranOperasionalPage() {
     if (!nominal) return toast.error('Nominal wajib diisi');
     insertMutation.mutate();
   };
-
-  if (!initialized || (user && !profile)) {
-    return <div className="p-8 text-center text-neutral-500">Memuat...</div>;
-  }
-
-  if (!isAdmin) {
-    return <div className="p-8 text-center text-red-500 font-bold">Akses Ditolak. Halaman ini hanya untuk Admin/Owner.</div>;
-  }
 
   return (
     <AmbientLayout>

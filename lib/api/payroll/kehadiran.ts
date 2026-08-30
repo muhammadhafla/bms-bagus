@@ -15,6 +15,20 @@ export interface Kehadiran {
   menit_lembur_disetujui: number | null;
   status_lembur: 'tidak_ada' | 'pending' | 'disetujui' | 'ditolak';
   created_at: string;
+  lat_masuk?: number | null;
+  lng_masuk?: number | null;
+  lat_pulang?: number | null;
+  lng_pulang?: number | null;
+  lokasi_masuk_id?: string | null;
+  lokasi_pulang_id?: string | null;
+  lokasi_masuk?: {
+    id: string;
+    nama: string;
+  } | null;
+  lokasi_pulang?: {
+    id: string;
+    nama: string;
+  } | null;
   profiles?: {
     nama: string;
   } | null;
@@ -37,7 +51,11 @@ export const kehadiranApi = {
       const result = await safeQuery(async () => {
         const res = await supabase
           .from('kehadiran')
-          .select('*')
+          .select(`
+            *,
+            lokasi_masuk:lokasi_kerja!kehadiran_lokasi_masuk_id_fkey(id, nama),
+            lokasi_pulang:lokasi_kerja!kehadiran_lokasi_pulang_id_fkey(id, nama)
+          `)
           .eq('user_id', userId)
           .eq('tanggal', dateStr)
           .maybeSingle();
@@ -117,7 +135,11 @@ export const kehadiranApi = {
       const result = await safeQuery(async () => {
         const res = await supabase
           .from('kehadiran')
-          .select('*')
+          .select(`
+            *,
+            lokasi_masuk:lokasi_kerja!kehadiran_lokasi_masuk_id_fkey(id, nama),
+            lokasi_pulang:lokasi_kerja!kehadiran_lokasi_pulang_id_fkey(id, nama)
+          `)
           .eq('user_id', userId)
           .order('tanggal', { ascending: false })
           .limit(limit);
@@ -137,7 +159,11 @@ export const kehadiranApi = {
       const result = await safeQuery(async () => {
         const res = await supabase
           .from('kehadiran')
-          .select('*')
+          .select(`
+            *,
+            lokasi_masuk:lokasi_kerja!kehadiran_lokasi_masuk_id_fkey(id, nama),
+            lokasi_pulang:lokasi_kerja!kehadiran_lokasi_pulang_id_fkey(id, nama)
+          `)
           .eq('status_lembur', 'pending')
           .order('tanggal', { ascending: false });
           
@@ -204,7 +230,11 @@ export const kehadiranApi = {
       const result = await safeQuery(async () => {
         let query = supabase
           .from('kehadiran')
-          .select('*')
+          .select(`
+            *,
+            lokasi_masuk:lokasi_kerja!kehadiran_lokasi_masuk_id_fkey(id, nama),
+            lokasi_pulang:lokasi_kerja!kehadiran_lokasi_pulang_id_fkey(id, nama)
+          `)
           .order('tanggal', { ascending: false });
 
         if (startDate && endDate) {

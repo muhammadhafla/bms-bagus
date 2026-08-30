@@ -429,35 +429,23 @@ export default function InventoryPageClient() {
                   Urutkan Berdasarkan:
                 </label>
                 <SelectInput
-                  value={sortBy}
-                  onChange={setSortBy}
+                  value={`${sortBy}:${sortDir}`}
+                  onChange={(val) => {
+                    const [newSortBy, newSortDir] = val.split(':');
+                    setSortBy(newSortBy);
+                    setSortDir(newSortDir as 'asc' | 'desc');
+                  }}
                   options={[
-                    { value: 'nama_barang', label: 'Nama Barang' },
-                    { value: 'stok', label: 'Sisa Stok' },
-                    { value: 'harga_jual', label: 'Harga Jual' },
-                    { value: 'created_at', label: 'Waktu Ditambahkan' },
-                    { value: 'updated_at', label: 'Terakhir Diperbaharui' },
-                  ]}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  Arah Urutan:
-                </label>
-                <SelectInput
-                  value={sortDir}
-                  onChange={(val) => setSortDir(val as 'asc' | 'desc')}
-                  options={[
-                    {
-                      value: 'asc',
-                      label: sortBy === 'nama_barang' ? 'A - Z' : 'Terendah ke Tertinggi / Terlama',
-                    },
-                    {
-                      value: 'desc',
-                      label: sortBy === 'nama_barang' ? 'Z - A' : 'Tertinggi ke Terendah / Terbaru',
-                    },
+                    { value: 'nama_barang:asc', label: 'Nama Barang (A ke Z)' },
+                    { value: 'nama_barang:desc', label: 'Nama Barang (Z ke A)' },
+                    { value: 'stok:asc', label: 'Sisa Stok: Paling Sedikit' },
+                    { value: 'stok:desc', label: 'Sisa Stok: Paling Banyak' },
+                    { value: 'harga_jual:asc', label: 'Harga: Termurah ke Termahal' },
+                    { value: 'harga_jual:desc', label: 'Harga: Termahal ke Termurah' },
+                    { value: 'created_at:desc', label: 'Waktu Ditambahkan: Terbaru' },
+                    { value: 'created_at:asc', label: 'Waktu Ditambahkan: Terlama' },
+                    { value: 'updated_at:desc', label: 'Terakhir Diperbaharui: Terbaru' },
+                    { value: 'updated_at:asc', label: 'Terakhir Diperbaharui: Terlama' },
                   ]}
                   className="w-full"
                 />

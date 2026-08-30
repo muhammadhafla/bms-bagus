@@ -3,11 +3,21 @@
 import { useState, useMemo, Suspense, useEffect } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { kehadiranApi, Kehadiran } from '@/lib/api/payroll';
+import { kehadiranApi, Kehadiran, lokasiKerjaApi } from '@/lib/api/payroll';
 import { karyawanApi } from '@/lib/api/payroll/karyawan';
 import { Card, DataTable, Button, Modal, TextInput, Badge, SelectInput, DateRangePicker, FilterButton, ModernPagination, type Column } from '@/components/ui';
 import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
-import { IconClock, IconEdit, IconX, IconSearch, IconCalendarEvent, IconCheck, IconChevronRight, IconPlus } from '@tabler/icons-react';
+import { 
+  IconClock, 
+  IconX, 
+  IconSearch, 
+  IconCalendarEvent, 
+  IconCheck, 
+  IconChevronRight, 
+  IconPlus,
+  IconMapPin,
+  IconExternalLink
+} from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -31,13 +41,15 @@ function AdminKehadiranContent() {
   const endDate = searchParams.get('endDate') || '';
   const search = searchParams.get('search') || '';
   const statusHadir = searchParams.get('statusHadir') || 'all';
+  const lokasiId = searchParams.get('lokasiId') || 'all';
 
-  const updateFilters = (newFilters: { search?: string; startDate?: string; endDate?: string; statusHadir?: string }) => {
+  const updateFilters = (newFilters: { search?: string; startDate?: string; endDate?: string; statusHadir?: string; lokasiId?: string }) => {
     const params = new URLSearchParams(searchParams.toString());
     if (newFilters.search !== undefined) newFilters.search ? params.set('search', newFilters.search) : params.delete('search');
     if (newFilters.startDate !== undefined) newFilters.startDate ? params.set('startDate', newFilters.startDate) : params.delete('startDate');
     if (newFilters.endDate !== undefined) newFilters.endDate ? params.set('endDate', newFilters.endDate) : params.delete('endDate');
     if (newFilters.statusHadir !== undefined) newFilters.statusHadir && newFilters.statusHadir !== 'all' ? params.set('statusHadir', newFilters.statusHadir) : params.delete('statusHadir');
+    if (newFilters.lokasiId !== undefined) newFilters.lokasiId && newFilters.lokasiId !== 'all' ? params.set('lokasiId', newFilters.lokasiId) : params.delete('lokasiId');
     
     // Reset page to 1 when filters change
     params.set('page', '1');
@@ -49,13 +61,31 @@ function AdminKehadiranContent() {
   const [tempStartDate, setTempStartDate] = useState(startDate);
   const [tempEndDate, setTempEndDate] = useState(endDate);
   const [tempStatusHadir, setTempStatusHadir] = useState(statusHadir);
+  const [tempLokasiId, setTempLokasiId] = useState(lokasiId);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // Query Data
+  const { data: list, isLoading } = useQuery({
+    queryKey: ['admin_payroll_kehadiran', startDate, endDate],
+    queryFn: () => kehadiranApi.getAll(startDate, endDate).then(res => res.data),
+  });
+
+  const { data: karyawanList } = useQuery({
+    queryKey: ['admin_payroll_karyawan'],
+    queryFn: () => karyawanApi.getAll().then(res => res.data),
+  });
+
+  const { data: storeList } = useQuery({
+    queryKey: ['admin_payroll_stores'],
+    queryFn: () => lokasiKerjaApi.getAll().then(res => res.data || []),
+  });
 
   const handleOpenFilter = () => {
     setTempSearch(search);
     setTempStartDate(startDate);
     setTempEndDate(endDate);
     setTempStatusHadir(statusHadir);
+    setTempLokasiId(lokasiId);
     setIsFilterOpen(true);
   };
 
@@ -65,12 +95,13 @@ function AdminKehadiranContent() {
       startDate: tempStartDate,
       endDate: tempEndDate,
       statusHadir: tempStatusHadir,
+      lokasiId: tempLokasiId,
     });
     setIsFilterOpen(false);
   };
 
   const handleResetFilter = () => {
-    updateFilters({ search: '', startDate: '', endDate: '', statusHadir: 'all' });
+    updateFilters({ search: '', startDate: '', endDate: '', statusHadir: 'all', lokasiId: 'all' });
     setIsFilterOpen(false);
   };
 
@@ -93,21 +124,18 @@ function AdminKehadiranContent() {
         onRemove: () => updateFilters({ statusHadir: 'all' }),
       });
     }
+    if (lokasiId && lokasiId !== 'all') {
+      const selectedStore = storeList?.find(s => s.id === lokasiId);
+      badges.push({
+        id: 'lokasi',
+        label: `Lokasi: ${selectedStore?.nama || 'Toko'}`,
+        onRemove: () => updateFilters({ lokasiId: 'all' }),
+      });
+    }
     return badges;
   };
 
   const activeFilters = getActiveFilters();
-
-  // Query Data
-  const { data: list, isLoading } = useQuery({
-    queryKey: ['admin_payroll_kehadiran', startDate, endDate],
-    queryFn: () => kehadiranApi.getAll(startDate, endDate).then(res => res.data),
-  });
-
-  const { data: karyawanList } = useQuery({
-    queryKey: ['admin_payroll_karyawan'],
-    queryFn: () => karyawanApi.getAll().then(res => res.data),
-  });
 
   const karyawanOptions = useMemo(() => {
     const opts = [{ label: 'Semua Karyawan', value: '' }];
@@ -133,21 +161,45 @@ function AdminKehadiranContent() {
     return opts;
   }, [karyawanList]);
 
+  const storeFilterOptions = useMemo(() => {
+    const opts = [{ label: 'Semua Lokasi Toko', value: 'all' }];
+    if (storeList) {
+      storeList.forEach(s => {
+        opts.push({ label: s.nama, value: s.id });
+      });
+    }
+    return opts;
+  }, [storeList]);
+
+  const storeFormOptions = useMemo(() => {
+    const opts = [{ label: 'Pilih Lokasi Toko (Opsional)', value: '' }];
+    if (storeList) {
+      storeList.forEach(s => {
+        opts.push({ label: s.nama, value: s.id });
+      });
+    }
+    return opts;
+  }, [storeList]);
+
   // Client-side filtering
   const filteredList = useMemo(() => {
     if (!list) return [];
     return list.filter(item => {
       let matchSearch = true;
       let matchStatus = true;
+      let matchLokasi = true;
       if (search) {
         matchSearch = (item.profiles?.nama || '').toLowerCase().includes(search.toLowerCase());
       }
       if (statusHadir && statusHadir !== 'all') {
         matchStatus = item.status_hadir === statusHadir;
       }
-      return matchSearch && matchStatus;
+      if (lokasiId && lokasiId !== 'all') {
+        matchLokasi = item.lokasi_masuk_id === lokasiId || item.lokasi_pulang_id === lokasiId;
+      }
+      return matchSearch && matchStatus && matchLokasi;
     });
-  }, [list, search, statusHadir]);
+  }, [list, search, statusHadir, lokasiId]);
 
   // Pagination
   const page = parseInt(searchParams.get('page') || '1', 10);
@@ -170,6 +222,8 @@ function AdminKehadiranContent() {
   const [selectedKehadiran, setSelectedKehadiran] = useState<Kehadiran | null>(null);
   const [editStatusHadir, setEditStatusHadir] = useState<string>('');
   const [editStatusLembur, setEditStatusLembur] = useState<string>('');
+  const [editLokasiMasukId, setEditLokasiMasukId] = useState<string>('');
+  const [editLokasiPulangId, setEditLokasiPulangId] = useState<string>('');
 
   // Create State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -177,11 +231,14 @@ function AdminKehadiranContent() {
   const [createUserId, setCreateUserId] = useState('');
   const [createStatusHadir, setCreateStatusHadir] = useState('hadir');
   const [createStatusLembur, setCreateStatusLembur] = useState('tidak_ada');
+  const [createLokasiId, setCreateLokasiId] = useState('');
 
   const handleOpenEdit = (item: Kehadiran) => {
     setSelectedKehadiran(item);
     setEditStatusHadir(item.status_hadir);
     setEditStatusLembur(item.status_lembur);
+    setEditLokasiMasukId(item.lokasi_masuk_id || '');
+    setEditLokasiPulangId(item.lokasi_pulang_id || '');
   };
 
   const createMutation = useMutation({
@@ -243,7 +300,9 @@ function AdminKehadiranContent() {
       menit_telat: Number(fd.get('menit_telat') || 0),
       menit_lembur_aktual: 0,
       menit_lembur_disetujui: Number(fd.get('menit_lembur_disetujui') || 0),
-      status_lembur: fd.get('status_lembur') as any || 'tidak_ada',
+      status_lembur: (fd.get('status_lembur') as any) || 'tidak_ada',
+      lokasi_masuk_id: createLokasiId || null,
+      lokasi_pulang_id: createLokasiId || null,
     });
   };
 
@@ -304,6 +363,8 @@ function AdminKehadiranContent() {
       menit_telat,
       menit_lembur_disetujui,
       status_lembur,
+      lokasi_masuk_id: editLokasiMasukId || null,
+      lokasi_pulang_id: editLokasiPulangId || null,
     });
   };
 
@@ -330,16 +391,69 @@ function AdminKehadiranContent() {
       key: 'tanggal', 
       header: 'Tanggal', 
       render: (row: Kehadiran) => (
-        <span className="font-medium">{format(new Date(row.tanggal), 'dd MMM yyyy', { locale: idLocale })}</span>
+        <span className="font-medium text-neutral-900 dark:text-white">
+          {format(new Date(row.tanggal), 'dd MMM yyyy', { locale: idLocale })}
+        </span>
       )
     },
-    { key: 'nama', header: 'Nama Karyawan', render: (row: Kehadiran) => row.profiles?.nama || 'Unknown' },
-    { key: 'status_hadir', header: 'Kehadiran', render: (row: Kehadiran) => getStatusBadge(row.status_hadir) },
+    { 
+      key: 'nama', 
+      header: 'Nama Karyawan', 
+      render: (row: Kehadiran) => (
+        <span className="font-medium text-neutral-900 dark:text-white">
+          {row.profiles?.nama || 'Unknown'}
+        </span>
+      ) 
+    },
+    { 
+      key: 'status_hadir', 
+      header: 'Kehadiran', 
+      render: (row: Kehadiran) => getStatusBadge(row.status_hadir) 
+    },
+    {
+      key: 'lokasi',
+      header: 'Lokasi Toko',
+      render: (row: Kehadiran) => {
+        const storeMasuk = row.lokasi_masuk?.nama;
+        const storePulang = row.lokasi_pulang?.nama;
+
+        if (storeMasuk && storePulang && storeMasuk !== storePulang) {
+          return (
+            <div className="flex flex-col gap-1 text-xs">
+              <span className="inline-flex items-center gap-1.5 font-medium text-neutral-800 dark:text-neutral-200">
+                <span className="inline-flex h-4 px-1.5 items-center justify-center rounded bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300 text-[10px] font-bold">
+                  Masuk
+                </span>
+                <span className="truncate">{storeMasuk}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 font-medium text-neutral-700 dark:text-neutral-300">
+                <span className="inline-flex h-4 px-1.5 items-center justify-center rounded bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 text-[10px] font-bold">
+                  Pulang
+                </span>
+                <span className="truncate">{storePulang}</span>
+              </span>
+            </div>
+          );
+        }
+
+        const storeName = storeMasuk || storePulang;
+        if (storeName) {
+          return (
+            <div className="inline-flex items-center gap-1.5 text-xs font-medium text-teal-700 dark:text-teal-400">
+              <IconMapPin size={14} className="shrink-0 text-teal-600 dark:text-teal-400" />
+              <span>{storeName}</span>
+            </div>
+          );
+        }
+
+        return <span className="text-neutral-400 text-xs">-</span>;
+      }
+    },
     { 
       key: 'waktu', 
       header: 'Waktu (M - P)', 
       render: (row: Kehadiran) => (
-        <span className="font-mono text-xs">
+        <span className="font-mono text-xs text-neutral-700 dark:text-neutral-300">
           {getTimeFromIso(row.waktu_masuk)} - {getTimeFromIso(row.waktu_pulang) || '--:--'}
         </span>
       ) 
@@ -358,20 +472,6 @@ function AdminKehadiranContent() {
         if (row.status_lembur === 'ditolak') return <Badge variant="danger">Ditolak</Badge>;
         return <span className="text-neutral-400">-</span>;
       }
-    },
-    { 
-      key: 'aksi',
-      header: 'Aksi', 
-      render: (row: Kehadiran) => (
-        <Button 
-          variant="secondary" 
-          size="sm" 
-          leftIcon={<IconEdit size={16} />}
-          onClick={() => handleOpenEdit(row)}
-        >
-          Edit
-        </Button>
-      )
     }
   ];
 
@@ -485,10 +585,26 @@ function AdminKehadiranContent() {
                     <h3 className="line-clamp-1 text-sm font-semibold leading-tight text-neutral-900 dark:text-white">
                       {item.profiles?.nama || 'Unknown'}
                     </h3>
-                    <p className="mt-0.5 flex items-center gap-1 text-[11px] text-neutral-500">
-                      <IconCalendarEvent size={12} />
-                      {format(new Date(item.tanggal), 'dd MMM yyyy', { locale: idLocale })}
-                    </p>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-neutral-500">
+                      <span className="flex items-center gap-1">
+                        <IconCalendarEvent size={12} />
+                        {format(new Date(item.tanggal), 'dd MMM yyyy', { locale: idLocale })}
+                      </span>
+                      {(item.lokasi_masuk?.nama || item.lokasi_pulang?.nama) && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-teal-700 dark:text-teal-400">
+                          <IconMapPin size={12} className="shrink-0 text-teal-600" />
+                          {item.lokasi_masuk?.nama && item.lokasi_pulang?.nama && item.lokasi_masuk.nama !== item.lokasi_pulang.nama ? (
+                            <span>
+                              <span className="text-teal-700 dark:text-teal-300 font-semibold">{item.lokasi_masuk.nama} (M)</span>
+                              <span className="mx-1 text-neutral-400">→</span>
+                              <span className="text-blue-700 dark:text-blue-300 font-semibold">{item.lokasi_pulang.nama} (P)</span>
+                            </span>
+                          ) : (
+                            <span>{item.lokasi_masuk?.nama || item.lokasi_pulang?.nama}</span>
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="origin-top-right scale-90">
@@ -561,6 +677,15 @@ function AdminKehadiranContent() {
           </div>
 
           <div>
+            <SelectInput
+              label="Lokasi Toko"
+              value={tempLokasiId}
+              onChange={(val) => setTempLokasiId(val)}
+              options={storeFilterOptions}
+            />
+          </div>
+
+          <div>
             <DateRangePicker
               startDate={tempStartDate}
               endDate={tempEndDate}
@@ -609,11 +734,55 @@ function AdminKehadiranContent() {
           isBottomSheetOnMobile
         >
           <form onSubmit={handleEditSubmit} className="flex flex-col gap-4 mt-4">
-            <div className="rounded-lg bg-neutral-50 dark:bg-neutral-800 p-3 mb-2 flex items-center justify-between">
+            <div className="rounded-lg bg-neutral-50 dark:bg-neutral-800 p-3 mb-1 flex items-center justify-between">
               <span className="text-sm text-neutral-500">Tanggal:</span>
               <span className="font-semibold text-neutral-900 dark:text-white">
                 {format(new Date(selectedKehadiran.tanggal), 'EEEE, dd MMM yyyy', { locale: idLocale })}
               </span>
+            </div>
+
+            {/* Location & GPS Info */}
+            <div className="rounded-xl border border-teal-100 bg-teal-50/50 p-3 dark:border-teal-900/40 dark:bg-teal-950/20">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-teal-800 dark:text-teal-300 mb-2">
+                <IconMapPin size={15} />
+                <span>Informasi Lokasi Absen</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-neutral-500 dark:text-neutral-400">Absen Masuk:</span>
+                  <span className="font-medium text-neutral-900 dark:text-white">
+                    {selectedKehadiran.lokasi_masuk?.nama || (selectedKehadiran.lat_masuk ? 'Tercatat via GPS' : 'Tanpa data lokasi')}
+                  </span>
+                  {selectedKehadiran.lat_masuk && selectedKehadiran.lng_masuk && (
+                    <a
+                      href={`https://www.google.com/maps?q=${selectedKehadiran.lat_masuk},${selectedKehadiran.lng_masuk}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-teal-600 hover:underline dark:text-teal-400 mt-0.5"
+                    >
+                      <IconExternalLink size={11} />
+                      Buka Koordinat Maps
+                    </a>
+                  )}
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-neutral-500 dark:text-neutral-400">Absen Pulang:</span>
+                  <span className="font-medium text-neutral-900 dark:text-white">
+                    {selectedKehadiran.lokasi_pulang?.nama || (selectedKehadiran.lat_pulang ? 'Tercatat via GPS' : 'Tanpa data lokasi')}
+                  </span>
+                  {selectedKehadiran.lat_pulang && selectedKehadiran.lng_pulang && (
+                    <a
+                      href={`https://www.google.com/maps?q=${selectedKehadiran.lat_pulang},${selectedKehadiran.lng_pulang}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-teal-600 hover:underline dark:text-teal-400 mt-0.5"
+                    >
+                      <IconExternalLink size={11} />
+                      Buka Koordinat Maps
+                    </a>
+                  )}
+                </div>
+              </div>
             </div>
 
             <SelectInput
@@ -629,6 +798,23 @@ function AdminKehadiranContent() {
                 { label: 'Off', value: 'off' },
               ]}
             />
+
+            <div className="grid grid-cols-2 gap-4">
+              <SelectInput
+                label="Toko Masuk"
+                name="lokasi_masuk_id"
+                value={editLokasiMasukId}
+                onChange={setEditLokasiMasukId}
+                options={storeFormOptions}
+              />
+              <SelectInput
+                label="Toko Pulang"
+                name="lokasi_pulang_id"
+                value={editLokasiPulangId}
+                onChange={setEditLokasiPulangId}
+                options={storeFormOptions}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <TextInput
@@ -716,6 +902,14 @@ function AdminKehadiranContent() {
               value={createDate}
               onChange={(e) => setCreateDate(e.target.value)}
               required
+            />
+
+            <SelectInput
+              label="Lokasi Toko"
+              name="lokasi_id"
+              value={createLokasiId}
+              onChange={setCreateLokasiId}
+              options={storeFormOptions}
             />
 
             <SelectInput

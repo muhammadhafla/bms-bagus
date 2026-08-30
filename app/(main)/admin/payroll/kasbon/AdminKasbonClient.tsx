@@ -389,27 +389,19 @@ export default function AdminKasbonClient() {
                 Urutkan Berdasarkan
               </label>
               <SelectInput
-                value={tempSortBy}
-                onChange={setTempSortBy}
+                value={`${tempSortBy}:${tempSortDir}`}
+                onChange={(val) => {
+                  const [newSortBy, newSortDir] = val.split(':');
+                  setTempSortBy(newSortBy);
+                  setTempSortDir(newSortDir as 'asc' | 'desc');
+                }}
                 options={[
-                  { label: 'Waktu Dibuat', value: 'created_at' },
-                  { label: 'Tanggal Kasbon', value: 'tanggal' },
-                  { label: 'Nominal Kasbon', value: 'nominal' },
-                ]}
-                className="w-full"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                Arah Urutan
-              </label>
-              <SelectInput
-                value={tempSortDir}
-                onChange={(val) => setTempSortDir(val as 'asc' | 'desc')}
-                options={[
-                  { label: 'Menurun (Terbaru/Terbesar)', value: 'desc' },
-                  { label: 'Menaik (Terlama/Terkecil)', value: 'asc' },
+                  { label: 'Waktu Dibuat: Terbaru', value: 'created_at:desc' },
+                  { label: 'Waktu Dibuat: Terlama', value: 'created_at:asc' },
+                  { label: 'Tanggal Kasbon: Terbaru', value: 'tanggal:desc' },
+                  { label: 'Tanggal Kasbon: Terlama', value: 'tanggal:asc' },
+                  { label: 'Nominal: Terbesar ke Terkecil', value: 'nominal:desc' },
+                  { label: 'Nominal: Terkecil ke Terbesar', value: 'nominal:asc' },
                 ]}
                 className="w-full"
               />

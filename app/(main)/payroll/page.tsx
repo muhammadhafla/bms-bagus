@@ -3,10 +3,10 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, differenceInMinutes, set, isAfter, differenceInSeconds } from 'date-fns';
+import { format, differenceInMinutes, set, isAfter, isBefore, differenceInSeconds } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { kehadiranApi, karyawanApi, lokasiKerjaApi } from '@/lib/api/payroll';
-import { IconClock, IconFingerprint, IconLogout, IconCalendarEvent, IconHistory, IconCheck, IconMapPin, IconMapPinOff } from '@tabler/icons-react';
+import { IconClock, IconFingerprint, IconLogout, IconCalendarEvent, IconHistory, IconCheck, IconMapPin, IconMapPinOff, IconLock } from '@tabler/icons-react';
 import { toast } from 'sonner';
 
 // Haversine formula in frontend
@@ -216,6 +216,39 @@ export default function PayrollDashboardPage() {
     onError: (err: any) => toast.error(err.message || 'Terjadi kesalahan sistem'),
   });
 
+  // Check if current time is before scheduled jam_pulang
+  let isBelumJamPulang = false;
+  let targetPulangStr = '';
+  let sisaWaktuPulangStr = '';
+
+  if (todayStatus && todayStatus.status_hadir === 'hadir' && !todayStatus.waktu_pulang && profile?.jam_pulang && time) {
+    const [pHour, pMin] = profile.jam_pulang.split(':');
+    const standardPulang = set(new Date(time), {
+      hours: Number(pHour),
+      minutes: Number(pMin),
+      seconds: 0,
+      milliseconds: 0,
+    });
+    targetPulangStr = `${pHour.padStart(2, '0')}:${pMin.padStart(2, '0')}`;
+    
+    if (isBefore(time, standardPulang)) {
+      isBelumJamPulang = true;
+      const diffSec = differenceInSeconds(standardPulang, time);
+      if (diffSec > 0) {
+        const h = Math.floor(diffSec / 3600);
+        const m = Math.floor((diffSec % 3600) / 60);
+        const s = diffSec % 60;
+        if (h > 0) {
+          sisaWaktuPulangStr = `${h}j ${m}m`;
+        } else if (m > 0) {
+          sisaWaktuPulangStr = `${m}m ${s}d`;
+        } else {
+          sisaWaktuPulangStr = `${s}d`;
+        }
+      }
+    }
+  }
+
   const handleAbsenClick = () => {
     if (geoStatus !== 'valid') {
       toast.error('Anda belum berada di area toko atau akses lokasi ditolak.');
@@ -227,6 +260,11 @@ export default function PayrollDashboardPage() {
       absenMasukMutation.mutate();
     } else if (todayStatus && !todayStatus.waktu_pulang) {
       // Sudah absen masuk, belum pulang
+      if (isBelumJamPulang) {
+        toast.error(`Belum waktunya absen pulang. Jam pulang: ${targetPulangStr || profile?.jam_pulang?.substring(0, 5)}`);
+        return;
+      }
+
       const masuk = new Date(todayStatus.waktu_masuk || new Date());
       const sekarang = new Date();
       const menit_kerja = differenceInMinutes(sekarang, masuk);
@@ -338,7 +376,7 @@ export default function PayrollDashboardPage() {
           ) : (
             <div className="relative group flex items-center justify-center w-full">
               {/* Outer Pulse Ring */}
-              {!isSelesaiOrTidakHadir && geoStatus === 'valid' && (
+              {!isSelesaiOrTidakHadir && geoStatus === 'valid' && !isBelumJamPulang && (
                 <div className={`absolute inset-0 rounded-full animate-ping opacity-20 mx-auto ${
                   !todayStatus ? 'bg-blue-500 h-60 w-60' : 'bg-amber-500 h-60 w-60'
                 }`} style={{ animationDuration: '3s' }} />
@@ -346,7 +384,7 @@ export default function PayrollDashboardPage() {
               
               <button
                 onClick={handleAbsenClick}
-                disabled={!!isSelesaiOrTidakHadir || absenMasukMutation.isPending || absenPulangMutation.isPending || geoStatus !== 'valid'}
+                disabled={!!isSelesaiOrTidakHadir || absenMasukMutation.isPending || absenPulangMutation.isPending || geoStatus !== 'valid' || isBelumJamPulang}
                 className={`
                   relative z-10 flex border-[6px] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.3)] transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden items-center justify-center
                   ${isSelesaiOrTidakHadir
@@ -355,7 +393,9 @@ export default function PayrollDashboardPage() {
                         ? 'flex-col h-60 w-60 rounded-full border-slate-200 dark:border-neutral-800 bg-slate-300 dark:bg-neutral-800 text-slate-500 cursor-not-allowed grayscale opacity-80'
                         : !todayStatus 
                           ? 'flex-col h-60 w-60 rounded-full border-blue-100 dark:border-blue-900/30 bg-gradient-to-b from-blue-500 to-indigo-600 hover:scale-[1.02] active:scale-[0.98]' 
-                          : 'flex-col h-60 w-60 rounded-full border-amber-100 dark:border-amber-900/30 bg-gradient-to-b from-amber-500 to-orange-600 hover:scale-[1.02] active:scale-[0.98]'
+                          : isBelumJamPulang
+                            ? 'flex-col h-60 w-60 rounded-full border-slate-200 dark:border-neutral-800 bg-slate-200/90 dark:bg-neutral-800/90 text-slate-500 dark:text-neutral-400 cursor-not-allowed shadow-inner'
+                            : 'flex-col h-60 w-60 rounded-full border-amber-100 dark:border-amber-900/30 bg-gradient-to-b from-amber-500 to-orange-600 hover:scale-[1.02] active:scale-[0.98]'
                   }
                 `}
               >
@@ -386,6 +426,25 @@ export default function PayrollDashboardPage() {
                     <span className={`text-xs mt-2 font-medium tracking-wide uppercase px-3 py-1 rounded-full backdrop-blur-md z-10 ${geoStatus === 'valid' ? 'text-blue-100 bg-black/10' : 'text-slate-500 bg-slate-400/20'}`}>
                       {geoStatus === 'valid' ? 'Ketuk untuk Absen' : 'Lokasi Tidak Valid'}
                     </span>
+                  </>
+                ) : isBelumJamPulang ? (
+                  <>
+                    <div className="relative mb-2 z-10">
+                      <div className="h-16 w-16 rounded-full bg-slate-300/80 dark:bg-neutral-700/80 flex items-center justify-center text-slate-600 dark:text-neutral-300 shadow-inner">
+                        <IconLock size={32} stroke={2} />
+                      </div>
+                    </div>
+                    <span className="text-xl font-black tracking-widest uppercase drop-shadow-sm z-10 text-slate-700 dark:text-neutral-200">
+                      Pulang
+                    </span>
+                    <span className="text-[11px] mt-1.5 font-semibold tracking-wide uppercase px-3 py-1 rounded-full backdrop-blur-md z-10 text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800/60">
+                      Buka pk. {targetPulangStr || profile?.jam_pulang?.substring(0, 5)}
+                    </span>
+                    {sisaWaktuPulangStr && (
+                      <span className="text-[10px] mt-1 font-mono font-medium text-slate-500 dark:text-neutral-400 z-10">
+                        (Sisa {sisaWaktuPulangStr})
+                      </span>
+                    )}
                   </>
                 ) : (
                   <>

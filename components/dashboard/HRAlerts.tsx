@@ -62,7 +62,7 @@ export function HRAlerts({ variant = 'default' }: { variant?: 'default' | 'mobil
               
               {lemburCount > 0 && (
                 <Link
-                  href="/admin/payroll/karyawan"
+                  href="/admin/payroll/kehadiran"
                   className="flex items-center justify-between py-2.5 border-b border-neutral-100/80 last:border-0 dark:border-neutral-800/50 active:bg-neutral-50 dark:active:bg-neutral-800/50 transition-colors"
                 >
                   <div className="flex min-w-0 items-center gap-3">
@@ -123,8 +123,7 @@ export function HRAlerts({ variant = 'default' }: { variant?: 'default' | 'mobil
             </Link>
 
             <Link 
-              href="/admin/payroll/karyawan" 
-              // Sementara arahkan ke karyawan, di masa depan ada halaman khusus lembur
+              href="/admin/payroll/kehadiran" 
               className="group flex items-center justify-between rounded-xl bg-white/70 dark:bg-neutral-900/60 p-3 hover:bg-white dark:hover:bg-neutral-800 transition-colors border border-transparent hover:border-blue-200 dark:hover:border-blue-900/50"
             >
               <div className="flex items-center gap-3">

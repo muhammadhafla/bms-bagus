@@ -372,13 +372,13 @@ export default function PayrollDashboardPage() {
         {/* Main Action Button */}
         <div className="flex flex-col items-center justify-center py-2">
           {isLoadingStatus ? (
-            <div className="h-56 w-56 animate-pulse rounded-full bg-white/50 dark:bg-neutral-800/50 border border-white/20" />
+            <div className="h-44 w-44 animate-pulse rounded-full bg-white/50 dark:bg-neutral-800/50 border border-white/20" />
           ) : (
             <div className="relative group flex items-center justify-center w-full">
               {/* Outer Pulse Ring */}
               {!isSelesaiOrTidakHadir && geoStatus === 'valid' && !isBelumJamPulang && (
                 <div className={`absolute inset-0 rounded-full animate-ping opacity-20 mx-auto ${
-                  !todayStatus ? 'bg-blue-500 h-60 w-60' : 'bg-amber-500 h-60 w-60'
+                  !todayStatus ? 'bg-blue-500 h-44 w-44' : 'bg-amber-500 h-44 w-44'
                 }`} style={{ animationDuration: '3s' }} />
               )}
               
@@ -386,16 +386,16 @@ export default function PayrollDashboardPage() {
                 onClick={handleAbsenClick}
                 disabled={!!isSelesaiOrTidakHadir || absenMasukMutation.isPending || absenPulangMutation.isPending || geoStatus !== 'valid' || isBelumJamPulang}
                 className={`
-                  relative z-10 flex border-[6px] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.3)] transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden items-center justify-center
+                  relative z-10 flex border-[5px] shadow-[0_15px_35px_-15px_rgba(0,0,0,0.3)] transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden items-center justify-center
                   ${isSelesaiOrTidakHadir
-                      ? 'flex-row h-24 w-full max-w-[320px] rounded-[2rem] border-white dark:border-neutral-800 bg-white dark:bg-neutral-900 cursor-not-allowed shadow-md px-5 gap-4'
+                      ? 'flex-row h-20 w-full max-w-[300px] rounded-2xl border-white dark:border-neutral-800 bg-white dark:bg-neutral-900 cursor-not-allowed shadow-md px-4 gap-3.5'
                       : geoStatus !== 'valid'
-                        ? 'flex-col h-60 w-60 rounded-full border-slate-200 dark:border-neutral-800 bg-slate-300 dark:bg-neutral-800 text-slate-500 cursor-not-allowed grayscale opacity-80'
+                        ? 'flex-col h-44 w-44 rounded-full border-slate-200 dark:border-neutral-800 bg-slate-300 dark:bg-neutral-800 text-slate-500 cursor-not-allowed grayscale opacity-80'
                         : !todayStatus 
-                          ? 'flex-col h-60 w-60 rounded-full border-blue-100 dark:border-blue-900/30 bg-gradient-to-b from-blue-500 to-indigo-600 hover:scale-[1.02] active:scale-[0.98]' 
+                          ? 'flex-col h-44 w-44 rounded-full border-blue-100 dark:border-blue-900/30 bg-gradient-to-b from-blue-500 to-indigo-600 hover:scale-[1.02] active:scale-[0.98]' 
                           : isBelumJamPulang
-                            ? 'flex-col h-60 w-60 rounded-full border-slate-200 dark:border-neutral-800 bg-slate-200/90 dark:bg-neutral-800/90 text-slate-500 dark:text-neutral-400 cursor-not-allowed shadow-inner'
-                            : 'flex-col h-60 w-60 rounded-full border-amber-100 dark:border-amber-900/30 bg-gradient-to-b from-amber-500 to-orange-600 hover:scale-[1.02] active:scale-[0.98]'
+                            ? 'flex-col h-44 w-44 rounded-full border-slate-200 dark:border-neutral-800 bg-slate-200/90 dark:bg-neutral-800/90 text-slate-500 dark:text-neutral-400 cursor-not-allowed shadow-inner'
+                            : 'flex-col h-44 w-44 rounded-full border-amber-100 dark:border-amber-900/30 bg-gradient-to-b from-amber-500 to-orange-600 hover:scale-[1.02] active:scale-[0.98]'
                   }
                 `}
               >
@@ -404,11 +404,11 @@ export default function PayrollDashboardPage() {
                 
                 {isSelesaiOrTidakHadir ? (
                   <>
-                    <div className="h-12 w-12 shrink-0 rounded-full bg-slate-100 dark:bg-neutral-800 flex items-center justify-center text-slate-400">
-                      <IconCheck size={24} stroke={2.5} />
+                    <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100 dark:bg-neutral-800 flex items-center justify-center text-slate-400">
+                      <IconCheck size={20} stroke={2.5} />
                     </div>
                     <div className="flex flex-col items-start justify-center flex-1 z-10 text-left">
-                      <span className="font-bold text-slate-700 dark:text-neutral-300 text-xl capitalize">
+                      <span className="font-bold text-slate-700 dark:text-neutral-300 text-lg capitalize">
                         {todayStatus.status_hadir !== 'hadir' ? todayStatus.status_hadir : 'Selesai'}
                       </span>
                       <span className="text-xs text-slate-400 font-medium mt-0.5">
@@ -418,39 +418,39 @@ export default function PayrollDashboardPage() {
                   </>
                 ) : !todayStatus ? (
                   <>
-                    <div className="relative mb-3 z-10">
-                      <IconFingerprint className={`h-20 w-20 drop-shadow-md ${geoStatus === 'valid' ? 'text-white' : 'text-slate-500'}`} stroke={1.2} />
-                      {geoStatus === 'valid' && <div className="absolute top-0 left-0 w-full h-[3px] bg-white blur-[1px] animate-[scan_2s_ease-in-out_infinite]" />}
+                    <div className="relative mb-1.5 z-10">
+                      <IconFingerprint className={`h-14 w-14 drop-shadow-md ${geoStatus === 'valid' ? 'text-white' : 'text-slate-500'}`} stroke={1.2} />
+                      {geoStatus === 'valid' && <div className="absolute top-0 left-0 w-full h-[2px] bg-white blur-[1px] animate-[scan_2s_ease-in-out_infinite]" />}
                     </div>
-                    <span className={`text-2xl font-black tracking-widest uppercase drop-shadow-sm z-10 ${geoStatus === 'valid' ? 'text-white' : 'text-slate-500'}`}>Masuk</span>
-                    <span className={`text-xs mt-2 font-medium tracking-wide uppercase px-3 py-1 rounded-full backdrop-blur-md z-10 ${geoStatus === 'valid' ? 'text-blue-100 bg-black/10' : 'text-slate-500 bg-slate-400/20'}`}>
+                    <span className={`text-xl font-black tracking-widest uppercase drop-shadow-sm z-10 ${geoStatus === 'valid' ? 'text-white' : 'text-slate-500'}`}>Masuk</span>
+                    <span className={`text-[11px] mt-1.5 font-medium tracking-wide uppercase px-2.5 py-0.5 rounded-full backdrop-blur-md z-10 ${geoStatus === 'valid' ? 'text-blue-100 bg-black/10' : 'text-slate-500 bg-slate-400/20'}`}>
                       {geoStatus === 'valid' ? 'Ketuk untuk Absen' : 'Lokasi Tidak Valid'}
                     </span>
                   </>
                 ) : isBelumJamPulang ? (
                   <>
-                    <div className="relative mb-2 z-10">
-                      <div className="h-16 w-16 rounded-full bg-slate-300/80 dark:bg-neutral-700/80 flex items-center justify-center text-slate-600 dark:text-neutral-300 shadow-inner">
-                        <IconLock size={32} stroke={2} />
+                    <div className="relative mb-1.5 z-10">
+                      <div className="h-12 w-12 rounded-full bg-slate-300/80 dark:bg-neutral-700/80 flex items-center justify-center text-slate-600 dark:text-neutral-300 shadow-inner">
+                        <IconLock size={24} stroke={2} />
                       </div>
                     </div>
-                    <span className="text-xl font-black tracking-widest uppercase drop-shadow-sm z-10 text-slate-700 dark:text-neutral-200">
+                    <span className="text-lg font-black tracking-widest uppercase drop-shadow-sm z-10 text-slate-700 dark:text-neutral-200">
                       Pulang
                     </span>
-                    <span className="text-[11px] mt-1.5 font-semibold tracking-wide uppercase px-3 py-1 rounded-full backdrop-blur-md z-10 text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800/60">
+                    <span className="text-[10px] mt-1 font-semibold tracking-wide uppercase px-2.5 py-0.5 rounded-full backdrop-blur-md z-10 text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800/60">
                       Buka pk. {targetPulangStr || profile?.jam_pulang?.substring(0, 5)}
                     </span>
                     {sisaWaktuPulangStr && (
-                      <span className="text-[10px] mt-1 font-mono font-medium text-slate-500 dark:text-neutral-400 z-10">
+                      <span className="text-[9px] mt-0.5 font-mono font-medium text-slate-500 dark:text-neutral-400 z-10">
                         (Sisa {sisaWaktuPulangStr})
                       </span>
                     )}
                   </>
                 ) : (
                   <>
-                    <IconLogout className={`h-20 w-20 mb-3 drop-shadow-md z-10 ${geoStatus === 'valid' ? 'text-white' : 'text-slate-500'}`} stroke={1.5} />
-                    <span className={`text-2xl font-black tracking-widest uppercase drop-shadow-sm z-10 ${geoStatus === 'valid' ? 'text-white' : 'text-slate-500'}`}>Pulang</span>
-                    <span className={`text-xs mt-2 font-medium tracking-wide uppercase px-3 py-1 rounded-full backdrop-blur-md z-10 ${geoStatus === 'valid' ? 'text-orange-100 bg-black/10' : 'text-slate-500 bg-slate-400/20'}`}>
+                    <IconLogout className={`h-14 w-14 mb-1.5 drop-shadow-md z-10 ${geoStatus === 'valid' ? 'text-white' : 'text-slate-500'}`} stroke={1.5} />
+                    <span className={`text-xl font-black tracking-widest uppercase drop-shadow-sm z-10 ${geoStatus === 'valid' ? 'text-white' : 'text-slate-500'}`}>Pulang</span>
+                    <span className={`text-[11px] mt-1.5 font-medium tracking-wide uppercase px-2.5 py-0.5 rounded-full backdrop-blur-md z-10 ${geoStatus === 'valid' ? 'text-orange-100 bg-black/10' : 'text-slate-500 bg-slate-400/20'}`}>
                       {geoStatus === 'valid' ? 'Ketuk untuk Akhiri' : 'Lokasi Tidak Valid'}
                     </span>
                   </>

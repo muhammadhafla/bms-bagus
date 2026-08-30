@@ -2465,6 +2465,10 @@ export type Database = {
         Args: { p_end_date?: string; p_start_date?: string }
         Returns: Json
       }
+      get_ledger_opening_balance: {
+        Args: { p_start_date: string }
+        Returns: number
+      }
       get_inventory_paginated: {
         Args: {
           p_category_id?: string

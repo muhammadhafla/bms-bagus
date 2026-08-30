@@ -17,6 +17,7 @@ import {
   IconReceipt, 
   IconPlus, 
   IconTrash, 
+  IconEdit,
   IconArrowUpRight 
 } from '@tabler/icons-react';
 import { format } from 'date-fns';
@@ -41,6 +42,7 @@ export default function PengeluaranOperasionalPage() {
 
   // Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [kategori, setKategori] = useState('Listrik');
   const [kategoriLainnya, setKategoriLainnya] = useState('');
@@ -48,26 +50,39 @@ export default function PengeluaranOperasionalPage() {
   const [keterangan, setKeterangan] = useState('');
   const [tanggal, setTanggal] = useState(format(new Date(), 'yyyy-MM-dd'));
 
-  const insertMutation = useMutation({
+  const standardCategories = ['Listrik', 'Air', 'Internet', 'Konsumsi', 'Sewa', 'ATK'];
+
+  const saveMutation = useMutation({
     mutationFn: () => {
       const finalKategori = kategori === 'Lainnya' ? kategoriLainnya : kategori;
-      return ledgerApi.insertPengeluaranOperasional({
-        kategori: finalKategori,
-        nominal: Number(nominal.replace(/\D/g, '')),
-        keterangan,
-        tanggal,
-        metode_pembayaran: 'CASH'
-      });
+      const cleanNominal = Number(nominal.replace(/\D/g, ''));
+
+      if (editingId) {
+        return ledgerApi.updatePengeluaranOperasional(editingId, {
+          kategori: finalKategori,
+          nominal: cleanNominal,
+          keterangan,
+          tanggal,
+        });
+      } else {
+        return ledgerApi.insertPengeluaranOperasional({
+          kategori: finalKategori,
+          nominal: cleanNominal,
+          keterangan,
+          tanggal,
+          metode_pembayaran: 'CASH'
+        });
+      }
     },
     onSuccess: () => {
-      toast.success('Pengeluaran berhasil dicatat');
+      toast.success(editingId ? 'Pengeluaran berhasil diperbarui' : 'Pengeluaran berhasil dicatat');
       setIsModalOpen(false);
       resetForm();
       queryClient.invalidateQueries({ queryKey: ['pengeluaran_operasional'] });
       queryClient.invalidateQueries({ queryKey: ['buku_besar'] });
     },
     onError: (err: any) => {
-      toast.error(err.message || 'Gagal mencatat pengeluaran');
+      toast.error(err.message || 'Gagal menyimpan pengeluaran');
     }
   });
 
@@ -84,6 +99,7 @@ export default function PengeluaranOperasionalPage() {
   });
 
   const resetForm = () => {
+    setEditingId(null);
     setKategori('Listrik');
     setKategoriLainnya('');
     setNominal('');
@@ -91,10 +107,25 @@ export default function PengeluaranOperasionalPage() {
     setTanggal(format(new Date(), 'yyyy-MM-dd'));
   };
 
+  const handleOpenEdit = (item: any) => {
+    setEditingId(item.id);
+    if (standardCategories.includes(item.kategori)) {
+      setKategori(item.kategori);
+      setKategoriLainnya('');
+    } else {
+      setKategori('Lainnya');
+      setKategoriLainnya(item.kategori);
+    }
+    setNominal(Number(item.nominal).toLocaleString('id-ID'));
+    setKeterangan(item.keterangan || '');
+    setTanggal(item.tanggal);
+    setIsModalOpen(true);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nominal) return toast.error('Nominal wajib diisi');
-    insertMutation.mutate();
+    saveMutation.mutate();
   };
 
   return (
@@ -109,7 +140,14 @@ export default function PengeluaranOperasionalPage() {
             </p>
           </div>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="flex items-center justify-center gap-2" variant="primary">
+        <Button 
+          onClick={() => {
+            resetForm();
+            setIsModalOpen(true);
+          }} 
+          className="flex items-center justify-center gap-2" 
+          variant="primary"
+        >
           <IconPlus size={18} />
           <span>Tambah Pengeluaran</span>
         </Button>
@@ -145,16 +183,24 @@ export default function PengeluaranOperasionalPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">{item.profiles?.nama || 'Unknown'}</td>
                     <td className="px-6 py-4 text-center">
-                      <Button 
-                        variant="danger" 
-                        className="!p-2 mx-auto" 
-                        onClick={() => {
-                          setDeleteId(item.id);
-                        }}
-                        title="Hapus Pengeluaran"
-                      >
-                        <IconTrash size={16} />
-                      </Button>
+                      <div className="flex items-center justify-center gap-1.5">
+                        <Button 
+                          variant="secondary" 
+                          className="!p-2" 
+                          onClick={() => handleOpenEdit(item)}
+                          title="Edit Pengeluaran"
+                        >
+                          <IconEdit size={16} />
+                        </Button>
+                        <Button 
+                          variant="danger" 
+                          className="!p-2" 
+                          onClick={() => setDeleteId(item.id)}
+                          title="Hapus Pengeluaran"
+                        >
+                          <IconTrash size={16} />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -173,18 +219,27 @@ export default function PengeluaranOperasionalPage() {
         ) : (
           paginatedList.map((item: any) => (
             <div key={item.id} className="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-2xl p-4 flex items-center gap-4 shadow-sm relative">
-              <button 
-                className="absolute top-3 right-3 text-neutral-300 hover:text-rose-500 transition-colors p-1"
-                onClick={() => {
-                  setDeleteId(item.id);
-                }}
-              >
-                <IconTrash size={16} />
-              </button>
+              <div className="absolute top-3 right-3 flex items-center gap-1">
+                <button 
+                  className="text-neutral-400 hover:text-brand-500 transition-colors p-1"
+                  onClick={() => handleOpenEdit(item)}
+                  title="Edit Pengeluaran"
+                >
+                  <IconEdit size={16} />
+                </button>
+                <button 
+                  className="text-neutral-300 hover:text-rose-500 transition-colors p-1"
+                  onClick={() => setDeleteId(item.id)}
+                  title="Hapus Pengeluaran"
+                >
+                  <IconTrash size={16} />
+                </button>
+              </div>
+
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600 dark:bg-rose-900/30">
                 <IconArrowUpRight className="h-6 w-6" />
               </div>
-              <div className="flex-1 min-w-0 pr-6">
+              <div className="flex-1 min-w-0 pr-12">
                 <p className="font-bold text-neutral-900 dark:text-white truncate">
                   {item.kategori}
                 </p>
@@ -214,8 +269,16 @@ export default function PengeluaranOperasionalPage() {
         </div>
       )}
 
-      {/* Modal Tambah */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Tambah Pengeluaran Operasional" isBottomSheetOnMobile>
+      {/* Modal Tambah / Edit */}
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => {
+          setIsModalOpen(false);
+          resetForm();
+        }} 
+        title={editingId ? 'Edit Pengeluaran Operasional' : 'Tambah Pengeluaran Operasional'} 
+        isBottomSheetOnMobile
+      >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-4">
           <SelectInput
             label="Kategori"
@@ -271,9 +334,18 @@ export default function PengeluaranOperasionalPage() {
           />
 
           <div className="mt-4 flex gap-3 justify-end">
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)} type="button">Batal</Button>
-            <Button variant="primary" type="submit" disabled={insertMutation.isPending}>
-              {insertMutation.isPending ? 'Menyimpan...' : 'Simpan'}
+            <Button 
+              variant="secondary" 
+              onClick={() => {
+                setIsModalOpen(false);
+                resetForm();
+              }} 
+              type="button"
+            >
+              Batal
+            </Button>
+            <Button variant="primary" type="submit" disabled={saveMutation.isPending}>
+              {saveMutation.isPending ? 'Menyimpan...' : (editingId ? 'Simpan Perubahan' : 'Simpan')}
             </Button>
           </div>
         </form>
@@ -295,4 +367,3 @@ export default function PengeluaranOperasionalPage() {
     </AmbientLayout>
   );
 }
-

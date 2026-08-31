@@ -1,22 +1,24 @@
 'use client';
 
-import { useState, useMemo, Suspense, useEffect } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { kehadiranApi, Kehadiran, lokasiKerjaApi } from '@/lib/api/payroll';
 import { karyawanApi } from '@/lib/api/payroll/karyawan';
-import { Card, DataTable, Button, Modal, TextInput, Badge, SelectInput, DateRangePicker, FilterButton, ModernPagination, type Column } from '@/components/ui';
+import { DataTable, Button, Modal, TextInput, Badge, SelectInput, DateRangePicker, FilterButton, ModernPagination, type Column } from '@/components/ui';
 import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
 import { 
   IconClock, 
   IconX, 
-  IconSearch, 
   IconCalendarEvent, 
   IconCheck, 
   IconChevronRight, 
   IconPlus,
   IconMapPin,
-  IconExternalLink
+  IconExternalLink,
+  IconDownload,
+  IconAlertCircle,
+  IconUserCheck
 } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -36,14 +38,21 @@ function AdminKehadiranContent() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
+  // Tab State: 'all' | 'lembur'
+  const [activeTab, setActiveTab] = useState<'all' | 'lembur'>('all');
+  const [selectedLemburIds, setSelectedLemburIds] = useState<string[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
+
   // URL state
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  const limit = 20;
   const startDate = searchParams.get('startDate') || '';
   const endDate = searchParams.get('endDate') || '';
   const search = searchParams.get('search') || '';
   const statusHadir = searchParams.get('statusHadir') || 'all';
   const lokasiId = searchParams.get('lokasiId') || 'all';
 
-  const updateFilters = (newFilters: { search?: string; startDate?: string; endDate?: string; statusHadir?: string; lokasiId?: string }) => {
+  const updateFilters = (newFilters: { search?: string; startDate?: string; endDate?: string; statusHadir?: string; lokasiId?: string; page?: number }) => {
     const params = new URLSearchParams(searchParams.toString());
     if (newFilters.search !== undefined) newFilters.search ? params.set('search', newFilters.search) : params.delete('search');
     if (newFilters.startDate !== undefined) newFilters.startDate ? params.set('startDate', newFilters.startDate) : params.delete('startDate');
@@ -51,9 +60,13 @@ function AdminKehadiranContent() {
     if (newFilters.statusHadir !== undefined) newFilters.statusHadir && newFilters.statusHadir !== 'all' ? params.set('statusHadir', newFilters.statusHadir) : params.delete('statusHadir');
     if (newFilters.lokasiId !== undefined) newFilters.lokasiId && newFilters.lokasiId !== 'all' ? params.set('lokasiId', newFilters.lokasiId) : params.delete('lokasiId');
     
-    // Reset page to 1 when filters change
-    params.set('page', '1');
+    // Page reset
+    params.set('page', (newFilters.page || 1).toString());
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  const setPage = (newPage: number) => {
+    updateFilters({ page: newPage });
   };
 
   // Temp state for ResponsivePanel
@@ -64,12 +77,32 @@ function AdminKehadiranContent() {
   const [tempLokasiId, setTempLokasiId] = useState(lokasiId);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  // Query Data
-  const { data: list, isLoading } = useQuery({
-    queryKey: ['admin_payroll_kehadiran', startDate, endDate],
-    queryFn: () => kehadiranApi.getAll(startDate, endDate).then(res => res.data),
+  // 1. Query Live Summary Stats Hari Ini
+  const { data: summaryData, isLoading: isLoadingSummary } = useQuery({
+    queryKey: ['admin_today_kehadiran_summary'],
+    queryFn: () => kehadiranApi.getTodaySummary().then(res => res.data),
   });
 
+  // 2. Query Data Kehadiran (Server-Side Paginated)
+  const { data: paginatedResult, isLoading: isLoadingList } = useQuery({
+    queryKey: ['admin_payroll_kehadiran_paginated', page, limit, search, startDate, endDate, statusHadir, lokasiId, activeTab],
+    queryFn: () => kehadiranApi.getPaginated({
+      page,
+      limit,
+      search,
+      startDate,
+      endDate,
+      statusHadir: activeTab === 'lembur' ? undefined : statusHadir,
+      lokasiId,
+      statusLembur: activeTab === 'lembur' ? 'pending' : undefined
+    }).then(res => res.data),
+  });
+
+  const list = paginatedResult?.list || [];
+  const totalItems = paginatedResult?.total || 0;
+  const totalPages = Math.ceil(totalItems / limit);
+
+  // 3. Query Master Karyawan & Toko
   const { data: karyawanList } = useQuery({
     queryKey: ['admin_payroll_karyawan'],
     queryFn: () => karyawanApi.getAll().then(res => res.data),
@@ -96,12 +129,13 @@ function AdminKehadiranContent() {
       endDate: tempEndDate,
       statusHadir: tempStatusHadir,
       lokasiId: tempLokasiId,
+      page: 1
     });
     setIsFilterOpen(false);
   };
 
   const handleResetFilter = () => {
-    updateFilters({ search: '', startDate: '', endDate: '', statusHadir: 'all', lokasiId: 'all' });
+    updateFilters({ search: '', startDate: '', endDate: '', statusHadir: 'all', lokasiId: 'all', page: 1 });
     setIsFilterOpen(false);
   };
 
@@ -181,41 +215,99 @@ function AdminKehadiranContent() {
     return opts;
   }, [storeList]);
 
-  // Client-side filtering
-  const filteredList = useMemo(() => {
-    if (!list) return [];
-    return list.filter(item => {
-      let matchSearch = true;
-      let matchStatus = true;
-      let matchLokasi = true;
-      if (search) {
-        matchSearch = (item.profiles?.nama || '').toLowerCase().includes(search.toLowerCase());
+  // Bulk Approve Lembur Mutation
+  const bulkApproveMutation = useMutation({
+    mutationFn: (ids: string[]) => kehadiranApi.bulkApproveLembur(ids),
+    onSuccess: (res) => {
+      if (res.error) {
+        toast.error(res.error.message);
+        return;
       }
-      if (statusHadir && statusHadir !== 'all') {
-        matchStatus = item.status_hadir === statusHadir;
-      }
-      if (lokasiId && lokasiId !== 'all') {
-        matchLokasi = item.lokasi_masuk_id === lokasiId || item.lokasi_pulang_id === lokasiId;
-      }
-      return matchSearch && matchStatus && matchLokasi;
-    });
-  }, [list, search, statusHadir, lokasiId]);
+      toast.success(`Berhasil menyetujui ${res.data || selectedLemburIds.length} entri lembur!`);
+      setSelectedLemburIds([]);
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_kehadiran_paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_today_kehadiran_summary'] });
+    },
+    onError: () => toast.error('Gagal melakukan approval lembur')
+  });
 
-  // Pagination
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const limit = 20;
-  const totalItems = filteredList.length;
-  const totalPages = Math.ceil(totalItems / limit);
-  
-  const paginatedList = useMemo(() => {
-    const startIndex = (page - 1) * limit;
-    return filteredList.slice(startIndex, startIndex + limit);
-  }, [filteredList, page, limit]);
+  const handleSelectAllLembur = () => {
+    if (selectedLemburIds.length === list.length) {
+      setSelectedLemburIds([]);
+    } else {
+      setSelectedLemburIds(list.map(item => item.id));
+    }
+  };
 
-  const setPage = (newPage: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('page', newPage.toString());
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  const handleToggleSelectLembur = (id: string) => {
+    setSelectedLemburIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkApprove = () => {
+    if (selectedLemburIds.length === 0) {
+      toast.error('Pilih setidaknya satu data lembur');
+      return;
+    }
+    bulkApproveMutation.mutate(selectedLemburIds);
+  };
+
+  // Export to CSV Function
+  const handleExportCsv = async () => {
+    try {
+      setIsExporting(true);
+      const res = await kehadiranApi.getAll(startDate, endDate, lokasiId, statusHadir);
+      if (res.error || !res.data) {
+        toast.error('Gagal mengambil data untuk ekspor: ' + (res.error?.message || 'Data kosong'));
+        return;
+      }
+
+      const exportList = res.data;
+      const headers = [
+        'Tanggal',
+        'Nama Karyawan',
+        'Status Hadir',
+        'Lokasi Masuk',
+        'Lokasi Pulang',
+        'Jam Masuk',
+        'Jam Pulang',
+        'Menit Kerja',
+        'Menit Telat',
+        'Lembur Aktual (Menit)',
+        'Lembur Disetujui (Menit)',
+        'Status Lembur'
+      ];
+
+      const rows = exportList.map(item => [
+        item.tanggal,
+        `"${(item.profiles?.nama || 'Unknown').replace(/"/g, '""')}"`,
+        item.status_hadir,
+        `"${(item.lokasi_masuk?.nama || '-').replace(/"/g, '""')}"`,
+        `"${(item.lokasi_pulang?.nama || '-').replace(/"/g, '""')}"`,
+        item.waktu_masuk ? format(new Date(item.waktu_masuk), 'HH:mm') : '-',
+        item.waktu_pulang ? format(new Date(item.waktu_pulang), 'HH:mm') : '-',
+        item.menit_kerja || 0,
+        item.menit_telat || 0,
+        item.menit_lembur_aktual || 0,
+        item.menit_lembur_disetujui || 0,
+        item.status_lembur
+      ]);
+
+      const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `rekap_kehadiran_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(`Berhasil mengekspor ${exportList.length} data kehadiran!`);
+    } catch (err: any) {
+      toast.error('Terjadi kesalahan saat ekspor data: ' + err.message);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Edit State
@@ -256,7 +348,8 @@ function AdminKehadiranContent() {
       }
       toast.success('Entri kehadiran berhasil dibuat!');
       setIsCreateOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['admin_payroll_kehadiran'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_kehadiran_paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_today_kehadiran_summary'] });
     },
     onError: () => toast.error('Terjadi kesalahan sistem'),
   });
@@ -318,7 +411,8 @@ function AdminKehadiranContent() {
       }
       toast.success('Data Kehadiran berhasil diupdate!');
       setSelectedKehadiran(null);
-      queryClient.invalidateQueries({ queryKey: ['admin_payroll_kehadiran'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_kehadiran_paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_today_kehadiran_summary'] });
     },
     onError: () => toast.error('Terjadi kesalahan sistem'),
   });
@@ -335,8 +429,7 @@ function AdminKehadiranContent() {
     const menit_lembur_disetujui = Number(fd.get('menit_lembur_disetujui'));
     const status_lembur = editStatusLembur as any;
 
-    // We must combine the original Date with the new Time.
-    const originalDateStr = selectedKehadiran.tanggal; // 'YYYY-MM-DD'
+    const originalDateStr = selectedKehadiran.tanggal;
     
     let waktu_masuk_iso: string | null = selectedKehadiran.waktu_masuk;
     if (waktu_masuk_time) {
@@ -382,11 +475,27 @@ function AdminKehadiranContent() {
       case 'izin': return <Badge variant="warning">Izin</Badge>;
       case 'sakit': return <Badge variant="warning">Sakit</Badge>;
       case 'alpha': return <Badge variant="danger">Alpha</Badge>;
+      case 'off': return <Badge variant="default">Off</Badge>;
       default: return <Badge variant="default">{status}</Badge>;
     }
   };
 
   const columns: Column<Kehadiran>[] = [
+    ...(activeTab === 'lembur' ? [{
+      key: 'checkbox',
+      header: 'Pilih',
+      render: (row: Kehadiran) => (
+        <input 
+          type="checkbox" 
+          checked={selectedLemburIds.includes(row.id)}
+          onChange={(e) => {
+            e.stopPropagation();
+            handleToggleSelectLembur(row.id);
+          }}
+          className="rounded border-neutral-300 text-teal-600 focus:ring-teal-500"
+        />
+      )
+    }] : []),
     { 
       key: 'tanggal', 
       header: 'Tanggal', 
@@ -461,14 +570,22 @@ function AdminKehadiranContent() {
     { 
       key: 'telat', 
       header: 'Telat', 
-      render: (row: Kehadiran) => row.menit_telat > 0 ? <span className="text-rose-500 font-medium">{row.menit_telat}m</span> : <span className="text-neutral-400">-</span>
+      render: (row: Kehadiran) => {
+        if (row.menit_telat > 30) {
+          return <span className="text-rose-600 font-semibold text-xs">{row.menit_telat}m (Denda)</span>;
+        }
+        if (row.menit_telat > 0) {
+          return <span className="text-amber-600 font-medium text-xs">{row.menit_telat}m (Toleransi)</span>;
+        }
+        return <span className="text-neutral-400">-</span>;
+      }
     },
     { 
       key: 'lembur', 
       header: 'Lembur', 
       render: (row: Kehadiran) => {
         if (row.status_lembur === 'disetujui') return <Badge variant="success">+{row.menit_lembur_disetujui}m</Badge>;
-        if (row.status_lembur === 'pending') return <Badge variant="warning">Pending</Badge>;
+        if (row.status_lembur === 'pending') return <Badge variant="warning">Pending {row.menit_lembur_aktual}m</Badge>;
         if (row.status_lembur === 'ditolak') return <Badge variant="danger">Ditolak</Badge>;
         return <span className="text-neutral-400">-</span>;
       }
@@ -476,7 +593,9 @@ function AdminKehadiranContent() {
   ];
 
   return (
-    <div className="flex flex-col gap-2 px-2 py-4 w-full md:p-4 lg:p-8 pb-20">
+    <div className="flex flex-col gap-3 px-2 py-4 w-full md:p-4 lg:p-8 pb-20">
+      
+      {/* Top Header */}
       <div className="flex flex-row items-center justify-between gap-2 mb-1">
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400">
@@ -484,11 +603,21 @@ function AdminKehadiranContent() {
           </div>
           <div>
             <h1 className="text-lg sm:text-2xl font-bold leading-tight text-neutral-900 dark:text-white">Kelola Kehadiran</h1>
-            <p className="hidden md:block text-[11px] sm:text-sm text-neutral-500 leading-snug">Pantau absen dan lembur karyawan.</p>
+            <p className="hidden md:block text-[11px] sm:text-sm text-neutral-500 leading-snug">Pantau presensi, keterlambatan, dan persetujuan lembur karyawan.</p>
           </div>
         </div>
 
         <div className="shrink-0 flex items-center gap-2">
+          <Button 
+            variant="secondary"
+            onClick={handleExportCsv}
+            loading={isExporting}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl !min-h-0 !p-0 sm:w-auto sm:!px-3.5 sm:!py-2 text-xs font-semibold"
+          >
+            <IconDownload size={17} className="shrink-0" />
+            <span className="hidden sm:inline">Ekspor CSV</span>
+          </Button>
+
           <Button 
             variant="primary" 
             onClick={() => setIsCreateOpen(true)}
@@ -497,14 +626,146 @@ function AdminKehadiranContent() {
             <IconPlus size={18} className="shrink-0" />
             <span className="hidden font-medium sm:inline">Tambah Entri</span>
           </Button>
+          
           <FilterButton onClick={handleOpenFilter} activeCount={activeFilters.length} className="!mt-0 !mr-0" />
         </div>
       </div>
 
-      <div className="no-scrollbar mb-2 flex w-full items-center gap-2 overflow-x-auto py-1 sm:py-2 whitespace-nowrap">
+      {/* 4-Card Live Stats Summary Widget */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 my-1">
+        {/* Card 1: Hadir Hari Ini */}
+        <div className="rounded-2xl border border-neutral-200/80 bg-white p-3.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold tracking-wider uppercase text-neutral-500">Hadir Hari Ini</span>
+            <div className="p-1 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+              <IconUserCheck size={16} />
+            </div>
+          </div>
+          <div className="mt-2">
+            <div className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white font-mono">
+              {isLoadingSummary ? '--' : `${summaryData?.total_hadir || 0}/${summaryData?.total_aktif || 0}`}
+            </div>
+            <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
+              {isLoadingSummary ? 'Memuat...' : `${summaryData?.hadir_tepat || 0} tepat, ${summaryData?.hadir_telat || 0} telat`}
+            </p>
+          </div>
+        </div>
+
+        {/* Card 2: Terlambat */}
+        <div className="rounded-2xl border border-neutral-200/80 bg-white p-3.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold tracking-wider uppercase text-neutral-500">Terlambat</span>
+            <div className="p-1 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
+              <IconClock size={16} />
+            </div>
+          </div>
+          <div className="mt-2">
+            <div className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 font-mono">
+              {isLoadingSummary ? '--' : summaryData?.hadir_telat || 0}
+            </div>
+            <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
+              Tercatat datang setelah jam masuk
+            </p>
+          </div>
+        </div>
+
+        {/* Card 3: Izin / Sakit / Off */}
+        <div className="rounded-2xl border border-neutral-200/80 bg-white p-3.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold tracking-wider uppercase text-neutral-500">Izin / Sakit / Off</span>
+            <div className="p-1 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+              <IconCalendarEvent size={16} />
+            </div>
+          </div>
+          <div className="mt-2">
+            <div className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400 font-mono">
+              {isLoadingSummary ? '--' : (summaryData?.izin || 0) + (summaryData?.sakit || 0) + (summaryData?.off || 0)}
+            </div>
+            <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
+              {isLoadingSummary ? 'Memuat...' : `${summaryData?.izin || 0} izin, ${summaryData?.sakit || 0} sakit, ${summaryData?.off || 0} off`}
+            </p>
+          </div>
+        </div>
+
+        {/* Card 4: Pending Lembur */}
+        <div 
+          onClick={() => setActiveTab('lembur')}
+          className="rounded-2xl border border-neutral-200/80 bg-white p-3.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 flex flex-col justify-between cursor-pointer hover:border-teal-500 transition-colors"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold tracking-wider uppercase text-neutral-500">Pending Lembur</span>
+            <div className="p-1 rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-950/40 dark:text-teal-400">
+              <IconAlertCircle size={16} />
+            </div>
+          </div>
+          <div className="mt-2">
+            <div className="text-xl sm:text-2xl font-black text-teal-600 dark:text-teal-400 font-mono">
+              {isLoadingSummary ? '--' : summaryData?.pending_lembur || 0}
+            </div>
+            <p className="text-[11px] text-teal-600 dark:text-teal-400 mt-0.5 font-medium">
+              Ketuk untuk tinjau lembur &rarr;
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs & Bulk Action Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-1">
+        <div className="flex items-center gap-1.5 p-1 bg-neutral-100 dark:bg-neutral-800 rounded-xl w-fit">
+          <button
+            onClick={() => {
+              setActiveTab('all');
+              setSelectedLemburIds([]);
+            }}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === 'all'
+                ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white shadow-sm'
+                : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200'
+            }`}
+          >
+            Semua Presensi
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('lembur');
+              setSelectedLemburIds([]);
+            }}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === 'lembur'
+                ? 'bg-white dark:bg-neutral-900 text-teal-600 dark:text-teal-400 shadow-sm'
+                : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200'
+            }`}
+          >
+            <span>Persetujuan Lembur</span>
+            {(summaryData?.pending_lembur || 0) > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-teal-100 text-teal-700 dark:bg-teal-900/60 dark:text-teal-300">
+                {summaryData?.pending_lembur}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {activeTab === 'lembur' && selectedLemburIds.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="primary"
+              size="sm"
+              loading={bulkApproveMutation.isPending}
+              onClick={handleBulkApprove}
+              leftIcon={<IconCheck size={16} />}
+              className="!bg-teal-600 hover:!bg-teal-700 text-white"
+            >
+              Setujui {selectedLemburIds.length} Lembur Terpilih
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Active Filter Badges */}
+      <div className="no-scrollbar flex w-full items-center gap-2 overflow-x-auto py-1 whitespace-nowrap">
         {activeFilters.length === 0 && (
-          <span className="text-xs sm:text-sm text-neutral-500 italic dark:text-neutral-400">
-            Menampilkan semua data kehadiran
+          <span className="text-xs text-neutral-400 italic">
+            Menampilkan data kehadiran ({totalItems} total entri)
           </span>
         )}
         {activeFilters.map((badge) => (
@@ -525,8 +786,9 @@ function AdminKehadiranContent() {
         ))}
       </div>
 
-      <div className="hidden lg:flex overflow-hidden flex-col min-h-[500px] rounded-xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-        {isLoading ? (
+      {/* Desktop Table View */}
+      <div className="hidden lg:flex overflow-hidden flex-col min-h-[500px] rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        {isLoadingList ? (
           <div className="flex flex-col gap-2 p-4">
             {[1, 2, 3, 4, 5].map(i => (
               <div key={i} className="h-14 w-full animate-pulse rounded-xl bg-neutral-100 dark:bg-neutral-800" />
@@ -536,14 +798,14 @@ function AdminKehadiranContent() {
           <div className="flex-1 flex flex-col">
             <DataTable 
               columns={columns}
-              data={paginatedList}
+              data={list}
               keyField="id"
               className="border-none flex-1"
               onRowClick={handleOpenEdit}
               emptyState={
                 <div className="flex flex-col items-center justify-center p-8 text-center text-neutral-500 dark:text-neutral-400">
                   <IconCalendarEvent className="mb-2 h-10 w-10 opacity-20" />
-                  <p>Tidak ada data kehadiran yang ditemukan.</p>
+                  <p>Tidak ada data presensi yang ditemukan.</p>
                 </div>
               }
             />
@@ -561,49 +823,54 @@ function AdminKehadiranContent() {
 
       {/* Mobile Card Layout */}
       <div className="block space-y-3 lg:hidden">
-        {isLoading ? (
+        {isLoadingList ? (
           <div className="flex flex-col gap-3">
             {[1, 2, 3].map(i => (
               <div key={i} className="h-28 w-full animate-pulse rounded-2xl bg-neutral-100 dark:bg-neutral-800" />
             ))}
           </div>
-        ) : paginatedList.length === 0 ? (
+        ) : list.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm dark:border-neutral-800 dark:bg-neutral-900 text-neutral-500 dark:text-neutral-400">
             <IconCalendarEvent className="mb-2 h-10 w-10 opacity-20" />
             <p>Tidak ada data kehadiran yang ditemukan.</p>
           </div>
         ) : (
           <>
-            {paginatedList.map((item) => (
+            {list.map((item) => (
               <div
                 key={item.id}
                 onClick={() => handleOpenEdit(item)}
                 className="group flex cursor-pointer flex-col gap-2 rounded-2xl border border-neutral-200/60 bg-white/70 p-3 shadow-sm backdrop-blur-xl transition-all duration-200 hover:bg-neutral-50/90 active:scale-[0.98] dark:border-neutral-800/60 dark:bg-neutral-900/60 dark:hover:bg-neutral-800/80"
               >
                 <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="line-clamp-1 text-sm font-semibold leading-tight text-neutral-900 dark:text-white">
-                      {item.profiles?.nama || 'Unknown'}
-                    </h3>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-neutral-500">
-                      <span className="flex items-center gap-1">
-                        <IconCalendarEvent size={12} />
-                        {format(new Date(item.tanggal), 'dd MMM yyyy', { locale: idLocale })}
-                      </span>
-                      {(item.lokasi_masuk?.nama || item.lokasi_pulang?.nama) && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-teal-700 dark:text-teal-400">
-                          <IconMapPin size={12} className="shrink-0 text-teal-600" />
-                          {item.lokasi_masuk?.nama && item.lokasi_pulang?.nama && item.lokasi_masuk.nama !== item.lokasi_pulang.nama ? (
-                            <span>
-                              <span className="text-teal-700 dark:text-teal-300 font-semibold">{item.lokasi_masuk.nama} (M)</span>
-                              <span className="mx-1 text-neutral-400">→</span>
-                              <span className="text-blue-700 dark:text-blue-300 font-semibold">{item.lokasi_pulang.nama} (P)</span>
-                            </span>
-                          ) : (
-                            <span>{item.lokasi_masuk?.nama || item.lokasi_pulang?.nama}</span>
-                          )}
+                  <div className="flex items-start gap-2">
+                    {activeTab === 'lembur' && (
+                      <input 
+                        type="checkbox" 
+                        checked={selectedLemburIds.includes(item.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleToggleSelectLembur(item.id);
+                        }}
+                        className="mt-0.5 rounded border-neutral-300 text-teal-600 focus:ring-teal-500"
+                      />
+                    )}
+                    <div>
+                      <h3 className="line-clamp-1 text-sm font-semibold leading-tight text-neutral-900 dark:text-white">
+                        {item.profiles?.nama || 'Unknown'}
+                      </h3>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-neutral-500">
+                        <span className="flex items-center gap-1">
+                          <IconCalendarEvent size={12} />
+                          {format(new Date(item.tanggal), 'dd MMM yyyy', { locale: idLocale })}
                         </span>
-                      )}
+                        {(item.lokasi_masuk?.nama || item.lokasi_pulang?.nama) && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-teal-700 dark:text-teal-400">
+                            <IconMapPin size={12} className="shrink-0 text-teal-600" />
+                            <span>{item.lokasi_masuk?.nama || item.lokasi_pulang?.nama}</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -627,8 +894,8 @@ function AdminKehadiranContent() {
                   </div>
                   <div className="flex flex-col text-right">
                     <span className="text-[10px] uppercase tracking-wider text-neutral-500">Telat</span>
-                    <span className={`text-sm font-medium ${item.menit_telat > 0 ? 'text-rose-500 dark:text-rose-400' : 'text-neutral-900 dark:text-white'}`}>
-                      {item.menit_telat}m
+                    <span className={`text-xs font-semibold ${item.menit_telat > 30 ? 'text-rose-500 dark:text-rose-400' : item.menit_telat > 0 ? 'text-amber-500 dark:text-amber-400' : 'text-neutral-900 dark:text-white'}`}>
+                      {item.menit_telat > 30 ? `${item.menit_telat}m (Denda)` : item.menit_telat > 0 ? `${item.menit_telat}m (Grace)` : '0m'}
                     </span>
                   </div>
                 </div>
@@ -660,7 +927,7 @@ function AdminKehadiranContent() {
         )}
       </div>
 
-      {/* Filter SlideOver */}
+      {/* Filter SlideOver Panel */}
       <ResponsivePanel
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
@@ -745,7 +1012,7 @@ function AdminKehadiranContent() {
             <div className="rounded-xl border border-teal-100 bg-teal-50/50 p-3 dark:border-teal-900/40 dark:bg-teal-950/20">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-teal-800 dark:text-teal-300 mb-2">
                 <IconMapPin size={15} />
-                <span>Informasi Lokasi Absen</span>
+                <span>Informasi Lokasi & Akurasi GPS</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                 <div className="flex flex-col gap-0.5">
@@ -753,6 +1020,9 @@ function AdminKehadiranContent() {
                   <span className="font-medium text-neutral-900 dark:text-white">
                     {selectedKehadiran.lokasi_masuk?.nama || (selectedKehadiran.lat_masuk ? 'Tercatat via GPS' : 'Tanpa data lokasi')}
                   </span>
+                  {selectedKehadiran.accuracy_masuk && (
+                    <span className="text-[10px] text-neutral-400">Akurasi: ±{Math.round(selectedKehadiran.accuracy_masuk)}m</span>
+                  )}
                   {selectedKehadiran.lat_masuk && selectedKehadiran.lng_masuk && (
                     <a
                       href={`https://www.google.com/maps?q=${selectedKehadiran.lat_masuk},${selectedKehadiran.lng_masuk}`}
@@ -770,6 +1040,9 @@ function AdminKehadiranContent() {
                   <span className="font-medium text-neutral-900 dark:text-white">
                     {selectedKehadiran.lokasi_pulang?.nama || (selectedKehadiran.lat_pulang ? 'Tercatat via GPS' : 'Tanpa data lokasi')}
                   </span>
+                  {selectedKehadiran.accuracy_pulang && (
+                    <span className="text-[10px] text-neutral-400">Akurasi: ±{Math.round(selectedKehadiran.accuracy_pulang)}m</span>
+                  )}
                   {selectedKehadiran.lat_pulang && selectedKehadiran.lng_pulang && (
                     <a
                       href={`https://www.google.com/maps?q=${selectedKehadiran.lat_pulang},${selectedKehadiran.lng_pulang}`}

@@ -17,8 +17,10 @@ export interface Kehadiran {
   created_at: string;
   lat_masuk?: number | null;
   lng_masuk?: number | null;
+  accuracy_masuk?: number | null;
   lat_pulang?: number | null;
   lng_pulang?: number | null;
+  accuracy_pulang?: number | null;
   lokasi_masuk_id?: string | null;
   lokasi_pulang_id?: string | null;
   lokasi_masuk?: {
@@ -34,6 +36,30 @@ export interface Kehadiran {
   } | null;
 }
 
+export interface TodaySummary {
+  tanggal: string;
+  total_aktif: number;
+  hadir_tepat: number;
+  hadir_telat: number;
+  total_hadir: number;
+  izin: number;
+  sakit: number;
+  off: number;
+  pending_lembur: number;
+  belum_hadir: number;
+}
+
+export interface PaginatedKehadiranParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  startDate?: string;
+  endDate?: string;
+  statusHadir?: string;
+  lokasiId?: string;
+  statusLembur?: string;
+}
+
 export const kehadiranApi = {
   /**
    * Cek status absensi hari ini (Apakah sudah absen masuk?)
@@ -45,7 +71,6 @@ export const kehadiranApi = {
       if (!userId) throw new Error('Not authenticated');
 
       // Ambil tanggal lokal hari ini format YYYY-MM-DD
-      // Penting: karena timezone, lebih aman query >= awal hari
       const dateStr = format(new Date(), 'yyyy-MM-dd');
 
       const result = await safeQuery(async () => {
@@ -68,21 +93,17 @@ export const kehadiranApi = {
   },
 
   /**
-   * Absen Masuk dengan validasi GPS
+   * Absen Masuk dengan validasi GPS & Timezone WIB
    */
-  async absenMasuk(lat: number, lng: number, status_hadir: 'hadir' | 'izin' | 'sakit' | 'alpha' | 'off' = 'hadir') {
+  async absenMasuk(lat: number, lng: number, accuracy?: number | null, status_hadir: 'hadir' | 'izin' | 'sakit' | 'alpha' | 'off' = 'hadir') {
     try {
-      const { data: authData } = await supabase.auth.getUser();
-      const userId = authData.user?.id;
-      if (!userId) throw new Error('Not authenticated');
-
       const result = await safeQuery(
         async () => {
           const res = await supabase.rpc('absen_masuk_with_gps', {
-            p_user_id: userId,
-            p_status_hadir: status_hadir,
             p_lat: lat,
-            p_lng: lng
+            p_lng: lng,
+            p_accuracy: accuracy ?? null,
+            p_status_hadir: status_hadir
           });
           
           if (res.error) throw res.error;
@@ -97,19 +118,17 @@ export const kehadiranApi = {
   },
 
   /**
-   * Absen Pulang dengan validasi GPS
+   * Absen Pulang dengan validasi GPS & Kalkulasi Server-Side
    */
-  async absenPulang(id: string, menit_kerja: number, menit_telat: number, menit_lembur_aktual: number, lat: number, lng: number) {
+  async absenPulang(id: string, lat: number, lng: number, accuracy?: number | null) {
     try {
       const result = await safeQuery(
         async () => {
           const res = await supabase.rpc('absen_pulang_with_gps', {
             p_kehadiran_id: id,
-            p_menit_kerja: menit_kerja,
-            p_menit_telat: menit_telat,
-            p_menit_lembur: menit_lembur_aktual,
             p_lat: lat,
-            p_lng: lng
+            p_lng: lng,
+            p_accuracy: accuracy ?? null
           });
           
           if (res.error) throw res.error;
@@ -197,7 +216,7 @@ export const kehadiranApi = {
   },
 
   /**
-   * Approve Lembur (Admin)
+   * Approve Lembur Single (Admin)
    */
   async approveLembur(id: string, menit_disetujui: number) {
     try {
@@ -223,9 +242,157 @@ export const kehadiranApi = {
   },
 
   /**
-   * Ambil semua data kehadiran berdasarkan rentang tanggal (Admin)
+   * Bulk Approve Lembur (Admin)
    */
-  async getAll(startDate?: string, endDate?: string) {
+  async bulkApproveLembur(ids: string[]) {
+    try {
+      const result = await safeQuery(
+        async () => {
+          const res = await supabase.rpc('bulk_approve_lembur', { p_ids: ids });
+          if (res.error) throw res.error;
+          return { data: res.data as number, error: null };
+        },
+        { isMutation: true }
+      );
+      return result;
+    } catch (err: any) {
+      return { data: null, error: { message: err.message || 'Terjadi kesalahan saat approve lembur massal' } };
+    }
+  },
+
+  /**
+   * Ambil ringkasan statistik kehadiran hari ini (Live Summary Admin)
+   */
+  async getTodaySummary() {
+    try {
+      const result = await safeQuery(async () => {
+        const res = await supabase.rpc('get_today_kehadiran_summary');
+        if (res.error) throw res.error;
+        return { data: res.data as TodaySummary, error: null };
+      });
+      return result;
+    } catch (err: any) {
+      return { data: null, error: { message: err.message || 'Terjadi kesalahan saat memuat ringkasan' } };
+    }
+  },
+
+  /**
+   * Ambil data kehadiran dengan Server-Side Pagination & Filtering (Admin)
+   */
+  async getPaginated(params: PaginatedKehadiranParams) {
+    try {
+      const {
+        page = 1,
+        limit = 20,
+        search,
+        startDate,
+        endDate,
+        statusHadir,
+        lokasiId,
+        statusLembur
+      } = params;
+
+      const result = await safeQuery(async () => {
+        let userIdsFilter: string[] | null = null;
+
+        // Jika ada pencarian nama, cari dulu user_id yang cocok di profiles
+        if (search && search.trim() !== '') {
+          const { data: matchedProfiles } = await supabase
+            .from('profiles')
+            .select('id')
+            .ilike('nama', `%${search.trim()}%`);
+          
+          if (matchedProfiles && matchedProfiles.length > 0) {
+            userIdsFilter = matchedProfiles.map((p) => p.id);
+          } else {
+            return { data: { list: [], total: 0 }, error: null };
+          }
+        }
+
+        let query = supabase
+          .from('kehadiran')
+          .select(
+            `
+              *,
+              lokasi_masuk:lokasi_kerja!kehadiran_lokasi_masuk_id_fkey(id, nama),
+              lokasi_pulang:lokasi_kerja!kehadiran_lokasi_pulang_id_fkey(id, nama)
+            `,
+            { count: 'exact' }
+          )
+          .order('tanggal', { ascending: false })
+          .order('created_at', { ascending: false });
+
+        if (userIdsFilter !== null) {
+          query = query.in('user_id', userIdsFilter);
+        }
+
+        if (startDate && endDate) {
+          query = query.gte('tanggal', startDate).lte('tanggal', endDate);
+        } else if (startDate) {
+          query = query.gte('tanggal', startDate);
+        } else if (endDate) {
+          query = query.lte('tanggal', endDate);
+        }
+
+        if (statusHadir && statusHadir !== 'all') {
+          query = query.eq('status_hadir', statusHadir);
+        }
+
+        if (statusLembur && statusLembur !== 'all') {
+          query = query.eq('status_lembur', statusLembur);
+        }
+
+        if (lokasiId && lokasiId !== 'all') {
+          query = query.or(`lokasi_masuk_id.eq.${lokasiId},lokasi_pulang_id.eq.${lokasiId}`);
+        }
+
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+        const res = await query.range(from, to);
+
+        if (res.error) return { data: null, error: res.error as Error };
+
+        let listData = (res.data || []) as Kehadiran[];
+
+        if (listData.length > 0) {
+          const userIds = [...new Set(listData.map((d: any) => d.user_id))];
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, nama')
+            .in('id', userIds);
+
+          if (profiles) {
+            const profileMap = profiles.reduce((acc: any, p: any) => {
+              acc[p.id] = p;
+              return acc;
+            }, {});
+
+            listData = listData.map((d: any) => ({
+              ...d,
+              profiles: profileMap[d.user_id] || null
+            }));
+          }
+        }
+
+        return {
+          data: {
+            list: listData,
+            total: res.count || 0
+          },
+          error: null
+        };
+      });
+
+      return result;
+    } catch (err: any) {
+      return { data: null, error: { message: err.message || 'Terjadi kesalahan' } };
+    }
+  },
+
+  /**
+   * Ambil semua data kehadiran berdasarkan rentang tanggal untuk Ekspor (Admin)
+   */
+  async getAll(startDate?: string, endDate?: string, lokasiId?: string, statusHadir?: string) {
     try {
       const result = await safeQuery(async () => {
         let query = supabase
@@ -235,7 +402,8 @@ export const kehadiranApi = {
             lokasi_masuk:lokasi_kerja!kehadiran_lokasi_masuk_id_fkey(id, nama),
             lokasi_pulang:lokasi_kerja!kehadiran_lokasi_pulang_id_fkey(id, nama)
           `)
-          .order('tanggal', { ascending: false });
+          .order('tanggal', { ascending: false })
+          .order('created_at', { ascending: false });
 
         if (startDate && endDate) {
           query = query.gte('tanggal', startDate).lte('tanggal', endDate);
@@ -243,6 +411,14 @@ export const kehadiranApi = {
           query = query.gte('tanggal', startDate);
         } else if (endDate) {
           query = query.lte('tanggal', endDate);
+        }
+
+        if (statusHadir && statusHadir !== 'all') {
+          query = query.eq('status_hadir', statusHadir);
+        }
+
+        if (lokasiId && lokasiId !== 'all') {
+          query = query.or(`lokasi_masuk_id.eq.${lokasiId},lokasi_pulang_id.eq.${lokasiId}`);
         }
 
         const res = await query;

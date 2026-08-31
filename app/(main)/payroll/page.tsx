@@ -35,7 +35,7 @@ export default function PayrollDashboardPage() {
   const queryClient = useQueryClient();
 
   // GPS State
-  const [coords, setCoords] = useState<{lat: number, lng: number} | null>(null);
+  const [coords, setCoords] = useState<{lat: number, lng: number, accuracy?: number} | null>(null);
   const [geoStatus, setGeoStatus] = useState<'checking' | 'valid' | 'out_of_bounds' | 'denied' | 'error'>('checking');
   const [closestStoreName, setClosestStoreName] = useState<string | null>(null);
 
@@ -62,9 +62,8 @@ export default function PayrollDashboardPage() {
       setGeoStatus('checking');
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const { latitude, longitude } = position.coords;
-          setCoords({ lat: latitude, lng: longitude });
-          // Increment retryCount to also restart the watcher
+          const { latitude, longitude, accuracy } = position.coords;
+          setCoords({ lat: latitude, lng: longitude, accuracy });
           setRetryCount(prev => prev + 1);
         },
         (error) => {
@@ -81,7 +80,7 @@ export default function PayrollDashboardPage() {
     }
   };
 
-  // Track GPS Location
+  // Track GPS Location with accuracy
   useEffect(() => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setGeoStatus('error');
@@ -93,8 +92,8 @@ export default function PayrollDashboardPage() {
     // Watch position to update constantly
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        const { latitude, longitude } = position.coords;
-        setCoords({ lat: latitude, lng: longitude });
+        const { latitude, longitude, accuracy } = position.coords;
+        setCoords({ lat: latitude, lng: longitude, accuracy });
       },
       (error) => {
         if (error.code === error.PERMISSION_DENIED) {
@@ -103,13 +102,13 @@ export default function PayrollDashboardPage() {
           setGeoStatus('error');
         }
       },
-      { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
   }, [retryCount]);
 
-  // Validate coords against stores
+  // Validate coords against stores with dynamic accuracy tolerance (up to +30m buffer)
   useEffect(() => {
     if (!coords || !stores || stores.length === 0) return;
     
@@ -123,7 +122,8 @@ export default function PayrollDashboardPage() {
         closestDist = dist;
         closestName = store.nama;
       }
-      if (dist <= store.radius_meter) {
+      const effectiveRadius = store.radius_meter + Math.min(coords.accuracy || 0, 30);
+      if (dist <= effectiveRadius) {
         isValid = true;
       }
     }
@@ -135,7 +135,6 @@ export default function PayrollDashboardPage() {
       setGeoStatus('out_of_bounds');
     }
   }, [coords, stores]);
-
 
   // Fetch status absen hari ini
   const { data: todayStatus, isLoading: isLoadingStatus } = useQuery({
@@ -149,7 +148,7 @@ export default function PayrollDashboardPage() {
     queryFn: () => kehadiranApi.getMine(7).then((res) => res.data),
   });
 
-  // Fetch profil karyawan (buat estimasi gaji/lembur/telat)
+  // Fetch profil karyawan (buat jam shift & info)
   const { data: profile } = useQuery({
     queryKey: ['payroll', 'profile'],
     queryFn: () => karyawanApi.getMine().then((res) => res.data),
@@ -182,11 +181,11 @@ export default function PayrollDashboardPage() {
     }
   }, [time, todayStatus]);
 
-  // Mutasi Absen Masuk
+  // Mutasi Absen Masuk (Server-side calculation & timezone)
   const absenMasukMutation = useMutation({
     mutationFn: () => {
       if (!coords) throw new Error('Koordinat GPS belum ditemukan');
-      return kehadiranApi.absenMasuk(coords.lat, coords.lng);
+      return kehadiranApi.absenMasuk(coords.lat, coords.lng, coords.accuracy);
     },
     onSuccess: (res) => {
       if (res.error) {
@@ -199,11 +198,11 @@ export default function PayrollDashboardPage() {
     onError: (err: any) => toast.error(err.message || 'Terjadi kesalahan sistem'),
   });
 
-  // Mutasi Absen Pulang
+  // Mutasi Absen Pulang (Server-side calculation & timezone)
   const absenPulangMutation = useMutation({
-    mutationFn: (args: { id: string, menit_kerja: number, menit_telat: number, menit_lembur: number }) => {
+    mutationFn: (args: { id: string }) => {
       if (!coords) throw new Error('Koordinat GPS belum ditemukan');
-      return kehadiranApi.absenPulang(args.id, args.menit_kerja, args.menit_telat, args.menit_lembur, coords.lat, coords.lng);
+      return kehadiranApi.absenPulang(args.id, coords.lat, coords.lng, coords.accuracy);
     },
     onSuccess: (res) => {
       if (res.error) {
@@ -265,33 +264,8 @@ export default function PayrollDashboardPage() {
         return;
       }
 
-      const masuk = new Date(todayStatus.waktu_masuk || new Date());
-      const sekarang = new Date();
-      const menit_kerja = differenceInMinutes(sekarang, masuk);
-      
-      let menit_telat = 0;
-      let menit_lembur = 0;
-      if (profile) {
-        const [mHour, mMin] = profile.jam_masuk.split(':');
-        const standardMasuk = set(new Date(), { hours: Number(mHour), minutes: Number(mMin), seconds: 0, milliseconds: 0 });
-        
-        if (isAfter(masuk, standardMasuk)) {
-          menit_telat = differenceInMinutes(masuk, standardMasuk);
-        }
-
-        const [pHour, pMin] = profile.jam_pulang.split(':');
-        const standardPulang = set(new Date(), { hours: Number(pHour), minutes: Number(pMin), seconds: 0, milliseconds: 0 });
-
-        if (isAfter(sekarang, standardPulang)) {
-          menit_lembur = differenceInMinutes(sekarang, standardPulang);
-        }
-      }
-
       absenPulangMutation.mutate({
-        id: todayStatus.id,
-        menit_kerja,
-        menit_telat,
-        menit_lembur
+        id: todayStatus.id
       });
     }
   };
@@ -498,7 +472,7 @@ export default function PayrollDashboardPage() {
                 <div key={item.id} className="relative pl-6 flex items-start justify-between group">
                   {/* Timeline Dot */}
                   <div className={`absolute left-[11px] top-1.5 h-2 w-2 rounded-full ring-[3px] ring-white dark:ring-neutral-900 ${
-                    item.menit_telat > 0 ? 'bg-rose-500' : 'bg-emerald-500'
+                    item.menit_telat > 30 ? 'bg-rose-500' : item.menit_telat > 0 ? 'bg-amber-500' : 'bg-emerald-500'
                   }`} />
                   
                   <div className="flex flex-col gap-1.5">
@@ -527,11 +501,15 @@ export default function PayrollDashboardPage() {
                   </div>
                   
                   <div className="flex flex-col items-end gap-1.5 pt-0.5">
-                    {item.menit_telat > 0 && (
+                    {item.menit_telat > 30 ? (
                       <span className="rounded-full bg-rose-100/80 dark:bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-500/20">
                         Telat {formatDuration(item.menit_telat)}
                       </span>
-                    )}
+                    ) : item.menit_telat > 0 ? (
+                      <span className="rounded-full bg-amber-100/80 dark:bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300 border border-amber-200/50 dark:border-amber-500/20">
+                        Telat {item.menit_telat}m (Toleransi)
+                      </span>
+                    ) : null}
                     {item.status_lembur === 'disetujui' && (
                       <span className="rounded-full bg-indigo-100/80 dark:bg-indigo-500/10 px-2.5 py-0.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-500/20">
                         + Lembur

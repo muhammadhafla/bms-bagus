@@ -224,38 +224,67 @@ export default function CashFlowPage() {
             className="animate-fade-in-up flex flex-col-reverse gap-6 xl:flex-row"
             style={{ animationDelay: '200ms' }}
           >
-            <div className="flex flex-1 flex-col gap-4">
-              <div className="mb-2 flex flex-row items-center justify-between gap-3 sm:mb-0">
-                <h2 className="flex-1 text-lg font-bold text-neutral-800 dark:text-neutral-100">
-                  Riwayat Transaksi Kas
-                </h2>
-                <div className="shrink-0">
+            <div className="flex flex-1 flex-col gap-3 sm:gap-4">
+              <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-start sm:gap-3">
+                  <h2 className="text-lg font-bold text-neutral-800 dark:text-neutral-100">
+                    Riwayat Transaksi Kas
+                  </h2>
+
+                  {/* Filter button on mobile (aligned right of title) */}
+                  <div className="sm:hidden">
+                    <FilterButton onClick={handleOpenFilter} activeCount={activeFilters.length} />
+                  </div>
+
+                  {/* Active filter badges on desktop (inline next to title) */}
+                  {activeFilters.length > 0 && (
+                    <div className="hidden sm:flex flex-wrap items-center gap-1.5">
+                      {activeFilters.map((badge) => (
+                        <div
+                          key={badge.id}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/50 bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-700 shadow-sm dark:border-neutral-700/50 dark:bg-neutral-800 dark:text-neutral-300"
+                        >
+                          {badge.label}
+                          {badge.onRemove && (
+                            <button
+                              onClick={badge.onRemove}
+                              className="text-neutral-400 transition-colors hover:text-neutral-600 dark:hover:text-neutral-200"
+                            >
+                              <IconX size={14} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Filter button on desktop */}
+                <div className="hidden sm:block shrink-0">
                   <FilterButton onClick={handleOpenFilter} activeCount={activeFilters.length} />
                 </div>
-              </div>
 
-              <div className="no-scrollbar mb-1 flex w-full items-center gap-2 overflow-x-auto py-1 whitespace-nowrap">
-                {activeFilters.length === 0 && (
-                  <span className="text-sm text-neutral-500 italic dark:text-neutral-400">
-                    Menampilkan data default
-                  </span>
-                )}
-                {activeFilters.map((badge) => (
-                  <div
-                    key={badge.id}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/50 bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm dark:border-neutral-700/50 dark:bg-neutral-800 dark:text-neutral-300"
-                  >
-                    {badge.label}
-                    {badge.onRemove && (
-                      <button
-                        onClick={badge.onRemove}
-                        className="text-neutral-400 transition-colors hover:text-neutral-600 dark:hover:text-neutral-200"
+                {/* Active filter badges on mobile (compact row below title) */}
+                {activeFilters.length > 0 && (
+                  <div className="no-scrollbar flex w-full items-center gap-1.5 overflow-x-auto py-0.5 whitespace-nowrap sm:hidden">
+                    {activeFilters.map((badge) => (
+                      <div
+                        key={badge.id}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/50 bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-700 shadow-sm dark:border-neutral-700/50 dark:bg-neutral-800 dark:text-neutral-300"
                       >
-                        <IconX size={14} />
-                      </button>
-                    )}
+                        {badge.label}
+                        {badge.onRemove && (
+                          <button
+                            onClick={badge.onRemove}
+                            className="text-neutral-400 transition-colors hover:text-neutral-600 dark:hover:text-neutral-200"
+                          >
+                            <IconX size={14} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
 
               <CashFlowFilterPanel

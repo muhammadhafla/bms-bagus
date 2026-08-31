@@ -17,6 +17,7 @@ import {
   IconBuildingWarehouse,
   IconMapPin,
   IconAlertTriangle,
+  IconChevronDown,
 } from '@tabler/icons-react';
 import {
   AmbientLayout,
@@ -25,13 +26,13 @@ import {
   Modal,
   TextInput,
   SelectInput,
-  CheckboxInput,
   ModernPagination,
   FilterButton,
 } from '@/components/ui';
 import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { warehouseStockApi, gudangApi } from '@/lib/api/warehouse';
+import { kategoriApi } from '@/lib/api';
 import { WarehouseItemStock, Gudang } from '@/types/warehouse';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useHotkeys } from 'react-hotkeys-hook';
@@ -64,7 +65,18 @@ function WarehouseStocksContent() {
   );
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get('search') || '');
-  const [lowStockOnly, setLowStockOnly] = useState(searchParams.get('lowStockOnly') === 'true');
+  const [categoryId, setCategoryId] = useState<string>(searchParams.get('categoryId') || '');
+  const [stockStatus, setStockStatus] = useState<'all' | 'low' | 'empty' | 'available'>(
+    (searchParams.get('stockStatus') as any) ||
+      (searchParams.get('lowStockOnly') === 'true' ? 'low' : 'all'),
+  );
+  const [rakStatus, setRakStatus] = useState<'all' | 'assigned' | 'unassigned'>(
+    (searchParams.get('rakStatus') as any) || 'all',
+  );
+  const [sortBy, setSortBy] = useState<string>(searchParams.get('sortBy') || 'updated_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(
+    (searchParams.get('sortDir') as 'asc' | 'desc') || 'desc',
+  );
   const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
@@ -83,7 +95,11 @@ function WarehouseStocksContent() {
     const params = new URLSearchParams();
     if (selectedGudangId) params.set('gudangId', selectedGudangId);
     if (debouncedSearch) params.set('search', debouncedSearch);
-    if (lowStockOnly) params.set('lowStockOnly', 'true');
+    if (categoryId) params.set('categoryId', categoryId);
+    if (stockStatus !== 'all') params.set('stockStatus', stockStatus);
+    if (rakStatus !== 'all') params.set('rakStatus', rakStatus);
+    if (sortBy !== 'updated_at') params.set('sortBy', sortBy);
+    if (sortDir !== 'desc') params.set('sortDir', sortDir);
     if (page > 1) params.set('page', page.toString());
 
     const queryString = params.toString();
@@ -93,7 +109,19 @@ function WarehouseStocksContent() {
     if (queryString !== currentQueryString) {
       router.replace(newUrl, { scroll: false });
     }
-  }, [selectedGudangId, debouncedSearch, lowStockOnly, page, pathname, router, searchParams]);
+  }, [
+    selectedGudangId,
+    debouncedSearch,
+    categoryId,
+    stockStatus,
+    rakStatus,
+    sortBy,
+    sortDir,
+    page,
+    pathname,
+    router,
+    searchParams,
+  ]);
 
   // Debounce search input
   useEffect(() => {
@@ -106,7 +134,18 @@ function WarehouseStocksContent() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [selectedGudangId, debouncedSearch, lowStockOnly]);
+  }, [selectedGudangId, debouncedSearch, categoryId, stockStatus, rakStatus, sortBy, sortDir]);
+
+  // Fetch Category List
+  const { data: kategoriRes } = useQuery({
+    queryKey: ['kategori-list'],
+    queryFn: () => kategoriApi.getAll(),
+  });
+
+  const kategoriList = useMemo(() => {
+    const data = (kategoriRes as any)?.data || kategoriRes || [];
+    return Array.isArray(data) ? data : [];
+  }, [kategoriRes]);
 
   // Fetch Gudang List
   const { data: gudangRes } = useQuery({
@@ -135,11 +174,25 @@ function WarehouseStocksContent() {
     error: queryError,
     refetch,
   } = useQuery({
-    queryKey: ['warehouse-stocks', activeGudangId, debouncedSearch, lowStockOnly, page],
+    queryKey: [
+      'warehouse-stocks',
+      activeGudangId,
+      debouncedSearch,
+      categoryId,
+      stockStatus,
+      rakStatus,
+      sortBy,
+      sortDir,
+      page,
+    ],
     queryFn: () =>
       warehouseStockApi.getStocksByGudang(activeGudangId, {
         search: debouncedSearch,
-        lowStockOnly,
+        categoryId: categoryId || undefined,
+        stockStatus,
+        rakStatus,
+        sortBy,
+        sortDir,
         page,
         limit,
       }),
@@ -150,6 +203,38 @@ function WarehouseStocksContent() {
   const totalCount = stocksRes?.data?.count || 0;
   const totalPages = Math.ceil(totalCount / limit) || 1;
   const error = queryError ? (queryError as Error).message : null;
+
+  // Active filter count
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (categoryId) count++;
+    if (stockStatus !== 'all') count++;
+    if (rakStatus !== 'all') count++;
+    if (sortBy !== 'updated_at' || sortDir !== 'desc') count++;
+    return count;
+  }, [categoryId, stockStatus, rakStatus, sortBy, sortDir]);
+
+  const hasActiveFilters = useMemo(
+    () =>
+      !!(
+        debouncedSearch ||
+        categoryId ||
+        stockStatus !== 'all' ||
+        rakStatus !== 'all' ||
+        sortBy !== 'updated_at' ||
+        sortDir !== 'desc'
+      ),
+    [debouncedSearch, categoryId, stockStatus, rakStatus, sortBy, sortDir],
+  );
+
+  const resetAllFilters = useCallback(() => {
+    setSearch('');
+    setCategoryId('');
+    setStockStatus('all');
+    setRakStatus('all');
+    setSortBy('updated_at');
+    setSortDir('desc');
+  }, []);
 
   // Mutation for updating rack / bin
   const updateBinMutation = useMutation({
@@ -198,8 +283,7 @@ function WarehouseStocksContent() {
     'escape',
     (e) => {
       e.preventDefault();
-      setSearch('');
-      setLowStockOnly(false);
+      resetAllFilters();
     },
     { enableOnFormTags: true },
   );
@@ -242,9 +326,9 @@ function WarehouseStocksContent() {
 
               <div className="animate-fade-in-up flex items-center gap-2 sm:gap-3">
                 <button
-                  onClick={() => setLowStockOnly(!lowStockOnly)}
+                  onClick={() => setStockStatus(stockStatus === 'low' ? 'all' : 'low')}
                   className={`btn-press flex h-10 cursor-pointer items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-all sm:h-auto sm:px-4 sm:py-2 sm:text-sm ${
-                    lowStockOnly
+                    stockStatus === 'low'
                       ? 'bg-accent-rose-500 text-white border-accent-rose-500 shadow-sm dark:bg-accent-rose-600 dark:border-accent-rose-600'
                       : 'bg-accent-rose-50 text-accent-rose-600 border-accent-rose-200 hover:bg-accent-rose-100 dark:bg-accent-rose-950/40 dark:text-accent-rose-300 dark:border-accent-rose-800 dark:hover:bg-accent-rose-900/60'
                   }`}
@@ -252,7 +336,7 @@ function WarehouseStocksContent() {
                 >
                   <span
                     className={`h-1.5 w-1.5 shrink-0 rounded-full sm:h-2 sm:w-2 ${
-                      lowStockOnly ? 'bg-white' : 'bg-accent-rose-500 animate-pulse'
+                      stockStatus === 'low' ? 'bg-white' : 'bg-accent-rose-500 animate-pulse'
                     }`}
                   />
                   <span>
@@ -275,24 +359,35 @@ function WarehouseStocksContent() {
             {/* Filter & Search Bar */}
             <div className="flex flex-col gap-3">
               <div
-                className="animate-fade-in-up flex w-full flex-col gap-2 sm:flex-row sm:items-center"
+                className="animate-fade-in-up flex w-full flex-col gap-2.5 sm:flex-row sm:items-center"
                 style={{ animationDelay: '50ms' }}
               >
-                {/* Warehouse Dropdown on Desktop & Mobile */}
-                <div className="w-full sm:w-64 sm:shrink-0">
-                  <SelectInput
-                    value={activeGudangId}
-                    onChange={(val) => {
-                      setSelectedGudangId(val);
-                      setPage(1);
-                    }}
-                    options={gudangList.map((g) => ({
-                      value: g.id,
-                      label: `${g.nama} (${g.kode_gudang})${g.is_default ? ' ★' : ''}`,
-                    }))}
-                    placeholder="Pilih Lokasi Gudang"
-                    className="w-full shadow-sm"
-                  />
+                {/* Compact Warehouse Selector (Desktop & Mobile) */}
+                <div className="w-full sm:w-72 sm:shrink-0">
+                  <div className="group relative flex items-center">
+                    <div className="pointer-events-none absolute left-3 z-10 text-brand-600 dark:text-brand-400">
+                      <IconBuildingWarehouse size={18} stroke={1.8} />
+                    </div>
+                    <select
+                      value={activeGudangId}
+                      onChange={(e) => {
+                        setSelectedGudangId(e.target.value);
+                        setPage(1);
+                      }}
+                      aria-label="Pilih Lokasi Gudang"
+                      className="focus:border-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-500/30 w-full cursor-pointer appearance-none rounded-xl border border-neutral-200/80 bg-white py-2.5 pr-9 pl-9.5 text-xs font-bold text-neutral-800 shadow-sm transition-all focus:outline-none focus:ring-2 sm:text-sm dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100"
+                    >
+                      {gudangList.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.nama} ({g.kode_gudang}){g.is_default ? ' ★ Default' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <IconChevronDown
+                      size={16}
+                      className="pointer-events-none absolute right-3 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-200 transition-colors"
+                    />
+                  </div>
                 </div>
 
                 {/* Search Bar & Filter Button */}
@@ -308,7 +403,7 @@ function WarehouseStocksContent() {
                       aria-label="Cari nama barang atau barcode"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      className="focus:border-brand-500 focus:shadow-brand w-full rounded-xl border border-neutral-200/60 bg-white py-2 pr-9 pl-9 text-sm shadow-sm transition-all focus:outline-none sm:py-2.5 sm:text-base dark:border-neutral-800/60 dark:bg-neutral-900"
+                      className="focus:border-brand-500 focus:shadow-brand w-full rounded-xl border border-neutral-200/60 bg-white py-2.5 pr-9 pl-9 text-sm shadow-sm transition-all focus:outline-none dark:border-neutral-800/60 dark:bg-neutral-900"
                     />
                     {search && (
                       <button
@@ -322,49 +417,118 @@ function WarehouseStocksContent() {
 
                   <FilterButton
                     onClick={() => setIsFilterOpen(true)}
-                    activeCount={lowStockOnly ? 1 : 0}
-                    className="sm:h-[42px]"
+                    activeCount={activeFilterCount}
+                    className="h-[42px] shrink-0"
                   />
                 </div>
               </div>
 
               {/* Active Filter Chips */}
-              <div
-                className="no-scrollbar animate-fade-in-up flex w-full items-center gap-2 overflow-x-auto py-1 whitespace-nowrap"
-                style={{ animationDelay: '100ms' }}
-              >
-                {activeGudang && (
-                  <div className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:bg-brand-950/50 dark:text-brand-300 border border-brand-200 dark:border-brand-900/50">
-                    <IconBuildingWarehouse size={13} className="shrink-0" />
-                    <span>{activeGudang.nama}</span>
-                  </div>
-                )}
-                {lowStockOnly && (
-                  <div className="inline-flex items-center gap-1.5 rounded-full bg-accent-rose-50 px-3 py-1 text-xs font-medium text-accent-rose-700 dark:bg-accent-rose-950/40 dark:text-accent-rose-300 border border-accent-rose-200 dark:border-accent-rose-800">
-                    <span>Hanya Stok Menipis (≤ 5)</span>
-                    <button
-                      onClick={() => setLowStockOnly(false)}
-                      className="text-accent-rose-500 hover:text-accent-rose-700 dark:hover:text-accent-rose-200"
-                    >
-                      <IconX size={14} />
-                    </button>
-                  </div>
-                )}
-                {debouncedSearch && (
-                  <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
-                    <span>Pencarian: &quot;{debouncedSearch}&quot;</span>
-                    <button
-                      onClick={() => setSearch('')}
-                      className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
-                    >
-                      <IconX size={14} />
-                    </button>
-                  </div>
-                )}
-                <span className="text-[11px] text-neutral-400 ml-auto hidden sm:inline">
-                  Total: {totalCount} barang
-                </span>
-              </div>
+              {hasActiveFilters && (
+                <div
+                  className="no-scrollbar animate-fade-in-up flex w-full items-center gap-2 overflow-x-auto py-1 whitespace-nowrap"
+                  style={{ animationDelay: '100ms' }}
+                >
+                  {categoryId && (
+                    <div className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 dark:bg-brand-950/50 dark:text-brand-300 border border-brand-200 dark:border-brand-900/50">
+                      <span>
+                        Kategori:{' '}
+                        {kategoriList.find((k: any) => (k.id || k.nama) === categoryId)?.nama ||
+                          categoryId}
+                      </span>
+                      <button
+                        onClick={() => setCategoryId('')}
+                        className="text-brand-500 hover:text-brand-700 dark:hover:text-brand-200"
+                      >
+                        <IconX size={14} />
+                      </button>
+                    </div>
+                  )}
+
+                  {stockStatus !== 'all' && (
+                    <div className="inline-flex items-center gap-1.5 rounded-full bg-accent-rose-50 px-3 py-1 text-xs font-medium text-accent-rose-700 dark:bg-accent-rose-950/40 dark:text-accent-rose-300 border border-accent-rose-200 dark:border-accent-rose-800">
+                      <span>
+                        {stockStatus === 'low'
+                          ? 'Stok Menipis (≤ 5)'
+                          : stockStatus === 'empty'
+                          ? 'Stok Habis (0)'
+                          : 'Stok Tersedia (> 0)'}
+                      </span>
+                      <button
+                        onClick={() => setStockStatus('all')}
+                        className="text-accent-rose-500 hover:text-accent-rose-700 dark:hover:text-accent-rose-200"
+                      >
+                        <IconX size={14} />
+                      </button>
+                    </div>
+                  )}
+
+                  {rakStatus !== 'all' && (
+                    <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                      <span>
+                        {rakStatus === 'unassigned' ? 'Belum Diatur Rak' : 'Sudah Ada Lokasi Rak'}
+                      </span>
+                      <button
+                        onClick={() => setRakStatus('all')}
+                        className="text-amber-500 hover:text-amber-700 dark:hover:text-amber-200"
+                      >
+                        <IconX size={14} />
+                      </button>
+                    </div>
+                  )}
+
+                  {(sortBy !== 'updated_at' || sortDir !== 'desc') && (
+                    <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">
+                      <span>
+                        Urut:{' '}
+                        {sortBy === 'nama_barang'
+                          ? sortDir === 'asc'
+                            ? 'Nama (A-Z)'
+                            : 'Nama (Z-A)'
+                          : sortBy === 'stok'
+                          ? sortDir === 'asc'
+                            ? 'Stok Terendah'
+                            : 'Stok Tertinggi'
+                          : sortBy === 'rak_lokasi'
+                          ? 'Rak (A-Z)'
+                          : 'Terbaru'}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setSortBy('updated_at');
+                          setSortDir('desc');
+                        }}
+                        className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+                      >
+                        <IconX size={14} />
+                      </button>
+                    </div>
+                  )}
+
+                  {debouncedSearch && (
+                    <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+                      <span>Pencarian: &quot;{debouncedSearch}&quot;</span>
+                      <button
+                        onClick={() => setSearch('')}
+                        className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+                      >
+                        <IconX size={14} />
+                      </button>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={resetAllFilters}
+                    className="text-[11px] font-semibold text-brand-600 hover:underline dark:text-brand-400 ml-1 cursor-pointer"
+                  >
+                    Reset Semua
+                  </button>
+
+                  <span className="text-[11px] text-neutral-400 ml-auto hidden sm:inline">
+                    Total: {totalCount} barang
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -374,35 +538,83 @@ function WarehouseStocksContent() {
             onClose={() => setIsFilterOpen(false)}
             title="Filter Stok Gudang"
           >
-            <div className="space-y-6">
+            <div className="space-y-5">
+              {/* Category Filter */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  Lokasi Gudang:
+                  Kategori Barang:
                 </label>
                 <SelectInput
-                  value={activeGudangId}
-                  onChange={(val) => {
-                    setSelectedGudangId(val);
-                    setPage(1);
-                  }}
-                  options={gudangList.map((g) => ({
-                    value: g.id,
-                    label: `${g.nama} (${g.kode_gudang})${g.is_default ? ' - Default' : ''}`,
-                  }))}
-                  placeholder="Pilih Gudang"
+                  value={categoryId}
+                  onChange={(val) => setCategoryId(val)}
+                  options={[
+                    { value: '', label: 'Semua Kategori' },
+                    ...kategoriList.map((k: any) => ({
+                      value: k.id || k.nama,
+                      label: k.nama,
+                    })),
+                  ]}
+                  placeholder="Semua Kategori"
                   className="w-full"
                 />
               </div>
 
+              {/* Stock Level Filter */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  Status Stok Gudang:
+                  Status Ketersediaan Stok:
                 </label>
-                <CheckboxInput
-                  checked={lowStockOnly}
-                  onChange={setLowStockOnly}
-                  label="Hanya Stok Menipis (≤ 5)"
-                  labelClassName="px-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200/60 dark:border-neutral-800/60 shadow-sm rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all flex items-center gap-2"
+                <SelectInput
+                  value={stockStatus}
+                  onChange={(val) => setStockStatus(val as any)}
+                  options={[
+                    { value: 'all', label: 'Semua Status Stok' },
+                    { value: 'low', label: 'Hanya Stok Menipis (≤ 5 / Min)' },
+                    { value: 'empty', label: 'Stok Habis (0 pcs)' },
+                    { value: 'available', label: 'Stok Tersedia (> 0 pcs)' },
+                  ]}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Rack / Bin Assignment Filter */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  Status Penempatan Rak / Bin:
+                </label>
+                <SelectInput
+                  value={rakStatus}
+                  onChange={(val) => setRakStatus(val as any)}
+                  options={[
+                    { value: 'all', label: 'Semua Status Rak' },
+                    { value: 'unassigned', label: 'Belum Diatur (Perlu Penempatan Rak)' },
+                    { value: 'assigned', label: 'Sudah Memiliki Lokasi Rak' },
+                  ]}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Sort By Filter */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  Urutkan Berdasarkan:
+                </label>
+                <SelectInput
+                  value={`${sortBy}:${sortDir}`}
+                  onChange={(val) => {
+                    const [newSortBy, newSortDir] = val.split(':');
+                    setSortBy(newSortBy);
+                    setSortDir(newSortDir as 'asc' | 'desc');
+                  }}
+                  options={[
+                    { value: 'updated_at:desc', label: 'Terakhir Diperbarui: Terbaru' },
+                    { value: 'nama_barang:asc', label: 'Nama Barang (A ke Z)' },
+                    { value: 'nama_barang:desc', label: 'Nama Barang (Z ke A)' },
+                    { value: 'stok:asc', label: 'Sisa Stok Gudang: Paling Sedikit' },
+                    { value: 'stok:desc', label: 'Sisa Stok Gudang: Paling Banyak' },
+                    { value: 'rak_lokasi:asc', label: 'Lokasi Rak: A ke Z' },
+                  ]}
+                  className="w-full"
                 />
               </div>
 
@@ -411,7 +623,11 @@ function WarehouseStocksContent() {
                   variant="secondary"
                   className="w-1/2"
                   onClick={() => {
-                    setLowStockOnly(false);
+                    setCategoryId('');
+                    setStockStatus('all');
+                    setRakStatus('all');
+                    setSortBy('updated_at');
+                    setSortDir('desc');
                     setSearch('');
                   }}
                 >
@@ -531,19 +747,16 @@ function WarehouseStocksContent() {
                     Tidak ada data persediaan stok barang
                   </p>
                   <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                    {debouncedSearch || lowStockOnly
+                    {hasActiveFilters
                       ? 'Coba sesuaikan kata kunci pencarian atau reset filter'
                       : `Belum ada saldo barang yang dialokasikan di ${activeGudang?.nama || 'gudang ini'}`}
                   </p>
-                  {(debouncedSearch || lowStockOnly) && (
+                  {hasActiveFilters && (
                     <button
-                      onClick={() => {
-                        setSearch('');
-                        setLowStockOnly(false);
-                      }}
-                      className="text-brand-600 dark:text-brand-400 mt-4 text-xs font-semibold hover:underline"
+                      onClick={resetAllFilters}
+                      className="text-brand-600 dark:text-brand-400 mt-4 text-xs font-semibold hover:underline cursor-pointer"
                     >
-                      Reset Filter Pencarian
+                      Reset Semua Filter
                     </button>
                   )}
                 </div>

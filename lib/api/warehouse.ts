@@ -100,6 +100,8 @@ export const warehouseStockApi = {
     options?: {
       search?: string;
       categoryId?: string;
+      stockStatus?: 'all' | 'low' | 'empty' | 'available';
+      rakStatus?: 'all' | 'assigned' | 'unassigned';
       lowStockOnly?: boolean;
       page?: number;
       limit?: number;
@@ -112,6 +114,11 @@ export const warehouseStockApi = {
       const limit = Math.min(100, Math.max(1, options?.limit || 20));
       const offset = (page - 1) * limit;
 
+      const hasCategoryFilter = !!options?.categoryId;
+      const inventoryJoin = hasCategoryFilter
+        ? `inventory!inner:inventory_id (`
+        : `inventory:inventory_id (`;
+
       let query = supabase
         .from('inventory_stocks')
         .select(
@@ -121,7 +128,7 @@ export const warehouseStockApi = {
           min_stok,
           max_stok,
           rak_lokasi,
-          inventory:inventory_id (
+          ${inventoryJoin}
             id,
             nama_barang,
             kode_barcode,
@@ -140,9 +147,22 @@ export const warehouseStockApi = {
         )
         .eq('gudang_id', gudangId);
 
-      if (options?.lowStockOnly) {
-        // Filter where stock <= min_stok or stock == 0
+      if (options?.categoryId) {
+        query = query.eq('inventory.id_kategori', options.categoryId);
+      }
+
+      if (options?.stockStatus === 'low' || options?.lowStockOnly) {
         query = query.lte('stok', 5);
+      } else if (options?.stockStatus === 'empty') {
+        query = query.eq('stok', 0);
+      } else if (options?.stockStatus === 'available') {
+        query = query.gt('stok', 0);
+      }
+
+      if (options?.rakStatus === 'unassigned') {
+        query = query.or('rak_lokasi.is.null,rak_lokasi.eq.');
+      } else if (options?.rakStatus === 'assigned') {
+        query = query.not('rak_lokasi', 'is', null).neq('rak_lokasi', '');
       }
 
       if (options?.search) {
@@ -153,7 +173,18 @@ export const warehouseStockApi = {
         );
       }
 
-      query = query.range(offset, offset + limit - 1).order('updated_at', { ascending: false });
+      const sortBy = options?.sortBy || 'updated_at';
+      const isAsc = options?.sortDir === 'asc';
+
+      if (sortBy === 'nama_barang') {
+        query = query.order('nama_barang', { foreignTable: 'inventory', ascending: isAsc });
+      } else if (['stok', 'rak_lokasi', 'created_at', 'updated_at'].includes(sortBy)) {
+        query = query.order(sortBy, { ascending: isAsc, nullsFirst: !isAsc });
+      } else {
+        query = query.order('updated_at', { ascending: false });
+      }
+
+      query = query.range(offset, offset + limit - 1);
 
       const res = await query;
 

@@ -15,11 +15,34 @@ export interface PenjualanItem {
 
 export interface Penjualan {
   id: string;
-  idempotency_key: string;
+  idempotency_key?: string | null;
   tanggal: string;
   items: PenjualanItem[];
   total: number;
+  subtotal_sebelum_diskon?: number | null;
+  diskon_nominal?: number | null;
+  diskon_persen?: number | null;
+  discount_member_amount?: number | null;
+  payment_method?: string | null;
+  cash_amount?: number | null;
+  qris_amount?: number | null;
+  kembalian?: number | null;
+  member_id?: string | null;
+  points_earned?: number | null;
+  points_redeemed?: number | null;
+  status?: string;
+  paid_at?: string | null;
+  created_by?: string | null;
   created_at: string;
+  profiles?: {
+    nama?: string | null;
+    username?: string | null;
+  } | null;
+  members?: {
+    name?: string | null;
+    phone?: string | null;
+    member_code?: string | null;
+  } | null;
 }
 
 export const penjualanApi = {
@@ -112,7 +135,18 @@ export const penjualanApi = {
       const saleResult = await safeQuery<any>(async () => {
         const result = await supabase
           .from('penjualan')
-          .select('*')
+          .select(`
+            *,
+            profiles:created_by (
+              nama,
+              username
+            ),
+            members:member_id (
+              name,
+              phone,
+              member_code
+            )
+          `)
           .eq('id', id)
           .abortSignal(controller.signal)
           .single();

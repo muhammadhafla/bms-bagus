@@ -11,8 +11,10 @@ import {
   SelectInput,
   ModernPagination, 
   AmbientLayout,
-  DateRangePicker
+  DateRangePicker,
+  FilterButton
 } from '@/components/ui';
+import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
 import { 
   IconBook, 
   IconDownload,
@@ -41,6 +43,8 @@ export default function LedgerPage() {
   });
   const [selectedTipe, setSelectedTipe] = useState<string>('');
   const [selectedSumber, setSelectedSumber] = useState<string>('');
+  const [tempSumber, setTempSumber] = useState<string>('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
   const [page, setPage] = useState(1);
@@ -293,6 +297,7 @@ export default function LedgerPage() {
     setDateRange({ startDate: '', endDate: '' });
     setSelectedTipe('');
     setSelectedSumber('');
+    setTempSumber('');
     setSearchTerm('');
     setPage(1);
   };
@@ -481,14 +486,75 @@ export default function LedgerPage() {
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 print:hidden">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-center">
+      {/* Tab Segmented Control Tipe Transaksi */}
+      <div className="mb-3 flex items-center justify-between gap-3 print:hidden">
+        <div className="flex items-center gap-1.5 p-1 bg-neutral-100/90 dark:bg-neutral-800/80 rounded-2xl w-full sm:w-auto border border-neutral-200/60 dark:border-neutral-700/50 shadow-inner">
+          <button
+            type="button"
+            onClick={() => { setSelectedTipe(''); setPage(1); }}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              selectedTipe === ''
+                ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white shadow-sm'
+                : 'text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200'
+            }`}
+          >
+            Semua Mutasi
+          </button>
+          <button
+            type="button"
+            onClick={() => { setSelectedTipe('PEMASUKAN'); setPage(1); }}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              selectedTipe === 'PEMASUKAN'
+                ? 'bg-emerald-500 text-white shadow-sm'
+                : 'text-neutral-500 hover:text-emerald-600 dark:text-neutral-400 dark:hover:text-emerald-400'
+            }`}
+          >
+            <IconArrowDownLeft size={16} />
+            Masuk (Debit)
+          </button>
+          <button
+            type="button"
+            onClick={() => { setSelectedTipe('PENGELUARAN'); setPage(1); }}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              selectedTipe === 'PENGELUARAN'
+                ? 'bg-rose-500 text-white shadow-sm'
+                : 'text-neutral-500 hover:text-rose-600 dark:text-neutral-400 dark:hover:text-rose-400'
+            }`}
+          >
+            <IconArrowUpRight size={16} />
+            Keluar (Kredit)
+          </button>
+        </div>
+      </div>
+
+      {/* Toolbar Pencarian & Filter */}
+      <div className="mb-4 flex flex-col gap-2.5 print:hidden">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          {/* Input Pencarian */}
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Cari transaksi atau keterangan..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(1);
+              }}
+              className="w-full rounded-xl border border-neutral-200/80 bg-white py-2 sm:py-2.5 pl-9 pr-9 text-xs sm:text-sm text-neutral-800 placeholder-neutral-400 shadow-sm focus:border-brand-500 focus:outline-none dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200"
+            />
+            <IconSearch size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+            {searchTerm && (
+              <button
+                onClick={() => { setSearchTerm(''); setPage(1); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+              >
+                <IconX size={15} />
+              </button>
+            )}
+          </div>
+
           {/* Rentang Tanggal */}
-          <div className="w-full">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-1.5 block">
-              Rentang Tanggal
-            </label>
+          <div className="w-full sm:w-64 shrink-0">
             <DateRangePicker 
               startDate={dateRange.startDate}
               endDate={dateRange.endDate}
@@ -499,91 +565,79 @@ export default function LedgerPage() {
             />
           </div>
 
-          {/* Filter Tipe Transaksi */}
-          <div>
-            <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-1.5 block">
-              Tipe Transaksi
-            </label>
-            <SelectInput
-              value={selectedTipe}
-              onChange={(val) => {
-                setSelectedTipe(val);
-                setPage(1);
-              }}
-              options={[
-                { label: 'Semua Tipe', value: '' },
-                { label: 'Pemasukan (Masuk)', value: 'PEMASUKAN' },
-                { label: 'Pengeluaran (Keluar)', value: 'PENGELUARAN' },
-              ]}
-            />
-          </div>
-
-          {/* Filter Sumber Transaksi */}
-          <div>
-            <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-1.5 block">
-              Kategori / Sumber
-            </label>
-            <SelectInput
-              value={selectedSumber}
-              onChange={(val) => {
-                setSelectedSumber(val);
-                setPage(1);
-              }}
-              options={[
-                { label: 'Semua Sumber', value: '' },
-                { label: 'Penjualan Shift Kasir', value: 'PENJUALAN_SHIFT' },
-                { label: 'Pembelian Stok (Kulakan)', value: 'PEMBELIAN_STOK' },
-                { label: 'Biaya Operasional', value: 'BIAYA_OPERASIONAL' },
-                { label: 'Pencairan Kasbon', value: 'KASBON' },
-                { label: 'Pembayaran Gaji / EWA', value: 'GAJI' },
-                { label: 'Retur Penjualan', value: 'RETUR_PENJUALAN' },
-                { label: 'Modal / Penyesuaian Kas', value: 'MODAL' },
-                { label: 'Lain-lain', value: 'LAIN_LAIN' },
-              ]}
-            />
-          </div>
-
-          {/* Pencarian Keterangan */}
-          <div>
-            <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-1.5 block">
-              Cari Keterangan
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Cari transaksi..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 pl-9 pr-3 text-xs text-neutral-800 placeholder-neutral-400 focus:border-brand-500 focus:bg-white focus:outline-none dark:border-neutral-800 dark:bg-neutral-800 dark:text-neutral-200 dark:focus:bg-neutral-900"
-              />
-              <IconSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
-                >
-                  <IconX size={14} />
-                </button>
-              )}
-            </div>
-          </div>
+          {/* Filter Drawer Button */}
+          <FilterButton
+            onClick={() => {
+              setTempSumber(selectedSumber);
+              setIsFilterOpen(true);
+            }}
+            activeCount={selectedSumber ? 1 : 0}
+            className="sm:h-[42px]"
+          />
         </div>
 
-        {/* Filter Summary & Reset */}
+        {/* Active Filter Chips Bar */}
         {hasActiveFilters && (
-          <div className="flex items-center justify-between pt-2 border-t border-neutral-100 dark:border-neutral-800">
-            <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+          <div className="no-scrollbar flex w-full items-center gap-2 overflow-x-auto py-1 whitespace-nowrap">
+            <div className="flex items-center gap-1.5 text-xs text-neutral-400 pr-1 shrink-0">
               <IconFilter size={14} className="text-brand-500" />
-              <span>Filter aktif diterapkan ({totalItems} mutasi ditemukan)</span>
+              <span>Filter aktif:</span>
             </div>
+
+            {startDateStr && (
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300 border border-neutral-200/60 dark:border-neutral-700/50">
+                <span>
+                  Periode: {format(new Date(startDateStr), 'dd/MM/yy', { locale: localeId })} {endDateStr ? `- ${format(new Date(endDateStr), 'dd/MM/yy', { locale: localeId })}` : ''}
+                </span>
+                <button
+                  onClick={() => { setDateRange({ startDate: '', endDate: '' }); setPage(1); }}
+                  className="text-neutral-400 hover:text-rose-500 transition-colors"
+                >
+                  <IconX size={13} />
+                </button>
+              </div>
+            )}
+
+            {selectedTipe && (
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300 border border-neutral-200/60 dark:border-neutral-700/50">
+                <span>Tipe: {selectedTipe === 'PEMASUKAN' ? 'Pemasukan' : 'Pengeluaran'}</span>
+                <button
+                  onClick={() => { setSelectedTipe(''); setPage(1); }}
+                  className="text-neutral-400 hover:text-rose-500 transition-colors"
+                >
+                  <IconX size={13} />
+                </button>
+              </div>
+            )}
+
+            {selectedSumber && (
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300 border border-neutral-200/60 dark:border-neutral-700/50">
+                <span>Sumber: {selectedSumber.replace(/_/g, ' ')}</span>
+                <button
+                  onClick={() => { setSelectedSumber(''); setPage(1); }}
+                  className="text-neutral-400 hover:text-rose-500 transition-colors"
+                >
+                  <IconX size={13} />
+                </button>
+              </div>
+            )}
+
+            {searchTerm && (
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300 border border-neutral-200/60 dark:border-neutral-700/50">
+                <span>Cari: &quot;{searchTerm}&quot;</span>
+                <button
+                  onClick={() => { setSearchTerm(''); setPage(1); }}
+                  className="text-neutral-400 hover:text-rose-500 transition-colors"
+                >
+                  <IconX size={13} />
+                </button>
+              </div>
+            )}
+
             <button
               onClick={handleResetFilters}
-              className="text-xs font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:underline flex items-center gap-1"
+              className="text-xs font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:underline ml-1 shrink-0"
             >
-              <IconX size={13} />
               Reset Filter
             </button>
           </div>
@@ -958,6 +1012,63 @@ export default function LedgerPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Responsive Filter Drawer */}
+      <ResponsivePanel
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        title="Filter Buku Besar"
+      >
+        <div className="space-y-5">
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400">
+              Kategori / Sumber Transaksi:
+            </label>
+            <SelectInput
+              value={tempSumber}
+              onChange={(val) => setTempSumber(val)}
+              options={[
+                { label: 'Semua Sumber', value: '' },
+                { label: 'Penjualan Shift Kasir', value: 'PENJUALAN_SHIFT' },
+                { label: 'Pembelian Stok (Kulakan)', value: 'PEMBELIAN_STOK' },
+                { label: 'Biaya Operasional', value: 'BIAYA_OPERASIONAL' },
+                { label: 'Pencairan Kasbon', value: 'KASBON' },
+                { label: 'Pembayaran Gaji / EWA', value: 'GAJI' },
+                { label: 'Retur Penjualan', value: 'RETUR_PENJUALAN' },
+                { label: 'Modal / Penyesuaian Kas', value: 'MODAL' },
+                { label: 'Lain-lain', value: 'LAIN_LAIN' },
+              ]}
+              className="w-full"
+            />
+          </div>
+
+          <div className="mt-8 flex gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+            <Button
+              variant="secondary"
+              className="w-1/2"
+              onClick={() => {
+                setTempSumber('');
+                setSelectedSumber('');
+                setIsFilterOpen(false);
+                setPage(1);
+              }}
+            >
+              Reset
+            </Button>
+            <Button
+              variant="primary"
+              className="w-1/2"
+              onClick={() => {
+                setSelectedSumber(tempSumber);
+                setIsFilterOpen(false);
+                setPage(1);
+              }}
+            >
+              Terapkan
+            </Button>
+          </div>
+        </div>
+      </ResponsivePanel>
     </AmbientLayout>
   );
 }

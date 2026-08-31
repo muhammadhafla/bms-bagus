@@ -19,6 +19,7 @@ import {
   IconWallet,
   IconReceipt,
   IconBuildingWarehouse,
+  IconUserCheck,
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -98,24 +99,24 @@ export function MobileLaunchpad({
 
   const adminMenus = [
     {
-      href: '/purchasing',
-      title: 'Pembelian',
-      icon: IconShoppingCart,
-      color: 'text-brand-600',
+      href: '/warehouse/transfers',
+      title: 'Mutasi',
+      icon: IconTruck,
+      color: 'text-blue-600',
       bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
-      href: '/inventory',
-      title: 'Katalog',
-      icon: IconPackage,
-      color: 'text-blue-600',
+      href: '/admin/payroll/kehadiran',
+      title: 'Kehadiran',
+      icon: IconUserCheck,
+      color: 'text-teal-600',
       bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
       href: '/warehouse/stocks',
       title: 'Gudang',
       icon: IconBuildingWarehouse,
-      color: 'text-teal-600',
+      color: 'text-emerald-600',
       bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
@@ -199,13 +200,6 @@ export function MobileLaunchpad({
       bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
     {
-      href: '/inventory',
-      title: 'Katalog',
-      icon: IconPackage,
-      color: 'text-blue-600',
-      bg: 'bg-neutral-100 dark:bg-neutral-800',
-    },
-    {
       href: '/warehouse/stocks',
       title: 'Gudang',
       icon: IconBuildingWarehouse,
@@ -217,13 +211,6 @@ export function MobileLaunchpad({
       title: 'Opname',
       icon: IconClipboardCheck,
       color: 'text-purple-600',
-      bg: 'bg-neutral-100 dark:bg-neutral-800',
-    },
-    {
-      href: '/transactions/history',
-      title: 'Riwayat',
-      icon: IconHistory,
-      color: 'text-slate-600',
       bg: 'bg-neutral-100 dark:bg-neutral-800',
     },
   ];

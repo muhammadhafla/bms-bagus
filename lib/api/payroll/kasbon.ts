@@ -176,6 +176,25 @@ export const kasbonApi = {
         },
         { isMutation: true }
       );
+
+      // Trigger push notification to admins
+      if (result.data && !result.error && typeof window !== 'undefined') {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          fetch('/api/push/notify-kasbon', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+            },
+            body: JSON.stringify({
+              kasbon_id: (result.data as any)?.id,
+              user_id: userId,
+              nominal: nominal,
+            }),
+          }).catch((err) => console.error('Failed sending kasbon push notice to admin:', err));
+        });
+      }
+
       return result;
     } catch (err: any) {
       return { data: null, error: { message: err.message || 'Terjadi kesalahan' } };

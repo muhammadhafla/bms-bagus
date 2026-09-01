@@ -9,6 +9,7 @@ import { kehadiranApi, karyawanApi, lokasiKerjaApi } from '@/lib/api/payroll';
 import { IconClock, IconFingerprint, IconLogout, IconCalendarEvent, IconHistory, IconCheck, IconMapPin, IconMapPinOff, IconAlertTriangle } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { Modal, Button, TextareaInput } from '@/components/ui';
+import { supabase } from '@/lib/supabase';
 
 // Haversine formula in frontend
 function getDistanceFromLatLonInM(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -217,18 +218,23 @@ export default function PayrollDashboardPage() {
 
       if (res.data?.status_pulang_awal === 'pending') {
         toast.success('Berhasil absen pulang! Pengajuan pulang lebih awal telah dikirim ke Admin.');
-        // Trigger push notification to admins
-        fetch('/api/push/notify-pulang-awal', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            kehadiran_id: res.data.id,
-            user_id: profile?.user_id,
-            jam_pulang_aktual: format(new Date(), 'HH:mm'),
-            jam_pulang_jadwal: targetPulangStr || profile?.jam_pulang?.substring(0, 5) || '',
-            alasan: variables.alasan || ''
-          })
-        }).catch((err) => console.error('Failed sending push notice to admin:', err));
+        // Trigger push notification to admins with auth header
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          fetch('/api/push/notify-pulang-awal', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+            },
+            body: JSON.stringify({
+              kehadiran_id: res.data?.id,
+              user_id: profile?.user_id,
+              jam_pulang_aktual: format(new Date(), 'HH:mm'),
+              jam_pulang_jadwal: targetPulangStr || profile?.jam_pulang?.substring(0, 5) || '',
+              alasan: variables.alasan || ''
+            })
+          }).catch((err) => console.error('Failed sending push notice to admin:', err));
+        });
       } else {
         toast.success('Berhasil absen pulang! Hati-hati di jalan.');
       }

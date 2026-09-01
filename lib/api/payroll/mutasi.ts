@@ -177,6 +177,25 @@ export const mutasiApi = {
       .single();
 
     if (error) throw error;
+
+    // Trigger push notification to admins
+    if (data && typeof window !== 'undefined') {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        fetch('/api/push/notify-kasbon', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          },
+          body: JSON.stringify({
+            kasbon_id: data.id,
+            user_id: user.id,
+            nominal: nominal,
+          }),
+        }).catch((err) => console.error('Failed sending kasbon push notice to admin:', err));
+      });
+    }
+
     return data;
   },
 

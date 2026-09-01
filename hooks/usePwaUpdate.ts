@@ -1,69 +1,102 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
+/**
+ * Hook for managing silent PWA Service Worker updates.
+ * - Detects new service worker in the background.
+ * - Triggers SKIP_WAITING automatically when the app is hidden/backgrounded (document.visibilityState === 'hidden' or pagehide).
+ * - Avoids disruptive popups or forced unexpected reloads while the user is actively inputting data.
+ */
 export function usePwaUpdate() {
-  const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
-    if (
-      typeof window !== 'undefined' &&
-      'serviceWorker' in navigator
-    ) {
-      let isMounted = true;
-      let refreshing = false;
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
 
-      // Handle controller change (when new service worker takes over)
-      const handleControllerChange = () => {
-        if (!refreshing) {
-          refreshing = true;
-          window.location.reload();
-        }
-      };
+    let isMounted = true;
+    let cleanupInterval: (() => void) | undefined;
 
-      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+    const applyWaitingWorker = () => {
+      const reg = registrationRef.current;
+      if (reg && reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+    };
 
-      // Check current registration
-      navigator.serviceWorker.ready.then((reg) => {
+    // When the tab is minimized, user switches apps, or tab is hidden, activate the waiting worker
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        applyWaitingWorker();
+      } else if (document.visibilityState === 'visible') {
+        // When user comes back, check for any pending updates from the server
+        registrationRef.current?.update().catch(() => {
+          // Ignore network errors during background update check
+        });
+      }
+    };
+
+    // When user navigates away or closes tab
+    const handlePageHide = () => {
+      applyWaitingWorker();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
+
+    // Check service worker registration
+    navigator.serviceWorker.ready
+      .then((reg) => {
         if (!isMounted) return;
-        setRegistration(reg);
+        registrationRef.current = reg;
 
-        // If there's already a waiting service worker
-        if (reg.waiting) {
-          setUpdateAvailable(true);
-        }
-
-        // Listen for new service workers installing
+        // Listen for new service worker installation
         reg.addEventListener('updatefound', () => {
           const newWorker = reg.installing;
           if (newWorker) {
             newWorker.addEventListener('statechange', () => {
-              // Only trigger if we already have a controller (meaning it's an update, not the first install)
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                setUpdateAvailable(true);
+              if (
+                newWorker.state === 'installed' &&
+                navigator.serviceWorker.controller &&
+                document.visibilityState === 'hidden'
+              ) {
+                // If the app is already hidden when new worker finishes installing, activate immediately
+                applyWaitingWorker();
               }
             });
           }
         });
-      });
 
-      return () => {
-        isMounted = false;
-        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
-      };
-    }
+        // Periodic background update check every 60 minutes
+        const intervalId = setInterval(
+          () => {
+            reg.update().catch(() => {});
+          },
+          60 * 60 * 1000
+        );
+
+        cleanupInterval = () => clearInterval(intervalId);
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+      if (cleanupInterval) cleanupInterval();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
   }, []);
 
   const updatePwa = () => {
-    if (registration && registration.waiting) {
-      // Trigger SKIP_WAITING to activate the waiting service worker
-      registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    const reg = registrationRef.current;
+    if (reg && reg.waiting) {
+      reg.waiting.postMessage({ type: 'SKIP_WAITING' });
     } else {
-      // Fallback reload
       window.location.reload();
     }
   };
 
-  return { updateAvailable, updatePwa };
+  return { updatePwa };
 }

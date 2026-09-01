@@ -3,7 +3,7 @@
 import React from 'react';
 import { usePathname } from 'next/navigation';
 import { useSidebarContext } from './SidebarProvider';
-import { UpdateBanner } from '@/components/ui/UpdateBanner';
+import { usePwaUpdate } from '@/hooks/usePwaUpdate';
 import { InstallBanner } from '@/components/ui/InstallBanner';
 import BottomNav from '@/components/ui/BottomNav';
 import { Toaster } from 'sonner';
@@ -12,6 +12,9 @@ export function MainContentWrapper({ children }: { children: React.ReactNode }) 
   const { contentMargin } = useSidebarContext();
   const pathname = usePathname();
   const isHelp = pathname?.startsWith('/help');
+
+  // Silently manage PWA Service Worker background updates without disrupting active users
+  usePwaUpdate();
 
   return (
     <>
@@ -26,7 +29,6 @@ export function MainContentWrapper({ children }: { children: React.ReactNode }) 
           </main>
         ) : (
           <main className="relative flex-1 overflow-auto rounded-none border-0 border-neutral-200/50 bg-white p-4 pb-24 shadow-none lg:rounded-[2rem] lg:border lg:p-6 lg:pb-6 lg:shadow-sm dark:border-neutral-800/50 dark:bg-neutral-900">
-            <UpdateBanner />
             <InstallBanner />
             {children}
           </main>

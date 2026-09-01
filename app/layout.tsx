@@ -5,6 +5,7 @@ import './globals.css';
 import { DarkModeProvider } from '@/components/DarkModeProvider';
 import { headers } from 'next/headers';
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator';
+import { PwaRegister } from '@/components/PwaRegister';
 import NextTopLoader from 'nextjs-toploader';
 import { Analytics } from '@vercel/analytics/react';
 
@@ -81,6 +82,7 @@ export default function RootLayout({
       <body className={`${inter.className} min-h-screen transition-colors`}>
         <NextTopLoader color="#db4a2c" showSpinner={false} />
         <DarkModeProvider>
+          <PwaRegister />
           {children}
           <OfflineIndicator />
         </DarkModeProvider>

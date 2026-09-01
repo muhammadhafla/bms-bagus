@@ -44,34 +44,61 @@ self.addEventListener('message', (event: any) => {
   }
 });
 
+// Push Notification Listener
 self.addEventListener('push', (event: any) => {
   if (event.data) {
     try {
-      const data = event.data.json();
-      const options = {
-        body: data.body,
-        icon: '/favicon-32x32.png',
-        badge: '/favicon-16x16.png',
+      let data: any = {};
+      try {
+        data = event.data.json();
+      } catch {
+        data = { body: event.data.text() };
+      }
+
+      const title = data.title || 'BMS - Notifikasi';
+      const options: any = {
+        body: data.body || 'Ada pemberitahuan baru di BMS.',
+        icon: '/icon-192x192.png',
+        badge: '/icon-192x192.png',
+        vibrate: [200, 100, 200],
+        tag: data.tag || `bms-${Date.now()}`,
+        renotify: true,
         data: {
-          url: data.url || '/'
-        }
+          url: data.url || '/dashboard',
+          timestamp: Date.now(),
+        },
       };
-      
+
       event.waitUntil(
-        self.registration.showNotification(data.title || 'Notifikasi BMS', options)
+        self.registration.showNotification(title, options)
       );
     } catch (e) {
-      console.error('Error parsing push data', e);
+      console.error('Error in service worker push event:', e);
     }
   }
 });
 
+// Notification Click Listener
 self.addEventListener('notificationclick', (event: any) => {
   event.notification.close();
-  
-  if (event.notification.data && event.notification.data.url) {
-    event.waitUntil(
-      self.clients.openWindow(event.notification.data.url)
-    );
-  }
+
+  const targetUrl = event.notification.data?.url || '/dashboard';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList: readonly WindowClient[]) => {
+      // If a window is already open at our domain, focus and navigate
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          if ('navigate' in client) {
+            client.navigate(targetUrl);
+          }
+          return client.focus();
+        }
+      }
+      // Otherwise open a new window
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
+  );
 });

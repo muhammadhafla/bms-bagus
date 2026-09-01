@@ -53,11 +53,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-DROP TRIGGER IF EXISTS trigger_notify_admin_on_kasbon ON public.kasbon;
+DROP TRIGGER IF EXISTS trigger_notify_admin_on_kasbon ON public.payroll_mutasi;
 CREATE TRIGGER trigger_notify_admin_on_kasbon
-    AFTER INSERT ON public.kasbon
+    AFTER INSERT ON public.payroll_mutasi
     FOR EACH ROW
-    WHEN (NEW.status = 'pending')
+    WHEN (NEW.kategori = 'kasbon' AND NEW.status = 'pending')
     EXECUTE FUNCTION notify_admin_on_kasbon();
 
 

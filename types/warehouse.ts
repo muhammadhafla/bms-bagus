@@ -123,18 +123,25 @@ export interface PengeluaranGudangItem {
   };
 }
 
+export type StatusPengeluaranGudang = 'DRAFT' | 'APPROVED' | 'REJECTED';
+
 export interface PengeluaranGudang {
   id: string;
   nomor_dokumen: string;
   gudang_id: string;
   tipe: TipePengeluaranGudang;
   tanggal: string;
+  status: StatusPengeluaranGudang;
   catatan?: string | null;
   created_by?: string | null;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  rejected_note?: string | null;
   created_at: string;
   updated_at?: string;
   gudang?: Gudang;
   created_by_profile?: { id: string; nama: string };
+  approved_by_profile?: { id: string; nama: string };
   items?: PengeluaranGudangItem[];
   total_items?: number;
   total_qty?: number;

@@ -29,7 +29,7 @@ import { Portal } from '@/components/ui/Portal';
 import SelectInput from '@/components/ui/SelectInput';
 import TextareaInput from '@/components/ui/TextareaInput';
 import { Button, Breadcrumb, Badge, Card, AmbientLayout } from '@/components/ui';
-import { AdminOnly } from '@/components/role';
+import { AdminOnly, RoleGuard } from '@/components/role';
 
 const reasonOptions = [
   { value: 'salah_input', label: 'Kesalahan Input' },
@@ -386,7 +386,7 @@ export default function StockOpnameDetailPage() {
             </>
           )}
           {isPending && (
-            <AdminOnly>
+            <RoleGuard roles={['admin', 'kepala_gudang']}>
               <Button variant="danger" onClick={() => setShowRejectModal(true)} disabled={saving}>
                 <IconX size={20} />
                 <span>Tolak</span>
@@ -404,7 +404,7 @@ export default function StockOpnameDetailPage() {
                 )}
                 <span>{processing ? 'Memproses...' : 'Setujui'}</span>
               </Button>
-            </AdminOnly>
+            </RoleGuard>
           )}
         </div>
       </div>
@@ -484,7 +484,7 @@ export default function StockOpnameDetailPage() {
             </>
           )}
           {isPending && (
-            <AdminOnly>
+            <RoleGuard roles={['admin', 'kepala_gudang']}>
               <Button
                 variant="danger"
                 className="h-10 max-w-[120px] flex-1 rounded-xl !px-3"
@@ -507,7 +507,7 @@ export default function StockOpnameDetailPage() {
                 )}
                 <span className="truncate text-sm">Setujui</span>
               </Button>
-            </AdminOnly>
+            </RoleGuard>
           )}
         </div>
       </div>

@@ -5,13 +5,17 @@ import { User } from '@supabase/supabase-js';
 import { safeQuery } from '@/lib/api/utils';
 import { supabase } from './supabase';
 
-interface Profile {
+export type AppRole = 'admin' | 'kepala_gudang' | 'staff_gudang' | 'kasir' | 'finance' | 'staff';
+
+export interface Profile {
   id: string;
   nama: string;
   email?: string;
   username?: string;
   avatar_url?: string;
-  role: 'admin' | 'staff';
+  role: 'admin' | 'staff' | string;
+  roles?: string[];
+  default_gudang_id?: string | null;
   created_at: string;
 }
 
@@ -26,7 +30,13 @@ interface AuthState {
   sessionWarningTimerId: ReturnType<typeof setTimeout> | null;
   initTimeoutId: ReturnType<typeof setTimeout> | null;
   authSubscription: { unsubscribe: () => void } | null;
+  hasRole: (role: string) => boolean;
+  hasAnyRole: (roles: string[]) => boolean;
   isAdmin: () => boolean;
+  isKepalaGudang: () => boolean;
+  isStaffGudang: () => boolean;
+  isKasir: () => boolean;
+  isFinance: () => boolean;
   isStaff: () => boolean;
   refreshLock: () => void;
   releaseRefreshLock: () => void;
@@ -97,9 +107,44 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initTimeoutId: null,
   authSubscription: null,
 
+  hasRole: (role: string) => {
+    const profile = get().profile;
+    if (!profile) return false;
+    if (profile.role === 'admin' || (profile.roles && profile.roles.includes('admin'))) {
+      return true;
+    }
+    return (profile.roles || []).includes(role) || profile.role === role;
+  },
+
+  hasAnyRole: (roles: string[]) => {
+    const profile = get().profile;
+    if (!profile) return false;
+    if (profile.role === 'admin' || (profile.roles && profile.roles.includes('admin'))) {
+      return true;
+    }
+    const userRoles = profile.roles || (profile.role ? [profile.role] : []);
+    return roles.some((r) => userRoles.includes(r));
+  },
+
   isAdmin: () => {
     const profile = get().profile;
-    return profile?.role?.toLowerCase() === 'admin';
+    return profile?.role?.toLowerCase() === 'admin' || !!profile?.roles?.includes('admin');
+  },
+
+  isKepalaGudang: () => {
+    return get().hasRole('kepala_gudang');
+  },
+
+  isStaffGudang: () => {
+    return get().hasRole('staff_gudang');
+  },
+
+  isKasir: () => {
+    return get().hasRole('kasir');
+  },
+
+  isFinance: () => {
+    return get().hasRole('finance');
   },
 
   isStaff: () => {
@@ -539,5 +584,37 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 // Custom hook to check if current user is an admin
 export const useIsAdmin = () => {
-  return useAuthStore((state) => state.profile?.role?.toLowerCase() === 'admin');
+  return useAuthStore(
+    (state) => state.profile?.role?.toLowerCase() === 'admin' || !!state.profile?.roles?.includes('admin'),
+  );
 };
+
+// Custom hook to check if current user has a specific role
+export const useHasRole = (role: string) => {
+  return useAuthStore((state) => {
+    const profile = state.profile;
+    if (!profile) return false;
+    if (profile.role === 'admin' || (profile.roles && profile.roles.includes('admin'))) {
+      return true;
+    }
+    return (profile.roles || []).includes(role) || profile.role === role;
+  });
+};
+
+// Custom hook to check if current user has any of the specified roles
+export const useHasAnyRole = (roles: string[]) => {
+  return useAuthStore((state) => {
+    const profile = state.profile;
+    if (!profile) return false;
+    if (profile.role === 'admin' || (profile.roles && profile.roles.includes('admin'))) {
+      return true;
+    }
+    const userRoles = profile.roles || (profile.role ? [profile.role] : []);
+    return roles.some((r) => userRoles.includes(r));
+  });
+};
+
+export const useIsKepalaGudang = () => useHasRole('kepala_gudang');
+export const useIsStaffGudang = () => useHasRole('staff_gudang');
+export const useIsKasir = () => useHasRole('kasir');
+export const useIsFinance = () => useHasRole('finance');

@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui';
-import { IconClock, IconWallet, IconChevronRight } from '@tabler/icons-react';
+import { IconClock, IconWallet, IconChevronRight, IconAlertTriangle } from '@tabler/icons-react';
 import Link from 'next/link';
 import { kasbonApi, kehadiranApi } from '@/lib/api/payroll';
 
@@ -19,12 +19,19 @@ export function HRAlerts({ variant = 'default' }: { variant?: 'default' | 'mobil
     refetchInterval: 60000,
   });
 
+  const { data: pulangAwalList, isLoading: pulangAwalLoading } = useQuery({
+    queryKey: ['admin_payroll_pulang_awal', 'pending'],
+    queryFn: () => kehadiranApi.getPendingPulangAwal().then(res => res.data),
+    refetchInterval: 60000,
+  });
+
   const kasbonCount = kasbonList?.length || 0;
   const lemburCount = lemburList?.length || 0;
-  const isLoading = kasbonLoading || lemburLoading;
+  const pulangAwalCount = pulangAwalList?.length || 0;
+  const isLoading = kasbonLoading || lemburLoading || pulangAwalLoading;
 
   if (variant === 'mobile') {
-    if (kasbonCount === 0 && lemburCount === 0 && !isLoading) return null;
+    if (kasbonCount === 0 && lemburCount === 0 && pulangAwalCount === 0 && !isLoading) return null;
     
     return (
       <div className="flex flex-col">
@@ -59,10 +66,31 @@ export function HRAlerts({ variant = 'default' }: { variant?: 'default' | 'mobil
                   </div>
                 </Link>
               )}
+
+              {pulangAwalCount > 0 && (
+                <Link
+                  href="/admin/payroll/kehadiran?tab=pulang_awal"
+                  className="flex items-center justify-between py-2.5 border-b border-neutral-100/80 last:border-0 dark:border-neutral-800/50 active:bg-neutral-50 dark:active:bg-neutral-800/50 transition-colors"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 flex-shrink-0">
+                      <IconAlertTriangle className="h-4 w-4" />
+                    </div>
+                    <p className="truncate text-sm font-bold text-neutral-900 dark:text-white">
+                      Tinjauan Pulang Awal
+                    </p>
+                  </div>
+                  <div className="ml-3 flex-shrink-0 text-right flex items-center gap-2">
+                    <span className="text-sm font-black text-orange-600 dark:text-orange-400">
+                      {pulangAwalCount}
+                    </span>
+                  </div>
+                </Link>
+              )}
               
               {lemburCount > 0 && (
                 <Link
-                  href="/admin/payroll/kehadiran"
+                  href="/admin/payroll/kehadiran?tab=lembur"
                   className="flex items-center justify-between py-2.5 border-b border-neutral-100/80 last:border-0 dark:border-neutral-800/50 active:bg-neutral-50 dark:active:bg-neutral-800/50 transition-colors"
                 >
                   <div className="flex min-w-0 items-center gap-3">
@@ -123,7 +151,28 @@ export function HRAlerts({ variant = 'default' }: { variant?: 'default' | 'mobil
             </Link>
 
             <Link 
-              href="/admin/payroll/kehadiran" 
+              href="/admin/payroll/kehadiran?tab=pulang_awal" 
+              className="group flex items-center justify-between rounded-xl bg-white/70 dark:bg-neutral-900/60 p-3 hover:bg-white dark:hover:bg-neutral-800 transition-colors border border-transparent hover:border-orange-200 dark:hover:border-orange-900/50"
+            >
+              <div className="flex items-center gap-3">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${pulangAwalCount > 0 ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-neutral-100 text-neutral-400 dark:bg-neutral-800'}`}>
+                  <IconAlertTriangle className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-neutral-900 dark:text-white">Tinjauan Pulang Awal</p>
+                  <p className="text-xs text-neutral-500">Pulang sebelum jam shift</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-lg font-black ${pulangAwalCount > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-neutral-400'}`}>
+                  {pulangAwalCount}
+                </span>
+                <IconChevronRight className="h-4 w-4 text-neutral-400 group-hover:text-orange-500 transition-colors" />
+              </div>
+            </Link>
+
+            <Link 
+              href="/admin/payroll/kehadiran?tab=lembur" 
               className="group flex items-center justify-between rounded-xl bg-white/70 dark:bg-neutral-900/60 p-3 hover:bg-white dark:hover:bg-neutral-800 transition-colors border border-transparent hover:border-blue-200 dark:hover:border-blue-900/50"
             >
               <div className="flex items-center gap-3">

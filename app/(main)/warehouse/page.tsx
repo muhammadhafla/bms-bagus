@@ -26,6 +26,7 @@ import {
 } from '@/components/ui';
 import { warehouseStockApi, transferStokApi, gudangApi } from '@/lib/api/warehouse';
 import { TransferStok } from '@/types/warehouse';
+import { AdminOnly } from '@/components/role';
 
 export default function WarehouseDashboardPage() {
   const router = useRouter();
@@ -219,12 +220,14 @@ export default function WarehouseDashboardPage() {
               <IconBuildingWarehouse className="h-5 w-5 text-neutral-500" />
               Daftar Lokasi & Gudang Aktif
             </h2>
-            <Link
-              href="/warehouse/master"
-              className="text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
-            >
-              Kelola Gudang &rarr;
-            </Link>
+            <AdminOnly>
+              <Link
+                href="/warehouse/master"
+                className="text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
+              >
+                Kelola Gudang &rarr;
+              </Link>
+            </AdminOnly>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

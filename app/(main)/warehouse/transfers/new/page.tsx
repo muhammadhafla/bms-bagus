@@ -52,9 +52,10 @@ function NewTransferContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const { user } = useAuthStore();
+  const { user, profile, hasRole } = useAuthStore();
+  const isSupervisorOrAdmin = profile?.role === 'admin' || hasRole('kepala_gudang') || hasRole('admin');
 
-  const paramAsal = searchParams.get('asal');
+  const paramAsal = searchParams.get('asal') || (!isSupervisorOrAdmin ? profile?.default_gudang_id : null);
   const paramBarcode = searchParams.get('itemBarcode');
   const initialParamsHandledRef = useRef(false);
 
@@ -385,6 +386,7 @@ function NewTransferContent() {
                 label="Gudang Asal (Pengirim)"
                 value={gudangAsalId}
                 onChange={handleOriginWarehouseChange}
+                disabled={!isSupervisorOrAdmin && !!profile?.default_gudang_id}
                 options={gudangList.map((g) => ({
                   value: g.id,
                   label: `${g.nama} (${g.kode_gudang})`,

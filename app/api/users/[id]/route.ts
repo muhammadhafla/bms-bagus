@@ -57,13 +57,29 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: adminRes.error }, { status: adminRes.status });
 
     const body = await request.json();
-    const { nama, role, password, username } = body;
+    const { nama, role, roles, default_gudang_id, password, username } = body;
     const userId = (await params).id;
 
     if (!userId) return NextResponse.json({ error: 'User ID tidak ditemukan' }, { status: 400 });
     if (!nama) return NextResponse.json({ error: 'Nama wajib diisi' }, { status: 400 });
 
-    const updatePayload: any = { nama, role: role?.toLowerCase() === 'admin' ? 'admin' : 'staff' };
+    const assignedRoles: string[] | undefined = Array.isArray(roles) && roles.length > 0
+      ? roles
+      : role ? [role] : undefined;
+
+    const updatePayload: any = { nama };
+
+    if (assignedRoles) {
+      updatePayload.roles = assignedRoles;
+      updatePayload.role = assignedRoles.includes('admin') ? 'admin' : 'staff';
+    } else if (role) {
+      updatePayload.role = role?.toLowerCase() === 'admin' ? 'admin' : 'staff';
+    }
+
+    if (default_gudang_id !== undefined) {
+      updatePayload.default_gudang_id = default_gudang_id || null;
+    }
+
     if (username !== undefined) {
       updatePayload.username = username ? username.toLowerCase().replace(/[^a-z0-9_.]/g, '') : null;
     }

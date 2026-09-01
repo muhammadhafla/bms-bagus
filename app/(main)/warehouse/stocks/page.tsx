@@ -36,6 +36,7 @@ import { kategoriApi } from '@/lib/api';
 import { WarehouseItemStock, Gudang } from '@/types/warehouse';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useHotkeys } from 'react-hotkeys-hook';
+import { useAuthStore } from '@/lib/auth';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 
@@ -59,9 +60,12 @@ function WarehouseStocksContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const profile = useAuthStore((state) => state.profile);
+  const hasRole = useAuthStore((state) => state.hasRole);
+  const canEditThresholds = profile?.role === 'admin' || hasRole('kepala_gudang') || hasRole('admin');
 
   const [selectedGudangId, setSelectedGudangId] = useState<string>(
-    searchParams.get('gudangId') || '',
+    searchParams.get('gudangId') || profile?.default_gudang_id || '',
   );
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get('search') || '');
@@ -155,15 +159,21 @@ function WarehouseStocksContent() {
 
   const gudangList: Gudang[] = useMemo(() => gudangRes?.data || [], [gudangRes?.data]);
 
-  // If no gudang selected yet, default to the default warehouse
+  const defaultGudangId = profile?.default_gudang_id;
+
+  // If no gudang selected yet, default to user assigned warehouse or default warehouse
   const activeGudang = useMemo(() => {
     if (!gudangList.length) return null;
     if (selectedGudangId) {
       return gudangList.find((g) => g.id === selectedGudangId) || gudangList[0];
     }
+    if (defaultGudangId) {
+      const userGudang = gudangList.find((g) => g.id === defaultGudangId);
+      if (userGudang) return userGudang;
+    }
     const def = gudangList.find((g) => g.is_default);
     return def || gudangList[0];
-  }, [gudangList, selectedGudangId]);
+  }, [gudangList, selectedGudangId, defaultGudangId]);
 
   const activeGudangId = activeGudang?.id || '';
 
@@ -1135,6 +1145,7 @@ function WarehouseStocksContent() {
                       value={String(minStok)}
                       onChange={(e) => setMinStok(Number(e.target.value))}
                       placeholder="0"
+                      disabled={!canEditThresholds}
                     />
                   </div>
                   <div>
@@ -1146,8 +1157,14 @@ function WarehouseStocksContent() {
                       value={maxStok}
                       onChange={(e) => setMaxStok(e.target.value)}
                       placeholder="Opsional"
+                      disabled={!canEditThresholds}
                     />
                   </div>
+                  {!canEditThresholds && (
+                    <p className="col-span-2 text-[11px] text-amber-600 dark:text-amber-400">
+                      * Batas stok minimum dan maksimum hanya dapat diubah oleh Admin atau Kepala Gudang.
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-2 border-t border-neutral-200 pt-4 dark:border-neutral-800">

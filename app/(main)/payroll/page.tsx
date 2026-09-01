@@ -6,8 +6,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, differenceInMinutes, set, isAfter, isBefore, differenceInSeconds } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { kehadiranApi, karyawanApi, lokasiKerjaApi } from '@/lib/api/payroll';
-import { IconClock, IconFingerprint, IconLogout, IconCalendarEvent, IconHistory, IconCheck, IconMapPin, IconMapPinOff, IconLock } from '@tabler/icons-react';
+import { IconClock, IconFingerprint, IconLogout, IconCalendarEvent, IconHistory, IconCheck, IconMapPin, IconMapPinOff, IconAlertTriangle } from '@tabler/icons-react';
 import { toast } from 'sonner';
+import { Modal, Button, TextareaInput } from '@/components/ui';
 
 // Haversine formula in frontend
 function getDistanceFromLatLonInM(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -181,6 +182,10 @@ export default function PayrollDashboardPage() {
     }
   }, [time, todayStatus]);
 
+  // State Modal Pulang Awal
+  const [isModalPulangAwalOpen, setIsModalPulangAwalOpen] = useState(false);
+  const [alasanPulangAwal, setAlasanPulangAwal] = useState('');
+
   // Mutasi Absen Masuk (Server-side calculation & timezone)
   const absenMasukMutation = useMutation({
     mutationFn: () => {
@@ -200,23 +205,43 @@ export default function PayrollDashboardPage() {
 
   // Mutasi Absen Pulang (Server-side calculation & timezone)
   const absenPulangMutation = useMutation({
-    mutationFn: (args: { id: string }) => {
+    mutationFn: (args: { id: string; alasan?: string }) => {
       if (!coords) throw new Error('Koordinat GPS belum ditemukan');
-      return kehadiranApi.absenPulang(args.id, coords.lat, coords.lng, coords.accuracy);
+      return kehadiranApi.absenPulang(args.id, coords.lat, coords.lng, coords.accuracy, args.alasan);
     },
-    onSuccess: (res) => {
+    onSuccess: (res, variables) => {
       if (res.error) {
         toast.error('Gagal absen pulang: ' + res.error.message);
         return;
       }
-      toast.success('Berhasil absen pulang! Hati-hati di jalan.');
+
+      if (res.data?.status_pulang_awal === 'pending') {
+        toast.success('Berhasil absen pulang! Pengajuan pulang lebih awal telah dikirim ke Admin.');
+        // Trigger push notification to admins
+        fetch('/api/push/notify-pulang-awal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            kehadiran_id: res.data.id,
+            user_id: profile?.user_id,
+            jam_pulang_aktual: format(new Date(), 'HH:mm'),
+            jam_pulang_jadwal: targetPulangStr || profile?.jam_pulang?.substring(0, 5) || '',
+            alasan: variables.alasan || ''
+          })
+        }).catch((err) => console.error('Failed sending push notice to admin:', err));
+      } else {
+        toast.success('Berhasil absen pulang! Hati-hati di jalan.');
+      }
+
+      setIsModalPulangAwalOpen(false);
+      setAlasanPulangAwal('');
       queryClient.invalidateQueries({ queryKey: ['payroll'] });
     },
     onError: (err: any) => toast.error(err.message || 'Terjadi kesalahan sistem'),
   });
 
-  // Check if current time is before scheduled jam_pulang
-  let isBelumJamPulang = false;
+  // Check if current time is before scheduled jam_pulang (with 10-minute tolerance)
+  let isPulangAwal = false;
   let targetPulangStr = '';
   let sisaWaktuPulangStr = '';
 
@@ -229,9 +254,10 @@ export default function PayrollDashboardPage() {
       milliseconds: 0,
     });
     targetPulangStr = `${pHour.padStart(2, '0')}:${pMin.padStart(2, '0')}`;
+    const toleransiPulang = new Date(standardPulang.getTime() - 10 * 60 * 1000); // 10 menit toleransi
     
-    if (isBefore(time, standardPulang)) {
-      isBelumJamPulang = true;
+    if (isBefore(time, toleransiPulang)) {
+      isPulangAwal = true;
       const diffSec = differenceInSeconds(standardPulang, time);
       if (diffSec > 0) {
         const h = Math.floor(diffSec / 3600);
@@ -259,15 +285,22 @@ export default function PayrollDashboardPage() {
       absenMasukMutation.mutate();
     } else if (todayStatus && !todayStatus.waktu_pulang) {
       // Sudah absen masuk, belum pulang
-      if (isBelumJamPulang) {
-        toast.error(`Belum waktunya absen pulang. Jam pulang: ${targetPulangStr || profile?.jam_pulang?.substring(0, 5)}`);
-        return;
+      if (isPulangAwal) {
+        setIsModalPulangAwalOpen(true);
+      } else {
+        absenPulangMutation.mutate({
+          id: todayStatus.id
+        });
       }
-
-      absenPulangMutation.mutate({
-        id: todayStatus.id
-      });
     }
+  };
+
+  const handleConfirmPulangAwal = () => {
+    if (!todayStatus) return;
+    absenPulangMutation.mutate({
+      id: todayStatus.id,
+      alasan: alasanPulangAwal.trim() || undefined
+    });
   };
 
   const formatDuration = (minutes: number) => {
@@ -350,15 +383,15 @@ export default function PayrollDashboardPage() {
           ) : (
             <div className="relative group flex items-center justify-center w-full">
               {/* Outer Pulse Ring */}
-              {!isSelesaiOrTidakHadir && geoStatus === 'valid' && !isBelumJamPulang && (
+              {!isSelesaiOrTidakHadir && geoStatus === 'valid' && (
                 <div className={`absolute inset-0 rounded-full animate-ping opacity-20 mx-auto ${
-                  !todayStatus ? 'bg-blue-500 h-44 w-44' : 'bg-amber-500 h-44 w-44'
+                  !todayStatus ? 'bg-blue-500 h-44 w-44' : isPulangAwal ? 'bg-amber-500 h-44 w-44' : 'bg-orange-500 h-44 w-44'
                 }`} style={{ animationDuration: '3s' }} />
               )}
               
               <button
                 onClick={handleAbsenClick}
-                disabled={!!isSelesaiOrTidakHadir || absenMasukMutation.isPending || absenPulangMutation.isPending || geoStatus !== 'valid' || isBelumJamPulang}
+                disabled={!!isSelesaiOrTidakHadir || absenMasukMutation.isPending || absenPulangMutation.isPending || geoStatus !== 'valid'}
                 className={`
                   relative z-10 flex border-[5px] shadow-[0_15px_35px_-15px_rgba(0,0,0,0.3)] transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden items-center justify-center
                   ${isSelesaiOrTidakHadir
@@ -367,8 +400,8 @@ export default function PayrollDashboardPage() {
                         ? 'flex-col h-44 w-44 rounded-full border-slate-200 dark:border-neutral-800 bg-slate-300 dark:bg-neutral-800 text-slate-500 cursor-not-allowed grayscale opacity-80'
                         : !todayStatus 
                           ? 'flex-col h-44 w-44 rounded-full border-blue-100 dark:border-blue-900/30 bg-gradient-to-b from-blue-500 to-indigo-600 hover:scale-[1.02] active:scale-[0.98]' 
-                          : isBelumJamPulang
-                            ? 'flex-col h-44 w-44 rounded-full border-slate-200 dark:border-neutral-800 bg-slate-200/90 dark:bg-neutral-800/90 text-slate-500 dark:text-neutral-400 cursor-not-allowed shadow-inner'
+                          : isPulangAwal
+                            ? 'flex-col h-44 w-44 rounded-full border-amber-100 dark:border-amber-900/30 bg-gradient-to-b from-amber-500 to-orange-600 hover:scale-[1.02] active:scale-[0.98]'
                             : 'flex-col h-44 w-44 rounded-full border-amber-100 dark:border-amber-900/30 bg-gradient-to-b from-amber-500 to-orange-600 hover:scale-[1.02] active:scale-[0.98]'
                   }
                 `}
@@ -401,21 +434,17 @@ export default function PayrollDashboardPage() {
                       {geoStatus === 'valid' ? 'Ketuk untuk Absen' : 'Lokasi Tidak Valid'}
                     </span>
                   </>
-                ) : isBelumJamPulang ? (
+                ) : isPulangAwal ? (
                   <>
-                    <div className="relative mb-1.5 z-10">
-                      <div className="h-12 w-12 rounded-full bg-slate-300/80 dark:bg-neutral-700/80 flex items-center justify-center text-slate-600 dark:text-neutral-300 shadow-inner">
-                        <IconLock size={24} stroke={2} />
-                      </div>
-                    </div>
-                    <span className="text-lg font-black tracking-widest uppercase drop-shadow-sm z-10 text-slate-700 dark:text-neutral-200">
-                      Pulang
+                    <IconLogout className={`h-12 w-12 mb-1 drop-shadow-md z-10 ${geoStatus === 'valid' ? 'text-white' : 'text-slate-500'}`} stroke={1.5} />
+                    <span className={`text-base font-black tracking-wider uppercase drop-shadow-sm z-10 text-center leading-tight ${geoStatus === 'valid' ? 'text-white' : 'text-slate-500'}`}>
+                      Pulang Awal
                     </span>
-                    <span className="text-[10px] mt-1 font-semibold tracking-wide uppercase px-2.5 py-0.5 rounded-full backdrop-blur-md z-10 text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800/60">
-                      Buka pk. {targetPulangStr || profile?.jam_pulang?.substring(0, 5)}
+                    <span className={`text-[10px] mt-1 font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full backdrop-blur-md z-10 ${geoStatus === 'valid' ? 'text-amber-100 bg-black/20' : 'text-slate-500 bg-slate-400/20'}`}>
+                      Jadwal {targetPulangStr || profile?.jam_pulang?.substring(0, 5)}
                     </span>
                     {sisaWaktuPulangStr && (
-                      <span className="text-[9px] mt-0.5 font-mono font-medium text-slate-500 dark:text-neutral-400 z-10">
+                      <span className="text-[9px] mt-0.5 font-mono font-medium text-amber-100/90 z-10">
                         (Sisa {sisaWaktuPulangStr})
                       </span>
                     )}
@@ -449,6 +478,21 @@ export default function PayrollDashboardPage() {
             <p className="font-mono text-[20px] font-bold text-slate-800 dark:text-neutral-100">
               {todayStatus?.waktu_pulang ? format(new Date(todayStatus.waktu_pulang), 'HH:mm') : '--:--'}
             </p>
+            {todayStatus?.status_pulang_awal === 'pending' && (
+              <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 mt-1">
+                Review Pulang Awal
+              </span>
+            )}
+            {todayStatus?.status_pulang_awal === 'disetujui_penuh' && (
+              <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
+                Dihitung Penuh
+              </span>
+            )}
+            {todayStatus?.status_pulang_awal === 'disetujui_durasi' && (
+              <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 mt-1">
+                Sesuai Durasi
+              </span>
+            )}
           </div>
         </div>
 
@@ -510,12 +554,27 @@ export default function PayrollDashboardPage() {
                         Telat {item.menit_telat}m (Toleransi)
                       </span>
                     ) : null}
+
+                    {item.status_pulang_awal === 'pending' ? (
+                      <span className="rounded-full bg-amber-100/80 dark:bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300 border border-amber-200/50 dark:border-amber-500/20">
+                        Pulang Awal (Pending)
+                      </span>
+                    ) : item.status_pulang_awal === 'disetujui_penuh' ? (
+                      <span className="rounded-full bg-emerald-100/80 dark:bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-500/20">
+                        Pulang Awal (Penuh)
+                      </span>
+                    ) : item.status_pulang_awal === 'disetujui_durasi' ? (
+                      <span className="rounded-full bg-blue-100/80 dark:bg-blue-500/10 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-500/20">
+                        Pulang Awal (Durasi)
+                      </span>
+                    ) : null}
+
                     {item.status_lembur === 'disetujui' && (
                       <span className="rounded-full bg-indigo-100/80 dark:bg-indigo-500/10 px-2.5 py-0.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-500/20">
                         + Lembur
                       </span>
                     )}
-                    {item.menit_telat === 0 && item.waktu_pulang && (
+                    {item.menit_telat === 0 && item.waktu_pulang && item.status_pulang_awal === 'tidak_ada' && (
                       <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-500 flex items-center gap-1 mt-1">
                         <IconCheck size={12} /> Tepat
                       </span>
@@ -532,6 +591,56 @@ export default function PayrollDashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Modal Konfirmasi Pulang Lebih Awal */}
+      <Modal
+        isOpen={isModalPulangAwalOpen}
+        onClose={() => setIsModalPulangAwalOpen(false)}
+        title="Konfirmasi Pulang Lebih Awal"
+        size="sm"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 rounded-2xl text-amber-800 dark:text-amber-300">
+            <IconAlertTriangle size={24} className="shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <div className="text-xs leading-relaxed">
+              <p className="font-bold text-sm mb-1 text-amber-900 dark:text-amber-200">Anda pulang sebelum jam shift</p>
+              <p>Jadwal pulang normal: <span className="font-bold font-mono">{targetPulangStr || profile?.jam_pulang?.substring(0, 5)}</span> {sisaWaktuPulangStr ? `(sisa waktu ${sisaWaktuPulangStr})` : ''}.</p>
+              <p className="mt-1 text-amber-700/90 dark:text-amber-400/90">Kepulangan lebih awal akan dilaporkan ke Admin untuk ditinjau.</p>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-1.5">
+              Alasan Pulang Lebih Awal <span className="text-neutral-400 font-normal">(Opsional)</span>
+            </label>
+            <TextareaInput
+              value={alasanPulangAwal}
+              onChange={(e) => setAlasanPulangAwal(e.target.value)}
+              placeholder="Tuliskan alasan jika ada (contoh: kurang enak badan, urusan keluarga mendesak, dsb)..."
+              rows={3}
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+            <Button
+              variant="ghost"
+              onClick={() => setIsModalPulangAwalOpen(false)}
+              disabled={absenPulangMutation.isPending}
+            >
+              Batal
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleConfirmPulangAwal}
+              disabled={absenPulangMutation.isPending}
+              loading={absenPulangMutation.isPending}
+              className="!bg-gradient-to-r !from-amber-500 !to-orange-600 hover:!from-amber-600 hover:!to-orange-700 !shadow-amber-500/30 text-white"
+            >
+              Ya, Pulang Sekarang
+            </Button>
+          </div>
+        </div>
+      </Modal>
       
       {/* Scan Animation Styles */}
       <style dangerouslySetInnerHTML={{__html: `

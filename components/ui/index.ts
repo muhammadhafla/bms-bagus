@@ -46,4 +46,5 @@ export { default as AmbientLayout } from './AmbientLayout';
 export { Portal } from './Portal';
 export { FilterButton } from './FilterButton';
 export { MobileAutocompleteSheet } from './MobileAutocompleteSheet';
+export { PageLoadingSpinner } from './PageLoadingSpinner';
 export * from './HorizontalScrollArea';

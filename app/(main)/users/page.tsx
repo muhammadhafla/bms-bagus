@@ -10,12 +10,13 @@ import {
   IconX,
   IconChevronRight,
   IconArrowDown,
+  IconBuildingWarehouse,
+  IconShield,
 } from '@tabler/icons-react';
 import { usePresenceStore } from '@/lib/presence';
 import { toast } from 'sonner';
 import { AmbientLayout, ModernPagination, FilterButton } from '@/components/ui';
 import { useRouter } from 'next/navigation';
-import { AdminOnly } from '@/components/role';
 import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
 import { formatDateWIB } from '@/lib/utils';
@@ -24,37 +25,52 @@ import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 
-interface Profile {
+interface UserProfile {
   id: string;
   nama: string;
   email: string;
   username: string | null;
-  role: 'admin' | 'staff';
+  role: 'admin' | 'staff' | string;
+  roles?: string[];
+  default_gudang_id: string | null;
+  default_gudang?: { id: string; nama: string; kode_gudang: string } | null;
   created_at: string;
   last_sign_in_at: string | null;
 }
 
+const ROLE_DISPLAY_MAP: Record<string, { label: string; bg: string; text: string }> = {
+  admin: { label: 'Admin', bg: 'bg-rose-100 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-300' },
+  kepala_gudang: { label: 'Kepala Gudang', bg: 'bg-amber-100 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-300' },
+  staff_gudang: { label: 'Staf Gudang', bg: 'bg-blue-100 dark:bg-blue-950/40', text: 'text-blue-700 dark:text-blue-300' },
+  kasir: { label: 'Kasir', bg: 'bg-emerald-100 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-300' },
+  finance: { label: 'Finance', bg: 'bg-purple-100 dark:bg-purple-950/40', text: 'text-purple-700 dark:text-purple-300' },
+  staff: { label: 'Staff', bg: 'bg-neutral-100 dark:bg-neutral-800', text: 'text-neutral-700 dark:text-neutral-300' },
+};
+
 export default function UsersPage() {
-  const [users, setUsers] = useState<Profile[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editUserModal, setEditUserModal] = useState<{
     isOpen: boolean;
     userId: string;
     userName: string;
     initialUsername?: string | null;
-    userRole: 'admin' | 'staff';
+    userRole: string;
+    userRoles?: string[];
+    defaultGudangId?: string | null;
   }>({
     isOpen: false,
     userId: '',
     userName: '',
     initialUsername: null,
     userRole: 'staff',
+    userRoles: ['kasir', 'staff_gudang'],
+    defaultGudangId: null,
   });
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'staff'>('all');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const LIMIT = 10;
   const { isAdmin, initialized, user, profile } = useAuthStore();
@@ -72,13 +88,13 @@ export default function UsersPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('*, default_gudang:default_gudang_id ( id, nama, kode_gudang )')
       .order('created_at', { ascending: false });
 
     if (error) {
       toast.error('Gagal memuat data user');
     } else {
-      setUsers(data || []);
+      setUsers((data as unknown as UserProfile[]) || []);
     }
     setLoading(false);
   }, []);
@@ -90,12 +106,18 @@ export default function UsersPage() {
   }, [fetchUsers, initialized, isAdmin, profile]);
 
   const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
+    return users.filter((u) => {
       const matchesSearch =
-        user.nama.toLowerCase().includes(search.toLowerCase()) ||
-        user.email.toLowerCase().includes(search.toLowerCase()) ||
-        (user.username && user.username.toLowerCase().includes(search.toLowerCase()));
-      const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+        u.nama.toLowerCase().includes(search.toLowerCase()) ||
+        (u.email && u.email.toLowerCase().includes(search.toLowerCase())) ||
+        (u.username && u.username.toLowerCase().includes(search.toLowerCase()));
+
+      let matchesRole = true;
+      if (roleFilter !== 'all') {
+        const userRoles = u.roles || (u.role ? [u.role] : []);
+        matchesRole = userRoles.includes(roleFilter) || u.role === roleFilter;
+      }
+
       return matchesSearch && matchesRole;
     });
   }, [users, search, roleFilter]);
@@ -141,10 +163,10 @@ export default function UsersPage() {
                 <IconUsers className="text-brand-500 h-6 w-6 shrink-0 lg:h-8 lg:w-8" stroke={1.5} />
                 <div>
                   <h1 className="text-xl font-extrabold tracking-tight text-neutral-900 lg:text-3xl dark:text-white">
-                    Manajemen User
+                    Manajemen Pengguna
                   </h1>
                   <p className="mt-0.5 hidden md:block text-xs font-medium text-neutral-500 lg:mt-2 lg:text-base dark:text-neutral-400">
-                    Kelola user sistem
+                    Kelola akun, multi-role hak akses, dan penugasan lokasi kerja staf
                   </p>
                 </div>
               </div>
@@ -189,7 +211,7 @@ export default function UsersPage() {
             <div className="no-scrollbar flex w-full items-center gap-2 overflow-x-auto whitespace-nowrap">
               {roleFilter !== 'all' && (
                 <div className="bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium">
-                  Role: {roleFilter === 'admin' ? 'Admin' : 'Staff'}
+                  Role: {ROLE_DISPLAY_MAP[roleFilter]?.label || roleFilter}
                   <button
                     onClick={() => setRoleFilter('all')}
                     className="text-brand-400 hover:text-brand-600 dark:hover:text-brand-200 transition-colors"
@@ -204,21 +226,24 @@ export default function UsersPage() {
           <ResponsivePanel
             isOpen={isFilterOpen}
             onClose={() => setIsFilterOpen(false)}
-            title="Filter User"
+            title="Filter Pengguna"
           >
             <div className="space-y-6">
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  Role:
+                  Filter Hak Akses (Role):
                 </label>
                 <select
                   value={roleFilter}
-                  onChange={(e) => setRoleFilter(e.target.value as any)}
+                  onChange={(e) => setRoleFilter(e.target.value)}
                   className="focus:ring-brand-500/20 focus:border-brand-500 w-full appearance-none rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-neutral-900 transition-all focus:ring-2 focus:outline-none focus:ring-inset dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
                 >
                   <option value="all">Semua Role</option>
                   <option value="admin">Admin</option>
-                  <option value="staff">Staff</option>
+                  <option value="kepala_gudang">Kepala Gudang</option>
+                  <option value="staff_gudang">Staf Gudang</option>
+                  <option value="kasir">Kasir</option>
+                  <option value="finance">Finance / Keuangan</option>
                 </select>
               </div>
 
@@ -260,67 +285,81 @@ export default function UsersPage() {
               ) : users.length === 0 ? (
                 <div className="py-8 text-center text-neutral-500">Tidak ada user terdaftar</div>
               ) : (
-                pagedUsers.map((user) => (
-                  <div
-                    key={user.id}
-                    className="hover:border-brand-500/30 group flex cursor-pointer flex-col gap-3 rounded-2xl border border-neutral-200/50 bg-white/50 p-3 shadow-sm backdrop-blur-md transition-all active:scale-[0.98] sm:p-4 dark:border-neutral-800/50 dark:bg-neutral-950/50"
-                    onClick={() =>
-                      setEditUserModal({
-                        isOpen: true,
-                        userId: user.id,
-                        userName: user.nama,
-                        initialUsername: user.username,
-                        userRole: user.role,
-                      })
-                    }
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="group-hover:text-brand-600 dark:group-hover:text-brand-400 mb-1 text-base leading-tight font-bold text-neutral-900 transition-colors dark:text-white">
-                          {user.nama}
+                pagedUsers.map((u) => {
+                  const userRoles = u.roles && u.roles.length > 0 ? u.roles : [u.role];
+                  return (
+                    <div
+                      key={u.id}
+                      className="hover:border-brand-500/30 group flex cursor-pointer flex-col gap-3 rounded-2xl border border-neutral-200/50 bg-white/50 p-3 shadow-sm backdrop-blur-md transition-all active:scale-[0.98] sm:p-4 dark:border-neutral-800/50 dark:bg-neutral-950/50"
+                      onClick={() =>
+                        setEditUserModal({
+                          isOpen: true,
+                          userId: u.id,
+                          userName: u.nama,
+                          initialUsername: u.username,
+                          userRole: u.role,
+                          userRoles: u.roles,
+                          defaultGudangId: u.default_gudang_id,
+                        })
+                      }
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="group-hover:text-brand-600 dark:group-hover:text-brand-400 mb-1 text-base leading-tight font-bold text-neutral-900 transition-colors dark:text-white">
+                            {u.nama}
+                          </div>
+                          <div className="font-mono text-xs text-neutral-500 dark:text-neutral-400">
+                            {u.email} {u.username ? `• @${u.username}` : ''}
+                          </div>
                         </div>
-                        <div className="font-mono text-xs text-neutral-500 dark:text-neutral-400">
-                          {user.email} {user.username ? `• @${user.username}` : ''}
+                        <IconChevronRight className="group-hover:text-brand-500 mt-1 h-5 w-5 text-neutral-400 transition-colors" />
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {userRoles.map((r) => {
+                          const conf = ROLE_DISPLAY_MAP[r] || { label: r, bg: 'bg-neutral-100', text: 'text-neutral-700' };
+                          return (
+                            <span
+                              key={r}
+                              className={`inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-semibold ${conf.bg} ${conf.text}`}
+                            >
+                              {conf.label}
+                            </span>
+                          );
+                        })}
+                      </div>
+
+                      <div className="flex items-center justify-between border-t border-neutral-200/50 pt-2 text-xs text-neutral-500 dark:border-neutral-800/50">
+                        <div className="flex items-center gap-1">
+                          <IconBuildingWarehouse size={14} className="text-neutral-400" />
+                          <span>{u.default_gudang ? `${u.default_gudang.kode_gudang} (${u.default_gudang.nama})` : 'Semua Cabang'}</span>
+                        </div>
+                        <div>
+                          {u.last_sign_in_at ? formatDateWIB(u.last_sign_in_at) : 'Belum login'}
                         </div>
                       </div>
-                      <IconChevronRight className="group-hover:text-brand-500 mt-1 h-5 w-5 text-neutral-400 transition-colors" />
                     </div>
-                    <div className="flex items-center justify-between border-t border-neutral-200/50 pt-2 dark:border-neutral-800/50">
-                      <div>
-                        <span
-                          className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium ${
-                            user.role === 'admin'
-                              ? 'bg-brand-100 text-brand-800 dark:bg-brand-900/30 dark:text-brand-300'
-                              : 'bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300'
-                          }`}
-                        >
-                          {user.role === 'admin' ? 'Admin' : 'Staff'}
-                        </span>
-                      </div>
-                      <div className="text-xs text-neutral-500">
-                        {user.last_sign_in_at
-                          ? formatDateWIB(user.last_sign_in_at)
-                          : 'Belum pernah login'}
-                      </div>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
             {/* Desktop View */}
             <div className="custom-scrollbar hidden h-full overflow-x-auto lg:block">
-              <table className="w-full min-w-[800px]">
+              <table className="w-full min-w-[850px]">
                 <thead className="sticky top-0 z-10 border-b border-neutral-200/50 bg-white/50 backdrop-blur-md dark:border-neutral-800/50 dark:bg-neutral-950/50">
                   <tr>
                     <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
-                      Nama
+                      Nama & Username
                     </th>
                     <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
                       Email
                     </th>
                     <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
-                      Role
+                      Hak Akses (Roles)
+                    </th>
+                    <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                      Lokasi Cabang
                     </th>
                     <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
                       Terakhir Login
@@ -341,42 +380,48 @@ export default function UsersPage() {
                           <div className="h-4 w-40 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700" />
                         </td>
                         <td className="px-5 py-4">
-                          <div className="h-6 w-20 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-700" />
+                          <div className="h-6 w-24 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-700" />
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="h-4 w-28 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700" />
                         </td>
                         <td className="px-5 py-4">
                           <div className="h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700" />
                         </td>
                         <td className="px-5 py-4">
-                          <div className="mx-auto h-8 w-20 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700" />
+                          <div className="mx-auto h-8 w-16 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700" />
                         </td>
                       </tr>
                     ))
                   ) : users.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-5 py-12 text-center text-neutral-500">
+                      <td colSpan={6} className="px-5 py-12 text-center text-neutral-500">
                         Tidak ada user terdaftar
                       </td>
                     </tr>
                   ) : (
-                    pagedUsers.map((user) => {
-                      const isOnline = onlineUsers.includes(user.id);
+                    pagedUsers.map((u) => {
+                      const isOnline = onlineUsers.includes(u.id);
+                      const userRoles = u.roles && u.roles.length > 0 ? u.roles : [u.role];
                       return (
                         <tr
-                          key={user.id}
+                          key={u.id}
                           className="group cursor-pointer transition-colors hover:bg-white/50 dark:hover:bg-neutral-800/50"
                           onClick={() =>
                             setEditUserModal({
                               isOpen: true,
-                              userId: user.id,
-                              userName: user.nama,
-                              initialUsername: user.username,
-                              userRole: user.role,
+                              userId: u.id,
+                              userName: u.nama,
+                              initialUsername: u.username,
+                              userRole: u.role,
+                              userRoles: u.roles,
+                              defaultGudangId: u.default_gudang_id,
                             })
                           }
                         >
                           <td className="px-5 py-4 font-medium text-neutral-900 dark:text-neutral-100">
                             <div className="flex items-center gap-2">
-                              {user.nama}
+                              {u.nama}
                               {isOnline && (
                                 <span className="relative flex h-2.5 w-2.5" title="Online">
                                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
@@ -384,29 +429,45 @@ export default function UsersPage() {
                                 </span>
                               )}
                             </div>
+                            {u.username && (
+                              <div className="text-xs text-neutral-400 dark:text-neutral-500">
+                                @{u.username}
+                              </div>
+                            )}
                           </td>
                           <td className="px-5 py-4 font-mono text-sm text-neutral-600 dark:text-neutral-400">
-                            {user.email}{' '}
-                            {user.username && (
-                              <span className="ml-1 text-neutral-400 dark:text-neutral-500">
-                                @{user.username}
+                            {u.email}
+                          </td>
+                          <td className="px-5 py-4">
+                            <div className="flex flex-wrap gap-1.5">
+                              {userRoles.map((r) => {
+                                const conf = ROLE_DISPLAY_MAP[r] || { label: r, bg: 'bg-neutral-100', text: 'text-neutral-700' };
+                                return (
+                                  <span
+                                    key={r}
+                                    className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-semibold ${conf.bg} ${conf.text}`}
+                                  >
+                                    {conf.label}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </td>
+                          <td className="px-5 py-4 text-sm text-neutral-600 dark:text-neutral-400">
+                            {u.default_gudang ? (
+                              <span className="inline-flex items-center gap-1.5 font-medium text-neutral-800 dark:text-neutral-200">
+                                <IconBuildingWarehouse size={15} className="text-brand-500" />
+                                {u.default_gudang.kode_gudang} ({u.default_gudang.nama})
+                              </span>
+                            ) : (
+                              <span className="text-xs text-neutral-400 italic">
+                                Semua Cabang (Pusat)
                               </span>
                             )}
                           </td>
-                          <td className="px-5 py-4">
-                            <span
-                              className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium ${
-                                user.role === 'admin'
-                                  ? 'bg-brand-100 text-brand-800 dark:bg-brand-900/30 dark:text-brand-300'
-                                  : 'bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300'
-                              }`}
-                            >
-                              {user.role === 'admin' ? 'Admin' : 'Staff'}
-                            </span>
-                          </td>
                           <td className="px-5 py-4 text-sm text-neutral-500">
-                            {user.last_sign_in_at
-                              ? formatDateWIB(user.last_sign_in_at)
+                            {u.last_sign_in_at
+                              ? formatDateWIB(u.last_sign_in_at)
                               : 'Belum pernah login'}
                           </td>
                           <td className="px-5 py-4 text-center">
@@ -450,6 +511,8 @@ export default function UsersPage() {
         initialName={editUserModal.userName}
         initialUsername={editUserModal.initialUsername}
         initialRole={editUserModal.userRole}
+        initialRoles={editUserModal.userRoles}
+        initialDefaultGudangId={editUserModal.defaultGudangId}
       />
     </AmbientLayout>
   );

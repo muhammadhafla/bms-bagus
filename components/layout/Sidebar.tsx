@@ -37,6 +37,7 @@ import {
   IconMapPin,
   IconBuildingWarehouse,
   IconTrash,
+  IconHelpCircle,
 } from '@tabler/icons-react';
 
 import { useSidebarContext } from './SidebarProvider';
@@ -136,8 +137,13 @@ function SidebarLink({ href, title, icon: Icon, isActive, sidebarCollapsed }: Si
 }
 
 export function Sidebar() {
-  const { user, profile, initialized, signOut } = useAuthStore();
+  const { user, profile, initialized, signOut, hasRole, hasAnyRole } = useAuthStore();
   const isAdminUser = useIsAdmin();
+  const isFinanceUser = hasRole('finance') || isAdminUser;
+  const isWarehouseUser = hasAnyRole(['kepala_gudang', 'staff_gudang', 'admin']);
+  const isKepalaGudang = hasRole('kepala_gudang') || isAdminUser;
+  const isKasir = hasRole('kasir') || isAdminUser;
+
   const router = useRouter();
   const pathname = usePathname();
   const { theme, toggleTheme } = useDarkMode();
@@ -203,21 +209,38 @@ export function Sidebar() {
   }, [pathname, setMobileMenuOpen]);
 
   const operasionalItems = useMemo(() => OPERASIONAL_ITEMS.filter(item => {
-    if (item.href === '/purchasing' && !isAdminUser) return false;
-    if (item.href === '/inventory/promo' && !isAdminUser) return false;
+    if (item.href === '/purchasing') return isAdminUser || isKepalaGudang || isFinanceUser;
+    if (item.href === '/transactions/history') return isKasir || isAdminUser || isFinanceUser;
+    if (item.href === '/transactions/return') return isKasir || isWarehouseUser || isAdminUser;
+    if (item.href === '/inventory/promo') return isAdminUser;
     return true;
-  }), [isAdminUser]);
+  }), [isAdminUser, isKepalaGudang, isFinanceUser, isKasir, isWarehouseUser]);
+
+  const inventoryItems = useMemo(() => INVENTORY_ITEMS.filter(item => {
+    if (item.href === '/inventory') return true;
+    if (item.href === '/inventory/stock-opname') return isWarehouseUser;
+    if (item.href === '/bulk-print' || item.href === '/print-history') return isWarehouseUser || isAdminUser;
+    return true;
+  }), [isWarehouseUser, isAdminUser]);
+
+  const warehouseItems = useMemo(() => isWarehouseUser ? WAREHOUSE_ITEMS : [], [isWarehouseUser]);
 
   const masterItems = useMemo(() => MASTER_ITEMS.filter(item => {
-    if (item.href === '/inventory/kategori') return true;
+    if (item.href === '/inventory/kategori') return isAdminUser || isKepalaGudang;
+    if (item.href === '/purchasing/supplier') return isAdminUser || isKepalaGudang;
+    if (item.href === '/warehouse/master') return isAdminUser;
     return isAdminUser;
-  }), [isAdminUser]);
+  }), [isAdminUser, isKepalaGudang]);
 
   const handleSignOut = useCallback(() => {
     setIsLoggingOut(true);
     setLogoutConfirmOpen(false);
     signOut();
   }, [signOut, setIsLoggingOut, setLogoutConfirmOpen]);
+
+  if (pathname?.startsWith('/help')) {
+    return null;
+  }
 
   return (
     <>
@@ -356,7 +379,7 @@ export function Sidebar() {
             )}
             {inventoryExpanded && (isSidebarVisible || mobileMenuOpen) ? (
               <div className="space-y-1 pl-2">
-                {INVENTORY_ITEMS.map((item) => (
+                {inventoryItems.map((item) => (
                   <SidebarLink
                     key={item.href}
                     href={item.href}
@@ -371,40 +394,42 @@ export function Sidebar() {
           </div>
 
           {/* Warehouse Group */}
-          <div className="space-y-1">
-            {(isSidebarVisible || mobileMenuOpen) && (
-              <button
-                type="button"
-                onClick={() => setWarehouseExpanded((prev: boolean) => !prev)}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase transition-colors hover:bg-neutral-200/50 dark:text-neutral-500 dark:hover:bg-neutral-800/50"
-                aria-expanded={warehouseExpanded}
-              >
-                <span className="flex-1 text-left">Gudang & Logistik</span>
-                {isSidebarVisible && (
-                  <IconChevronRight
-                    className={`h-3 w-3 transition-transform ${warehouseExpanded ? 'rotate-90' : ''}`}
-                  />
-                )}
-              </button>
-            )}
-            {warehouseExpanded && (isSidebarVisible || mobileMenuOpen) ? (
-              <div className="space-y-1 pl-2">
-                {WAREHOUSE_ITEMS.map((item) => (
-                  <SidebarLink
-                    key={item.href}
-                    href={item.href}
-                    title={item.title}
-                    icon={item.icon}
-                    isActive={pathname === item.href}
-                    sidebarCollapsed={!isSidebarVisible}
-                  />
-                ))}
-              </div>
-            ) : null}
-          </div>
+          {warehouseItems.length > 0 && (
+            <div className="space-y-1">
+              {(isSidebarVisible || mobileMenuOpen) && (
+                <button
+                  type="button"
+                  onClick={() => setWarehouseExpanded((prev: boolean) => !prev)}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase transition-colors hover:bg-neutral-200/50 dark:text-neutral-500 dark:hover:bg-neutral-800/50"
+                  aria-expanded={warehouseExpanded}
+                >
+                  <span className="flex-1 text-left">Gudang & Logistik</span>
+                  {isSidebarVisible && (
+                    <IconChevronRight
+                      className={`h-3 w-3 transition-transform ${warehouseExpanded ? 'rotate-90' : ''}`}
+                    />
+                  )}
+                </button>
+              )}
+              {warehouseExpanded && (isSidebarVisible || mobileMenuOpen) ? (
+                <div className="space-y-1 pl-2">
+                  {warehouseItems.map((item) => (
+                    <SidebarLink
+                      key={item.href}
+                      href={item.href}
+                      title={item.title}
+                      icon={item.icon}
+                      isActive={pathname === item.href}
+                      sidebarCollapsed={!isSidebarVisible}
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
 
           {/* Laporan Group */}
-          {isAdminUser && (
+          {(isAdminUser || isFinanceUser) && (
             <div className="space-y-1">
               {(isSidebarVisible || mobileMenuOpen) && (
                 <button
@@ -457,7 +482,7 @@ export function Sidebar() {
             )}
             {payrollExpanded && (isSidebarVisible || mobileMenuOpen) ? (
               <div className="space-y-1 pl-2">
-                {(isAdminUser ? PAYROLL_ITEMS : PAYROLL_ITEMS_STAFF).map((item) => (
+                {(isAdminUser || isFinanceUser ? PAYROLL_ITEMS : PAYROLL_ITEMS_STAFF).map((item) => (
                   <SidebarLink
                     key={item.href}
                     href={item.href}
@@ -472,7 +497,7 @@ export function Sidebar() {
           </div>
 
           {/* Finance Group */}
-          {isAdminUser && (
+          {(isAdminUser || isFinanceUser) && (
             <div className="space-y-1">
               {(isSidebarVisible || mobileMenuOpen) && (
                 <button
@@ -540,6 +565,17 @@ export function Sidebar() {
               ) : null}
             </div>
           )}
+
+          {/* Pusat Bantuan & Panduan Sistem */}
+          <div className="pt-2 mt-2 border-t border-neutral-200/60 dark:border-neutral-800/60">
+            <SidebarLink
+              href="/help"
+              title="Pusat Bantuan & Role"
+              icon={IconHelpCircle}
+              isActive={pathname === '/help'}
+              sidebarCollapsed={!isSidebarVisible}
+            />
+          </div>
         </nav>
 
         {/* Sidebar Footer: User Dropup Menu */}
@@ -604,6 +640,16 @@ export function Sidebar() {
               >
                 <IconUsers className="h-4 w-4" />
                 <span>Edit Profil</span>
+              </Link>
+
+              {/* Help & Role Guide Link */}
+              <Link
+                href="/help"
+                onClick={() => setUserMenuOpen(false)}
+                className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-800"
+              >
+                <IconHelpCircle className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+                <span>Pusat Bantuan & Role</span>
               </Link>
 
               {/* Theme Toggle */}

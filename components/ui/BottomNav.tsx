@@ -25,8 +25,9 @@ export default function BottomNav() {
   const isOpnameDetail =
     pathname.startsWith('/inventory/stock-opname/') && pathname !== '/inventory/stock-opname';
   const isPromoEditor = pathname.startsWith('/inventory/promo/') && pathname !== '/inventory/promo';
+  const isHelp = pathname.startsWith('/help');
 
-  if (isPurchasing || isCetakLabel || isOpnameDetail || isPromoEditor) {
+  if (isPurchasing || isCetakLabel || isOpnameDetail || isPromoEditor || isHelp) {
     return null;
   }
 

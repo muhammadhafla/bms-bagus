@@ -222,21 +222,13 @@ export const warehouseStockApi = {
     data: { rak_lokasi?: string | null; min_stok?: number; max_stok?: number | null },
   ) {
     return safeQuery<InventoryStock>(async () => {
-      const result = await supabase
-        .from('inventory_stocks')
-        .upsert(
-          {
-            inventory_id: inventoryId,
-            gudang_id: gudangId,
-            rak_lokasi: data.rak_lokasi,
-            min_stok: data.min_stok,
-            max_stok: data.max_stok,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'inventory_id,gudang_id' },
-        )
-        .select()
-        .single();
+      const result = await supabase.rpc('update_stock_bin', {
+        p_inventory_id: inventoryId,
+        p_gudang_id: gudangId,
+        p_rak_lokasi: data.rak_lokasi || null,
+        p_min_stok: data.min_stok !== undefined ? Number(data.min_stok) : null,
+        p_max_stok: data.max_stok !== undefined && data.max_stok !== null ? Number(data.max_stok) : null,
+      });
 
       return { data: result.data as InventoryStock | null, error: result.error as Error | null };
     });
@@ -586,6 +578,7 @@ export const pengeluaranGudangApi = {
   async getAll(options?: {
     gudangId?: string;
     tipe?: TipePengeluaranGudang;
+    status?: string;
     startDate?: string;
     endDate?: string;
     page?: number;
@@ -603,6 +596,7 @@ export const pengeluaranGudangApi = {
           *,
           gudang:gudang_id ( id, kode_gudang, nama, tipe ),
           created_by_profile:created_by ( id, nama ),
+          approved_by_profile:approved_by ( id, nama ),
           items:pengeluaran_gudang_items (
             id,
             qty,
@@ -626,6 +620,10 @@ export const pengeluaranGudangApi = {
 
       if (options?.tipe) {
         query = query.eq('tipe', options.tipe);
+      }
+
+      if (options?.status && options.status !== 'ALL') {
+        query = query.eq('status', options.status);
       }
 
       if (options?.startDate) {
@@ -673,6 +671,7 @@ export const pengeluaranGudangApi = {
       gudang_id: string;
       tipe: TipePengeluaranGudang;
       catatan?: string | null;
+      autoApprove?: boolean;
       items: Array<{
         inventory_id: string;
         qty: number;
@@ -689,9 +688,39 @@ export const pengeluaranGudangApi = {
         p_catatan: data.catatan || '',
         p_items: data.items,
         p_user: userId || null,
+        p_auto_approve: !!data.autoApprove,
       });
 
       return { data: result.data as string | null, error: result.error as Error | null };
+    });
+  },
+
+  async approve(pengeluaranId: string, userId: string) {
+    return safeQuery<{ success: boolean; status: string }>(async () => {
+      const result = await supabase.rpc('approve_pengeluaran_gudang', {
+        p_pengeluaran_id: pengeluaranId,
+        p_user: userId,
+      });
+
+      return {
+        data: result.data as { success: boolean; status: string } | null,
+        error: result.error as Error | null,
+      };
+    });
+  },
+
+  async reject(pengeluaranId: string, note: string, userId: string) {
+    return safeQuery<{ success: boolean; status: string }>(async () => {
+      const result = await supabase.rpc('reject_pengeluaran_gudang', {
+        p_pengeluaran_id: pengeluaranId,
+        p_note: note || 'Ditolak oleh admin/supervisor',
+        p_user: userId,
+      });
+
+      return {
+        data: result.data as { success: boolean; status: string } | null,
+        error: result.error as Error | null,
+      };
     });
   },
 };

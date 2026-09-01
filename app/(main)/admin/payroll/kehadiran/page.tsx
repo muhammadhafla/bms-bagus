@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, Suspense } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { kehadiranApi, Kehadiran, lokasiKerjaApi } from '@/lib/api/payroll';
@@ -18,6 +18,7 @@ import {
   IconExternalLink,
   IconDownload,
   IconAlertCircle,
+  IconAlertTriangle,
   IconUserCheck
 } from '@tabler/icons-react';
 import { toast } from 'sonner';
@@ -38,9 +39,21 @@ function AdminKehadiranContent() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
-  // Tab State: 'all' | 'lembur'
-  const [activeTab, setActiveTab] = useState<'all' | 'lembur'>('all');
+  const tabParam = searchParams.get('tab') as 'all' | 'pulang_awal' | 'lembur' | null;
+
+  // Tab State: 'all' | 'pulang_awal' | 'lembur'
+  const [activeTab, setActiveTab] = useState<'all' | 'pulang_awal' | 'lembur'>(
+    tabParam && ['all', 'pulang_awal', 'lembur'].includes(tabParam) ? tabParam : 'all'
+  );
+
+  useEffect(() => {
+    if (tabParam && ['all', 'pulang_awal', 'lembur'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
   const [selectedLemburIds, setSelectedLemburIds] = useState<string[]>([]);
+  const [selectedPulangAwalIds, setSelectedPulangAwalIds] = useState<string[]>([]);
+  const [reviewPulangAwalModalItem, setReviewPulangAwalModalItem] = useState<Kehadiran | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
   // URL state
@@ -92,9 +105,10 @@ function AdminKehadiranContent() {
       search,
       startDate,
       endDate,
-      statusHadir: activeTab === 'lembur' ? undefined : statusHadir,
+      statusHadir: activeTab === 'all' ? statusHadir : undefined,
       lokasiId,
-      statusLembur: activeTab === 'lembur' ? 'pending' : undefined
+      statusLembur: activeTab === 'lembur' ? 'pending' : undefined,
+      statusPulangAwal: activeTab === 'pulang_awal' ? 'pending' : undefined
     }).then(res => res.data),
   });
 
@@ -112,6 +126,65 @@ function AdminKehadiranContent() {
     queryKey: ['admin_payroll_stores'],
     queryFn: () => lokasiKerjaApi.getAll().then(res => res.data || []),
   });
+
+  // Review Pulang Awal Mutation (Single)
+  const reviewPulangAwalMutation = useMutation({
+    mutationFn: (args: { id: string; keputusan: 'hitung_penuh' | 'sesuai_durasi'; catatan?: string }) =>
+      kehadiranApi.reviewPulangAwal(args.id, args.keputusan, args.catatan),
+    onSuccess: (res, vars) => {
+      if (res.error) {
+        toast.error(res.error.message);
+        return;
+      }
+      const msg = vars.keputusan === 'hitung_penuh' 
+        ? 'Absensi disetujui dihitung penuh (jam clockout diset ke jam shift).' 
+        : 'Absensi disetujui dihitung sesuai durasi riil.';
+      toast.success(msg);
+      setReviewPulangAwalModalItem(null);
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_kehadiran_paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_today_kehadiran_summary'] });
+    },
+    onError: () => toast.error('Gagal melakukan review kepulangan awal')
+  });
+
+  // Bulk Review Pulang Awal Mutation
+  const bulkReviewPulangAwalMutation = useMutation({
+    mutationFn: (args: { ids: string[]; keputusan: 'hitung_penuh' | 'sesuai_durasi' }) =>
+      kehadiranApi.bulkReviewPulangAwal(args.ids, args.keputusan),
+    onSuccess: (res, vars) => {
+      if (res.error) {
+        toast.error(res.error.message);
+        return;
+      }
+      toast.success(`Berhasil mereview ${res.data || selectedPulangAwalIds.length} entri pulang awal!`);
+      setSelectedPulangAwalIds([]);
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_kehadiran_paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_today_kehadiran_summary'] });
+    },
+    onError: () => toast.error('Gagal mereview massal pulang awal')
+  });
+
+  const handleSelectAllPulangAwal = () => {
+    if (selectedPulangAwalIds.length === list.length) {
+      setSelectedPulangAwalIds([]);
+    } else {
+      setSelectedPulangAwalIds(list.map(item => item.id));
+    }
+  };
+
+  const handleToggleSelectPulangAwal = (id: string) => {
+    setSelectedPulangAwalIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkReviewPulangAwal = (keputusan: 'hitung_penuh' | 'sesuai_durasi') => {
+    if (selectedPulangAwalIds.length === 0) {
+      toast.error('Pilih setidaknya satu data pulang awal');
+      return;
+    }
+    bulkReviewPulangAwalMutation.mutate({ ids: selectedPulangAwalIds, keputusan });
+  };
 
   const handleOpenFilter = () => {
     setTempSearch(search);
@@ -271,9 +344,13 @@ function AdminKehadiranContent() {
         'Lokasi Masuk',
         'Lokasi Pulang',
         'Jam Masuk',
-        'Jam Pulang',
+        'Jam Pulang (Tercatat)',
+        'Jam Pulang (Aktual)',
         'Menit Kerja',
         'Menit Telat',
+        'Pulang Awal (Status)',
+        'Pulang Awal (Menit)',
+        'Alasan Pulang Awal',
         'Lembur Aktual (Menit)',
         'Lembur Disetujui (Menit)',
         'Status Lembur'
@@ -287,8 +364,12 @@ function AdminKehadiranContent() {
         `"${(item.lokasi_pulang?.nama || '-').replace(/"/g, '""')}"`,
         item.waktu_masuk ? format(new Date(item.waktu_masuk), 'HH:mm') : '-',
         item.waktu_pulang ? format(new Date(item.waktu_pulang), 'HH:mm') : '-',
+        item.waktu_pulang_aktual ? format(new Date(item.waktu_pulang_aktual), 'HH:mm') : '-',
         item.menit_kerja || 0,
         item.menit_telat || 0,
+        item.status_pulang_awal || 'tidak_ada',
+        item.menit_pulang_awal || 0,
+        `"${(item.alasan_pulang_awal || '-').replace(/"/g, '""')}"`,
         item.menit_lembur_aktual || 0,
         item.menit_lembur_disetujui || 0,
         item.status_lembur
@@ -481,16 +562,20 @@ function AdminKehadiranContent() {
   };
 
   const columns: Column<Kehadiran>[] = [
-    ...(activeTab === 'lembur' ? [{
+    ...((activeTab === 'lembur' || activeTab === 'pulang_awal') ? [{
       key: 'checkbox',
       header: 'Pilih',
       render: (row: Kehadiran) => (
         <input 
           type="checkbox" 
-          checked={selectedLemburIds.includes(row.id)}
+          checked={activeTab === 'lembur' ? selectedLemburIds.includes(row.id) : selectedPulangAwalIds.includes(row.id)}
           onChange={(e) => {
             e.stopPropagation();
-            handleToggleSelectLembur(row.id);
+            if (activeTab === 'lembur') {
+              handleToggleSelectLembur(row.id);
+            } else {
+              handleToggleSelectPulangAwal(row.id);
+            }
           }}
           className="rounded border-neutral-300 text-teal-600 focus:ring-teal-500"
         />
@@ -581,6 +666,35 @@ function AdminKehadiranContent() {
       }
     },
     { 
+      key: 'pulang_awal', 
+      header: 'Pulang Awal', 
+      render: (row: Kehadiran) => {
+        if (row.status_pulang_awal === 'pending') {
+          return (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setReviewPulangAwalModalItem(row);
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800 transition-colors shadow-xs animate-pulse cursor-pointer"
+            >
+              Review ({row.menit_pulang_awal || 0}m)
+            </button>
+          );
+        }
+        if (row.status_pulang_awal === 'disetujui_penuh') {
+          return <Badge variant="success">Dihitung Penuh</Badge>;
+        }
+        if (row.status_pulang_awal === 'disetujui_durasi') {
+          return <Badge variant="default">Sesuai Durasi</Badge>;
+        }
+        if (row.status_pulang_awal === 'ditolak') {
+          return <Badge variant="danger">Ditolak</Badge>;
+        }
+        return <span className="text-neutral-400">-</span>;
+      }
+    },
+    { 
       key: 'lembur', 
       header: 'Lembur', 
       render: (row: Kehadiran) => {
@@ -603,7 +717,7 @@ function AdminKehadiranContent() {
           </div>
           <div>
             <h1 className="text-lg sm:text-2xl font-bold leading-tight text-neutral-900 dark:text-white">Kelola Kehadiran</h1>
-            <p className="hidden md:block text-[11px] sm:text-sm text-neutral-500 leading-snug">Pantau presensi, keterlambatan, dan persetujuan lembur karyawan.</p>
+            <p className="hidden md:block text-[11px] sm:text-sm text-neutral-500 leading-snug">Pantau presensi, keterlambatan, pulang awal, dan persetujuan lembur karyawan.</p>
           </div>
         </div>
 
@@ -631,8 +745,8 @@ function AdminKehadiranContent() {
         </div>
       </div>
 
-      {/* 4-Card Live Stats Summary Widget */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 my-1">
+      {/* 5-Card Live Stats Summary Widget */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 my-1">
         {/* Card 1: Hadir Hari Ini */}
         <div className="rounded-2xl border border-neutral-200/80 bg-white p-3.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 flex flex-col justify-between">
           <div className="flex items-center justify-between">
@@ -664,7 +778,7 @@ function AdminKehadiranContent() {
               {isLoadingSummary ? '--' : summaryData?.hadir_telat || 0}
             </div>
             <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
-              Tercatat datang setelah jam masuk
+              Datang setelah jam masuk
             </p>
           </div>
         </div>
@@ -672,7 +786,7 @@ function AdminKehadiranContent() {
         {/* Card 3: Izin / Sakit / Off */}
         <div className="rounded-2xl border border-neutral-200/80 bg-white p-3.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-wider uppercase text-neutral-500">Izin / Sakit / Off</span>
+            <span className="text-[11px] font-bold tracking-wider uppercase text-neutral-500">Izin/Sakit/Off</span>
             <div className="p-1 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
               <IconCalendarEvent size={16} />
             </div>
@@ -687,15 +801,50 @@ function AdminKehadiranContent() {
           </div>
         </div>
 
-        {/* Card 4: Pending Lembur */}
+        {/* Card 4: Pulang Awal */}
         <div 
-          onClick={() => setActiveTab('lembur')}
-          className="rounded-2xl border border-neutral-200/80 bg-white p-3.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 flex flex-col justify-between cursor-pointer hover:border-teal-500 transition-colors"
+          onClick={() => {
+            setActiveTab('pulang_awal');
+            setSelectedPulangAwalIds([]);
+          }}
+          className={`rounded-2xl border p-3.5 shadow-sm dark:bg-neutral-900 flex flex-col justify-between cursor-pointer transition-colors ${
+            activeTab === 'pulang_awal' 
+              ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 ring-1 ring-amber-500' 
+              : 'border-neutral-200/80 bg-white hover:border-amber-400 dark:border-neutral-800'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold tracking-wider uppercase text-neutral-500">Pulang Awal</span>
+            <div className="p-1 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
+              <IconAlertCircle size={16} />
+            </div>
+          </div>
+          <div className="mt-2">
+            <div className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 font-mono">
+              {isLoadingSummary ? '--' : summaryData?.pending_pulang_awal || 0}
+            </div>
+            <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5 font-medium">
+              {(summaryData?.pending_pulang_awal || 0) > 0 ? 'Tinjau pulang awal &rarr;' : 'Tidak ada antrean'}
+            </p>
+          </div>
+        </div>
+
+        {/* Card 5: Pending Lembur */}
+        <div 
+          onClick={() => {
+            setActiveTab('lembur');
+            setSelectedLemburIds([]);
+          }}
+          className={`rounded-2xl border p-3.5 shadow-sm dark:bg-neutral-900 flex flex-col justify-between cursor-pointer transition-colors ${
+            activeTab === 'lembur' 
+              ? 'border-teal-500 bg-teal-50/50 dark:bg-teal-950/20 ring-1 ring-teal-500' 
+              : 'border-neutral-200/80 bg-white hover:border-teal-400 dark:border-neutral-800'
+          }`}
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold tracking-wider uppercase text-neutral-500">Pending Lembur</span>
             <div className="p-1 rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-950/40 dark:text-teal-400">
-              <IconAlertCircle size={16} />
+              <IconClock size={16} />
             </div>
           </div>
           <div className="mt-2">
@@ -703,7 +852,7 @@ function AdminKehadiranContent() {
               {isLoadingSummary ? '--' : summaryData?.pending_lembur || 0}
             </div>
             <p className="text-[11px] text-teal-600 dark:text-teal-400 mt-0.5 font-medium">
-              Ketuk untuk tinjau lembur &rarr;
+              {(summaryData?.pending_lembur || 0) > 0 ? 'Tinjau lembur &rarr;' : 'Tidak ada antrean'}
             </p>
           </div>
         </div>
@@ -716,6 +865,7 @@ function AdminKehadiranContent() {
             onClick={() => {
               setActiveTab('all');
               setSelectedLemburIds([]);
+              setSelectedPulangAwalIds([]);
             }}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               activeTab === 'all'
@@ -725,10 +875,32 @@ function AdminKehadiranContent() {
           >
             Semua Presensi
           </button>
+          
+          <button
+            onClick={() => {
+              setActiveTab('pulang_awal');
+              setSelectedLemburIds([]);
+              setSelectedPulangAwalIds([]);
+            }}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === 'pulang_awal'
+                ? 'bg-white dark:bg-neutral-900 text-amber-600 dark:text-amber-400 shadow-sm'
+                : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200'
+            }`}
+          >
+            <span>Pulang Awal</span>
+            {(summaryData?.pending_pulang_awal || 0) > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300">
+                {summaryData?.pending_pulang_awal}
+              </span>
+            )}
+          </button>
+
           <button
             onClick={() => {
               setActiveTab('lembur');
               setSelectedLemburIds([]);
+              setSelectedPulangAwalIds([]);
             }}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               activeTab === 'lembur'
@@ -744,6 +916,30 @@ function AdminKehadiranContent() {
             )}
           </button>
         </div>
+
+        {activeTab === 'pulang_awal' && selectedPulangAwalIds.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="primary"
+              size="sm"
+              loading={bulkReviewPulangAwalMutation.isPending}
+              onClick={() => handleBulkReviewPulangAwal('hitung_penuh')}
+              leftIcon={<IconCheck size={16} />}
+              className="!bg-emerald-600 hover:!bg-emerald-700 text-white"
+            >
+              Hitung Penuh ({selectedPulangAwalIds.length})
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={bulkReviewPulangAwalMutation.isPending}
+              onClick={() => handleBulkReviewPulangAwal('sesuai_durasi')}
+              leftIcon={<IconClock size={16} />}
+            >
+              Sesuai Durasi ({selectedPulangAwalIds.length})
+            </Button>
+          </div>
+        )}
 
         {activeTab === 'lembur' && selectedLemburIds.length > 0 && (
           <div className="flex items-center gap-2">
@@ -844,6 +1040,17 @@ function AdminKehadiranContent() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-2">
+                    {activeTab === 'pulang_awal' && (
+                      <input 
+                        type="checkbox" 
+                        checked={selectedPulangAwalIds.includes(item.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleToggleSelectPulangAwal(item.id);
+                        }}
+                        className="mt-0.5 rounded border-neutral-300 text-amber-600 focus:ring-amber-500"
+                      />
+                    )}
                     {activeTab === 'lembur' && (
                       <input 
                         type="checkbox" 
@@ -900,6 +1107,28 @@ function AdminKehadiranContent() {
                   </div>
                 </div>
                 
+                {item.status_pulang_awal && item.status_pulang_awal !== 'tidak_ada' && (
+                  <div className="mt-1 flex items-center justify-between border-t border-neutral-100 pt-2 text-[11px] dark:border-neutral-800/60">
+                    <span className="text-neutral-500">Pulang Awal:</span>
+                    <div>
+                      {item.status_pulang_awal === 'pending' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReviewPulangAwalModalItem(item);
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800 cursor-pointer"
+                        >
+                          Review ({item.menit_pulang_awal || 0}m)
+                        </button>
+                      )}
+                      {item.status_pulang_awal === 'disetujui_penuh' && <Badge variant="success">Dihitung Penuh</Badge>}
+                      {item.status_pulang_awal === 'disetujui_durasi' && <Badge variant="default">Sesuai Durasi</Badge>}
+                      {item.status_pulang_awal === 'ditolak' && <Badge variant="danger">Ditolak</Badge>}
+                    </div>
+                  </div>
+                )}
+
                 {item.status_lembur !== 'tidak_ada' && (
                   <div className="mt-1 flex items-center gap-1.5 border-t border-neutral-100 pt-2 text-[11px] dark:border-neutral-800/60">
                     <span className="text-neutral-500">Lembur:</span>
@@ -1259,6 +1488,109 @@ function AdminKehadiranContent() {
               Simpan Entri
             </Button>
           </form>
+        </Modal>
+      )}
+
+      {/* Modal Review Pulang Awal */}
+      {reviewPulangAwalModalItem && (
+        <Modal
+          isOpen={!!reviewPulangAwalModalItem}
+          onClose={() => setReviewPulangAwalModalItem(null)}
+          title="Review Kepulangan Lebih Awal"
+          size="md"
+          isBottomSheetOnMobile
+        >
+          <div className="flex flex-col gap-4 mt-2">
+            <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40">
+              <div className="flex items-center justify-between pb-3 border-b border-amber-200/40 dark:border-amber-900/40">
+                <div>
+                  <h4 className="font-bold text-base text-neutral-900 dark:text-white">
+                    {reviewPulangAwalModalItem.profiles?.nama || 'Unknown'}
+                  </h4>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    {format(new Date(reviewPulangAwalModalItem.tanggal), 'EEEE, dd MMMM yyyy', { locale: idLocale })}
+                  </p>
+                </div>
+                <Badge variant="warning">Pulang {reviewPulangAwalModalItem.menit_pulang_awal || 0} Menit Lebih Awal</Badge>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mt-3 text-xs">
+                <div>
+                  <span className="text-neutral-500 block">Jam Masuk:</span>
+                  <span className="font-mono font-bold text-sm text-neutral-800 dark:text-neutral-200">
+                    {getTimeFromIso(reviewPulangAwalModalItem.waktu_masuk) || '--:--'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-neutral-500 block">Jam Pulang Aktual:</span>
+                  <span className="font-mono font-bold text-sm text-amber-700 dark:text-amber-300">
+                    {getTimeFromIso(reviewPulangAwalModalItem.waktu_pulang_aktual || reviewPulangAwalModalItem.waktu_pulang) || '--:--'}
+                  </span>
+                </div>
+              </div>
+
+              {reviewPulangAwalModalItem.alasan_pulang_awal && (
+                <div className="mt-3 pt-3 border-t border-amber-200/40 dark:border-amber-900/40">
+                  <span className="text-[11px] font-bold text-neutral-600 dark:text-neutral-400 block mb-0.5">Alasan Karyawan:</span>
+                  <p className="text-xs italic text-neutral-800 dark:text-neutral-200 bg-white/60 dark:bg-neutral-900/50 p-2.5 rounded-xl border border-amber-200/30">
+                    &quot;{reviewPulangAwalModalItem.alasan_pulang_awal}&quot;
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">
+                Pilih Keputusan Penghitungan Absensi:
+              </p>
+
+              {/* Option 1: Hitung Penuh */}
+              <button
+                type="button"
+                onClick={() => reviewPulangAwalMutation.mutate({ id: reviewPulangAwalModalItem.id, keputusan: 'hitung_penuh' })}
+                disabled={reviewPulangAwalMutation.isPending}
+                className="flex items-start gap-3 p-3.5 rounded-2xl border-2 border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/40 hover:bg-emerald-50 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 text-left transition-all cursor-pointer group"
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 mt-0.5">
+                  <IconCheck size={18} stroke={2.5} />
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-sm text-emerald-900 dark:text-emerald-200">Hitung Penuh</p>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
+                    Jam clockout otomatis diset ke jam pulang jadwal shift dan durasi kerja dihitung penuh.
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 2: Sesuai Durasi */}
+              <button
+                type="button"
+                onClick={() => reviewPulangAwalMutation.mutate({ id: reviewPulangAwalModalItem.id, keputusan: 'sesuai_durasi' })}
+                disabled={reviewPulangAwalMutation.isPending}
+                className="flex items-start gap-3 p-3.5 rounded-2xl border-2 border-slate-200 dark:border-neutral-700 bg-slate-50/50 hover:bg-slate-100/70 dark:bg-neutral-800/40 dark:hover:bg-neutral-800/70 text-left transition-all cursor-pointer group"
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-200 text-slate-700 dark:bg-neutral-700 dark:text-neutral-300 mt-0.5">
+                  <IconClock size={18} />
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-sm text-slate-900 dark:text-slate-200">Hitung Sesuai Durasi</p>
+                  <p className="text-xs text-slate-600 dark:text-neutral-400 mt-0.5">
+                    Jam clockout tetap pada jam pulang aktual dan durasi kerja dihitung riil.
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-neutral-100 dark:border-neutral-800">
+              <Button
+                variant="ghost"
+                onClick={() => setReviewPulangAwalModalItem(null)}
+                disabled={reviewPulangAwalMutation.isPending}
+              >
+                Batal
+              </Button>
+            </div>
+          </div>
         </Modal>
       )}
     </div>

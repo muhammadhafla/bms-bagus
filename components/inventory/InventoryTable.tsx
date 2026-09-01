@@ -24,7 +24,7 @@ import { inventoryApi, kategoriApi } from '@/lib/api';
 import { warehouseStockApi } from '@/lib/api/warehouse';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { AdminOnly } from '@/components/role';
+import { AdminOnly, RoleGuard } from '@/components/role';
 import { useAuthStore, useIsAdmin } from '@/lib/auth';
 import { Modal } from '@/components/ui/Modal';
 import TextInput from '@/components/ui/TextInput';
@@ -140,6 +140,8 @@ export const InventoryTable = React.memo(function InventoryTable({
   const [warehouseStocks, setWarehouseStocks] = useState<InventoryStock[]>([]);
   const [loadingWarehouseStocks, setLoadingWarehouseStocks] = useState(false);
   const isAdminUser = useIsAdmin();
+  const hasRole = useAuthStore((state) => state.hasRole);
+  const canViewHPP = isAdminUser || hasRole('finance');
 
   const openSlideOver = useCallback((item: InventoryItem) => {
     setSelectedItem(item);
@@ -372,7 +374,7 @@ export const InventoryTable = React.memo(function InventoryTable({
               <th className="px-4 py-3 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
                 Kategori
               </th>
-              {isAdminUser && (
+              {canViewHPP && (
                 <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
                   Harga Beli
                 </th>
@@ -432,7 +434,7 @@ export const InventoryTable = React.memo(function InventoryTable({
                       {item.id_kategori?.nama || '-'}
                     </span>
                   </td>
-                  {isAdminUser && (
+                  {canViewHPP && (
                     <td className="px-4 py-3 text-right text-neutral-600 dark:text-neutral-300">
                       {formatCurrency(item.harga_beli_terakhir || 0)}
                     </td>
@@ -514,7 +516,7 @@ export const InventoryTable = React.memo(function InventoryTable({
               </div>
 
               <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-neutral-100 pt-2 text-[13px] dark:border-neutral-800/60">
-                {isAdminUser && (
+                {canViewHPP && (
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-neutral-500 dark:text-neutral-400">Beli</span>
                     <span className="font-medium text-neutral-900 dark:text-neutral-100">
@@ -568,7 +570,8 @@ export const InventoryTable = React.memo(function InventoryTable({
         size="md"
         isFullScreenOnMobile
       >
-        <AdminOnly
+        <RoleGuard
+          roles={['admin', 'kepala_gudang']}
           fallback={
             <div className="space-y-4">
               {selectedItem?.is_discontinued && (
@@ -591,7 +594,7 @@ export const InventoryTable = React.memo(function InventoryTable({
                 <p className="text-sm text-neutral-500 dark:text-neutral-400">Kategori</p>
                 <p className="text-neutral-900 dark:text-white">{editForm.id_kategori}</p>
               </div>
-              {isAdminUser && (
+              {canViewHPP && (
                 <div>
                   <p className="text-sm text-neutral-500 dark:text-neutral-400">
                     Harga Beli Terakhir
@@ -670,7 +673,7 @@ export const InventoryTable = React.memo(function InventoryTable({
               }
             />
           </div>
-        </AdminOnly>
+        </RoleGuard>
 
         {/* Rincian Stok per Lokasi Gudang */}
         {selectedItem && (

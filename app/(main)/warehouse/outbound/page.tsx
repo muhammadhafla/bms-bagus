@@ -8,11 +8,14 @@ import {
   IconTrashX,
   IconPlus,
   IconX,
+  IconCheck,
+  IconAlertCircle,
+  IconList,
+  IconClock,
 } from '@tabler/icons-react';
 import {
   AmbientLayout,
   Card,
-  CardHeader,
   CardTitle,
   CardContent,
   Button,
@@ -22,11 +25,12 @@ import {
   Modal,
   TextInput,
   SelectInput,
+  Tabs,
   ModernPagination,
 } from '@/components/ui';
 import { pengeluaranGudangApi, gudangApi, warehouseStockApi } from '@/lib/api/warehouse';
-import { PengeluaranGudang, TipePengeluaranGudang, Gudang } from '@/types/warehouse';
-import { formatCurrency } from '@/lib/utils';
+import { PengeluaranGudang, TipePengeluaranGudang, Gudang, StatusPengeluaranGudang } from '@/types/warehouse';
+import { formatCurrency, formatDateWIB } from '@/lib/utils';
 import { useAuthStore } from '@/lib/auth';
 
 interface OutboundCartItem {
@@ -50,8 +54,10 @@ export default function WarehouseOutboundPage() {
 function WarehouseOutboundContent() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const { user } = useAuthStore();
+  const { user, profile, hasRole } = useAuthStore();
+  const isSupervisorOrAdmin = profile?.role === 'admin' || hasRole('kepala_gudang') || hasRole('admin');
 
+  const [activeTab, setActiveTab] = useState<'ALL' | 'DRAFT' | 'APPROVED' | 'REJECTED'>('ALL');
   const [selectedGudangId, setSelectedGudangId] = useState<string>('');
   const [selectedTipe, setSelectedTipe] = useState<string>('');
   const [page, setPage] = useState(1);
@@ -59,15 +65,17 @@ function WarehouseOutboundContent() {
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formGudangId, setFormGudangId] = useState('');
+  const [formGudangId, setFormGudangId] = useState(profile?.default_gudang_id || '');
   const [formTipe, setFormTipe] = useState<TipePengeluaranGudang>('RUSAK');
   const [formCatatan, setFormCatatan] = useState('');
   const [cartItems, setCartItems] = useState<OutboundCartItem[]>([]);
   const [searchItem, setSearchItem] = useState('');
   const [itemSearchResults, setItemSearchResults] = useState<any[]>([]);
 
-  // Detail Modal State
+  // Detail & Action Modal State
   const [selectedDoc, setSelectedDoc] = useState<PengeluaranGudang | null>(null);
+  const [rejectNote, setRejectNote] = useState('');
+  const [showRejectInput, setShowRejectInput] = useState(false);
 
   // Fetch Gudangs
   const { data: gudangRes } = useQuery({
@@ -79,10 +87,13 @@ function WarehouseOutboundContent() {
   // Default warehouse when modal opens
   useEffect(() => {
     if (gudangList.length > 0 && !formGudangId) {
-      const def = gudangList.find((g) => g.is_default) || gudangList[0];
+      const userDef = profile?.default_gudang_id 
+        ? gudangList.find((g) => g.id === profile.default_gudang_id) 
+        : null;
+      const def = userDef || gudangList.find((g) => g.is_default) || gudangList[0];
       setFormGudangId(def.id);
     }
-  }, [gudangList, formGudangId]);
+  }, [gudangList, formGudangId, profile?.default_gudang_id]);
 
   // Handle URL query
   useEffect(() => {
@@ -92,12 +103,14 @@ function WarehouseOutboundContent() {
   }, [searchParams]);
 
   // Fetch Outbounds
+  const statusParam = activeTab === 'ALL' ? undefined : activeTab;
   const { data: outboundRes, isLoading } = useQuery({
-    queryKey: ['warehouse-outbounds', selectedGudangId, selectedTipe, page],
+    queryKey: ['warehouse-outbounds', selectedGudangId, selectedTipe, statusParam, page],
     queryFn: () =>
       pengeluaranGudangApi.getAll({
         gudangId: selectedGudangId || undefined,
         tipe: (selectedTipe as TipePengeluaranGudang) || undefined,
+        status: statusParam,
         page,
         limit,
       }),
@@ -160,7 +173,7 @@ function WarehouseOutboundContent() {
     );
   };
 
-  // Submit Mutation
+  // Submit Mutation (Create Draft or Direct Execute)
   const submitMutation = useMutation({
     mutationFn: async () => {
       if (!formGudangId) throw new Error('Pilih lokasi gudang');
@@ -179,6 +192,7 @@ function WarehouseOutboundContent() {
           gudang_id: formGudangId,
           tipe: formTipe,
           catatan: formCatatan || null,
+          autoApprove: isSupervisorOrAdmin,
           items: cartItems.map((it) => ({
             inventory_id: it.inventory_id,
             qty: it.qty,
@@ -193,7 +207,11 @@ function WarehouseOutboundContent() {
       return res.data;
     },
     onSuccess: () => {
-      toast.success('Pengeluaran barang berhasil dicatat & stok telah dipotong');
+      toast.success(
+        isSupervisorOrAdmin
+          ? 'Pengeluaran barang disetujui & stok fisik telah dipotong'
+          : 'Draft pengajuan pengeluaran berhasil diajukan untuk ditinjau Supervisor',
+      );
       queryClient.invalidateQueries({ queryKey: ['warehouse-outbounds'] });
       queryClient.invalidateQueries({ queryKey: ['warehouse-stocks'] });
       queryClient.invalidateQueries({ queryKey: ['warehouse-summary'] });
@@ -206,6 +224,44 @@ function WarehouseOutboundContent() {
     },
   });
 
+  // Approval Mutation (Supervisor/Admin)
+  const approveMutation = useMutation({
+    mutationFn: async (docId: string) => {
+      const res = await pengeluaranGudangApi.approve(docId, user?.id || '');
+      if (res.error) throw res.error;
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Pengajuan pengeluaran telah disetujui, stok fisik dipotong & jurnal beban tercatat');
+      queryClient.invalidateQueries({ queryKey: ['warehouse-outbounds'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stocks'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse-summary'] });
+      setSelectedDoc(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Gagal menyetujui pengeluaran');
+    },
+  });
+
+  // Reject Mutation (Supervisor/Admin)
+  const rejectMutation = useMutation({
+    mutationFn: async ({ docId, note }: { docId: string; note: string }) => {
+      const res = await pengeluaranGudangApi.reject(docId, note, user?.id || '');
+      if (res.error) throw res.error;
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.info('Pengajuan pengeluaran barang ditolak');
+      queryClient.invalidateQueries({ queryKey: ['warehouse-outbounds'] });
+      setSelectedDoc(null);
+      setShowRejectInput(false);
+      setRejectNote('');
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Gagal menolak pengajuan');
+    },
+  });
+
   const tipeBadges: Record<TipePengeluaranGudang, 'danger' | 'warning' | 'info' | 'default'> = {
     RUSAK: 'danger',
     KADALUARSA: 'warning',
@@ -213,6 +269,12 @@ function WarehouseOutboundContent() {
     SAMPEL_PROMOSI: 'info',
     SELISIH_HILANG: 'danger',
     LAINNYA: 'default',
+  };
+
+  const statusBadges: Record<StatusPengeluaranGudang, { label: string; variant: 'warning' | 'success' | 'danger' }> = {
+    DRAFT: { label: 'Menunggu Persetujuan', variant: 'warning' },
+    APPROVED: { label: 'Disetujui', variant: 'success' },
+    REJECTED: { label: 'Ditolak', variant: 'danger' },
   };
 
   const columns: Column<PengeluaranGudang>[] = [
@@ -244,6 +306,18 @@ function WarehouseOutboundContent() {
       ),
     },
     {
+      key: 'status',
+      header: 'Status',
+      render: (row) => {
+        const conf = statusBadges[row.status] || { label: row.status, variant: 'warning' };
+        return (
+          <Badge variant={conf.variant} size="sm">
+            {conf.label}
+          </Badge>
+        );
+      },
+    },
+    {
       key: 'tanggal',
       header: 'Tanggal',
       render: (row) => <span className="text-xs text-neutral-600">{row.tanggal}</span>,
@@ -268,8 +342,16 @@ function WarehouseOutboundContent() {
       key: 'actions',
       header: 'Aksi',
       render: (row) => (
-        <Button size="sm" variant="secondary" onClick={() => setSelectedDoc(row)}>
-          Detail
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            setSelectedDoc(row);
+            setShowRejectInput(false);
+            setRejectNote('');
+          }}
+        >
+          {row.status === 'DRAFT' && isSupervisorOrAdmin ? 'Tinjau & Approve' : 'Detail'}
         </Button>
       ),
     },
@@ -286,7 +368,7 @@ function WarehouseOutboundContent() {
               Pengeluaran Khusus & Waste Gudang
             </h1>
             <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              Pencatatan pemusnahan barang rusak, kadaluarsa, sampel, atau pemakaian internal
+              Pencatatan pemusnahan barang rusak, kadaluarsa, sampel, atau pemakaian internal dengan alur verifikasi
             </p>
           </div>
 
@@ -296,10 +378,25 @@ function WarehouseOutboundContent() {
               leftIcon={<IconPlus className="h-4 w-4" />}
               onClick={() => setIsModalOpen(true)}
             >
-              Catat Pengeluaran Baru
+              {isSupervisorOrAdmin ? 'Catat Pengeluaran Baru' : 'Ajukan Pengeluaran (Draft)'}
             </Button>
           </div>
         </div>
+
+        {/* Tabs Filter Status */}
+        <Tabs
+          activeId={activeTab}
+          onChange={(tab) => {
+            setActiveTab(tab as any);
+            setPage(1);
+          }}
+          items={[
+            { id: 'ALL', label: 'Semua Dokumen', icon: <IconList className="h-4 w-4" /> },
+            { id: 'DRAFT', label: 'Menunggu Persetujuan', icon: <IconClock className="h-4 w-4" /> },
+            { id: 'APPROVED', label: 'Disetujui (Selesai)', icon: <IconCheck className="h-4 w-4" /> },
+            { id: 'REJECTED', label: 'Ditolak', icon: <IconX className="h-4 w-4" /> },
+          ]}
+        />
 
         {/* Filters */}
         <Card>
@@ -368,7 +465,7 @@ function WarehouseOutboundContent() {
             className="rounded-none border-0"
             emptyState={
               <div className="p-8 text-center text-xs text-neutral-400">
-                Belum ada riwayat pengeluaran barang non-penjualan.
+                Belum ada data pengeluaran pada filter ini.
               </div>
             }
           />
@@ -390,10 +487,19 @@ function WarehouseOutboundContent() {
           <Modal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
-            title="Catat Pengeluaran Barang (Non-Penjualan)"
+            title={isSupervisorOrAdmin ? 'Catat Pengeluaran Barang (Langsung Eksekusi)' : 'Ajukan Pengeluaran Barang (Draft)'}
             size="lg"
           >
             <div className="space-y-4">
+              {!isSupervisorOrAdmin && (
+                <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 p-3 text-xs text-amber-800 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800">
+                  <IconAlertCircle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+                  <div>
+                    <strong className="font-bold">Alur Pengajuan Staf:</strong> Pengajuan ini akan berstatus <strong>DRAFT</strong> dan tidak memotong stok sampai disetujui oleh Supervisor/Admin.
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
@@ -542,27 +648,27 @@ function WarehouseOutboundContent() {
                   loading={submitMutation.isPending}
                   onClick={() => submitMutation.mutate()}
                 >
-                  Eksekusi & Potong Stok
+                  {isSupervisorOrAdmin ? 'Setujui & Potong Stok' : 'Ajukan Pengeluaran (Draft)'}
                 </Button>
               </div>
             </div>
           </Modal>
         )}
 
-        {/* MODAL: Detail Dokumen */}
+        {/* MODAL: Detail Dokumen & Supervisor Approval */}
         {selectedDoc && (
           <Modal
             isOpen={!!selectedDoc}
             onClose={() => setSelectedDoc(null)}
             title={`Dokumen Pengeluaran: ${selectedDoc.nomor_dokumen}`}
-            size="md"
+            size="lg"
           >
             <div className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-neutral-50 dark:bg-neutral-900">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 rounded-lg bg-neutral-50 dark:bg-neutral-900">
                 <div>
                   <span className="text-neutral-500 block">Gudang:</span>
                   <span className="font-semibold text-neutral-900 dark:text-white">
-                    {selectedDoc.gudang?.nama}
+                    {selectedDoc.gudang?.nama} ({selectedDoc.gudang?.kode_gudang})
                   </span>
                 </div>
                 <div>
@@ -572,21 +678,41 @@ function WarehouseOutboundContent() {
                   </Badge>
                 </div>
                 <div>
-                  <span className="text-neutral-500 block">Tanggal:</span>
+                  <span className="text-neutral-500 block">Status:</span>
+                  <Badge variant={statusBadges[selectedDoc.status]?.variant || 'default'} size="sm">
+                    {statusBadges[selectedDoc.status]?.label || selectedDoc.status}
+                  </Badge>
+                </div>
+                <div>
+                  <span className="text-neutral-500 block">Tanggal Pengajuan:</span>
                   <span className="text-neutral-800 dark:text-neutral-200">{selectedDoc.tanggal}</span>
                 </div>
                 <div>
                   <span className="text-neutral-500 block">Dibuat Oleh:</span>
+                  <span className="text-neutral-800 dark:text-neutral-200 font-semibold">
+                    {selectedDoc.created_by_profile?.nama || 'Pengguna'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-neutral-500 block">Diverifikasi Oleh:</span>
                   <span className="text-neutral-800 dark:text-neutral-200">
-                    {selectedDoc.created_by_profile?.nama || 'Admin'}
+                    {selectedDoc.approved_by_profile?.nama 
+                      ? `${selectedDoc.approved_by_profile.nama} (${selectedDoc.approved_at ? formatDateWIB(selectedDoc.approved_at) : ''})` 
+                      : '-'}
                   </span>
                 </div>
               </div>
 
               {selectedDoc.catatan && (
                 <p className="text-neutral-600 dark:text-neutral-400 italic">
-                  Catatan: {selectedDoc.catatan}
+                  Catatan Pengajuan: {selectedDoc.catatan}
                 </p>
+              )}
+
+              {selectedDoc.rejected_note && (
+                <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-300">
+                  <strong>Catatan Penolakan:</strong> {selectedDoc.rejected_note}
+                </div>
               )}
 
               <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden">
@@ -623,10 +749,59 @@ function WarehouseOutboundContent() {
                 </table>
               </div>
 
-              <div className="flex justify-end pt-3">
+              {/* Reject Note Input */}
+              {showRejectInput && (
+                <div className="space-y-2 p-3 rounded-lg border border-rose-200 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/20">
+                  <label className="block text-xs font-bold text-rose-800 dark:text-rose-300">
+                    Alasan Penolakan Pengeluaran:
+                  </label>
+                  <TextInput
+                    value={rejectNote}
+                    onChange={(e) => setRejectNote(e.target.value)}
+                    placeholder="Contoh: Barang masih layak pakai / Qty tidak sesuai"
+                  />
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button size="sm" variant="secondary" onClick={() => setShowRejectInput(false)}>
+                      Batal
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      loading={rejectMutation.isPending}
+                      onClick={() =>
+                        rejectMutation.mutate({ docId: selectedDoc.id, note: rejectNote })
+                      }
+                    >
+                      Konfirmasi Tolak
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex justify-between items-center pt-3 border-t border-neutral-200 dark:border-neutral-800">
                 <Button variant="secondary" onClick={() => setSelectedDoc(null)}>
                   Tutup
                 </Button>
+
+                {selectedDoc.status === 'DRAFT' && isSupervisorOrAdmin && !showRejectInput && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="danger"
+                      onClick={() => setShowRejectInput(true)}
+                    >
+                      Tolak Pengajuan
+                    </Button>
+                    <Button
+                      variant="primary"
+                      leftIcon={<IconCheck className="h-4 w-4" />}
+                      loading={approveMutation.isPending}
+                      onClick={() => approveMutation.mutate(selectedDoc.id)}
+                    >
+                      Setujui & Eksekusi Potong Stok
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </Modal>

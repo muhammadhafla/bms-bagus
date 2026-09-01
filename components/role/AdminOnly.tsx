@@ -15,6 +15,7 @@ export const AdminOnly: React.FC<AdminOnlyProps> = ({ children, fallback = null 
     return <>{fallback}</>;
   }
 
-  const isAdmin = profile.role?.toLowerCase() === 'admin';
+  const isAdmin =
+    profile.role?.toLowerCase() === 'admin' || !!profile.roles?.includes('admin');
   return isAdmin ? <>{children}</> : <>{fallback}</>;
 };

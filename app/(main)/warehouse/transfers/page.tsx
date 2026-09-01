@@ -46,7 +46,8 @@ function WarehouseTransfersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const { user } = useAuthStore();
+  const { user, profile, hasRole } = useAuthStore();
+  const canCancelTransfer = profile?.role === 'admin' || hasRole('kepala_gudang') || hasRole('admin');
 
   const [activeTab, setActiveTab] = useState<'ALL' | 'DRAFT' | 'IN_TRANSIT' | 'RECEIVED' | 'CANCELED'>('ALL');
   const [page, setPage] = useState(1);
@@ -237,7 +238,7 @@ function WarehouseTransfersContent() {
             onClick={() => generateSuratJalanPDF(row)}
             title="Cetak Surat Jalan"
           />
-          {row.status === 'DRAFT' && (
+          {row.status === 'DRAFT' && canCancelTransfer && (
             <Button
               size="sm"
               variant="ghost"

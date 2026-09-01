@@ -20,10 +20,12 @@ import { TransactionModal } from '@/components/dashboard/TransactionModal';
 import dynamic from 'next/dynamic';
 
 import { CashFlowSummaryCards } from './components/CashFlowSummaryCards';
-import { CashFlowFilterPanel } from './components/CashFlowFilterPanel';
+import { CashFlowFilterPanel, FilterState } from './components/CashFlowFilterPanel';
 import { CashFlowDesktopTable } from './components/CashFlowDesktopTable';
 import { CashFlowMobileList } from './components/CashFlowMobileList';
 import { ShiftSummaryAdminPanel } from './components/ShiftSummaryAdminPanel';
+
+import { gudangApi } from '@/lib/api/warehouse';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 
@@ -33,20 +35,27 @@ export default function CashFlowPage() {
   const isAdmin = profile?.role === 'admin';
   const currentUserId = profile?.id;
 
-  const [defaultFilters] = useState(() => {
+  const { data: gudangRes } = useQuery({
+    queryKey: ['warehouse-list'],
+    queryFn: () => gudangApi.getAll({ activeOnly: true }),
+  });
+  const gudangList = useMemo(() => gudangRes?.data || [], [gudangRes?.data]);
+
+  const [defaultFilters] = useState<FilterState>(() => {
     const today = new Date();
     const thirtyDaysAgo = subDays(today, 30);
     return {
       startDate: formatDateForInputWIB(thirtyDaysAgo),
       endDate: formatDateForInputWIB(today),
       typeFilter: 'all',
+      gudangId: '',
       sortBy: 'created_at',
-      sortDir: 'desc' as 'asc' | 'desc',
+      sortDir: 'desc',
     };
   });
 
-  const [filters, setFilters] = useState(defaultFilters);
-  const [tempFilters, setTempFilters] = useState(defaultFilters);
+  const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  const [tempFilters, setTempFilters] = useState<FilterState>(defaultFilters);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
@@ -69,6 +78,7 @@ export default function CashFlowPage() {
       isAdmin ? filters.startDate : null,
       isAdmin ? filters.endDate : null,
       filters.typeFilter,
+      filters.gudangId,
       isAdmin ? null : currentUserId,
       filters.sortBy,
       filters.sortDir,
@@ -80,6 +90,7 @@ export default function CashFlowPage() {
         startDate: isAdmin ? filters.startDate : undefined,
         endDate: isAdmin ? filters.endDate : undefined,
         type: filters.typeFilter,
+        gudangId: filters.gudangId || undefined,
         userId: isAdmin ? undefined : currentUserId,
         sortBy: filters.sortBy,
         sortDir: filters.sortDir,
@@ -92,11 +103,16 @@ export default function CashFlowPage() {
       'kas_summary',
       isAdmin ? filters.startDate : null,
       isAdmin ? filters.endDate : null,
+      filters.gudangId,
       isAdmin ? null : currentUserId,
     ],
     queryFn: async () => {
       if (isAdmin) {
-        return await kasApi.getSummary({ startDate: filters.startDate, endDate: filters.endDate });
+        return await kasApi.getSummary({
+          startDate: filters.startDate,
+          endDate: filters.endDate,
+          gudangId: filters.gudangId || undefined,
+        });
       } else {
         return await kasApi.getCurrentShiftBalance(currentUserId!);
       }
@@ -155,6 +171,14 @@ export default function CashFlowPage() {
           })),
       });
     }
+    if (filters.gudangId) {
+      const g = gudangList.find((item) => item.id === filters.gudangId);
+      badges.push({
+        id: 'gudang',
+        label: `Outlet: ${g?.nama || filters.gudangId}`,
+        onRemove: () => setFilters((prev) => ({ ...prev, gudangId: '' })),
+      });
+    }
     if (filters.typeFilter !== 'all') {
       badges.push({
         id: 'type',
@@ -163,7 +187,7 @@ export default function CashFlowPage() {
       });
     }
     return badges;
-  }, [filters, defaultFilters]);
+  }, [filters, defaultFilters, gudangList]);
 
   return (
     <ErrorBoundary>

@@ -1,10 +1,13 @@
+import { useQuery } from '@tanstack/react-query';
 import { DateRangePicker, SelectInput, Button } from '@/components/ui';
 import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
+import { gudangApi } from '@/lib/api/warehouse';
 
-interface FilterState {
+export interface FilterState {
   startDate: string;
   endDate: string;
   typeFilter: string;
+  gudangId: string;
   sortBy: string;
   sortDir: 'asc' | 'desc';
 }
@@ -28,6 +31,12 @@ export function CashFlowFilterPanel({
   onApply,
   onReset,
 }: CashFlowFilterPanelProps) {
+  const { data: gudangRes } = useQuery({
+    queryKey: ['warehouse-list'],
+    queryFn: () => gudangApi.getAll({ activeOnly: true }),
+  });
+  const gudangList = gudangRes?.data || [];
+
   const handleChange = (field: keyof FilterState, value: string) => {
     setTempFilters((prev) => ({ ...prev, [field]: value }));
   };
@@ -48,6 +57,21 @@ export function CashFlowFilterPanel({
             />
           </div>
         )}
+
+        <div>
+          <SelectInput
+            label="Lokasi Toko / Gudang"
+            value={tempFilters.gudangId || ''}
+            onChange={(val) => handleChange('gudangId', val)}
+            options={[
+              { label: 'Semua Lokasi / Outlet', value: '' },
+              ...gudangList.map((g) => ({
+                label: `${g.nama} (${g.kode_gudang})`,
+                value: g.id,
+              })),
+            ]}
+          />
+        </div>
 
         <div>
           <SelectInput

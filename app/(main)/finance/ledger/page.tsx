@@ -3,12 +3,13 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ledgerApi, LedgerTipe, LedgerSumber } from '@/lib/api/ledger';
+import { gudangApi } from '@/lib/api/warehouse';
 import { 
   Button, 
   Modal, 
   TextInput, 
   TextareaInput, 
-  SelectInput,
+  SelectInput, 
   ModernPagination, 
   AmbientLayout,
   DateRangePicker,
@@ -17,7 +18,7 @@ import {
 import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
 import { 
   IconBook, 
-  IconDownload,
+  IconDownload, 
   IconArrowUpRight, 
   IconArrowDownLeft,
   IconCoins,
@@ -36,6 +37,12 @@ import { toast } from 'sonner';
 export default function LedgerPage() {
   const queryClient = useQueryClient();
 
+  const { data: gudangRes } = useQuery({
+    queryKey: ['warehouse-list'],
+    queryFn: () => gudangApi.getAll({ activeOnly: true }),
+  });
+  const gudangList = useMemo(() => gudangRes?.data || [], [gudangRes?.data]);
+
   // Filters State
   const [dateRange, setDateRange] = useState<{ startDate: string; endDate: string }>({
     startDate: '',
@@ -44,6 +51,8 @@ export default function LedgerPage() {
   const [selectedTipe, setSelectedTipe] = useState<string>('');
   const [selectedSumber, setSelectedSumber] = useState<string>('');
   const [tempSumber, setTempSumber] = useState<string>('');
+  const [selectedGudangId, setSelectedGudangId] = useState<string>('');
+  const [tempGudangId, setTempGudangId] = useState<string>('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -55,20 +64,21 @@ export default function LedgerPage() {
 
   // 1. Fetch Saldo Awal Periode (Kumulatif sebelum startDate)
   const { data: openingBalance = 0, isLoading: isLoadingOpening } = useQuery({
-    queryKey: ['buku_besar_opening_balance', startDateStr],
-    queryFn: () => ledgerApi.getOpeningBalance(startDateStr),
+    queryKey: ['buku_besar_opening_balance', startDateStr, selectedGudangId],
+    queryFn: () => ledgerApi.getOpeningBalance(startDateStr, selectedGudangId || undefined),
     enabled: !!startDateStr,
   });
 
   // 2. Fetch Mutasi Buku Besar
   const { data: rawLedgerData, isLoading: isLoadingLedger, isRefetching } = useQuery({
-    queryKey: ['buku_besar', startDateStr, endDateStr, selectedTipe, selectedSumber, searchTerm],
+    queryKey: ['buku_besar', startDateStr, endDateStr, selectedTipe, selectedSumber, searchTerm, selectedGudangId],
     queryFn: () => ledgerApi.getBukuBesar(
       startDateStr, 
       endDateStr, 
       (selectedTipe as LedgerTipe) || undefined, 
       (selectedSumber as LedgerSumber) || undefined,
-      searchTerm || undefined
+      searchTerm || undefined,
+      selectedGudangId || undefined
     ),
   });
 
@@ -136,9 +146,18 @@ export default function LedgerPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalTipe, setModalTipe] = useState<LedgerTipe>('PEMASUKAN');
   const [modalSumber, setModalSumber] = useState<LedgerSumber>('MODAL');
+  const [modalGudangId, setModalGudangId] = useState<string>('');
   const [nominal, setNominal] = useState('');
   const [modalTanggal, setModalTanggal] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [keterangan, setKeterangan] = useState('Setor Modal Awal / Tambahan');
+
+  // Default warehouse when modal opens
+  useEffect(() => {
+    if (gudangList.length > 0 && !modalGudangId) {
+      const def = gudangList.find((g) => g.is_default) || gudangList[0];
+      setModalGudangId(def?.id || '');
+    }
+  }, [gudangList, modalGudangId]);
 
   // Modal Cetak / Print Preview PDF
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -171,7 +190,8 @@ export default function LedgerPage() {
         tipe: modalTipe,
         sumber: modalSumber,
         keterangan,
-        tanggal: modalTanggal
+        tanggal: modalTanggal,
+        gudang_id: modalGudangId || undefined,
       });
     },
     onSuccess: () => {
@@ -211,6 +231,7 @@ export default function LedgerPage() {
       'No',
       'Tanggal',
       'Waktu',
+      'Lokasi/Outlet',
       'Keterangan',
       'Kategori/Sumber',
       'Tipe Transaksi',
@@ -228,6 +249,7 @@ export default function LedgerPage() {
         '',
         format(new Date(startDateStr), 'dd/MM/yyyy'),
         '-',
+        '-',
         'SALDO AWAL PERIODE',
         'SALDO AWAL',
         '-',
@@ -241,6 +263,7 @@ export default function LedgerPage() {
     ledgerWithSaldo.forEach((item: any, index: number) => {
       const tgl = item.tanggal ? format(new Date(item.tanggal), 'dd/MM/yyyy') : '-';
       const jam = item.created_at ? format(new Date(item.created_at), 'HH:mm') : '-';
+      const outlet = item.gudang?.nama || '-';
       const debit = item.tipe_transaksi === 'PEMASUKAN' ? item.nominal : 0;
       const kredit = item.tipe_transaksi === 'PENGELUARAN' ? item.nominal : 0;
       const adminNama = item.profiles?.nama || '-';
@@ -249,6 +272,7 @@ export default function LedgerPage() {
         index + 1,
         tgl,
         jam,
+        `"${outlet.replace(/"/g, '""')}"`,
         `"${(item.keterangan || '').replace(/"/g, '""')}"`,
         `"${item.sumber.replace(/_/g, ' ')}"`,
         item.tipe_transaksi,
@@ -262,6 +286,7 @@ export default function LedgerPage() {
     // Baris Total / Rekapitulasi
     rows.push([]);
     rows.push([
+      '',
       '',
       '',
       '',
@@ -291,13 +316,15 @@ export default function LedgerPage() {
     window.print();
   };
 
-  const hasActiveFilters = !!startDateStr || !!endDateStr || !!selectedTipe || !!selectedSumber || !!searchTerm;
+  const hasActiveFilters = !!startDateStr || !!endDateStr || !!selectedTipe || !!selectedSumber || !!selectedGudangId || !!searchTerm;
 
   const handleResetFilters = () => {
     setDateRange({ startDate: '', endDate: '' });
     setSelectedTipe('');
     setSelectedSumber('');
     setTempSumber('');
+    setSelectedGudangId('');
+    setTempGudangId('');
     setSearchTerm('');
     setPage(1);
   };
@@ -311,6 +338,8 @@ export default function LedgerPage() {
         return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-300 dark:border-indigo-800/50';
       case 'BIAYA_OPERASIONAL':
         return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800/50';
+      case 'BEBAN_SUSUT_GUDANG':
+        return 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-300 dark:border-orange-800/50';
       case 'KASBON':
       case 'GAJI':
         return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800/50';
@@ -569,9 +598,10 @@ export default function LedgerPage() {
           <FilterButton
             onClick={() => {
               setTempSumber(selectedSumber);
+              setTempGudangId(selectedGudangId);
               setIsFilterOpen(true);
             }}
-            activeCount={selectedSumber ? 1 : 0}
+            activeCount={(selectedSumber ? 1 : 0) + (selectedGudangId ? 1 : 0)}
             className="sm:h-[42px]"
           />
         </div>
@@ -591,6 +621,18 @@ export default function LedgerPage() {
                 </span>
                 <button
                   onClick={() => { setDateRange({ startDate: '', endDate: '' }); setPage(1); }}
+                  className="text-neutral-400 hover:text-rose-500 transition-colors"
+                >
+                  <IconX size={13} />
+                </button>
+              </div>
+            )}
+
+            {selectedGudangId && (
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300 border border-neutral-200/60 dark:border-neutral-700/50">
+                <span>Lokasi: {gudangList.find((g) => g.id === selectedGudangId)?.nama || selectedGudangId}</span>
+                <button
+                  onClick={() => { setSelectedGudangId(''); setTempGudangId(''); setPage(1); }}
                   className="text-neutral-400 hover:text-rose-500 transition-colors"
                 >
                   <IconX size={13} />
@@ -651,6 +693,7 @@ export default function LedgerPage() {
             <thead className="bg-neutral-50 text-xs font-semibold uppercase text-neutral-500 dark:bg-neutral-800/50 dark:text-neutral-400">
               <tr>
                 <th className="px-5 py-3.5">Waktu</th>
+                <th className="px-5 py-3.5">Lokasi</th>
                 <th className="px-5 py-3.5">Keterangan / Transaksi</th>
                 <th className="px-5 py-3.5">Sumber</th>
                 <th className="px-5 py-3.5 text-right">Debit (Masuk)</th>
@@ -661,7 +704,7 @@ export default function LedgerPage() {
             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-neutral-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-neutral-500">
                     <div className="inline-flex items-center gap-2 font-medium">
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
                       Memuat data buku besar...
@@ -670,7 +713,7 @@ export default function LedgerPage() {
                 </tr>
               ) : paginatedList.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-neutral-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-neutral-500">
                     Belum ada data mutasi yang sesuai dengan filter.
                   </td>
                 </tr>
@@ -685,6 +728,15 @@ export default function LedgerPage() {
                         <div className="text-[11px] text-neutral-400">
                           {item.created_at ? format(new Date(item.created_at), 'HH:mm') : '-'}
                         </div>
+                      </td>
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        {item.gudang?.nama ? (
+                          <span className="inline-flex items-center rounded-md bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs font-semibold text-neutral-700 dark:text-neutral-300 border border-neutral-200/60 dark:border-neutral-700/50">
+                            {item.gudang.nama}
+                          </span>
+                        ) : (
+                          '-'
+                        )}
                       </td>
                       <td className="px-5 py-3.5">
                         <p className="font-medium text-neutral-900 dark:text-white leading-snug">
@@ -719,7 +771,7 @@ export default function LedgerPage() {
                       <td className="px-5 py-3 whitespace-nowrap font-bold text-neutral-600 dark:text-neutral-300">
                         {format(new Date(startDateStr), 'd MMM yyyy', { locale: localeId })}
                       </td>
-                      <td colSpan={2} className="px-5 py-3">
+                      <td colSpan={3} className="px-5 py-3">
                         <span className="font-bold text-neutral-700 dark:text-neutral-200">
                           Saldo Awal Periode (Sebelum {format(new Date(startDateStr), 'd MMMM yyyy', { locale: localeId })})
                         </span>
@@ -765,7 +817,12 @@ export default function LedgerPage() {
                   <p className="font-bold text-neutral-900 dark:text-white text-xs line-clamp-2">
                     {item.keterangan}
                   </p>
-                  <div className="flex items-center gap-1.5 mt-1">
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    {item.gudang?.nama && (
+                      <span className="inline-flex items-center rounded-md bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 text-[9px] font-semibold text-neutral-700 dark:text-neutral-300 border border-neutral-200/60 dark:border-neutral-700/50">
+                        {item.gudang.nama}
+                      </span>
+                    )}
                     <span className={`inline-flex items-center rounded-full px-1.5 py-0.2 text-[9px] font-bold border ${getSumberBadge(item.sumber)}`}>
                       {item.sumber.replace(/_/g, ' ')}
                     </span>
@@ -864,6 +921,17 @@ export default function LedgerPage() {
               ? 'Transaksi ini akan menambah saldo kas toko dan tercatat sebagai Debit (Pemasukan).'
               : 'Transaksi ini akan mengurangi saldo kas toko dan tercatat sebagai Kredit (Pengeluaran).'}
           </div>
+
+          <SelectInput
+            label="Lokasi Toko / Cabang"
+            value={modalGudangId}
+            onChange={(val) => setModalGudangId(val)}
+            options={gudangList.map((g) => ({
+              label: `${g.nama} (${g.kode_gudang})`,
+              value: g.id,
+            }))}
+            required
+          />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <SelectInput
@@ -1022,6 +1090,24 @@ export default function LedgerPage() {
         <div className="space-y-5">
           <div className="flex flex-col gap-2">
             <label className="text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400">
+              Lokasi Toko / Gudang:
+            </label>
+            <SelectInput
+              value={tempGudangId}
+              onChange={(val) => setTempGudangId(val)}
+              options={[
+                { label: 'Semua Lokasi / Outlet', value: '' },
+                ...gudangList.map((g) => ({
+                  label: `${g.nama} (${g.kode_gudang})`,
+                  value: g.id,
+                })),
+              ]}
+              className="w-full"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400">
               Kategori / Sumber Transaksi:
             </label>
             <SelectInput
@@ -1032,6 +1118,7 @@ export default function LedgerPage() {
                 { label: 'Penjualan Shift Kasir', value: 'PENJUALAN_SHIFT' },
                 { label: 'Pembelian Stok (Kulakan)', value: 'PEMBELIAN_STOK' },
                 { label: 'Biaya Operasional', value: 'BIAYA_OPERASIONAL' },
+                { label: 'Beban Susut Gudang (Rusak/Expired)', value: 'BEBAN_SUSUT_GUDANG' },
                 { label: 'Pencairan Kasbon', value: 'KASBON' },
                 { label: 'Pembayaran Gaji / EWA', value: 'GAJI' },
                 { label: 'Retur Penjualan', value: 'RETUR_PENJUALAN' },
@@ -1049,6 +1136,8 @@ export default function LedgerPage() {
               onClick={() => {
                 setTempSumber('');
                 setSelectedSumber('');
+                setTempGudangId('');
+                setSelectedGudangId('');
                 setIsFilterOpen(false);
                 setPage(1);
               }}
@@ -1060,6 +1149,7 @@ export default function LedgerPage() {
               className="w-1/2"
               onClick={() => {
                 setSelectedSumber(tempSumber);
+                setSelectedGudangId(tempGudangId);
                 setIsFilterOpen(false);
                 setPage(1);
               }}

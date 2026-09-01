@@ -2,8 +2,9 @@ import { format } from 'date-fns';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { reportApi, InventoryValue } from '@/lib/api';
+import { gudangApi } from '@/lib/api/warehouse';
 import { formatCurrency, exportToCSV } from '@/lib/utils';
-import { Button } from '@/components/ui';
+import { Button, SelectInput } from '@/components/ui';
 import { toast } from 'sonner';
 import { IconCash, IconDownload, IconPackage } from '@tabler/icons-react';
 import { ReportState } from '@/components/analytics/ReportState';
@@ -11,11 +12,22 @@ import { ReportPagination } from '@/components/analytics/ReportPagination';
 
 export function ValueReportTab() {
   const [page, setPage] = useState(1);
+  const [selectedGudangId, setSelectedGudangId] = useState<string>('');
   const ITEMS_PER_PAGE = 50;
 
+  const { data: gudangRes } = useQuery({
+    queryKey: ['warehouse-list'],
+    queryFn: () => gudangApi.getAll({ activeOnly: true }),
+  });
+  const gudangList = useMemo(() => gudangRes?.data || [], [gudangRes?.data]);
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ['report', 'inventory_value', page],
-    queryFn: () => reportApi.getInventoryValue({ page, limit: ITEMS_PER_PAGE }),
+    queryKey: ['report', 'inventory_value', page, selectedGudangId],
+    queryFn: () =>
+      reportApi.getInventoryValue({
+        pagination: { page, limit: ITEMS_PER_PAGE },
+        gudangId: selectedGudangId || undefined,
+      }),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -24,10 +36,10 @@ export function ValueReportTab() {
 
   const handleExportCSV = async () => {
     try {
-      // Export all inventory - we can just fetch without limit for export or use a specific export method.
-      // Since there's no exportInventoryValue yet, we can simulate by fetching large limit or just export current page.
-      // Ideally, there should be an export method. Let's just fetch page 1 with limit 10000 for simplicity.
-      const result = await reportApi.getInventoryValue({ page: 1, limit: 10000 });
+      const result = await reportApi.getInventoryValue({
+        pagination: { page: 1, limit: 10000 },
+        gudangId: selectedGudangId || undefined,
+      });
       if (result.error || !result.data) {
         toast.error('Gagal mengekspor data');
         return;
@@ -43,10 +55,14 @@ export function ValueReportTab() {
         item.total_value,
       ]);
 
+      const gName = selectedGudangId
+        ? (gudangList.find((g) => g.id === selectedGudangId)?.kode_gudang || 'cabang').toLowerCase()
+        : 'semua_lokasi';
+
       exportToCSV(
         csvData,
         ['Barcode', 'Nama Barang', 'Kategori', 'Stok', 'Harga Beli', 'Harga Jual', 'Nilai Total'],
-        `report_inventory_value_${format(new Date(), 'yyyy-MM-dd')}.csv`,
+        `report_inventory_value_${gName}_${format(new Date(), 'yyyy-MM-dd')}.csv`,
       );
     } catch (err) {
       toast.error('Terjadi kesalahan saat mengekspor');
@@ -77,7 +93,25 @@ export function ValueReportTab() {
 
   return (
     <div className="space-y-4">
-      <div className="mb-4 flex justify-end">{exportButton}</div>
+      <div className="mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="w-full sm:w-64">
+          <SelectInput
+            value={selectedGudangId}
+            onChange={(val) => {
+              setSelectedGudangId(val);
+              setPage(1);
+            }}
+            options={[
+              { label: 'Semua Lokasi / Outlet', value: '' },
+              ...gudangList.map((g) => ({
+                label: `${g.nama} (${g.kode_gudang})`,
+                value: g.id,
+              })),
+            ]}
+          />
+        </div>
+        <div className="flex justify-end">{exportButton}</div>
+      </div>
 
       <ReportState
         loading={isLoading}

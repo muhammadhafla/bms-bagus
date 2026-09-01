@@ -144,22 +144,47 @@ export const reportApi = {
     };
   },
 
-  async getInventoryValue(pagination?: PaginationOptions) {
+  async getInventoryValue(options?: { pagination?: PaginationOptions; gudangId?: string } | PaginationOptions) {
+    // Backward-compatibility: jika parameter pertama adalah PaginationOptions langsung
+    const pagination = options && ('page' in options || 'limit' in options) ? (options as PaginationOptions) : (options as { pagination?: PaginationOptions; gudangId?: string })?.pagination;
+    const gudangId = options && 'gudangId' in options ? options.gudangId : undefined;
+
     const { page, limit } = calculatePagination(pagination?.page, pagination?.limit);
     const offset = (page - 1) * limit;
 
     const [summaryResult, listResult] = await Promise.all([
       safeQuery<any[]>(async () => {
-        const res = await supabase.rpc('get_inventory_summary');
+        const res = await supabase.rpc('get_inventory_summary', { p_gudang_id: gudangId || null });
         return { data: res.data, error: res.error as Error | null };
       }),
       safeQuery<any[]>(async () => {
-        const result = await supabase
-          .from('inventory')
-          .select('*, id_kategori:id_kategori(nama)')
-          .order('nama_barang')
-          .range(offset, offset + limit); // +1 to check hasMore
-        return { data: result.data, error: result.error as Error | null };
+        if (gudangId) {
+          const result = await supabase
+            .from('inventory_stocks')
+            .select(`
+              stok,
+              inventory:inventory_id (
+                id,
+                nama_barang,
+                kode_barcode,
+                harga_beli_terakhir,
+                harga_jual,
+                is_discontinued,
+                id_kategori:id_kategori (nama)
+              )
+            `)
+            .eq('gudang_id', gudangId)
+            .range(offset, offset + limit);
+          return { data: result.data, error: result.error as Error | null };
+        } else {
+          const result = await supabase
+            .from('inventory')
+            .select('*, id_kategori:id_kategori(nama)')
+            .eq('is_discontinued', false)
+            .order('nama_barang')
+            .range(offset, offset + limit); // +1 to check hasMore
+          return { data: result.data, error: result.error as Error | null };
+        }
       }),
     ]);
 
@@ -171,16 +196,32 @@ export const reportApi = {
       resData.pop();
     }
 
-    const values: InventoryValue[] = resData.map((item) => ({
-      id: item.id,
-      barcode: item.kode_barcode || '',
-      nama_barang: item.nama_barang,
-      kategori: item.id_kategori?.nama || '-',
-      stok: item.stok,
-      harga_beli: item.harga_beli_terakhir || 0,
-      harga_jual: item.harga_jual,
-      total_value: item.stok * (item.harga_beli_terakhir || 0),
-    }));
+    let values: InventoryValue[] = [];
+    if (gudangId) {
+      values = resData
+        .filter((row: any) => row.inventory && !row.inventory.is_discontinued)
+        .map((row: any) => ({
+          id: row.inventory.id,
+          barcode: row.inventory.kode_barcode || '',
+          nama_barang: row.inventory.nama_barang,
+          kategori: row.inventory.id_kategori?.nama || '-',
+          stok: row.stok,
+          harga_beli: row.inventory.harga_beli_terakhir || 0,
+          harga_jual: row.inventory.harga_jual,
+          total_value: row.stok * (row.inventory.harga_beli_terakhir || 0),
+        }));
+    } else {
+      values = resData.map((item) => ({
+        id: item.id,
+        barcode: item.kode_barcode || '',
+        nama_barang: item.nama_barang,
+        kategori: item.id_kategori?.nama || '-',
+        stok: item.stok,
+        harga_beli: item.harga_beli_terakhir || 0,
+        harga_jual: item.harga_jual,
+        total_value: item.stok * (item.harga_beli_terakhir || 0),
+      }));
+    }
 
     const summaryData = summaryResult.data?.[0];
     const grandTotal = summaryData ? {

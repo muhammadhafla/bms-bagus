@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ledgerApi } from '@/lib/api/ledger';
+import { gudangApi } from '@/lib/api/warehouse';
 import { 
   Button, 
   Modal, 
@@ -17,7 +18,7 @@ import {
   IconReceipt, 
   IconPlus, 
   IconTrash, 
-  IconEdit,
+  IconEdit, 
   IconArrowUpRight 
 } from '@tabler/icons-react';
 import { format } from 'date-fns';
@@ -28,11 +29,18 @@ export default function PengeluaranOperasionalPage() {
   const queryClient = useQueryClient();
 
   const [page, setPage] = useState(1);
+  const [selectedGudangId, setSelectedGudangId] = useState<string>('');
   const limit = 50;
 
+  const { data: gudangRes } = useQuery({
+    queryKey: ['warehouse-list'],
+    queryFn: () => gudangApi.getAll({ activeOnly: true }),
+  });
+  const gudangList = useMemo(() => gudangRes?.data || [], [gudangRes?.data]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ['pengeluaran_operasional'],
-    queryFn: () => ledgerApi.getPengeluaranOperasional(),
+    queryKey: ['pengeluaran_operasional', selectedGudangId],
+    queryFn: () => ledgerApi.getPengeluaranOperasional(undefined, undefined, undefined, selectedGudangId || undefined),
   });
 
   const list = data || [];
@@ -44,6 +52,7 @@ export default function PengeluaranOperasionalPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [gudangId, setGudangId] = useState('');
   const [kategori, setKategori] = useState('Listrik');
   const [kategoriLainnya, setKategoriLainnya] = useState('');
   const [nominal, setNominal] = useState('');
@@ -51,6 +60,14 @@ export default function PengeluaranOperasionalPage() {
   const [tanggal, setTanggal] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   const standardCategories = ['Listrik', 'Air', 'Internet', 'Konsumsi', 'Sewa', 'ATK'];
+
+  // Default warehouse when modal opens
+  useEffect(() => {
+    if (gudangList.length > 0 && !gudangId) {
+      const def = gudangList.find((g) => g.is_default) || gudangList[0];
+      setGudangId(def?.id || '');
+    }
+  }, [gudangList, gudangId]);
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -63,6 +80,7 @@ export default function PengeluaranOperasionalPage() {
           nominal: cleanNominal,
           keterangan,
           tanggal,
+          gudang_id: gudangId || null,
         });
       } else {
         return ledgerApi.insertPengeluaranOperasional({
@@ -70,7 +88,8 @@ export default function PengeluaranOperasionalPage() {
           nominal: cleanNominal,
           keterangan,
           tanggal,
-          metode_pembayaran: 'CASH'
+          metode_pembayaran: 'CASH',
+          gudang_id: gudangId || null,
         });
       }
     },
@@ -100,6 +119,8 @@ export default function PengeluaranOperasionalPage() {
 
   const resetForm = () => {
     setEditingId(null);
+    const def = gudangList.find((g) => g.is_default) || gudangList[0];
+    setGudangId(def?.id || '');
     setKategori('Listrik');
     setKategoriLainnya('');
     setNominal('');
@@ -109,6 +130,7 @@ export default function PengeluaranOperasionalPage() {
 
   const handleOpenEdit = (item: any) => {
     setEditingId(item.id);
+    setGudangId(item.gudang_id || '');
     if (standardCategories.includes(item.kategori)) {
       setKategori(item.kategori);
       setKategoriLainnya('');
@@ -140,17 +162,35 @@ export default function PengeluaranOperasionalPage() {
             </p>
           </div>
         </div>
-        <Button 
-          onClick={() => {
-            resetForm();
-            setIsModalOpen(true);
-          }} 
-          className="flex items-center justify-center gap-2" 
-          variant="primary"
-        >
-          <IconPlus size={18} />
-          <span>Tambah Pengeluaran</span>
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="w-48 sm:w-56">
+            <SelectInput
+              value={selectedGudangId}
+              onChange={(val) => {
+                setSelectedGudangId(val);
+                setPage(1);
+              }}
+              options={[
+                { label: 'Semua Outlet / Cabang', value: '' },
+                ...gudangList.map((g) => ({
+                  label: `${g.nama} (${g.kode_gudang})`,
+                  value: g.id,
+                })),
+              ]}
+            />
+          </div>
+          <Button 
+            onClick={() => {
+              resetForm();
+              setIsModalOpen(true);
+            }} 
+            className="flex items-center justify-center gap-2" 
+            variant="primary"
+          >
+            <IconPlus size={18} />
+            <span>Tambah Pengeluaran</span>
+          </Button>
+        </div>
       </div>
 
       {/* Desktop Table */}
@@ -160,6 +200,7 @@ export default function PengeluaranOperasionalPage() {
             <thead className="bg-neutral-50 text-xs font-semibold uppercase text-neutral-500 dark:bg-neutral-800/50 dark:text-neutral-400">
               <tr>
                 <th className="px-6 py-4">Tanggal</th>
+                <th className="px-6 py-4">Lokasi</th>
                 <th className="px-6 py-4">Kategori</th>
                 <th className="px-6 py-4">Keterangan</th>
                 <th className="px-6 py-4 text-right">Nominal</th>
@@ -169,13 +210,22 @@ export default function PengeluaranOperasionalPage() {
             </thead>
             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
               {isLoading ? (
-                <tr><td colSpan={6} className="px-6 py-8 text-center">Memuat data...</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center">Memuat data...</td></tr>
               ) : paginatedList.length === 0 ? (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-neutral-500">Belum ada data pengeluaran operasional.</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-neutral-500">Belum ada data pengeluaran operasional.</td></tr>
               ) : (
                 paginatedList.map((item: any) => (
                   <tr key={item.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">{format(new Date(item.tanggal), 'd MMM yyyy', { locale: localeId })}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {item.gudang?.nama ? (
+                        <span className="inline-flex items-center rounded-md bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 text-xs font-semibold text-neutral-700 dark:text-neutral-300 border border-neutral-200/60 dark:border-neutral-700/50">
+                          {item.gudang.nama}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
                     <td className="px-6 py-4 font-medium">{item.kategori}</td>
                     <td className="px-6 py-4">{item.keterangan || '-'}</td>
                     <td className="px-6 py-4 text-right font-semibold text-rose-600 dark:text-rose-400">
@@ -240,9 +290,16 @@ export default function PengeluaranOperasionalPage() {
                 <IconArrowUpRight className="h-6 w-6" />
               </div>
               <div className="flex-1 min-w-0 pr-12">
-                <p className="font-bold text-neutral-900 dark:text-white truncate">
-                  {item.kategori}
-                </p>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className="font-bold text-neutral-900 dark:text-white truncate">
+                    {item.kategori}
+                  </p>
+                  {item.gudang?.nama && (
+                    <span className="inline-flex items-center rounded-md bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 text-[9px] font-semibold text-neutral-700 dark:text-neutral-300 border border-neutral-200/60 dark:border-neutral-700/50">
+                      {item.gudang.nama}
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-neutral-500 mt-0.5 truncate">{item.keterangan || '-'}</p>
                 <p className="text-[10px] text-neutral-400 mt-0.5">{format(new Date(item.tanggal), 'd MMM yyyy', { locale: localeId })}</p>
               </div>
@@ -280,6 +337,17 @@ export default function PengeluaranOperasionalPage() {
         isBottomSheetOnMobile
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-4">
+          <SelectInput
+            label="Lokasi Toko / Cabang"
+            value={gudangId}
+            onChange={(val) => setGudangId(val)}
+            options={gudangList.map((g) => ({
+              label: `${g.nama} (${g.kode_gudang})`,
+              value: g.id,
+            }))}
+            required
+          />
+
           <SelectInput
             label="Kategori"
             value={kategori}

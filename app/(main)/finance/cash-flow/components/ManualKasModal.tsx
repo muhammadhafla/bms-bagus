@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import TextInput from '@/components/ui/TextInput';
@@ -8,7 +8,8 @@ import SelectInput from '@/components/ui/SelectInput';
 import { PriceInput } from '@/components/ui/PriceInput';
 import TextareaInput from '@/components/ui/TextareaInput';
 import { kasApi } from '@/lib/api';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { gudangApi } from '@/lib/api/warehouse';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 interface ManualKasModalProps {
@@ -22,18 +23,27 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
   const [jumlah, setJumlah] = useState<number | null>(null);
   const [catatan, setCatatan] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
+  const [gudangId, setGudangId] = useState('');
 
   const queryClient = useQueryClient();
 
-  // Reset form when opened with new type
-  React.useEffect(() => {
+  const { data: gudangRes } = useQuery({
+    queryKey: ['warehouse-list'],
+    queryFn: () => gudangApi.getAll({ activeOnly: true }),
+  });
+  const gudangList = useMemo(() => gudangRes?.data || [], [gudangRes?.data]);
+
+  // Reset form when opened with new type & set default gudang
+  useEffect(() => {
     if (isOpen) {
       setTipe(defaultType);
       setJumlah(null);
       setCatatan('');
       setPaymentMethod('CASH');
+      const def = gudangList.find((g) => g.is_default) || gudangList[0];
+      setGudangId(def?.id || '');
     }
-  }, [isOpen, defaultType]);
+  }, [isOpen, defaultType, gudangList]);
 
   const mutation = useMutation({
     mutationFn: kasApi.addManualEntry,
@@ -65,6 +75,7 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
       jumlah,
       catatan,
       payment_method: paymentMethod,
+      gudang_id: gudangId || undefined,
     });
   };
 
@@ -78,6 +89,17 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
       isBottomSheetOnMobile
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        <SelectInput
+          label="Lokasi Toko / Gudang"
+          value={gudangId}
+          onChange={(val) => setGudangId(val)}
+          options={gudangList.map((g) => ({
+            label: `${g.nama} (${g.kode_gudang})`,
+            value: g.id,
+          }))}
+          required
+        />
+
         <SelectInput
           label="Tipe Kas"
           value={tipe}

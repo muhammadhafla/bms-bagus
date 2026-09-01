@@ -10,9 +10,15 @@ export interface KasLogItem {
   created_by: string;
   created_at: string;
   payment_method: string;
-  // relasi (jika dijoin dengan profiles)
+  gudang_id?: string | null;
+  // relasi (jika dijoin dengan profiles / gudang)
   profiles?: {
     nama: string;
+  } | null;
+  gudang?: {
+    id: string;
+    nama: string;
+    kode_gudang: string;
   } | null;
 }
 
@@ -27,6 +33,7 @@ export const kasApi = {
     endDate?: string;
     type?: string;
     userId?: string;
+    gudangId?: string;
     sortBy?: string;
     sortDir?: 'asc' | 'desc';
   }) {
@@ -42,7 +49,8 @@ export const kasApi = {
         .select(
           `
           *,
-          profiles!kas_log_created_by_fkey (nama)
+          profiles!kas_log_created_by_fkey (nama),
+          gudang:gudang_id (id, nama, kode_gudang)
         `,
           { count: 'exact' },
         )
@@ -60,6 +68,9 @@ export const kasApi = {
       }
       if (options.userId) {
         query = query.eq('created_by', options.userId);
+      }
+      if (options.gudangId) {
+        query = query.eq('gudang_id', options.gudangId);
       }
 
       const result = await safeQuery(async () => {
@@ -84,7 +95,7 @@ export const kasApi = {
   /**
    * Menghitung total pemasukan, pengeluaran, dan saldo berdasarkan filter
    */
-  async getSummary(options: { startDate?: string; endDate?: string; userId?: string }) {
+  async getSummary(options: { startDate?: string; endDate?: string; userId?: string; gudangId?: string }) {
     try {
       let query = supabase.from('kas_log').select('tipe, jumlah');
 
@@ -96,6 +107,9 @@ export const kasApi = {
       }
       if (options.userId) {
         query = query.eq('created_by', options.userId);
+      }
+      if (options.gudangId) {
+        query = query.eq('gudang_id', options.gudangId);
       }
 
       const { data, error } = await safeQuery(async () => {
@@ -279,6 +293,7 @@ export const kasApi = {
     jumlah: number;
     catatan: string;
     payment_method?: string;
+    gudang_id?: string | null;
   }) {
     try {
       const { data: authData } = await supabase.auth.getUser();
@@ -286,12 +301,23 @@ export const kasApi = {
 
       if (!userId) throw new Error('User tidak ditemukan');
 
+      let targetGudangId = data.gudang_id;
+      if (!targetGudangId) {
+        const { data: defGudang } = await supabase
+          .from('gudang')
+          .select('id')
+          .eq('is_default', true)
+          .maybeSingle();
+        targetGudangId = defGudang?.id || null;
+      }
+
       const payload = {
         tipe: data.tipe,
         jumlah: data.jumlah,
         catatan: data.catatan,
         created_by: userId,
         payment_method: data.payment_method || 'CASH',
+        gudang_id: targetGudangId,
       };
 
       const result = await safeQuery(

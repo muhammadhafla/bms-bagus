@@ -13,17 +13,19 @@ export const ledgerApi = {
   async getPengeluaranOperasional(
     startDate?: string,
     endDate?: string,
-    kategori?: string
+    kategori?: string,
+    gudangId?: string
   ) {
     let query = supabase
       .from('pengeluaran_operasional')
-      .select('*, profiles(nama)')
+      .select('*, profiles(nama), gudang:gudang_id(id, nama, kode_gudang)')
       .order('tanggal', { ascending: false })
       .order('created_at', { ascending: false });
 
     if (startDate) query = query.gte('tanggal', startDate);
     if (endDate) query = query.lte('tanggal', endDate);
     if (kategori) query = query.eq('kategori', kategori);
+    if (gudangId) query = query.eq('gudang_id', gudangId);
 
     const { data, error } = await query;
     if (error) throw error;
@@ -34,9 +36,19 @@ export const ledgerApi = {
   async insertPengeluaranOperasional(
     payload: Omit<PengeluaranOperasional, 'id' | 'created_at' | 'updated_at' | 'created_by'>
   ) {
+    let targetGudangId = payload.gudang_id;
+    if (!targetGudangId) {
+      const { data: defGudang } = await supabase
+        .from('gudang')
+        .select('id')
+        .eq('is_default', true)
+        .maybeSingle();
+      targetGudangId = defGudang?.id || null;
+    }
+
     const { data, error } = await supabase
       .from('pengeluaran_operasional')
-      .insert([payload])
+      .insert([{ ...payload, gudang_id: targetGudangId }])
       .select()
       .single();
 
@@ -72,11 +84,12 @@ export const ledgerApi = {
   },
 
   // Mengambil Saldo Awal Kumulatif sebelum tanggal tertentu
-  async getOpeningBalance(startDate?: string): Promise<number> {
+  async getOpeningBalance(startDate?: string, gudangId?: string): Promise<number> {
     if (!startDate) return 0;
     
     const { data, error } = await supabase.rpc('get_ledger_opening_balance', {
-      p_start_date: startDate
+      p_start_date: startDate,
+      p_gudang_id: gudangId || null
     });
 
     if (error) {
@@ -92,11 +105,12 @@ export const ledgerApi = {
     endDate?: string,
     tipe?: LedgerTipe,
     sumber?: LedgerSumber,
-    search?: string
+    search?: string,
+    gudangId?: string
   ) {
     let query = supabase
       .from('buku_besar')
-      .select('*, profiles(nama)')
+      .select('*, profiles(nama), gudang:gudang_id(id, nama, kode_gudang)')
       .order('tanggal', { ascending: false })
       .order('created_at', { ascending: false });
 
@@ -104,6 +118,7 @@ export const ledgerApi = {
     if (endDate) query = query.lte('tanggal', endDate);
     if (tipe) query = query.eq('tipe_transaksi', tipe);
     if (sumber) query = query.eq('sumber', sumber);
+    if (gudangId) query = query.eq('gudang_id', gudangId);
     if (search && search.trim() !== '') {
       query = query.ilike('keterangan', `%${search.trim()}%`);
     }
@@ -120,7 +135,18 @@ export const ledgerApi = {
     sumber?: LedgerSumber;
     keterangan: string;
     tanggal?: string;
+    gudang_id?: string;
   }) {
+    let targetGudangId = params.gudang_id;
+    if (!targetGudangId) {
+      const { data: defGudang } = await supabase
+        .from('gudang')
+        .select('id')
+        .eq('is_default', true)
+        .maybeSingle();
+      targetGudangId = defGudang?.id || null;
+    }
+
     const { data, error } = await supabase
       .from('buku_besar')
       .insert([{
@@ -129,6 +155,7 @@ export const ledgerApi = {
         nominal: params.nominal,
         keterangan: params.keterangan,
         tanggal: params.tanggal || format(new Date(), 'yyyy-MM-dd'),
+        gudang_id: targetGudangId,
       }])
       .select()
       .single();
@@ -138,12 +165,13 @@ export const ledgerApi = {
   },
 
   // Set Saldo Awal Buku Besar (Backward compatibility)
-  async insertSaldoAwalBukuBesar(nominal: number, keterangan: string) {
+  async insertSaldoAwalBukuBesar(nominal: number, keterangan: string, gudang_id?: string) {
     return this.insertPenyesuaianSaldo({
       nominal,
       tipe: 'PEMASUKAN',
       sumber: 'MODAL',
-      keterangan
+      keterangan,
+      gudang_id,
     });
   }
 };

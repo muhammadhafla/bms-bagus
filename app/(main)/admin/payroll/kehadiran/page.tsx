@@ -206,7 +206,7 @@ function AdminKehadiranContent() {
   }, [storeList]);
 
   const storeFormOptions = useMemo(() => {
-    const opts = [{ label: 'Pilih Lokasi Toko (Opsional)', value: '' }];
+    const opts: { label: string; value: string }[] = [];
     if (storeList) {
       storeList.forEach(s => {
         opts.push({ label: s.nama, value: s.id });
@@ -1164,7 +1164,9 @@ function AdminKehadiranContent() {
               name="user_id"
               value={createUserId}
               onChange={setCreateUserId}
-              options={[{ label: 'Pilih Karyawan', value: '' }, ...karyawanIdOptions]}
+              options={karyawanIdOptions}
+              placeholder="Pilih Karyawan..."
+              searchPlaceholder="Cari nama karyawan..."
               required
             />
             

@@ -103,6 +103,11 @@ export function CashFlowDesktopTable({
                   )}
                   <td className="px-5 py-3 text-sm">{getTypeBadge(item.tipe)}</td>
                   <td className="max-w-xs truncate px-5 py-3 text-sm text-neutral-600 dark:text-neutral-400">
+                    {item.gudang?.nama && (
+                      <span className="inline-flex items-center rounded-md bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 text-[10px] font-semibold text-neutral-700 dark:text-neutral-300 mr-1.5 border border-neutral-200/60 dark:border-neutral-700/50">
+                        {item.gudang.nama}
+                      </span>
+                    )}
                     {item.catatan ||
                       (item.tipe === 'JUAL' ? `Ref: ${item.referensi_id?.slice(0, 8) || '-'}` : '-')}
                   </td>

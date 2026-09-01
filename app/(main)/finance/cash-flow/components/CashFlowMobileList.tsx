@@ -77,9 +77,16 @@ export function CashFlowMobileList({
               )}
             </div>
 
-            <p className="mt-1 line-clamp-2 text-sm text-neutral-600 dark:text-neutral-400">
-              {item.catatan || (item.tipe === 'JUAL' ? `Ref: ${item.referensi_id?.slice(0, 8) || '-'}` : '-')}
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              {item.gudang?.nama && (
+                <span className="inline-flex items-center rounded-md bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 text-[9px] font-semibold text-neutral-700 dark:text-neutral-300 border border-neutral-200/60 dark:border-neutral-700/50">
+                  {item.gudang.nama}
+                </span>
+              )}
+              <p className="line-clamp-2 text-xs text-neutral-600 dark:text-neutral-400">
+                {item.catatan || (item.tipe === 'JUAL' ? `Ref: ${item.referensi_id?.slice(0, 8) || '-'}` : '-')}
+              </p>
+            </div>
 
             <div className="mt-2 flex items-end justify-between border-t border-neutral-100 pt-2 dark:border-neutral-800/60">
               <Badge variant="default" className="inline-flex bg-neutral-100 px-2 py-0.5 text-[10px] dark:bg-neutral-800">

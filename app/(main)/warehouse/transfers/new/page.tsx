@@ -52,8 +52,8 @@ function NewTransferContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const { user, profile, hasRole } = useAuthStore();
-  const isSupervisorOrAdmin = profile?.role === 'admin' || hasRole('kepala_gudang') || hasRole('admin');
+  const { user, profile, hasRole, isAdmin } = useAuthStore();
+  const isSupervisorOrAdmin = isAdmin() || hasRole('kepala_cabang');
 
   const paramAsal = searchParams.get('asal') || (!isSupervisorOrAdmin ? profile?.default_gudang_id : null);
   const paramBarcode = searchParams.get('itemBarcode');

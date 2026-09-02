@@ -54,8 +54,8 @@ export default function WarehouseOutboundPage() {
 function WarehouseOutboundContent() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const { user, profile, hasRole } = useAuthStore();
-  const isSupervisorOrAdmin = profile?.role === 'admin' || hasRole('kepala_gudang') || hasRole('admin');
+  const { user, profile, hasRole, isAdmin } = useAuthStore();
+  const isSupervisorOrAdmin = isAdmin() || hasRole('kepala_cabang');
 
   const [activeTab, setActiveTab] = useState<'ALL' | 'DRAFT' | 'APPROVED' | 'REJECTED'>('ALL');
   const [selectedGudangId, setSelectedGudangId] = useState<string>('');

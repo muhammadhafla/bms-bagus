@@ -354,9 +354,27 @@ export default function ProfilePage() {
               <div className="min-w-0 flex-1">
                 <h2 className="truncate text-lg font-bold">{profile?.nama || 'User'}</h2>
                 <p className="text-brand-100 mb-1 truncate text-xs">{user?.email}</p>
-                <span className="inline-block rounded-md bg-white/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase">
-                  {profile?.role || 'Staff'}
-                </span>
+                <div className="flex flex-wrap gap-1 mt-0.5">
+                  {(profile?.roles && profile.roles.length > 0 ? profile.roles : ['Staff']).map((r) => {
+                    const roleLabelMap: Record<string, string> = {
+                      admin: 'Admin',
+                      kepala_cabang: 'Kepala Cabang',
+                      kepala_gudang: 'Kepala Cabang',
+                      staff_gudang: 'Staf Gudang',
+                      kasir: 'Kasir',
+                      finance: 'Finance',
+                      staff: 'Staff',
+                    };
+                    return (
+                      <span
+                        key={r}
+                        className="inline-block rounded-md bg-white/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase"
+                      >
+                        {roleLabelMap[r] || r}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
               
               <div className="flex items-center gap-1">

@@ -97,9 +97,7 @@ function HelpContent() {
 
   // Calculate current user's active roles
   const userRoles = useMemo(() => {
-    if (profile?.roles && profile.roles.length > 0) return profile.roles;
-    if (profile?.role) return [profile.role];
-    return [];
+    return profile?.roles && profile.roles.length > 0 ? profile.roles : [];
   }, [profile]);
 
   // Full Sequence for Previous / Next Navigation

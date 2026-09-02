@@ -40,11 +40,12 @@ export async function POST(request: Request) {
     // Check if requester is admin
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('role')
+      .select('roles')
       .eq('id', user.id)
       .single();
 
-    if (profile?.role !== 'admin') {
+    const requesterRoles: string[] = profile?.roles || [];
+    if (!requesterRoles.includes('admin')) {
       return NextResponse.json(
         { error: 'Forbidden. Hanya Admin yang bisa membuat akun.' },
         { status: 403 },
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
 
     // Parse payload
     const body = await request.json();
-    const { email, password, nama, username, role, roles, default_gudang_id } = body;
+    const { email, password, nama, username, roles, default_gudang_id } = body;
 
     if (!email || !password || !nama) {
       return NextResponse.json({ error: 'Email, Password, dan Nama wajib diisi' }, { status: 400 });
@@ -61,8 +62,7 @@ export async function POST(request: Request) {
 
     const assignedRoles: string[] = Array.isArray(roles) && roles.length > 0 
       ? roles 
-      : role ? [role] : ['kasir', 'staff_gudang'];
-    const primaryRole = assignedRoles.includes('admin') ? 'admin' : 'staff';
+      : ['kasir', 'staff_gudang'];
 
     // Check if username already exists
     if (username) {
@@ -99,7 +99,6 @@ export async function POST(request: Request) {
       .update({
         nama,
         username: username || null,
-        role: primaryRole,
         roles: assignedRoles,
         default_gudang_id: default_gudang_id || null,
       })
@@ -111,7 +110,6 @@ export async function POST(request: Request) {
         id: newUser.user.id,
         nama,
         username: username || null,
-        role: primaryRole,
         roles: assignedRoles,
         default_gudang_id: default_gudang_id || null,
       });

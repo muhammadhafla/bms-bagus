@@ -30,7 +30,6 @@ interface UserProfile {
   nama: string;
   email: string;
   username: string | null;
-  role: 'admin' | 'staff' | string;
   roles?: string[];
   default_gudang_id: string | null;
   default_gudang?: { id: string; nama: string; kode_gudang: string } | null;
@@ -40,7 +39,8 @@ interface UserProfile {
 
 const ROLE_DISPLAY_MAP: Record<string, { label: string; bg: string; text: string }> = {
   admin: { label: 'Admin', bg: 'bg-rose-100 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-300' },
-  kepala_gudang: { label: 'Kepala Gudang', bg: 'bg-amber-100 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-300' },
+  kepala_cabang: { label: 'Kepala Cabang', bg: 'bg-amber-100 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-300' },
+  kepala_gudang: { label: 'Kepala Cabang', bg: 'bg-amber-100 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-300' },
   staff_gudang: { label: 'Staf Gudang', bg: 'bg-blue-100 dark:bg-blue-950/40', text: 'text-blue-700 dark:text-blue-300' },
   kasir: { label: 'Kasir', bg: 'bg-emerald-100 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-300' },
   finance: { label: 'Finance', bg: 'bg-purple-100 dark:bg-purple-950/40', text: 'text-purple-700 dark:text-purple-300' },
@@ -56,16 +56,14 @@ export default function UsersPage() {
     userId: string;
     userName: string;
     initialUsername?: string | null;
-    userRole: string;
-    userRoles?: string[];
+    userRoles: string[];
     defaultGudangId?: string | null;
   }>({
     isOpen: false,
     userId: '',
     userName: '',
     initialUsername: null,
-    userRole: 'staff',
-    userRoles: ['kasir', 'staff_gudang'],
+    userRoles: [],
     defaultGudangId: null,
   });
   const [page, setPage] = useState(1);
@@ -114,8 +112,12 @@ export default function UsersPage() {
 
       let matchesRole = true;
       if (roleFilter !== 'all') {
-        const userRoles = u.roles || (u.role ? [u.role] : []);
-        matchesRole = userRoles.includes(roleFilter) || u.role === roleFilter;
+        const userRoles = u.roles || [];
+        if (roleFilter === 'kepala_cabang') {
+          matchesRole = userRoles.includes('kepala_cabang') || userRoles.includes('kepala_gudang');
+        } else {
+          matchesRole = userRoles.includes(roleFilter);
+        }
       }
 
       return matchesSearch && matchesRole;
@@ -240,7 +242,7 @@ export default function UsersPage() {
                 >
                   <option value="all">Semua Role</option>
                   <option value="admin">Admin</option>
-                  <option value="kepala_gudang">Kepala Gudang</option>
+                  <option value="kepala_cabang">Kepala Cabang</option>
                   <option value="staff_gudang">Staf Gudang</option>
                   <option value="kasir">Kasir</option>
                   <option value="finance">Finance / Keuangan</option>
@@ -286,7 +288,7 @@ export default function UsersPage() {
                 <div className="py-8 text-center text-neutral-500">Tidak ada user terdaftar</div>
               ) : (
                 pagedUsers.map((u) => {
-                  const userRoles = u.roles && u.roles.length > 0 ? u.roles : [u.role];
+                  const userRoles = u.roles && u.roles.length > 0 ? u.roles : ['staff_gudang'];
                   return (
                     <div
                       key={u.id}
@@ -297,8 +299,7 @@ export default function UsersPage() {
                           userId: u.id,
                           userName: u.nama,
                           initialUsername: u.username,
-                          userRole: u.role,
-                          userRoles: u.roles,
+                          userRoles: u.roles || [],
                           defaultGudangId: u.default_gudang_id,
                         })
                       }
@@ -402,7 +403,7 @@ export default function UsersPage() {
                   ) : (
                     pagedUsers.map((u) => {
                       const isOnline = onlineUsers.includes(u.id);
-                      const userRoles = u.roles && u.roles.length > 0 ? u.roles : [u.role];
+                      const userRoles = u.roles && u.roles.length > 0 ? u.roles : ['staff_gudang'];
                       return (
                         <tr
                           key={u.id}
@@ -413,8 +414,7 @@ export default function UsersPage() {
                               userId: u.id,
                               userName: u.nama,
                               initialUsername: u.username,
-                              userRole: u.role,
-                              userRoles: u.roles,
+                              userRoles: u.roles || [],
                               defaultGudangId: u.default_gudang_id,
                             })
                           }
@@ -510,7 +510,6 @@ export default function UsersPage() {
         userId={editUserModal.userId}
         initialName={editUserModal.userName}
         initialUsername={editUserModal.initialUsername}
-        initialRole={editUserModal.userRole}
         initialRoles={editUserModal.userRoles}
         initialDefaultGudangId={editUserModal.defaultGudangId}
       />

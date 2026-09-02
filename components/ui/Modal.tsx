@@ -79,20 +79,13 @@ export function Modal({
           <Drawer.Content className="fixed right-0 bottom-0 left-0 z-[101] flex max-h-[96vh] flex-col rounded-t-2xl bg-white outline-none dark:bg-neutral-950">
             <div className="mx-auto mt-2.5 mb-1 h-1 w-10 shrink-0 rounded-full bg-neutral-300 dark:bg-neutral-700" />
             {title && (
-              <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-4 py-2.5 dark:border-neutral-800">
+              <div className="flex shrink-0 items-center border-b border-neutral-200 px-4 py-2.5 dark:border-neutral-800">
                 <Drawer.Title
                   id={titleId}
-                  className="text-base font-bold text-neutral-900 dark:text-white"
+                  className="text-base font-bold text-neutral-900 dark:text-white truncate"
                 >
                   {title}
                 </Drawer.Title>
-                <button
-                  onClick={onClose}
-                  className="focus:ring-brand-500 -mr-1.5 flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700 focus:ring-2 focus:outline-none dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
-                  aria-label="Tutup"
-                >
-                  <IconX className="h-4 w-4" />
-                </button>
               </div>
             )}
             <div className="flex-1 overflow-y-auto p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:p-5">

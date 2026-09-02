@@ -59,8 +59,7 @@ const INVENTORY_ITEMS = [
 ];
 
 const WAREHOUSE_ITEMS = [
-  { href: '/warehouse', title: 'Ringkasan Gudang', icon: IconBuildingWarehouse },
-  { href: '/warehouse/stocks', title: 'Stok per Gudang', icon: IconPackage },
+  { href: '/warehouse/stocks', title: 'Stok per Gudang', icon: IconBuildingWarehouse },
   { href: '/warehouse/transfers', title: 'Mutasi & Transfer', icon: IconTruck },
   { href: '/warehouse/outbound', title: 'Pengeluaran Khusus', icon: IconTrash },
 ];
@@ -136,12 +135,27 @@ function SidebarLink({ href, title, icon: Icon, isActive, sidebarCollapsed }: Si
   return link;
 }
 
+const formatRolesLabel = (roles?: string[]) => {
+  if (!roles || roles.length === 0) return 'Staff';
+  if (roles.includes('admin')) return 'Admin';
+  const roleNameMap: Record<string, string> = {
+    kepala_cabang: 'Kepala Cabang',
+    kepala_gudang: 'Kepala Cabang',
+    staff_gudang: 'Staf Gudang',
+    kasir: 'Kasir',
+    finance: 'Finance',
+    staff: 'Staff',
+  };
+  return roles.map((r) => roleNameMap[r] || r).join(', ');
+};
+
 export function Sidebar() {
   const { user, profile, initialized, signOut, hasRole, hasAnyRole } = useAuthStore();
   const isAdminUser = useIsAdmin();
   const isFinanceUser = hasRole('finance') || isAdminUser;
-  const isWarehouseUser = hasAnyRole(['kepala_gudang', 'staff_gudang', 'admin']);
-  const isKepalaGudang = hasRole('kepala_gudang') || isAdminUser;
+  const isWarehouseUser = hasAnyRole(['kepala_cabang', 'staff_gudang', 'admin']);
+  const isKepalaCabang = hasRole('kepala_cabang') || isAdminUser;
+  const isKepalaGudang = isKepalaCabang;
   const isKasir = hasRole('kasir') || isAdminUser;
 
   const router = useRouter();
@@ -627,8 +641,8 @@ export function Sidebar() {
                   {profile?.nama || 'User'}
                 </p>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400">{user?.email}</p>
-                <p className="text-xs text-neutral-500 capitalize dark:text-neutral-400">
-                  {profile?.role || 'Staff'}
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                  {formatRolesLabel(profile?.roles)}
                 </p>
               </div>
 

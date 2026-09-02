@@ -18,13 +18,14 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
 }) => {
   const profile = useAuthStore((state) => state.profile);
   const initialized = useAuthStore((state) => state.initialized);
+  const isAdmin = useAuthStore((state) => state.isAdmin());
+  const hasAnyRole = useAuthStore((state) => state.hasAnyRole);
 
   if (!initialized || !profile) {
     return <>{fallback}</>;
   }
 
   // Admin always has access to everything
-  const isAdmin = profile.role === 'admin' || (profile.roles && profile.roles.includes('admin'));
   if (isAdmin) {
     return <>{children}</>;
   }
@@ -34,8 +35,7 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
     return <>{children}</>;
   }
 
-  const userRoles = profile.roles || (profile.role ? [profile.role] : []);
-  const hasMatchingRole = targetRoles.some((r) => userRoles.includes(r));
+  const hasMatchingRole = hasAnyRole(targetRoles as string[]);
 
   return hasMatchingRole ? <>{children}</> : <>{fallback}</>;
 };

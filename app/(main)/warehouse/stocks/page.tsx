@@ -61,8 +61,9 @@ function WarehouseStocksContent() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const profile = useAuthStore((state) => state.profile);
+  const isAdmin = useAuthStore((state) => state.isAdmin);
   const hasRole = useAuthStore((state) => state.hasRole);
-  const canEditThresholds = profile?.role === 'admin' || hasRole('kepala_gudang') || hasRole('admin');
+  const canEditThresholds = isAdmin() || hasRole('kepala_cabang');
 
   const [selectedGudangId, setSelectedGudangId] = useState<string>(
     searchParams.get('gudangId') || profile?.default_gudang_id || '',

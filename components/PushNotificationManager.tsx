@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { IconBell, IconBellRinging, IconInfoCircle, IconSend } from '@tabler/icons-react';
+import { IconBell, IconBellRinging, IconInfoCircle } from '@tabler/icons-react';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -21,7 +21,6 @@ export function PushNotificationManager() {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
 
@@ -146,33 +145,6 @@ export function PushNotificationManager() {
     }
   };
 
-  const sendTestNotification = async () => {
-    try {
-      setIsTesting(true);
-      const { data: { session } } = await supabase.auth.getSession();
-
-      const response = await fetch('/api/push/test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-        },
-      });
-
-      const resJson = await response.json();
-      if (!response.ok) {
-        throw new Error(resJson.error || 'Gagal mengirim notifikasi tes');
-      }
-
-      toast.success('Notifikasi uji coba terkirim! Cek bilah notifikasi HP Anda.');
-    } catch (err: any) {
-      console.error('Error sending test push:', err);
-      toast.error('Gagal tes notifikasi: ' + (err.message || 'Kesalahan sistem'));
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
   if (!isSupported) {
     return (
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-300">
@@ -194,7 +166,7 @@ export function PushNotificationManager() {
   }
 
   return (
-    <div className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50/50 p-3.5 dark:border-neutral-800 dark:bg-neutral-900/40">
+    <div className="space-y-2.5 rounded-lg border border-neutral-200 bg-neutral-50/50 p-3.5 dark:border-neutral-800 dark:bg-neutral-900/40">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${isSubscribed ? 'bg-brand-500/10 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400' : 'bg-neutral-200 text-neutral-500 dark:bg-neutral-800'}`}>
@@ -252,23 +224,8 @@ export function PushNotificationManager() {
       )}
 
       {isSubscribed && (
-        <div className="flex items-center justify-between border-t border-neutral-200/60 pt-2.5 dark:border-neutral-800">
-          <span className="text-xs text-neutral-500 dark:text-neutral-400">
-            Perangkat terhubung & siap menerima notifikasi.
-          </span>
-          <button
-            type="button"
-            onClick={sendTestNotification}
-            disabled={isTesting}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 shadow-sm transition-all hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
-          >
-            {isTesting ? (
-              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-neutral-400 border-t-transparent" />
-            ) : (
-              <IconSend className="h-3.5 w-3.5 text-brand-500" />
-            )}
-            <span>Tes Notifikasi HP</span>
-          </button>
+        <div className="border-t border-neutral-200/60 pt-2 text-[11px] text-emerald-600 dark:border-neutral-800 dark:text-emerald-400">
+          ✓ Perangkat ini aktif menerima notifikasi.
         </div>
       )}
     </div>

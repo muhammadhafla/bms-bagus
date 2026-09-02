@@ -18,12 +18,12 @@ export const IfCanEdit: React.FC<IfCanEditProps> = ({
   const profile = useAuthStore((state) => state.profile);
   const user = useAuthStore((state) => state.user);
   const initialized = useAuthStore((state) => state.initialized);
+  const isAdmin = useAuthStore((state) => state.isAdmin());
 
   if (!initialized || !profile) {
     return <>{fallback}</>;
   }
 
-  const isAdmin = profile.role?.toLowerCase() === 'admin';
   if (isAdmin) {
     return <>{children}</>;
   }

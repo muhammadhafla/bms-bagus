@@ -22,7 +22,7 @@ interface GudangOption {
 
 const AVAILABLE_ROLES = [
   { id: 'admin', label: 'Admin (Super Admin)', desc: 'Akses penuh seluruh modul & pengaturan' },
-  { id: 'kepala_gudang', label: 'Kepala Gudang', desc: 'Approval waste, opname, cancel transfer & threshold stok' },
+  { id: 'kepala_cabang', label: 'Kepala Cabang', desc: 'Approval waste, opname, cancel transfer & threshold stok' },
   { id: 'staff_gudang', label: 'Staf Gudang', desc: 'Kirim/terima transfer, draft waste & susun rak' },
   { id: 'kasir', label: 'Kasir', desc: 'Transaksi kasir POS & retur penjualan' },
   { id: 'finance', label: 'Finance / Keuangan', desc: 'Buku besar, arus kas, operasional & payroll' },

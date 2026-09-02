@@ -8,14 +8,12 @@ interface AdminOnlyProps {
 }
 
 export const AdminOnly: React.FC<AdminOnlyProps> = ({ children, fallback = null }) => {
-  const profile = useAuthStore((state) => state.profile);
+  const isAdmin = useAuthStore((state) => state.isAdmin());
   const initialized = useAuthStore((state) => state.initialized);
 
-  if (!initialized || !profile) {
+  if (!initialized) {
     return <>{fallback}</>;
   }
 
-  const isAdmin =
-    profile.role?.toLowerCase() === 'admin' || !!profile.roles?.includes('admin');
   return isAdmin ? <>{children}</> : <>{fallback}</>;
 };

@@ -46,8 +46,8 @@ function WarehouseTransfersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const { user, profile, hasRole } = useAuthStore();
-  const canCancelTransfer = profile?.role === 'admin' || hasRole('kepala_gudang') || hasRole('admin');
+  const { user, profile, hasRole, isAdmin } = useAuthStore();
+  const canCancelTransfer = isAdmin() || hasRole('kepala_cabang');
 
   const [activeTab, setActiveTab] = useState<'ALL' | 'DRAFT' | 'IN_TRANSIT' | 'RECEIVED' | 'CANCELED'>('ALL');
   const [page, setPage] = useState(1);

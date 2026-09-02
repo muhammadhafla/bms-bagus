@@ -34,11 +34,12 @@ async function verifyAdmin(supabaseAdmin: any, token: string) {
 
   const { data: profile } = await supabaseAdmin
     .from('profiles')
-    .select('role')
+    .select('roles')
     .eq('id', user.id)
     .single();
 
-  if (profile?.role !== 'admin') {
+  const requesterRoles: string[] = profile?.roles || [];
+  if (!requesterRoles.includes('admin')) {
     return { error: 'Forbidden. Hanya Admin yang diizinkan.', status: 403 };
   }
 
@@ -57,7 +58,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: adminRes.error }, { status: adminRes.status });
 
     const body = await request.json();
-    const { nama, role, roles, default_gudang_id, password, username } = body;
+    const { nama, roles, default_gudang_id, password, username } = body;
     const userId = (await params).id;
 
     if (!userId) return NextResponse.json({ error: 'User ID tidak ditemukan' }, { status: 400 });
@@ -65,15 +66,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const assignedRoles: string[] | undefined = Array.isArray(roles) && roles.length > 0
       ? roles
-      : role ? [role] : undefined;
+      : undefined;
 
     const updatePayload: any = { nama };
 
     if (assignedRoles) {
       updatePayload.roles = assignedRoles;
-      updatePayload.role = assignedRoles.includes('admin') ? 'admin' : 'staff';
-    } else if (role) {
-      updatePayload.role = role?.toLowerCase() === 'admin' ? 'admin' : 'staff';
     }
 
     if (default_gudang_id !== undefined) {

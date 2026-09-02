@@ -30,8 +30,7 @@ const APP_ROUTES: RouteConfig[] = [
   { path: '/transactions/return', changeFrequency: 'daily', priority: 0.7 },
 
   // Gudang & Logistik (Warehouse)
-  { path: '/warehouse', changeFrequency: 'daily', priority: 0.8 },
-  { path: '/warehouse/stocks', changeFrequency: 'daily', priority: 0.7 },
+  { path: '/warehouse/stocks', changeFrequency: 'daily', priority: 0.8 },
   { path: '/warehouse/transfers', changeFrequency: 'daily', priority: 0.7 },
   { path: '/warehouse/transfers/new', changeFrequency: 'monthly', priority: 0.6 },
   { path: '/warehouse/outbound', changeFrequency: 'daily', priority: 0.7 },

@@ -19,7 +19,7 @@ interface CapabilityMatrixViewProps {
   initialSearch?: string;
 }
 
-type RoleFilterType = 'all' | 'my_role' | 'admin' | 'kepala_gudang' | 'staff_gudang' | 'kasir' | 'finance';
+type RoleFilterType = 'all' | 'my_role' | 'admin' | 'kepala_cabang' | 'staff_gudang' | 'kasir' | 'finance';
 
 export function CapabilityMatrixView({ userRoles, initialSearch = '' }: CapabilityMatrixViewProps) {
   const [searchQuery, setSearchQuery] = useState(initialSearch);
@@ -142,7 +142,7 @@ export function CapabilityMatrixView({ userRoles, initialSearch = '' }: Capabili
                 <span>Role Aktif Saya</span>
               </button>
 
-              {(['admin', 'kepala_gudang', 'staff_gudang', 'kasir', 'finance'] as const).map((r) => (
+              {(['admin', 'kepala_cabang', 'staff_gudang', 'kasir', 'finance'] as const).map((r) => (
                 <button
                   key={r}
                   type="button"
@@ -153,7 +153,7 @@ export function CapabilityMatrixView({ userRoles, initialSearch = '' }: Capabili
                       : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400'
                   }`}
                 >
-                  {r.replace('_', ' ')}
+                  {r === 'kepala_cabang' ? 'Kepala Cabang' : r.replace('_', ' ')}
                 </button>
               ))}
             </div>
@@ -165,9 +165,18 @@ export function CapabilityMatrixView({ userRoles, initialSearch = '' }: Capabili
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari fitur (mis: HPP, opname, waste)..."
-                className="w-full rounded-xl border border-neutral-200 bg-neutral-50/70 py-1.5 pr-3 pl-8 text-xs text-neutral-900 placeholder:text-neutral-400 focus:border-brand-500 focus:bg-white focus:outline-none dark:border-neutral-700 dark:bg-neutral-800/80 dark:text-white"
+                placeholder="Cari fitur / modul hak akses..."
+                className="w-full rounded-lg border border-neutral-200 bg-neutral-50/50 py-1.5 pr-3 pl-8 text-xs text-neutral-900 placeholder:text-neutral-400 focus:border-brand-500 focus:bg-white focus:outline-none dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-white dark:focus:border-brand-500"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute inset-y-0 right-2 my-auto h-4 w-4 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+                >
+                  <IconX size={12} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -197,15 +206,15 @@ export function CapabilityMatrixView({ userRoles, initialSearch = '' }: Capabili
       {/* Table Container */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs" aria-label="Matriks Hak Akses Modul">
-            <thead className="bg-neutral-50 text-neutral-700 border-b border-neutral-200 dark:bg-neutral-900/90 dark:text-neutral-200 dark:border-neutral-800">
-              <tr>
-                <th scope="col" className="px-4 py-3.5 text-left font-bold min-w-[260px]">
-                  Fitur & Penjelasan
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-neutral-200 bg-neutral-50/80 text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900/80 dark:text-neutral-300">
+                <th scope="col" className="px-4 py-3.5 font-bold min-w-[220px]">
+                  Modul & Fitur Sistem
                 </th>
                 <th
                   scope="col"
-                  className={`px-3 py-3.5 text-center font-bold min-w-[100px] ${
+                  className={`px-3 py-3.5 text-center font-bold min-w-[90px] ${
                     userRoles.includes('admin')
                       ? 'bg-brand-50/80 text-brand-900 dark:bg-brand-950/60 dark:text-brand-200'
                       : ''
@@ -216,12 +225,12 @@ export function CapabilityMatrixView({ userRoles, initialSearch = '' }: Capabili
                 <th
                   scope="col"
                   className={`px-3 py-3.5 text-center font-bold min-w-[110px] ${
-                    userRoles.includes('kepala_gudang')
+                    userRoles.includes('kepala_cabang') || userRoles.includes('kepala_gudang')
                       ? 'bg-brand-50/80 text-brand-900 dark:bg-brand-950/60 dark:text-brand-200'
                       : ''
                   }`}
                 >
-                  Kepala Gudang
+                  Kepala Cabang
                 </th>
                 <th
                   scope="col"
@@ -285,15 +294,15 @@ export function CapabilityMatrixView({ userRoles, initialSearch = '' }: Capabili
                       <RenderCapabilityStatus val={row.admin} />
                     </td>
 
-                    {/* Kepala Gudang Status */}
+                    {/* Kepala Cabang Status */}
                     <td
                       className={`px-3 py-3 text-center ${
-                        userRoles.includes('kepala_gudang')
+                        userRoles.includes('kepala_cabang') || userRoles.includes('kepala_gudang')
                           ? 'bg-brand-50/30 dark:bg-brand-950/20'
                           : ''
                       }`}
                     >
-                      <RenderCapabilityStatus val={row.kepala_gudang} />
+                      <RenderCapabilityStatus val={row.kepala_cabang} />
                     </td>
 
                     {/* Staf Gudang Status */}

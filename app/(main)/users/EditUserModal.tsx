@@ -21,7 +21,6 @@ interface EditUserModalProps {
   userId: string;
   initialName: string;
   initialUsername?: string | null;
-  initialRole?: string;
   initialRoles?: string[];
   initialDefaultGudangId?: string | null;
 }
@@ -35,11 +34,16 @@ interface GudangOption {
 
 const AVAILABLE_ROLES = [
   { id: 'admin', label: 'Admin (Super Admin)', desc: 'Akses penuh seluruh modul & pengaturan' },
-  { id: 'kepala_gudang', label: 'Kepala Gudang', desc: 'Approval waste, opname, cancel transfer & threshold stok' },
+  { id: 'kepala_cabang', label: 'Kepala Cabang', desc: 'Approval waste, opname, cancel transfer & threshold stok' },
   { id: 'staff_gudang', label: 'Staf Gudang', desc: 'Kirim/terima transfer, draft waste & susun rak' },
   { id: 'kasir', label: 'Kasir', desc: 'Transaksi kasir POS & retur penjualan' },
   { id: 'finance', label: 'Finance / Keuangan', desc: 'Buku besar, arus kas, operasional & payroll' },
 ];
+
+const formatInitialRoles = (roles?: string[]) => {
+  if (!roles || roles.length === 0) return ['kasir', 'staff_gudang'];
+  return roles.map((r) => (r === 'kepala_gudang' ? 'kepala_cabang' : r));
+};
 
 export default function EditUserModal({
   isOpen,
@@ -48,19 +52,12 @@ export default function EditUserModal({
   userId,
   initialName,
   initialUsername,
-  initialRole,
   initialRoles,
   initialDefaultGudangId,
 }: EditUserModalProps) {
   const [nama, setNama] = useState(initialName);
   const [username, setUsername] = useState(initialUsername || '');
-  const [roles, setRoles] = useState<string[]>(
-    initialRoles && initialRoles.length > 0
-      ? initialRoles
-      : initialRole === 'admin'
-        ? ['admin']
-        : ['kasir', 'staff_gudang'],
-  );
+  const [roles, setRoles] = useState<string[]>(formatInitialRoles(initialRoles));
   const [defaultGudangId, setDefaultGudangId] = useState<string>(initialDefaultGudangId || '');
   const [gudangList, setGudangList] = useState<GudangOption[]>([]);
   const [password, setPassword] = useState('');
@@ -71,13 +68,7 @@ export default function EditUserModal({
     if (isOpen) {
       setNama(initialName);
       setUsername(initialUsername || '');
-      setRoles(
-        initialRoles && initialRoles.length > 0
-          ? initialRoles
-          : initialRole === 'admin'
-            ? ['admin']
-            : ['kasir', 'staff_gudang'],
-      );
+      setRoles(formatInitialRoles(initialRoles));
       setDefaultGudangId(initialDefaultGudangId || '');
       setPassword('');
 
@@ -95,7 +86,7 @@ export default function EditUserModal({
       };
       fetchGudang();
     }
-  }, [isOpen, initialName, initialUsername, initialRole, initialRoles, initialDefaultGudangId]);
+  }, [isOpen, initialName, initialUsername, initialRoles, initialDefaultGudangId]);
 
   const handleRoleToggle = (roleId: string) => {
     setRoles((prev) => {

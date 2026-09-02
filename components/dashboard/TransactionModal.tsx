@@ -97,6 +97,7 @@ export function TransactionModal({
                     Member:{' '}
                     <span className="font-medium text-neutral-800 dark:text-neutral-200">
                       {data.members.name}
+                      {data.members.whatsapp_number && ` (${data.members.whatsapp_number})`}
                     </span>
                   </p>
                 )}

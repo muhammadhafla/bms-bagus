@@ -40,8 +40,7 @@ export interface Penjualan {
   } | null;
   members?: {
     name?: string | null;
-    phone?: string | null;
-    member_code?: string | null;
+    whatsapp_number?: string | null;
   } | null;
 }
 
@@ -143,8 +142,7 @@ export const penjualanApi = {
             ),
             members:member_id (
               name,
-              phone,
-              member_code
+              whatsapp_number
             )
           `)
           .eq('id', id)

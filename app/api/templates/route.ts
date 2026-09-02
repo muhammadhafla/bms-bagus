@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { verifyAuth, createAdminClient } from '@/lib/api/auth-guard';
+import { verifyAuth, verifyAdmin, createAdminClient } from '@/lib/api/auth-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,24 +26,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { user, error: authError } = await verifyAuth(request);
+    const { user, error: authError } = await verifyAdmin(request);
     if (authError) return authError;
 
     const supabase = createAdminClient();
-
-    // Check if requester is admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Forbidden. Hanya Admin yang bisa mengelola template label.' },
-        { status: 403 },
-      );
-    }
 
     const body = await request.json();
     const { name, language, content_json, active } = body;

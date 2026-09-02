@@ -31,8 +31,8 @@ const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ss
 
 export default function CashFlowPage() {
   const queryClient = useQueryClient();
-  const { profile } = useAuthStore();
-  const isAdmin = profile?.role === 'admin';
+  const { profile, isAdmin: checkIsAdmin } = useAuthStore();
+  const isAdmin = checkIsAdmin();
   const currentUserId = profile?.id;
 
   const { data: gudangRes } = useQuery({

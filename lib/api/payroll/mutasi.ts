@@ -147,10 +147,24 @@ export const mutasiApi = {
       }
     }
 
+    const formatJabatan = (roles?: string[]) => {
+      if (!roles || roles.length === 0) return 'Staff';
+      if (roles.includes('admin')) return 'Admin';
+      const roleMap: Record<string, string> = {
+        kepala_cabang: 'Kepala Cabang',
+        kepala_gudang: 'Kepala Cabang',
+        staff_gudang: 'Staf Gudang',
+        kasir: 'Kasir',
+        finance: 'Finance',
+        staff: 'Staff',
+      };
+      return roles.map((r) => roleMap[r] || r).join(', ');
+    };
+
     const mapped = data.map((d: any) => ({
       id: d.id,
       nama: d.nama,
-      jabatan: d.role ? (d.role.charAt(0).toUpperCase() + d.role.slice(1)) : 'Staff',
+      jabatan: formatJabatan(d.roles),
       avatar_url: d.avatar_url,
       total_saldo: balancesMap[d.id] || 0
     }));

@@ -3,7 +3,7 @@ export interface RoleCapability {
   module: string;
   feature: string;
   admin: boolean | string;
-  kepala_gudang: boolean | string;
+  kepala_cabang: boolean | string;
   staff_gudang: boolean | string;
   kasir: boolean | string;
   finance: boolean | string;
@@ -11,7 +11,7 @@ export interface RoleCapability {
 }
 
 export interface RoleInfo {
-  id: 'admin' | 'kepala_gudang' | 'staff_gudang' | 'kasir' | 'finance';
+  id: 'admin' | 'kepala_cabang' | 'staff_gudang' | 'kasir' | 'finance';
   title: string;
   badgeVariant: 'danger' | 'warning' | 'info' | 'success' | 'default';
   color: string;

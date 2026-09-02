@@ -386,7 +386,7 @@ export default function StockOpnameDetailPage() {
             </>
           )}
           {isPending && (
-            <RoleGuard roles={['admin', 'kepala_gudang']}>
+            <RoleGuard roles={['admin', 'kepala_cabang']}>
               <Button variant="danger" onClick={() => setShowRejectModal(true)} disabled={saving}>
                 <IconX size={20} />
                 <span>Tolak</span>
@@ -484,7 +484,7 @@ export default function StockOpnameDetailPage() {
             </>
           )}
           {isPending && (
-            <RoleGuard roles={['admin', 'kepala_gudang']}>
+            <RoleGuard roles={['admin', 'kepala_cabang']}>
               <Button
                 variant="danger"
                 className="h-10 max-w-[120px] flex-1 rounded-xl !px-3"

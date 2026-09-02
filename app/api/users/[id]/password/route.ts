@@ -40,11 +40,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     // Check if requester is admin
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('role')
+      .select('roles')
       .eq('id', user.id)
       .single();
 
-    if (profile?.role !== 'admin') {
+    const requesterRoles: string[] = profile?.roles || [];
+    if (!requesterRoles.includes('admin')) {
       return NextResponse.json(
         { error: 'Forbidden. Hanya Admin yang bisa mereset password.' },
         { status: 403 },

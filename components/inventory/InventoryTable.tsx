@@ -568,10 +568,10 @@ export const InventoryTable = React.memo(function InventoryTable({
         onClose={closeSlideOver}
         title={selectedItem ? `Edit ${selectedItem.nama_barang}` : ''}
         size="md"
-        isFullScreenOnMobile
+        isBottomSheetOnMobile
       >
         <RoleGuard
-          roles={['admin', 'kepala_gudang']}
+          roles={['admin', 'kepala_cabang']}
           fallback={
             <div className="space-y-4">
               {selectedItem?.is_discontinued && (

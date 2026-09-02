@@ -19,12 +19,12 @@ export const ROLES_INFO: RoleInfo[] = [
     keyModules: ['Dashboard', 'Katalog & HPP', 'Semua Gudang', 'Kasir (POS)', 'Buku Besar', 'Payroll & Gaji', 'Manajemen Pengguna'],
   },
   {
-    id: 'kepala_gudang',
-    title: 'Kepala Gudang (Warehouse Lead)',
+    id: 'kepala_cabang',
+    title: 'Kepala Cabang (Branch Lead)',
     badgeVariant: 'warning',
     color: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300',
     summary:
-      'Supervisor operasional logistik, penanggung jawab stok fisik gudang, opname, persetujuan barang rusak, dan pemesanan restock ke suplier.',
+      'Supervisor operasional cabang & gudang, penanggung jawab stok fisik, opname, persetujuan barang rusak, dan pemesanan restock ke suplier.',
     responsibilities: [
       'Menyetujui dokumen penyesuaian selisih Stok Opname pada saldo sistem',
       'Meninjau dan menyetujui pengajuan barang rusak / kadaluarsa (Waste)',

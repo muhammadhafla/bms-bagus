@@ -30,11 +30,11 @@ export async function POST(request: Request) {
 
     const supabase = createAdminClient();
     
-    // Cari user yang memiliki role 'admin' atau semacamnya dari tabel profiles
+    // Cari user yang memiliki role 'admin' atau 'finance' dari tabel profiles
     const { data: admins, error } = await supabase
       .from('profiles')
       .select('id')
-      .in('role', ['admin', 'owner', 'super_admin', 'manajer']);
+      .overlaps('roles', ['admin', 'finance']);
       
     if (error || !admins) {
       return NextResponse.json({ error: 'Failed to fetch admins' }, { status: 500 });

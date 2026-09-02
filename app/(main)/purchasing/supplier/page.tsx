@@ -66,7 +66,7 @@ export default function SupplierPage() {
   const profile = useAuthStore((state) => state.profile);
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const initialized = useAuthStore((state) => state.initialized);
-  const showAdminActions = initialized && (profile?.role?.toLowerCase() === 'admin' || isAdmin());
+  const showAdminActions = initialized && isAdmin();
 
   // Fetch data
   const fetchSuppliers = useCallback(async () => {

@@ -488,17 +488,20 @@ erDiagram
 | 4 | **`note`** | `text` | `NULL` | - | Menyimpan data note. |
 | 5 | **`created_by`** | `uuid` | **`NOT NULL`** | - | UUID user pembuat rekaman (FK `profiles.id`). |
 | 6 | **`approved_by`** | `uuid` | `NULL` | - | Menyimpan data approved by. |
-| 7 | **`created_at`** | `timestamp` | `NULL` | `now()` | Timestamp saat baris data pertama kali dibuat. |
-| 8 | **`updated_at`** | `timestamp` | `NULL` | `now()` | Timestamp saat baris data terakhir kali diperbarui. |
+| 7 | **`gudang_id`** | `uuid` | `NULL` | - | Lokasi gudang/toko fisik yang di-opname (FK `gudang.id`). |
+| 8 | **`created_at`** | `timestamp` | `NULL` | `now()` | Timestamp saat baris data pertama kali dibuat. |
+| 9 | **`updated_at`** | `timestamp` | `NULL` | `now()` | Timestamp saat baris data terakhir kali diperbarui. |
 
 **Constraints & Indeks Utama**:
 - **Primary Key**: `id`
 - **Foreign Keys**:
   - `approved_by` $\rightarrow$ `profiles.id` (ON DELETE: `NO ACTION`, ON UPDATE: `NO ACTION`)
   - `created_by` $\rightarrow$ `profiles.id` (ON DELETE: `NO ACTION`, ON UPDATE: `NO ACTION`)
-- **Indeks Terpasang** (4 index):
+  - `gudang_id` $\rightarrow$ `gudang.id` (ON DELETE: `SET NULL`, ON UPDATE: `NO ACTION`)
+- **Indeks Terpasang** (5 index):
   - `idx_stock_opname_approved_by`: `idx_stock_opname_approved_by ON public.stock_opname USING btree (approved_by)`
   - `idx_stock_opname_created_by`: `idx_stock_opname_created_by ON public.stock_opname USING btree (created_by)`
+  - `idx_stock_opname_gudang_id`: `idx_stock_opname_gudang_id ON public.stock_opname USING btree (gudang_id)`
   - `idx_stock_opname_status`: `idx_stock_opname_status ON public.stock_opname USING btree (status)`
   - `stock_opname_pkey`: `UNIQUE: stock_opname_pkey ON public.stock_opname USING btree (id)`
 - **Database Triggers**:
@@ -1771,6 +1774,8 @@ Terdapat **96 fungsi PostgreSQL** aktif yang menjalankan logika bisnis inti deng
   *Trigger Function*: Mengagregasikan seluruh kuantitas di `inventory_stocks` untuk suatu `inventory_id` dan mengupdate kolom master `inventory.stok` secara otomatis.
 - **`process_stock_transfer(p_transfer_id uuid)`**  
   *RPC*: Mengeksekusi perpindahan stok saat status transfer menjadi `RECEIVED`, memotong stok di `gudang_asal_id`, menambah stok di `gudang_tujuan_id`, serta mencatat 2 baris log di `stock_movements`.
+- **`process_opname_adjustments(p_opname_id uuid, p_user_id uuid)`**  
+  *RPC*: Mengeksekusi penyesuaian stok saat status stok opname disetujui (`APPROVED`), memperbarui stok fisik pada tabel `inventory_stocks` sesuai lokasi `gudang_id` yang dipilih, mencatat rekaman di `stock_adjustments` dan `stock_movements`, serta menyinkronkan stok master global.
 - **`search_inventory_fuzzy(search_query text, limit_count integer)`**  
   *RPC*: Melakukan pencarian cerdas berbasis Trigram Index (`pg_trgm`) pada nama barang dan barcode dengan toleransi salah ketik / typo.
 

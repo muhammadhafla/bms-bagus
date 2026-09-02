@@ -115,8 +115,9 @@ export const warehouseStockApi = {
       const offset = (page - 1) * limit;
 
       const hasCategoryFilter = !!options?.categoryId;
-      const inventoryJoin = hasCategoryFilter
-        ? `inventory!inner:inventory_id (`
+      const hasSearch = !!options?.search?.trim();
+      const inventoryJoin = (hasCategoryFilter || hasSearch)
+        ? `inventory:inventory_id!inner (`
         : `inventory:inventory_id (`;
 
       let query = supabase
@@ -165,11 +166,12 @@ export const warehouseStockApi = {
         query = query.not('rak_lokasi', 'is', null).neq('rak_lokasi', '');
       }
 
-      if (options?.search) {
-        const safeSearch = options.search.trim().replace(/%/g, '');
-        // Search inside inventory
+      if (hasSearch) {
+        const safeSearch = options!.search!.trim().replace(/%/g, '').toLowerCase();
+        // Search inside joined inventory table (case-insensitive name or barcode)
         query = query.or(
-          `inventory.nama_barang.ilike.%${safeSearch}%,inventory.kode_barcode.ilike.%${safeSearch}%`,
+          `nama_barang.ilike.%${safeSearch}%,kode_barcode.ilike.%${safeSearch}%`,
+          { foreignTable: 'inventory' },
         );
       }
 

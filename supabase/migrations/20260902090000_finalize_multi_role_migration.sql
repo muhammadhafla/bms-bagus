@@ -146,21 +146,39 @@ BEGIN
 END;
 $$;
 
--- 3. PERBARUI RLS POLICIES YANG MASIH MENGECEK PROFILES.ROLE SECARA LANGSUNG
-DO $$
-BEGIN
-    -- Payroll mutasi admin policies
-    IF EXISTS (
-        SELECT 1 FROM pg_policies 
-        WHERE tablename = 'payroll_mutasi' AND policyname = 'Admin can do all on payroll_mutasi'
-    ) THEN
-        DROP POLICY "Admin can do all on payroll_mutasi" ON public.payroll_mutasi;
-        CREATE POLICY "Admin can do all on payroll_mutasi" ON public.payroll_mutasi
-            FOR ALL TO authenticated
-            USING (public.is_admin())
-            WITH CHECK (public.is_admin());
-    END IF;
-END $$;
+-- 3. PERBARUI RLS POLICIES YANG BERGANTUNG PADA PROFILES.ROLE
+
+-- Inventory update policy
+DROP POLICY IF EXISTS "inventory_update_staff" ON public.inventory;
+CREATE POLICY "inventory_update_staff" ON public.inventory
+    FOR UPDATE TO authenticated
+    USING (public.has_any_role(ARRAY['kasir', 'staff_gudang', 'kepala_cabang', 'finance', 'admin']))
+    WITH CHECK (public.has_any_role(ARRAY['kasir', 'staff_gudang', 'kepala_cabang', 'finance', 'admin']));
+
+-- Label templates admin policies
+DROP POLICY IF EXISTS "Allow admin delete" ON public.label_templates;
+CREATE POLICY "Allow admin delete" ON public.label_templates
+    FOR DELETE TO authenticated
+    USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Allow admin insert" ON public.label_templates;
+CREATE POLICY "Allow admin insert" ON public.label_templates
+    FOR INSERT TO authenticated
+    WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "Allow admin update" ON public.label_templates;
+CREATE POLICY "Allow admin update" ON public.label_templates
+    FOR UPDATE TO authenticated
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
+
+-- Payroll mutasi admin policies
+DROP POLICY IF EXISTS "Admins have full access to payroll_mutasi" ON public.payroll_mutasi;
+DROP POLICY IF EXISTS "Admin can do all on payroll_mutasi" ON public.payroll_mutasi;
+CREATE POLICY "Admins have full access to payroll_mutasi" ON public.payroll_mutasi
+    FOR ALL TO authenticated
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
 
 -- 4. HAPUS TRIGGER SINKRONISASI BACKWARD COMPATIBILITY
 DROP TRIGGER IF EXISTS trg_sync_profile_role ON public.profiles;

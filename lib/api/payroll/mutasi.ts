@@ -19,7 +19,7 @@ export interface PayrollMutasi {
   profiles?: {
     nama: string | null;
     avatar_url: string | null;
-    role: string | null;
+    roles?: string[] | null;
   };
 }
 
@@ -40,7 +40,7 @@ export const mutasiApi = {
 
     const { data, error, count } = await supabase
       .from('payroll_mutasi')
-      .select('*, profiles(nama, avatar_url, role)', { count: 'exact' })
+      .select('*, profiles(nama, avatar_url, roles)', { count: 'exact' })
       .eq('user_id', user.id)
       .order('tanggal', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -74,7 +74,7 @@ export const mutasiApi = {
 
     const { data, error, count } = await supabase
       .from('payroll_mutasi')
-      .select('*, profiles(nama, avatar_url, role)', { count: 'exact' })
+      .select('*, profiles(nama, avatar_url, roles)', { count: 'exact' })
       .eq('user_id', userId)
       .order('tanggal', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -118,7 +118,7 @@ export const mutasiApi = {
 
     let query = supabase
       .from('profiles')
-      .select('id, nama, role, avatar_url', { count: 'exact' });
+      .select('id, nama, roles, avatar_url', { count: 'exact' });
 
     if (params?.search) {
       query = query.ilike('nama', `%${params.search}%`);

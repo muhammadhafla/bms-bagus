@@ -21,6 +21,7 @@ import {
   IconTrash,
   IconBarcode,
   IconBox,
+  IconBuildingWarehouse,
 } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -30,6 +31,22 @@ import SelectInput from '@/components/ui/SelectInput';
 import TextareaInput from '@/components/ui/TextareaInput';
 import { Button, Breadcrumb, Badge, Card, AmbientLayout } from '@/components/ui';
 import { AdminOnly, RoleGuard } from '@/components/role';
+
+const statusBadgeVariant: Record<string, 'warning' | 'info' | 'success' | 'danger' | 'default'> = {
+  draft: 'warning',
+  pending: 'info',
+  approved: 'success',
+  rejected: 'danger',
+  completed: 'success',
+};
+
+const statusLabels: Record<string, string> = {
+  draft: 'Draft',
+  pending: 'Menunggu Approval',
+  approved: 'Disetujui',
+  rejected: 'Ditolak',
+  completed: 'Selesai',
+};
 
 const reasonOptions = [
   { value: 'salah_input', label: 'Kesalahan Input' },
@@ -334,9 +351,20 @@ export default function StockOpnameDetailPage() {
             <h1 className="line-clamp-1 text-xl font-extrabold tracking-tight text-neutral-900 sm:text-2xl lg:text-4xl dark:text-white">
               Detail Stock Opname
             </h1>
-            <p className="mt-0.5 hidden md:block text-xs font-medium text-neutral-500 lg:mt-2 lg:text-base dark:text-neutral-400">
-              Pengelolaan stok fisik
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs lg:text-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-brand-50 px-2.5 py-1 font-semibold text-brand-700 dark:bg-brand-900/30 dark:text-brand-300">
+                <IconBuildingWarehouse className="h-4 w-4" />
+                {opname?.gudang?.nama || 'Gudang Pusat'} ({opname?.gudang?.kode_gudang || 'GD-PST'})
+              </span>
+              {opname?.note && (
+                <span className="rounded-lg bg-neutral-100 px-2.5 py-1 font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
+                  {opname.note}
+                </span>
+              )}
+              <Badge variant={statusBadgeVariant[opname?.status || 'draft']} size="sm">
+                {statusLabels[opname?.status || 'draft']}
+              </Badge>
+            </div>
           </div>
         </div>
 

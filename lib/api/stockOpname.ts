@@ -7,10 +7,17 @@ export interface StockOpname {
   opname_date: string;
   status: 'draft' | 'pending' | 'approved' | 'rejected' | 'completed';
   note: string | null;
+  gudang_id: string | null;
   created_by: string;
   approved_by: string | null;
   created_at: string;
   updated_at: string;
+  gudang?: {
+    id: string;
+    kode_gudang: string;
+    nama: string;
+    tipe: string;
+  } | null;
 }
 
 export interface StockOpnameWithProfile extends StockOpname {
@@ -54,12 +61,18 @@ export interface StockOpnameItemWithInventory extends StockOpnameItem {
 }
 
 export const stockOpnameApi = {
-  async getAll() {
+  async getAll(options?: { gudangId?: string }) {
     const result = await safeQuery<StockOpname[]>(async () => {
-      const result = await supabase
+      let query = supabase
         .from('stock_opname')
-        .select('*, stock_opname_items(id, difference)')
+        .select('*, gudang:gudang_id(id, kode_gudang, nama, tipe), stock_opname_items(id, difference)')
         .order('created_at', { ascending: false });
+
+      if (options?.gudangId) {
+        query = query.eq('gudang_id', options.gudangId);
+      }
+
+      const result = await query;
       return { data: result.data, error: result.error as Error | null };
     });
 
@@ -106,7 +119,7 @@ export const stockOpnameApi = {
     return { data: opnamesWithCreator, error: null };
   },
 
-  async getPaginated(options: { page?: number; limit?: number }) {
+  async getPaginated(options: { page?: number; limit?: number; gudangId?: string }) {
     const page = Math.max(1, options.page || 1);
     const limit = Math.min(100, Math.max(1, options.limit || 20));
     const offset = (page - 1) * limit;
@@ -118,16 +131,24 @@ export const stockOpnameApi = {
       limit: number;
       hasMore: boolean;
     }>(async () => {
-      const countResult = await supabase
+      let countQuery = supabase
         .from('stock_opname')
         .select('*', { count: 'exact', head: true });
 
+      let dataQuery = supabase
+        .from('stock_opname')
+        .select('*, gudang:gudang_id(id, kode_gudang, nama, tipe), stock_opname_items(id, difference)');
+
+      if (options.gudangId) {
+        countQuery = countQuery.eq('gudang_id', options.gudangId);
+        dataQuery = dataQuery.eq('gudang_id', options.gudangId);
+      }
+
+      const countResult = await countQuery;
       if (countResult.error) throw countResult.error;
       const total = countResult.count || 0;
 
-      const dataResult = await supabase
-        .from('stock_opname')
-        .select('*, stock_opname_items(id, difference)')
+      const dataResult = await dataQuery
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
@@ -138,7 +159,10 @@ export const stockOpnameApi = {
 
       let profilesMap: Record<string, { nama: string }> = {};
       if (uniqueUserIds.length > 0) {
-        const profilesResult = await supabase.from('profiles').select('id, nama').in('id', uniqueUserIds);
+        const profilesResult = await safeQuery<{ id: string; nama: string }[]>(async () => {
+          const result = await supabase.from('profiles').select('id, nama').in('id', uniqueUserIds);
+          return { data: result.data, error: result.error as Error | null };
+        });
         if (profilesResult.data) {
           profilesResult.data.forEach((p) => {
             profilesMap[p.id] = { nama: p.nama };
@@ -189,6 +213,7 @@ export const stockOpnameApi = {
         .select(
           `
           *,
+          gudang:gudang_id (id, kode_gudang, nama, tipe),
           profiles:created_by (nama)
         `,
         )
@@ -222,7 +247,7 @@ export const stockOpnameApi = {
     });
   },
 
-  async create() {
+  async create(params?: { gudang_id?: string; note?: string; opname_date?: string }) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -230,7 +255,25 @@ export const stockOpnameApi = {
       return { data: null, error: new Error('User not authenticated') };
     }
 
-    const today = format(new Date(), 'yyyy-MM-dd');
+    let targetGudangId = params?.gudang_id;
+    if (!targetGudangId) {
+      const profileRes = await supabase
+        .from('profiles')
+        .select('default_gudang_id')
+        .eq('id', user.id)
+        .maybeSingle();
+      targetGudangId = profileRes.data?.default_gudang_id;
+      if (!targetGudangId) {
+        const defGudang = await supabase
+          .from('gudang')
+          .select('id')
+          .eq('is_default', true)
+          .maybeSingle();
+        targetGudangId = defGudang.data?.id;
+      }
+    }
+
+    const today = params?.opname_date || format(new Date(), 'yyyy-MM-dd');
 
     const opnameResult = await safeQuery<StockOpname>(
       async () => {
@@ -239,6 +282,8 @@ export const stockOpnameApi = {
           .insert({
             opname_date: today,
             status: 'draft',
+            gudang_id: targetGudangId || null,
+            note: params?.note || null,
             created_by: user.id,
           })
           .select()
@@ -384,6 +429,17 @@ export const stockOpnameApi = {
   },
 
   async addItem(opnameId: string, inventoryId: string) {
+    const opnameRes = await safeQuery<{ gudang_id: string | null }>(async () => {
+      const result = await supabase
+        .from('stock_opname')
+        .select('gudang_id')
+        .eq('id', opnameId)
+        .single();
+      return { data: result.data as any, error: result.error as Error | null };
+    });
+
+    const gudangId = opnameRes.data?.gudang_id;
+
     const invResult = await safeQuery<any>(async () => {
       const result = await supabase
         .from('inventory')
@@ -397,6 +453,24 @@ export const stockOpnameApi = {
       return { data: null, error: new Error('Inventory not found') };
     }
 
+    let currentStock = invResult.data.stok || 0;
+    if (gudangId) {
+      const stockRes = await safeQuery<{ stok: number }>(async () => {
+        const result = await supabase
+          .from('inventory_stocks')
+          .select('stok')
+          .eq('inventory_id', inventoryId)
+          .eq('gudang_id', gudangId)
+          .maybeSingle();
+        return { data: result.data as any, error: result.error as Error | null };
+      });
+      if (stockRes.data) {
+        currentStock = stockRes.data.stok ?? 0;
+      } else {
+        currentStock = 0;
+      }
+    }
+
     const insertResult = await safeQuery<StockOpnameItem>(
       async () => {
         const result = await supabase
@@ -404,8 +478,8 @@ export const stockOpnameApi = {
           .insert({
             stock_opname_id: opnameId,
             inventory_id: invResult.data.id,
-            system_stock: invResult.data.stok || 0,
-            physical_stock: invResult.data.stok || 0,
+            system_stock: currentStock,
+            physical_stock: currentStock,
             difference: 0,
             adjusted: false,
           })

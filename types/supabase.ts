@@ -1527,34 +1527,45 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
+          default_gudang_id: string | null
           email: string | null
           id: string
           last_sign_in_at: string | null
           nama: string | null
-          role: string | null
+          roles: string[] | null
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
+          default_gudang_id?: string | null
           email?: string | null
           id: string
           last_sign_in_at?: string | null
           nama?: string | null
-          role?: string | null
+          roles?: string[] | null
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string | null
+          default_gudang_id?: string | null
           email?: string | null
           id?: string
           last_sign_in_at?: string | null
           nama?: string | null
-          role?: string | null
+          roles?: string[] | null
           username?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_default_gudang_id_fkey"
+            columns: ["default_gudang_id"]
+            isOneToOne: false
+            referencedRelation: "gudang"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       promosi: {
         Row: {

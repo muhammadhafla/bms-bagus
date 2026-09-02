@@ -1,28 +1,34 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { StockOpname, StockOpnameWithProfile, stockOpnameApi } from '@/lib/api';
+import { StockOpnameWithProfile, stockOpnameApi } from '@/lib/api';
+import { gudangApi } from '@/lib/api/warehouse';
+import { Gudang } from '@/types/warehouse';
 import {
   IconPlus,
   IconEye,
-  IconCheck,
-  IconX,
   IconTrash,
   IconClipboardCheck,
   IconSearch,
   IconChevronRight,
   IconArrowDown,
+  IconBuildingWarehouse,
+  IconCalendar,
+  IconNote,
+  IconFilter,
 } from '@tabler/icons-react';
 import dynamic from 'next/dynamic';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { Breadcrumb, Button, Badge, AmbientLayout, ModernPagination } from '@/components/ui';
+import { Breadcrumb, Button, Badge, AmbientLayout, ModernPagination, Modal, SelectInput, TextInput } from '@/components/ui';
 import { toast } from 'sonner';
 import { API_ERROR_MESSAGES, UI_MESSAGES, STOCK_OPNAME_MESSAGES } from '@/lib/constants';
 import { formatDateWIB } from '@/lib/utils';
+import { useAuthStore } from '@/lib/auth';
+import { format } from 'date-fns';
 
 const statusBadgeVariant: Record<string, 'warning' | 'info' | 'success' | 'danger' | 'default'> = {
   draft: 'warning',
@@ -42,7 +48,10 @@ const statusLabels: Record<string, string> = {
 
 export default function StockOpnameListPage() {
   const router = useRouter();
+  const profile = useAuthStore((state) => state.profile);
   const [opnames, setOpnames] = useState<StockOpnameWithProfile[]>([]);
+  const [gudangList, setGudangList] = useState<Gudang[]>([]);
+  const [selectedGudangFilter, setSelectedGudangFilter] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -52,10 +61,31 @@ export default function StockOpnameListPage() {
   const [total, setTotal] = useState(0);
   const ITEMS_PER_PAGE = 20;
 
+  // Modal State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [formGudangId, setFormGudangId] = useState<string>('');
+  const [formDate, setFormDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [formNote, setFormNote] = useState<string>('');
+
+  // Fetch Gudang List
+  useEffect(() => {
+    async function loadGudang() {
+      const res = await gudangApi.getAll({ activeOnly: true });
+      if (res.data) {
+        setGudangList(res.data);
+      }
+    }
+    loadGudang();
+  }, []);
+
   const fetchOpnames = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const result = await stockOpnameApi.getPaginated({ page, limit: ITEMS_PER_PAGE });
+    const result = await stockOpnameApi.getPaginated({
+      page,
+      limit: ITEMS_PER_PAGE,
+      gudangId: selectedGudangFilter || undefined,
+    });
     if (!result.error && result.data) {
       setOpnames(result.data);
       setTotal(result.total);
@@ -64,16 +94,38 @@ export default function StockOpnameListPage() {
       setError(result.error.message || API_ERROR_MESSAGES.FETCH_FAILED);
     }
     setLoading(false);
-  }, [page]);
+  }, [page, selectedGudangFilter]);
 
   useEffect(() => {
     fetchOpnames();
   }, [fetchOpnames]);
 
+  const handleOpenCreateModal = () => {
+    const userDef = profile?.default_gudang_id
+      ? gudangList.find((g) => g.id === profile.default_gudang_id)
+      : null;
+    const defaultG = userDef || gudangList.find((g) => g.is_default) || gudangList[0];
+    setFormGudangId(defaultG?.id || '');
+    setFormDate(format(new Date(), 'yyyy-MM-dd'));
+    setFormNote('');
+    setShowCreateModal(true);
+  };
+
   const handleCreate = async () => {
+    if (!formGudangId) {
+      toast.error('Silakan pilih lokasi gudang / toko');
+      return;
+    }
+
     setCreating(true);
-    const result = await stockOpnameApi.create();
+    const result = await stockOpnameApi.create({
+      gudang_id: formGudangId,
+      opname_date: formDate,
+      note: formNote || undefined,
+    });
+
     if (!result.error && result.data && 'id' in result.data) {
+      setShowCreateModal(false);
       router.push(`/inventory/stock-opname/${result.data.id}`);
     } else if (result.error) {
       toast.error(result.error.message || API_ERROR_MESSAGES.SAVE_FAILED);
@@ -100,13 +152,34 @@ export default function StockOpnameListPage() {
 
   const handleRefresh = async () => {
     setPage(1);
-    const result = await stockOpnameApi.getPaginated({ page: 1, limit: ITEMS_PER_PAGE });
+    const result = await stockOpnameApi.getPaginated({
+      page: 1,
+      limit: ITEMS_PER_PAGE,
+      gudangId: selectedGudangFilter || undefined,
+    });
     if (!result.error && result.data) {
       setOpnames(result.data);
       setTotal(result.total);
       setTotalPages(Math.ceil(result.total / ITEMS_PER_PAGE) || 1);
     }
   };
+
+  const gudangFilterOptions = useMemo(() => {
+    return [
+      { value: '', label: 'Semua Lokasi Gudang' },
+      ...gudangList.map((g) => ({
+        value: g.id,
+        label: `${g.nama} (${g.kode_gudang})${g.is_default ? ' ★' : ''}`,
+      })),
+    ];
+  }, [gudangList]);
+
+  const modalGudangOptions = useMemo(() => {
+    return gudangList.map((g) => ({
+      value: g.id,
+      label: `${g.nama} (${g.kode_gudang}) - ${g.tipe}${g.is_default ? ' [Default]' : ''}`,
+    }));
+  }, [gudangList]);
 
   return (
     <AmbientLayout>
@@ -137,21 +210,35 @@ export default function StockOpnameListPage() {
                     Stock Opname
                   </h1>
                   <p className="mt-0.5 hidden md:block text-xs font-medium text-neutral-500 lg:mt-2 lg:text-base dark:text-neutral-400">
-                    Rekonsiliasi stok fisik dan sistem
+                    Rekonsiliasi stok fisik per gudang dan saldo sistem
                   </p>
                 </div>
               </div>
 
-              <Button
-                onClick={handleCreate}
-                disabled={creating}
-                variant="primary"
-                className="shadow-brand rounded-xl whitespace-nowrap"
-              >
-                <IconPlus className="h-5 w-5" />
-                <span className="hidden sm:inline">Buat Opname Baru</span>
-                <span className="sm:hidden">Buat Baru</span>
-              </Button>
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Gudang Filter */}
+                <div className="w-full sm:w-64">
+                  <SelectInput
+                    value={selectedGudangFilter}
+                    onChange={(val) => {
+                      setSelectedGudangFilter(val);
+                      setPage(1);
+                    }}
+                    options={gudangFilterOptions}
+                    className="w-full"
+                  />
+                </div>
+
+                <Button
+                  onClick={handleOpenCreateModal}
+                  variant="primary"
+                  className="shadow-brand rounded-xl whitespace-nowrap"
+                >
+                  <IconPlus className="h-5 w-5" />
+                  <span className="hidden sm:inline">Buat Opname Baru</span>
+                  <span className="sm:hidden">Buat Baru</span>
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -193,10 +280,16 @@ export default function StockOpnameListPage() {
                     >
                       <div className="mb-2 flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="mb-0.5 text-base font-bold text-neutral-900 dark:text-white">
-                            {formatDateWIB(opname.opname_date)}
-                          </p>
-                          <p className="mb-2 text-sm text-neutral-500">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-base font-bold text-neutral-900 dark:text-white">
+                              {formatDateWIB(opname.opname_date)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs text-brand-600 dark:text-brand-400 font-medium mb-1">
+                            <IconBuildingWarehouse className="h-3.5 w-3.5" />
+                            <span>{opname.gudang?.nama || 'Gudang Pusat'}</span>
+                          </div>
+                          <p className="text-xs text-neutral-500">
                             Oleh: {opname.profiles?.nama || opname.created_by || '-'}
                           </p>
                         </div>
@@ -261,6 +354,9 @@ export default function StockOpnameListPage() {
                           Tanggal
                         </th>
                         <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                          Lokasi Gudang / Outlet
+                        </th>
+                        <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
                           Status
                         </th>
                         <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
@@ -282,6 +378,19 @@ export default function StockOpnameListPage() {
                           </td>
                           <td className="px-5 py-4 text-sm font-medium text-neutral-900 dark:text-neutral-100">
                             {formatDateWIB(opname.opname_date)}
+                          </td>
+                          <td className="px-5 py-4 text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200">
+                                <IconBuildingWarehouse className="h-3.5 w-3.5 text-brand-500" />
+                                {opname.gudang?.nama || 'Gudang Pusat'}
+                              </span>
+                              {opname.note && (
+                                <span className="text-xs text-neutral-400 truncate max-w-[150px]" title={opname.note}>
+                                  ({opname.note})
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-5 py-4">
                             <Badge variant={statusBadgeVariant[opname.status]} size="sm">
@@ -334,6 +443,76 @@ export default function StockOpnameListPage() {
             )}
           </div>
         </div>
+
+        {/* Modal Buat Opname Baru */}
+        <Modal
+          isOpen={showCreateModal}
+          onClose={() => !creating && setShowCreateModal(false)}
+          title="Buat Sesi Stok Opname Baru"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+              Pilih lokasi gudang / toko fisik yang akan dilakukan penghitungan stok.
+            </p>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-300">
+                Lokasi Gudang / Outlet <span className="text-danger-500">*</span>
+              </label>
+              <SelectInput
+                value={formGudangId}
+                onChange={(val) => setFormGudangId(val)}
+                options={modalGudangOptions}
+                className="w-full"
+                disabled={creating}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-300">
+                Tanggal Opname
+              </label>
+              <TextInput
+                type="date"
+                value={formDate}
+                onChange={(e) => setFormDate(e.target.value)}
+                className="w-full"
+                disabled={creating}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-300">
+                Catatan / Keterangan (Opsional)
+              </label>
+              <TextInput
+                placeholder="Contoh: Opname Akhir Bulan, Pengecekan Rak Makanan..."
+                value={formNote}
+                onChange={(e) => setFormNote(e.target.value)}
+                className="w-full"
+                disabled={creating}
+              />
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3 border-t border-neutral-100 pt-4 dark:border-neutral-800">
+              <Button
+                variant="secondary"
+                onClick={() => setShowCreateModal(false)}
+                disabled={creating}
+              >
+                Batal
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleCreate}
+                disabled={creating || !formGudangId}
+                className="shadow-brand"
+              >
+                {creating ? 'Membuat Sesi...' : 'Mulai Hitung Stok'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
 
         <ConfirmDialog
           isOpen={!!deleteId}

@@ -28,8 +28,11 @@ import {
   ConfirmDialog,
 } from '@/components/ui';
 import { AdminOnly } from '@/components/role';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 
 export default function SupplierPage() {
+  const queryClient = useQueryClient();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -186,6 +189,8 @@ export default function SupplierPage() {
       } else if (result.data) {
         toast.success('Supplier berhasil diperbarui');
         setSuppliers((prev) => prev.map((s) => (s.id === selectedSupplier.id ? result.data! : s)));
+        queryClient.invalidateQueries({ queryKey: queryKeys.suppliers.all });
+        queryClient.invalidateQueries({ queryKey: ['suppliers'] });
         setModalOpen(false);
       }
     } else {
@@ -199,6 +204,8 @@ export default function SupplierPage() {
       } else if (result.data) {
         toast.success('Supplier berhasil ditambahkan');
         setSuppliers((prev) => [result.data!, ...prev]);
+        queryClient.invalidateQueries({ queryKey: queryKeys.suppliers.all });
+        queryClient.invalidateQueries({ queryKey: ['suppliers'] });
         setModalOpen(false);
       }
     }
@@ -221,6 +228,8 @@ export default function SupplierPage() {
     } else {
       toast.success('Supplier berhasil dihapus');
       setSuppliers((prev) => prev.filter((s) => s.id !== supplierToDelete.id));
+      queryClient.invalidateQueries({ queryKey: queryKeys.suppliers.all });
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
       // Adjust page if page becomes empty
       const updatedTotalItems = filteredAndSorted.length - 1;
       const maxPage = Math.ceil(updatedTotalItems / LIMIT) || 1;

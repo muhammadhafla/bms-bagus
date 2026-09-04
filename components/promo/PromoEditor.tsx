@@ -23,9 +23,12 @@ import { formatCurrency, normalizeBarcode, debounce } from '@/lib/utils';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { AdminOnly } from '@/components/role';
 import { format, startOfHour, addDays } from 'date-fns';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 
 export default function PromoEditor({ id }: { id?: string }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const isNew = !id || id === 'new';
 
   const [loading, setLoading] = useState(!isNew);
@@ -183,6 +186,11 @@ export default function PromoEditor({ id }: { id?: string }) {
       if (result.error) throw result.error;
 
       toast.success(isNew ? 'Promo berhasil dibuat' : 'Promo berhasil diperbarui');
+      queryClient.invalidateQueries({ queryKey: queryKeys.promo.activeMap });
+      queryClient.invalidateQueries({ queryKey: ['activePromos'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.promo.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
+
       router.push('/inventory/promo');
     } catch (err: any) {
       toast.error(err.message || 'Terjadi kesalahan saat menyimpan promo');

@@ -62,7 +62,9 @@ function HomeContent() {
   } = useQuery({
     queryKey: ['dashboard', 'stats'],
     queryFn: () => dashboardApi.getStats().then((res) => res.data),
-    refetchInterval: 300000,
+    staleTime: 60 * 1000,
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true,
   });
 
   const {
@@ -72,7 +74,9 @@ function HomeContent() {
   } = useQuery({
     queryKey: ['dashboard', 'lowStock'],
     queryFn: () => dashboardApi.getLowStockItems().then((res) => res.data),
-    refetchInterval: 300000,
+    staleTime: 60 * 1000,
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true,
   });
 
   const {
@@ -82,7 +86,9 @@ function HomeContent() {
   } = useQuery({
     queryKey: ['dashboard', 'transactions'],
     queryFn: () => dashboardApi.getRecentTransactions().then((res) => res.data),
-    refetchInterval: 300000,
+    staleTime: 60 * 1000,
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true,
   });
 
   const {
@@ -101,7 +107,9 @@ function HomeContent() {
       }
     },
     enabled: !!user,
-    refetchInterval: 300000,
+    staleTime: 60 * 1000,
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true,
   });
 
   useEffect(() => {

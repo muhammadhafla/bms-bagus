@@ -42,6 +42,7 @@ Sistem Database BMS Inventory dirancang menggunakan prinsip **Domain-Driven Arch
 3. **Multi-Stage Logistics Transfer**: Pemindahan stok antar gudang mengadopsi mesin status 7 tahap (`DRAFT` -> `REQUESTED` -> `APPROVED` -> `IN_TRANSIT` -> `RECEIVED`) untuk mencegah selisih barang dalam perjalanan.
 4. **Resilient POS & Void per Item**: Transaksi penjualan kasir mendukung pembatalan transaksi penuh (void nota) maupun pembatalan parsial per item (`is_void`) dengan pengembalian stok otomatis.
 5. **Zero Trust & Row Level Security**: 100% tabel database memvalidasi hak akses menggunakan PostgreSQL Row Level Security (RLS) berbasis Role JWT Supabase (`superadmin`, `admin`, `cashier`, `finance`).
+6. **Selective Event-Driven Realtime**: Tabel dengan kebutuhan koordinasi multi-perangkat instan (`kehadiran`, `payroll_mutasi`, `print_jobs`) diintegrasikan ke publikasi `supabase_realtime` dengan level `REPLICA IDENTITY FULL`.
 
 ---
 
@@ -1471,7 +1472,8 @@ erDiagram
   - `kehadiran_pkey`: `UNIQUE: kehadiran_pkey ON public.kehadiran USING btree (id)`
   - `kehadiran_user_id_tanggal_key`: `UNIQUE: kehadiran_user_id_tanggal_key ON public.kehadiran USING btree (user_id, tanggal)`
 - **Database Triggers**:
-  - **`on_kehadiran_updated_mutasi`**: `AFTER UPDATE` $\rightarrow$ `trg_sync_kehadiran_to_mutasi()`
+  - **`on_kehadiran_mutasi_sync`**: `AFTER INSERT OR UPDATE OR DELETE` $\rightarrow$ `trg_sync_kehadiran_to_mutasi()`
+- **Supabase Realtime**: **Aktif** (`ALTER PUBLICATION supabase_realtime ADD TABLE kehadiran`, `REPLICA IDENTITY FULL`). Mendukung pembaruan status presensi, lembur, dan kepulangan awal karyawan secara live.
 - **Row Level Security (RLS)**: Ditransformasikan dengan **4 Kebijakan Keamanan (Policies)**.
 
 #### Tabel: `public.slip_gaji`
@@ -1546,6 +1548,7 @@ erDiagram
   - **`on_payroll_mutasi_ledger_sync`**: `AFTER INSERT` $\rightarrow$ `trigger_sync_payroll_mutasi_to_ledger()`
   - **`on_payroll_mutasi_ledger_sync`**: `AFTER UPDATE` $\rightarrow$ `trigger_sync_payroll_mutasi_to_ledger()`
   - **`trigger_notify_admin_on_kasbon`**: `AFTER INSERT` $\rightarrow$ `notify_admin_on_kasbon()`
+- **Supabase Realtime**: **Aktif** (`ALTER PUBLICATION supabase_realtime ADD TABLE payroll_mutasi`, `REPLICA IDENTITY FULL`). Mendukung pembaruan saldo dompet gaji dan status pengajuan kasbon secara live.
 - **Row Level Security (RLS)**: Ditransformasikan dengan **3 Kebijakan Keamanan (Policies)**.
 
 
@@ -1653,6 +1656,7 @@ erDiagram
   - `idx_print_jobs_template_id`: `idx_print_jobs_template_id ON public.print_jobs USING btree (template_id)`
   - `print_jobs_pkey`: `UNIQUE: print_jobs_pkey ON public.print_jobs USING btree (id)`
 - **Database Triggers**: *(Tidak ada trigger khusus)*
+- **Supabase Realtime**: **Aktif** (`ALTER PUBLICATION supabase_realtime ADD TABLE print_jobs`, `REPLICA IDENTITY FULL`). Mendukung pemrosesan antrean cetak dokumen thermal secara live.
 - **Row Level Security (RLS)**: Ditransformasikan dengan **4 Kebijakan Keamanan (Policies)**.
 
 #### Tabel: `public.help_articles`

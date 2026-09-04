@@ -33,9 +33,12 @@ const downloadPdf = (blob: Blob, filename: string) => {
   URL.revokeObjectURL(url);
 };
 
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { useSuppliers } from '@/lib/hooks/useSuppliers';
 
 export default function ReturnPage() {
+  const queryClient = useQueryClient();
   const [selectedSupplier, setSelectedSupplier] = useState<import('@/types').Supplier | null>(null);
   const { data: suppliers = [] } = useSuppliers();
   const [items, setItems] = useState<AvailableReturnItem[]>([]);
@@ -200,6 +203,14 @@ export default function ReturnPage() {
         setLastReturnId(result.data);
         setShowPreview(false);
         setPreviewData(null);
+
+        // Invalidate stale caches across modules
+        queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.warehouse.stocksAll });
+        queryClient.invalidateQueries({ queryKey: queryKeys.transactions.returPembelianAll });
+        queryClient.invalidateQueries({ queryKey: queryKeys.transactions.pembelianAll });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+
         setTimeout(() => {
           handleReset();
         }, 3000);
@@ -210,7 +221,7 @@ export default function ReturnPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [selectedSupplier, previewData, totalReturn, note, handleReset]);
+  }, [selectedSupplier, previewData, totalReturn, note, handleReset, queryClient]);
 
   const handleExportPdf = useCallback(async () => {
     if (!lastReturnId) return;

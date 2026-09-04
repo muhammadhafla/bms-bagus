@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { toast } from 'sonner';
 import {
@@ -143,8 +144,9 @@ function WarehouseStocksContent() {
 
   // Fetch Category List
   const { data: kategoriRes } = useQuery({
-    queryKey: ['kategori-list'],
+    queryKey: queryKeys.kategori.all,
     queryFn: () => kategoriApi.getAll(),
+    staleTime: 10 * 60 * 1000,
   });
 
   const kategoriList = useMemo(() => {
@@ -154,7 +156,7 @@ function WarehouseStocksContent() {
 
   // Fetch Gudang List
   const { data: gudangRes } = useQuery({
-    queryKey: ['warehouse-list'],
+    queryKey: queryKeys.warehouse.list,
     queryFn: () => gudangApi.getAll({ activeOnly: true }),
   });
 
@@ -208,6 +210,8 @@ function WarehouseStocksContent() {
         limit,
       }),
     enabled: !!activeGudangId,
+    refetchOnWindowFocus: true,
+    staleTime: 60 * 1000,
   });
 
   const items = stocksRes?.data?.data || [];

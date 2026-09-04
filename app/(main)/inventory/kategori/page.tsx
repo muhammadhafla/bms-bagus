@@ -24,9 +24,12 @@ import { kategoriApi, Kategori } from '@/lib/api';
 import TextInput from '@/components/ui/TextInput';
 import Button from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { formatDateWIB } from '@/lib/utils';
 
 export default function KategoriPage() {
+  const queryClient = useQueryClient();
   const [kategoris, setKategoris] = useState<Kategori[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -98,6 +101,10 @@ export default function KategoriPage() {
         setKategoris((prev) =>
           prev.map((k) => (k.id === editingId ? { ...k, nama: formNama } : k)),
         );
+        queryClient.invalidateQueries({ queryKey: queryKeys.kategori.all });
+        queryClient.invalidateQueries({ queryKey: ['kategoris'] });
+        queryClient.invalidateQueries({ queryKey: ['kategori-list'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
         handleCloseModal();
       }
     } else {
@@ -107,6 +114,10 @@ export default function KategoriPage() {
       } else if (result.data) {
         toast.success('Kategori berhasil ditambahkan');
         setKategoris((prev) => [...prev, result.data as Kategori]);
+        queryClient.invalidateQueries({ queryKey: queryKeys.kategori.all });
+        queryClient.invalidateQueries({ queryKey: ['kategoris'] });
+        queryClient.invalidateQueries({ queryKey: ['kategori-list'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
         handleCloseModal();
       }
     }
@@ -121,6 +132,10 @@ export default function KategoriPage() {
     } else {
       toast.success('Kategori berhasil dihapus');
       setKategoris((prev) => prev.filter((k) => k.id !== deleteConfirm.id));
+      queryClient.invalidateQueries({ queryKey: queryKeys.kategori.all });
+      queryClient.invalidateQueries({ queryKey: ['kategoris'] });
+      queryClient.invalidateQueries({ queryKey: ['kategori-list'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
     }
     setDeleteConfirm({ isOpen: false, id: null, nama: null });
   };

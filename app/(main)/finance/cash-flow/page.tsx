@@ -96,6 +96,8 @@ export default function CashFlowPage() {
         sortDir: filters.sortDir,
       }),
     enabled: !!currentUserId,
+    refetchOnWindowFocus: true,
+    staleTime: 60 * 1000,
   });
 
   const { data: summaryData, isLoading: isLoadingSummary } = useQuery({
@@ -118,12 +120,16 @@ export default function CashFlowPage() {
       }
     },
     enabled: !!currentUserId,
+    refetchOnWindowFocus: true,
+    staleTime: 60 * 1000,
   });
 
   const { data: shiftSummaryData, isLoading: isLoadingShiftSummary } = useQuery({
     queryKey: ['shift_summary', filters.endDate],
     queryFn: () => kasApi.getShiftSummary(filters.endDate),
     enabled: isAdmin && !!currentUserId,
+    refetchOnWindowFocus: true,
+    staleTime: 60 * 1000,
   });
 
   const handleOpenManualKas = useCallback((type: 'SETOR' | 'TARIK') => {

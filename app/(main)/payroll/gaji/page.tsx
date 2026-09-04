@@ -9,6 +9,8 @@ import { IconWallet, IconArrowUpRight, IconArrowDownLeft, IconClock, IconReceipt
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths, isSameDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/lib/auth';
+import { useRealtimeQuery } from '@/lib/hooks/useRealtimeQuery';
 
 import { Suspense } from 'react';
 
@@ -17,6 +19,7 @@ function DompetContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -35,11 +38,23 @@ function DompetContent() {
   const { data: saldoData, isLoading: isLoadingSaldo } = useQuery({
     queryKey: ['payroll', 'my_saldo'],
     queryFn: () => mutasiApi.getMySaldo(),
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: mutasiData, isLoading: isLoadingMutasi } = useQuery({
     queryKey: ['payroll', 'my_mutasi', { page }],
     queryFn: () => mutasiApi.getMine({ page, limit }),
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: true,
+  });
+
+  // Realtime subscription untuk mutasi gaji / kasbon karyawan ini
+  useRealtimeQuery({
+    table: 'payroll_mutasi',
+    filter: user?.id ? `user_id=eq.${user.id}` : undefined,
+    queryKeys: [['payroll']],
+    enabled: !!user?.id,
   });
 
   const list = mutasiData?.data || [];

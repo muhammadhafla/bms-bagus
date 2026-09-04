@@ -12,7 +12,8 @@ import {
   supplierApi,
   Supplier,
 } from '@/lib/api';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { InventoryItem } from '@/types/inventory';
 import {
   formatCurrency,
@@ -67,6 +68,7 @@ function PembelianPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editIdParam = searchParams.get('editId');
+  const queryClient = useQueryClient();
 
   const resetBulkPrint = useBulkPrintStore((state) => state.reset);
   const addBulkPrintItem = useBulkPrintStore((state) => state.addItem);
@@ -207,6 +209,15 @@ function PembelianPageContent() {
         setSelectedSupplierId(null);
         setSupplier('');
 
+        // Invalidate stale caches across modules
+        queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.warehouse.stocksAll });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.transactions.pembelianAll });
+        queryClient.invalidateQueries({ queryKey: ['kas_log'] });
+        queryClient.invalidateQueries({ queryKey: ['cash_flow_summary'] });
+        queryClient.invalidateQueries({ queryKey: ['buku_besar'] });
+
         router.push('/transactions/history?type=pembelian');
       } else {
         const pembelianItems = items.map((item) => ({
@@ -239,6 +250,15 @@ function PembelianPageContent() {
         reset();
         setSelectedSupplierId(null);
         setSupplier('');
+
+        // Invalidate stale caches across modules
+        queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.warehouse.stocksAll });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.transactions.pembelianAll });
+        queryClient.invalidateQueries({ queryKey: ['kas_log'] });
+        queryClient.invalidateQueries({ queryKey: ['cash_flow_summary'] });
+        queryClient.invalidateQueries({ queryKey: ['buku_besar'] });
       }
     } catch (err: any) {
       toast.error(err.message || 'Terjadi kesalahan saat menyimpan transaksi');

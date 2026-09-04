@@ -10,6 +10,8 @@ import { IconClock, IconFingerprint, IconLogout, IconCalendarEvent, IconHistory,
 import { toast } from 'sonner';
 import { Modal, Button, TextareaInput } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/lib/auth';
+import { useRealtimeQuery } from '@/lib/hooks/useRealtimeQuery';
 
 // Haversine formula in frontend
 function getDistanceFromLatLonInM(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -138,22 +140,39 @@ export default function PayrollDashboardPage() {
     }
   }, [coords, stores]);
 
+  const user = useAuthStore((state) => state.user);
+
   // Fetch status absen hari ini
   const { data: todayStatus, isLoading: isLoadingStatus } = useQuery({
     queryKey: ['payroll', 'today_status'],
     queryFn: () => kehadiranApi.getTodayStatus().then((res) => res.data),
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   // Fetch riwayat absen
   const { data: history, isLoading: isLoadingHistory } = useQuery({
     queryKey: ['payroll', 'history'],
     queryFn: () => kehadiranApi.getMine(7).then((res) => res.data),
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   // Fetch profil karyawan (buat jam shift & info)
   const { data: profile } = useQuery({
     queryKey: ['payroll', 'profile'],
     queryFn: () => karyawanApi.getMine().then((res) => res.data),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const currentUserId = user?.id || profile?.user_id;
+
+  // Realtime subscription untuk presensi karyawan ini
+  useRealtimeQuery({
+    table: 'kehadiran',
+    filter: currentUserId ? `user_id=eq.${currentUserId}` : undefined,
+    queryKeys: [['payroll']],
+    enabled: !!currentUserId,
   });
 
   // Live work duration counter

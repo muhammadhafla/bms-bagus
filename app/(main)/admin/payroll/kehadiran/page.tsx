@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRealtimeQuery } from '@/lib/hooks/useRealtimeQuery';
 import { kehadiranApi, Kehadiran, lokasiKerjaApi } from '@/lib/api/payroll';
 import { karyawanApi } from '@/lib/api/payroll/karyawan';
 import { DataTable, Button, Modal, TextInput, Badge, SelectInput, DateRangePicker, FilterButton, ModernPagination, type Column } from '@/components/ui';
@@ -94,6 +95,8 @@ function AdminKehadiranContent() {
   const { data: summaryData, isLoading: isLoadingSummary } = useQuery({
     queryKey: ['admin_today_kehadiran_summary'],
     queryFn: () => kehadiranApi.getTodaySummary().then(res => res.data),
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   // 2. Query Data Kehadiran (Server-Side Paginated)
@@ -110,6 +113,17 @@ function AdminKehadiranContent() {
       statusLembur: activeTab === 'lembur' ? 'pending' : undefined,
       statusPulangAwal: activeTab === 'pulang_awal' ? 'pending' : undefined
     }).then(res => res.data),
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+  });
+
+  // Realtime subscription: otomatis refresh tabel saat ada karyawan clock in/out di cabang
+  useRealtimeQuery({
+    table: 'kehadiran',
+    queryKeys: [
+      ['admin_today_kehadiran_summary'],
+      ['admin_payroll_kehadiran_paginated'],
+    ],
   });
 
   const list = paginatedResult?.list || [];
@@ -143,6 +157,9 @@ function AdminKehadiranContent() {
       setReviewPulangAwalModalItem(null);
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_kehadiran_paginated'] });
       queryClient.invalidateQueries({ queryKey: ['admin_today_kehadiran_summary'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_saldo'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_mutasi'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll'] });
     },
     onError: () => toast.error('Gagal melakukan review kepulangan awal')
   });
@@ -160,6 +177,9 @@ function AdminKehadiranContent() {
       setSelectedPulangAwalIds([]);
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_kehadiran_paginated'] });
       queryClient.invalidateQueries({ queryKey: ['admin_today_kehadiran_summary'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_saldo'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_mutasi'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll'] });
     },
     onError: () => toast.error('Gagal mereview massal pulang awal')
   });
@@ -300,6 +320,9 @@ function AdminKehadiranContent() {
       setSelectedLemburIds([]);
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_kehadiran_paginated'] });
       queryClient.invalidateQueries({ queryKey: ['admin_today_kehadiran_summary'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_saldo'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_mutasi'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll'] });
     },
     onError: () => toast.error('Gagal melakukan approval lembur')
   });
@@ -431,6 +454,9 @@ function AdminKehadiranContent() {
       setIsCreateOpen(false);
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_kehadiran_paginated'] });
       queryClient.invalidateQueries({ queryKey: ['admin_today_kehadiran_summary'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_saldo'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_mutasi'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll'] });
     },
     onError: () => toast.error('Terjadi kesalahan sistem'),
   });
@@ -464,16 +490,28 @@ function AdminKehadiranContent() {
       waktu_pulang_iso = null;
     }
 
+    // Hitung menit_kerja jika waktu masuk dan waktu pulang tersedia
+    let menit_kerja = 0;
+    if (waktu_masuk_iso && waktu_pulang_iso) {
+      const dMasuk = new Date(waktu_masuk_iso).getTime();
+      const dPulang = new Date(waktu_pulang_iso).getTime();
+      if (dPulang > dMasuk) {
+        menit_kerja = Math.round((dPulang - dMasuk) / (1000 * 60));
+      }
+    }
+
+    const menit_lembur_disetujui = Number(fd.get('menit_lembur_disetujui') || 0);
+
     createMutation.mutate({
       user_id: createUserId,
       tanggal: createDate,
       status_hadir,
       waktu_masuk: waktu_masuk_iso,
       waktu_pulang: waktu_pulang_iso,
-      menit_kerja: 0,
+      menit_kerja,
       menit_telat: Number(fd.get('menit_telat') || 0),
-      menit_lembur_aktual: 0,
-      menit_lembur_disetujui: Number(fd.get('menit_lembur_disetujui') || 0),
+      menit_lembur_aktual: menit_lembur_disetujui,
+      menit_lembur_disetujui,
       status_lembur: (fd.get('status_lembur') as any) || 'tidak_ada',
       lokasi_masuk_id: createLokasiId || null,
       lokasi_pulang_id: createLokasiId || null,
@@ -494,6 +532,9 @@ function AdminKehadiranContent() {
       setSelectedKehadiran(null);
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_kehadiran_paginated'] });
       queryClient.invalidateQueries({ queryKey: ['admin_today_kehadiran_summary'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_saldo'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_mutasi'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll'] });
     },
     onError: () => toast.error('Terjadi kesalahan sistem'),
   });
@@ -529,12 +570,23 @@ function AdminKehadiranContent() {
       waktu_pulang_iso = null;
     }
 
+    let menit_kerja: number | undefined = undefined;
+    if (waktu_masuk_iso && waktu_pulang_iso) {
+      const dMasuk = new Date(waktu_masuk_iso).getTime();
+      const dPulang = new Date(waktu_pulang_iso).getTime();
+      if (dPulang > dMasuk) {
+        menit_kerja = Math.round((dPulang - dMasuk) / (1000 * 60));
+      }
+    }
+
     updateMutation.mutate({
       id: selectedKehadiran.id,
       status_hadir,
       waktu_masuk: waktu_masuk_iso,
       waktu_pulang: waktu_pulang_iso,
+      ...(menit_kerja !== undefined ? { menit_kerja } : {}),
       menit_telat,
+      menit_lembur_aktual: menit_lembur_disetujui,
       menit_lembur_disetujui,
       status_lembur,
       lokasi_masuk_id: editLokasiMasukId || null,

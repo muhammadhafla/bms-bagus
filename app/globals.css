@@ -540,3 +540,37 @@ input[type='number'] {
 .dark * {
   scrollbar-color: var(--color-neutral-700) transparent;
 }
+
+/* ==========================================================================
+   Mobile & Touch UX Optimizations (Native Feel)
+   Berlaku HANYA pada perangkat sentuh / mobile. Desktop (pointer: fine)
+   tetap mempertahankan seleksi teks dan perilaku normal browser.
+   ========================================================================== */
+@media (hover: none) and (pointer: coarse), (max-width: 768px) {
+  html,
+  body {
+    touch-action: pan-x pan-y;
+    overscroll-behavior-y: contain;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  nav,
+  header,
+  [role="button"],
+  .no-select {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+

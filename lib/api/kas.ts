@@ -149,23 +149,28 @@ export const kasApi = {
   },
 
   /**
-   * Mendapatkan ringkasan shift berdasarkan tanggal dan opsional user
-   * Digunakan oleh Admin untuk melihat rangkuman shift per user
+   * Mendapatkan ringkasan shift berdasarkan tanggal dan opsional gudang / user
+   * Digunakan oleh Admin untuk melihat rangkuman shift per user & outlet
    */
-  async getShiftSummary(date: string, userId?: string) {
+  async getShiftSummary(date: string, gudangId?: string, userId?: string) {
     try {
       // Ambil seluruh log di hari tersebut
       let query = supabase
         .from('kas_log')
         .select(
           `
-          tipe, jumlah, created_by, created_at,
-          profiles!kas_log_created_by_fkey (nama)
+          tipe, jumlah, created_by, created_at, gudang_id,
+          profiles!kas_log_created_by_fkey (nama),
+          gudang:gudang_id (id, nama, kode_gudang)
         `,
         )
         .gte('created_at', date + 'T00:00:00+07:00')
         .lte('created_at', date + 'T23:59:59+07:00')
         .order('created_at', { ascending: true });
+
+      if (gudangId) {
+        query = query.eq('gudang_id', gudangId);
+      }
 
       if (userId) {
         query = query.eq('created_by', userId);
@@ -178,12 +183,14 @@ export const kasApi = {
 
       if (error || !data) return { data: [], error };
 
-      // Kelompokkan data per user
+      // Kelompokkan data per user & outlet
       const userShifts: Record<
         string,
         {
           userId: string;
           userName: string;
+          gudangId?: string | null;
+          gudangName?: string | null;
           pemasukan: number;
           pengeluaran: number;
           saldo: number;
@@ -194,10 +201,15 @@ export const kasApi = {
 
       data.forEach((row) => {
         const uid = row.created_by;
-        if (!userShifts[uid]) {
-          userShifts[uid] = {
+        const gid = row.gudang_id || 'unknown';
+        const key = `${uid}_${gid}`;
+
+        if (!userShifts[key]) {
+          userShifts[key] = {
             userId: uid,
             userName: row.profiles?.nama || 'Unknown',
+            gudangId: row.gudang_id,
+            gudangName: row.gudang?.nama || null,
             pemasukan: 0,
             pengeluaran: 0,
             saldo: 0,
@@ -206,14 +218,17 @@ export const kasApi = {
           };
         }
 
-        userShifts[uid].lastActivity = row.created_at;
+        userShifts[key].lastActivity = row.created_at;
+        if (row.gudang?.nama) {
+          userShifts[key].gudangName = row.gudang.nama;
+        }
 
         if (row.tipe === 'JUAL' || row.tipe === 'SETOR') {
-          userShifts[uid].pemasukan += Number(row.jumlah);
+          userShifts[key].pemasukan += Number(row.jumlah);
         } else if (row.tipe === 'TARIK' || row.tipe === 'RETURN') {
-          userShifts[uid].pengeluaran += Number(row.jumlah);
+          userShifts[key].pengeluaran += Number(row.jumlah);
         } else if (row.tipe === 'TUTUP_SHIFT') {
-          userShifts[uid].shiftClosed = true;
+          userShifts[key].shiftClosed = true;
         }
       });
 

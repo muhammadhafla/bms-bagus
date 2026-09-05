@@ -125,8 +125,8 @@ export default function CashFlowPage() {
   });
 
   const { data: shiftSummaryData, isLoading: isLoadingShiftSummary } = useQuery({
-    queryKey: ['shift_summary', filters.endDate],
-    queryFn: () => kasApi.getShiftSummary(filters.endDate),
+    queryKey: ['shift_summary', filters.endDate, filters.gudangId],
+    queryFn: () => kasApi.getShiftSummary(filters.endDate, filters.gudangId || undefined),
     enabled: isAdmin && !!currentUserId,
     refetchOnWindowFocus: true,
     staleTime: 60 * 1000,
@@ -355,6 +355,7 @@ export default function CashFlowPage() {
                 shiftSummaryData={shiftSummaryData}
                 isLoading={isLoadingShiftSummary}
                 targetDate={filters.endDate}
+                selectedGudangName={gudangList.find((g) => g.id === filters.gudangId)?.nama}
               />
             )}
           </div>

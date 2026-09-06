@@ -129,7 +129,6 @@ export const InventoryTable = React.memo(function InventoryTable({
     diskon: 0,
     minimum_stock: 0,
   });
-  const [saveConfirm, setSaveConfirm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [discontinueConfirm, setDiscontinueConfirm] = useState(false);
   const [printModalOpen, setPrintModalOpen] = useState(false);
@@ -205,7 +204,6 @@ export const InventoryTable = React.memo(function InventoryTable({
     } else {
       toast.error('Gagal menyimpan perubahan');
     }
-    setSaveConfirm(false);
     closeSlideOver();
   }, [selectedItem, editForm, onUpdate, closeSlideOver]);
 
@@ -735,11 +733,11 @@ export const InventoryTable = React.memo(function InventoryTable({
             <div className="flex gap-3">
               <Button
                 variant="primary"
-                onClick={() => setSaveConfirm(true)}
+                onClick={handleSave}
                 className="flex-1"
                 leftIcon={<IconDeviceFloppy size={18} />}
               >
-                <span className="hidden sm:inline">Simpan Perubahan</span>
+                Simpan Perubahan
               </Button>
             </div>
             <Button
@@ -771,16 +769,6 @@ export const InventoryTable = React.memo(function InventoryTable({
           </div>
         </AdminOnly>
       </Modal>
-
-      <ConfirmDialog
-        isOpen={saveConfirm}
-        title="Simpan Perubahan"
-        message={`Yakin ingin menyimpan perubahan pada ${editForm.nama_barang}?`}
-        confirmLabel="Ya, Simpan"
-        cancelLabel="Batal"
-        onConfirm={handleSave}
-        onCancel={() => setSaveConfirm(false)}
-      />
 
       <ConfirmDialog
         isOpen={deleteConfirm}

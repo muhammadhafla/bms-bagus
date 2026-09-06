@@ -1094,6 +1094,7 @@ erDiagram
 | 7 | **`created_at`** | `timestamptz` | `NULL` | `now()` | Timestamp saat baris data pertama kali dibuat. |
 | 8 | **`payment_method`** | `text` | `NULL` | `'CASH'` | Menyimpan data payment method. |
 | 9 | **`gudang_id`** | `uuid` | `NULL` | - | Foreign key referensi ke relasi gudang. |
+| 10 | **`kategori`** | `varchar(50)` | `NULL` | `'OPERASIONAL'` | Klasifikasi mutasi kas laci kasir ('OPERASIONAL', 'GAJI', 'KASBON', 'SETORAN', 'LAIN_LAIN'). |
 
 **Constraints & Indeks Utama**:
 - **Primary Key**: `id`

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mutasiApi, gajiApi, PayrollMutasi } from '@/lib/api/payroll';
+import { gudangApi } from '@/lib/api/warehouse';
 import { downloadMutasiPdf, downloadSlipGajiPdf } from '@/lib/payroll-pdf-utils';
-import { Card, Button, Modal, TextInput, TextareaInput, ModernPagination, MonthPicker, DataTable, type Column, Badge } from '@/components/ui';
+import { Card, Button, Modal, TextInput, TextareaInput, SelectInput, ModernPagination, MonthPicker, DataTable, type Column, Badge } from '@/components/ui';
 import { IconArrowLeft, IconWallet, IconCheck, IconX, IconArrowUpRight, IconArrowDownLeft, IconClock, IconPrinter, IconFileText } from '@tabler/icons-react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -36,16 +37,48 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
   const saldo = saldoData || 0;
   const profile = list.length > 0 ? list[0].profiles : null;
 
-  // Approve/Reject Modal
+  // Gudang / Kasir query
+  const { data: gudangRes } = useQuery({
+    queryKey: ['warehouse-list'],
+    queryFn: () => gudangApi.getAll({ activeOnly: true }),
+  });
+  const gudangList = gudangRes?.data || [];
+
+  // Approve/Reject Modal State
   const [selectedMutasi, setSelectedMutasi] = useState<PayrollMutasi | null>(null);
+  const [approveMetode, setApproveMetode] = useState<'TRANSFER' | 'CASH_KASIR'>('TRANSFER');
+  const [approveGudangId, setApproveGudangId] = useState('');
+
+  // Cairkan Gaji Modal State
+  const [isCairkanOpen, setIsCairkanOpen] = useState(false);
+  const [cairkanNominal, setCairkanNominal] = useState('');
+  const [cairkanKeterangan, setCairkanKeterangan] = useState('Pencairan Gaji');
+  const [cairkanMetode, setCairkanMetode] = useState<'TRANSFER' | 'CASH_KASIR'>('TRANSFER');
+  const [cairkanGudangId, setCairkanGudangId] = useState('');
+
+  useEffect(() => {
+    if (gudangList.length > 0) {
+      const def = gudangList.find((g) => g.is_default) || gudangList[0];
+      if (!cairkanGudangId && def?.id) setCairkanGudangId(def.id);
+      if (!approveGudangId && def?.id) setApproveGudangId(def.id);
+    }
+  }, [gudangList, cairkanGudangId, approveGudangId]);
   
   const approveMutation = useMutation({
-    mutationFn: (id: string) => mutasiApi.approvePenarikan(id),
+    mutationFn: (id: string) => mutasiApi.approvePenarikan(id, {
+      disburseViaCashier: approveMetode === 'CASH_KASIR',
+      gudangId: approveMetode === 'CASH_KASIR' ? approveGudangId : null,
+    }),
     onSuccess: () => {
-      toast.success('Berhasil menyetujui penarikan');
+      toast.success(approveMetode === 'CASH_KASIR' 
+        ? 'Berhasil menyetujui & memotong saldo laci kasir' 
+        : 'Berhasil menyetujui penarikan'
+      );
       setSelectedMutasi(null);
+      setApproveMetode('TRANSFER');
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_mutasi'] });
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_saldo'] });
+      queryClient.invalidateQueries({ queryKey: ['kas_log'] });
     },
     onError: (err: any) => toast.error(err.message || 'Gagal menyetujui')
   });
@@ -60,25 +93,27 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
     onError: (err: any) => toast.error(err.message || 'Gagal menolak')
   });
 
-  // Cairkan Gaji Modal
-  const [isCairkanOpen, setIsCairkanOpen] = useState(false);
-  const [cairkanNominal, setCairkanNominal] = useState('');
-  const [cairkanKeterangan, setCairkanKeterangan] = useState('Pencairan Gaji');
-
   const cairkanMutation = useMutation({
     mutationFn: () => mutasiApi.insertMutasi({
       user_id: userId,
       jenis: 'debit',
       kategori: 'pencairan',
       nominal: Number(cairkanNominal.replace(/\D/g, '')),
-      keterangan: cairkanKeterangan
+      keterangan: cairkanKeterangan,
+      disburseViaCashier: cairkanMetode === 'CASH_KASIR',
+      gudangId: cairkanMetode === 'CASH_KASIR' ? cairkanGudangId : null,
     }),
     onSuccess: () => {
-      toast.success('Pencairan berhasil dicatat');
+      toast.success(cairkanMetode === 'CASH_KASIR'
+        ? 'Pencairan tunai kasir berhasil dicatat & saldo kasir terpotong'
+        : 'Pencairan berhasil dicatat'
+      );
       setIsCairkanOpen(false);
       setCairkanNominal('');
+      setCairkanMetode('TRANSFER');
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_mutasi'] });
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_saldo'] });
+      queryClient.invalidateQueries({ queryKey: ['kas_log'] });
     },
     onError: (err: any) => toast.error(err.message || 'Gagal mencatat pencairan')
   });
@@ -473,6 +508,54 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
               </div>
             </div>
             
+            <div className="flex flex-col gap-2 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+              <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                Metode Pembayaran ke Karyawan:
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setApproveMetode('TRANSFER')}
+                  className={`p-2 text-xs font-medium rounded-lg border text-left transition-all ${
+                    approveMetode === 'TRANSFER'
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                      : 'border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700'
+                  }`}
+                >
+                  🏦 Transfer / Rekening
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setApproveMetode('CASH_KASIR')}
+                  className={`p-2 text-xs font-medium rounded-lg border text-left transition-all ${
+                    approveMetode === 'CASH_KASIR'
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                      : 'border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700'
+                  }`}
+                >
+                  💵 Tunai Laci Kasir
+                </button>
+              </div>
+
+              {approveMetode === 'CASH_KASIR' && (
+                <div className="mt-2 space-y-1.5 pt-2 border-t border-neutral-200 dark:border-neutral-700">
+                  <SelectInput
+                    label="Pilih Lokasi Kasir Toko"
+                    value={approveGudangId}
+                    onChange={(val) => setApproveGudangId(val)}
+                    options={gudangList.map((g) => ({
+                      label: `${g.nama} (${g.kode_gudang})`,
+                      value: g.id,
+                    }))}
+                    required
+                  />
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                    ℹ️ Saldo laci kasir akan otomatis terpotong di POS dan tidak akan tercatat dobel saat tutup shift.
+                  </p>
+                </div>
+              )}
+            </div>
+
             <p className="text-sm text-neutral-500 text-center mt-2">
               Pilih tindakan untuk pengajuan dana ini. Jika disetujui, saldo karyawan akan otomatis terpotong.
             </p>
@@ -512,6 +595,56 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
             Gunakan fitur ini saat Anda memberikan dana (transfer/cash) ke karyawan. Transaksi ini akan memotong saldo karyawan (menjadi Kasbon jika saldo kurang).
           </div>
           
+          <div className="flex flex-col gap-2 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+            <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+              Metode Pencairan Dana:
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setCairkanMetode('TRANSFER')}
+                className={`p-2.5 text-xs font-medium rounded-lg border text-left transition-all ${
+                  cairkanMetode === 'TRANSFER'
+                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                    : 'border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700'
+                }`}
+              >
+                🏦 Transfer / Non-Kasir
+                <span className="block text-[10px] text-neutral-500 mt-0.5">Kas kantor / transfer bank</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCairkanMetode('CASH_KASIR')}
+                className={`p-2.5 text-xs font-medium rounded-lg border text-left transition-all ${
+                  cairkanMetode === 'CASH_KASIR'
+                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                    : 'border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700'
+                }`}
+              >
+                💵 Tunai Laci Kasir POS
+                <span className="block text-[10px] text-neutral-500 mt-0.5">Potong kasir & bebas dobel</span>
+              </button>
+            </div>
+
+            {cairkanMetode === 'CASH_KASIR' && (
+              <div className="mt-2 space-y-1.5 pt-2 border-t border-neutral-200 dark:border-neutral-700">
+                <SelectInput
+                  label="Pilih Lokasi Kasir Toko"
+                  value={cairkanGudangId}
+                  onChange={(val) => setCairkanGudangId(val)}
+                  options={gudangList.map((g) => ({
+                    label: `${g.nama} (${g.kode_gudang})`,
+                    value: g.id,
+                  }))}
+                  required
+                />
+                <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                  ℹ️ Saldo laci kasir akan otomatis terpotong di POS dan <b>tidak akan tercatat dobel</b> saat tutup shift.
+                </p>
+              </div>
+            )}
+          </div>
+
           <TextInput
             label="Nominal (Rp)"
             value={cairkanNominal}

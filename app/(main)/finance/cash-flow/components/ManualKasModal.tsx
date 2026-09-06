@@ -20,6 +20,7 @@ interface ManualKasModalProps {
 
 export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: ManualKasModalProps) {
   const [tipe, setTipe] = useState<'SETOR' | 'TARIK'>(defaultType);
+  const [kategori, setKategori] = useState<'OPERASIONAL' | 'GAJI' | 'KASBON' | 'SETORAN' | 'LAIN_LAIN'>('OPERASIONAL');
   const [jumlah, setJumlah] = useState<number | null>(null);
   const [catatan, setCatatan] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
@@ -37,6 +38,7 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
   useEffect(() => {
     if (isOpen) {
       setTipe(defaultType);
+      setKategori('OPERASIONAL');
       setJumlah(null);
       setCatatan('');
       setPaymentMethod('CASH');
@@ -72,6 +74,7 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
 
     mutation.mutate({
       tipe,
+      kategori: tipe === 'TARIK' ? kategori : undefined,
       jumlah,
       catatan,
       payment_method: paymentMethod,
@@ -110,6 +113,28 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
           ]}
           required
         />
+
+        {tipe === 'TARIK' && (
+          <div className="space-y-1.5">
+            <SelectInput
+              label="Kategori Penarikan"
+              value={kategori}
+              onChange={(val) => setKategori(val as any)}
+              options={[
+                { label: 'Operasional Toko (Masuk Biaya Shift)', value: 'OPERASIONAL' },
+                { label: 'Pencairan Gaji / Kasbon (Bebas Dobel Buku Besar)', value: 'GAJI' },
+                { label: 'Setor Kas ke Bank / Pemilik', value: 'SETORAN' },
+                { label: 'Lain-lain', value: 'LAIN_LAIN' },
+              ]}
+              required
+            />
+            {kategori === 'GAJI' && (
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                ℹ️ Penarikan gaji hanya memotong fisik kasir dan tidak akan didobelkan ke biaya operasional buku besar saat tutup shift.
+              </p>
+            )}
+          </div>
+        )}
 
         <PriceInput label="Nominal (Rp)" value={jumlah || 0} onChange={setJumlah} placeholder="0" />
 

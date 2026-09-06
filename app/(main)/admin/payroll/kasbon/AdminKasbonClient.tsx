@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { kasbonApi, Kasbon, karyawanApi } from '@/lib/api/payroll';
+import { gudangApi } from '@/lib/api/warehouse';
 import { Card, DataTable, Button, Modal, Tabs, TextareaInput, Badge, SelectInput, TextInput, DateRangePicker, FilterButton, ModernPagination, type Column } from '@/components/ui';
 import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
 import { IconWallet, IconCheck, IconX, IconPlus, IconArrowDown } from '@tabler/icons-react';
@@ -80,24 +81,57 @@ export default function AdminKasbonClient() {
     queryFn: () => kasbonApi.getAll({ status: statusFilter, page, limit, search, startDate, endDate, sortBy, sortDir }),
   });
 
+  const { data: gudangRes } = useQuery({
+    queryKey: ['warehouse-list'],
+    queryFn: () => gudangApi.getAll({ activeOnly: true }),
+  });
+  const gudangList = gudangRes?.data || [];
+
+  const [approveMetode, setApproveMetode] = useState<'TRANSFER' | 'CASH_KASIR'>('TRANSFER');
+  const [approveGudangId, setApproveGudangId] = useState('');
+  const [createMetode, setCreateMetode] = useState<'TRANSFER' | 'CASH_KASIR'>('TRANSFER');
+  const [createGudangId, setCreateGudangId] = useState('');
+
+  useEffect(() => {
+    if (gudangList.length > 0) {
+      const def = gudangList.find((g) => g.is_default) || gudangList[0];
+      if (!approveGudangId && def?.id) setApproveGudangId(def.id);
+      if (!createGudangId && def?.id) setCreateGudangId(def.id);
+    }
+  }, [gudangList, approveGudangId, createGudangId]);
+
   const list = kasbonData?.data || [];
   const totalItems = kasbonData?.total || 0;
   const totalPages = Math.ceil(totalItems / limit) || 1;
 
   const updateStatusMutation = useMutation({
-    mutationFn: (args: { id: string, status: 'disetujui' | 'ditolak', reason?: string }) => 
-      kasbonApi.updateStatus(args.id, args.status),
-    onSuccess: (res) => {
+    mutationFn: (args: { 
+      id: string, 
+      status: 'disetujui' | 'ditolak', 
+      reason?: string,
+      disburseViaCashier?: boolean,
+      gudangId?: string | null 
+    }) => 
+      kasbonApi.updateStatus(args.id, args.status, {
+        disburseViaCashier: args.disburseViaCashier,
+        gudangId: args.gudangId
+      }),
+    onSuccess: (res, vars) => {
       if (res.error) {
         toast.error('Gagal memperbarui: ' + res.error.message);
         return;
       }
-      toast.success('Status kasbon diperbarui!');
+      toast.success(vars.disburseViaCashier
+        ? 'Status kasbon disetujui & saldo kas kasir terpotong!'
+        : 'Status kasbon diperbarui!'
+      );
       setConfirmApprove(null);
       setConfirmReject(null);
       setRejectReason('');
+      setApproveMetode('TRANSFER');
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_kasbon'] });
       queryClient.invalidateQueries({ queryKey: ['buku_besar'] });
+      queryClient.invalidateQueries({ queryKey: ['kas_log'] });
     },
     onError: () => toast.error('Terjadi kesalahan sistem'),
   });
@@ -123,20 +157,29 @@ export default function AdminKasbonClient() {
       createUserId, 
       Number(createNominal.replace(/\D/g, '')), 
       createKeterangan, 
-      createStatus as 'pending' | 'disetujui'
+      createStatus as 'pending' | 'disetujui',
+      {
+        disburseViaCashier: createStatus === 'disetujui' && createMetode === 'CASH_KASIR',
+        gudangId: createMetode === 'CASH_KASIR' ? createGudangId : null,
+      }
     ),
     onSuccess: (res) => {
       if (res.error) {
         toast.error('Gagal membuat kasbon: ' + res.error.message);
         return;
       }
-      toast.success('Kasbon berhasil dibuat!');
+      toast.success(createStatus === 'disetujui' && createMetode === 'CASH_KASIR'
+        ? 'Kasbon berhasil dibuat & saldo kasir terpotong!'
+        : 'Kasbon berhasil dibuat!'
+      );
       setIsCreateModalOpen(false);
       setCreateUserId('');
       setCreateNominal('');
       setCreateKeterangan('');
+      setCreateMetode('TRANSFER');
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_kasbon'] });
       queryClient.invalidateQueries({ queryKey: ['buku_besar'] });
+      queryClient.invalidateQueries({ queryKey: ['kas_log'] });
     },
     onError: () => toast.error('Terjadi kesalahan sistem'),
   });
@@ -151,7 +194,12 @@ export default function AdminKasbonClient() {
 
   const handleApprove = () => {
     if (confirmApprove) {
-      updateStatusMutation.mutate({ id: confirmApprove.id, status: 'disetujui' });
+      updateStatusMutation.mutate({ 
+        id: confirmApprove.id, 
+        status: 'disetujui',
+        disburseViaCashier: approveMetode === 'CASH_KASIR',
+        gudangId: approveMetode === 'CASH_KASIR' ? approveGudangId : null,
+      });
     }
   };
 
@@ -598,6 +646,54 @@ export default function AdminKasbonClient() {
                 );
               })()}
 
+              <div className="flex flex-col gap-2 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700 mt-3">
+                <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                  Metode Pembayaran ke Karyawan:
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setApproveMetode('TRANSFER')}
+                    className={`p-2 text-xs font-medium rounded-lg border text-left transition-all ${
+                      approveMetode === 'TRANSFER'
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                        : 'border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700'
+                    }`}
+                  >
+                    🏦 Transfer / Rekening
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setApproveMetode('CASH_KASIR')}
+                    className={`p-2 text-xs font-medium rounded-lg border text-left transition-all ${
+                      approveMetode === 'CASH_KASIR'
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                        : 'border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700'
+                    }`}
+                  >
+                    💵 Tunai Laci Kasir
+                  </button>
+                </div>
+
+                {approveMetode === 'CASH_KASIR' && (
+                  <div className="mt-2 space-y-1.5 pt-2 border-t border-neutral-200 dark:border-neutral-700">
+                    <SelectInput
+                      label="Pilih Lokasi Kasir Toko"
+                      value={approveGudangId}
+                      onChange={(val) => setApproveGudangId(val)}
+                      options={gudangList.map((g) => ({
+                        label: `${g.nama} (${g.kode_gudang})`,
+                        value: g.id,
+                      }))}
+                      required
+                    />
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                      ℹ️ Saldo laci kasir toko akan otomatis terpotong dan tidak akan tercatat dobel saat tutup shift.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="mt-6 flex justify-end gap-3">
                 <Button variant="secondary" onClick={() => setConfirmApprove(null)}>Batal</Button>
                 <Button 
@@ -698,6 +794,56 @@ export default function AdminKasbonClient() {
                 { value: 'pending', label: 'Pending' }
               ]}
             />
+
+            {createStatus === 'disetujui' && (
+              <div className="flex flex-col gap-2 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                  Metode Pencairan Dana:
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCreateMetode('TRANSFER')}
+                    className={`p-2 text-xs font-medium rounded-lg border text-left transition-all ${
+                      createMetode === 'TRANSFER'
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                        : 'border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700'
+                    }`}
+                  >
+                    🏦 Transfer / Rekening
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreateMetode('CASH_KASIR')}
+                    className={`p-2 text-xs font-medium rounded-lg border text-left transition-all ${
+                      createMetode === 'CASH_KASIR'
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                        : 'border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700'
+                    }`}
+                  >
+                    💵 Tunai Laci Kasir POS
+                  </button>
+                </div>
+
+                {createMetode === 'CASH_KASIR' && (
+                  <div className="mt-2 space-y-1.5 pt-2 border-t border-neutral-200 dark:border-neutral-700">
+                    <SelectInput
+                      label="Pilih Lokasi Kasir Toko"
+                      value={createGudangId}
+                      onChange={(val) => setCreateGudangId(val)}
+                      options={gudangList.map((g) => ({
+                        label: `${g.nama} (${g.kode_gudang})`,
+                        value: g.id,
+                      }))}
+                      required
+                    />
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                      ℹ️ Saldo laci kasir akan otomatis terpotong di POS dan tidak akan tercatat dobel saat tutup shift.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="mt-4 flex justify-end gap-3">
               <Button variant="secondary" onClick={() => setIsCreateModalOpen(false)}>Batal</Button>
               <Button 

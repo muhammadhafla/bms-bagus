@@ -214,7 +214,16 @@ export const mutasiApi = {
   },
 
   // Approve withdrawal / pencairan (Admin)
-  async approvePenarikan(id: string) {
+  async approvePenarikan(id: string, options?: { disburseViaCashier?: boolean; gudangId?: string | null }) {
+    if (options?.disburseViaCashier) {
+      const { data, error } = await supabase.rpc('disburse_payroll_via_cashier', {
+        p_mutasi_id: id,
+        p_gudang_id: options.gudangId || null,
+      });
+      if (error) throw error;
+      return data;
+    }
+
     const { data, error } = await supabase
       .from('payroll_mutasi')
       .update({ status: 'disetujui' })
@@ -247,17 +256,30 @@ export const mutasiApi = {
     nominal: number;
     keterangan: string;
     status?: PayrollMutasiStatus;
+    disburseViaCashier?: boolean;
+    gudangId?: string | null;
   }) {
+    const { disburseViaCashier, gudangId, ...payload } = args;
+
     const { data, error } = await supabase
       .from('payroll_mutasi')
       .insert({
-        ...args,
-        status: args.status || 'disetujui'
+        ...payload,
+        status: payload.status || 'disetujui'
       })
       .select()
       .single();
 
     if (error) throw error;
+
+    if (disburseViaCashier && data?.id) {
+      const { error: rpcErr } = await supabase.rpc('disburse_payroll_via_cashier', {
+        p_mutasi_id: data.id,
+        p_gudang_id: gudangId || null,
+      });
+      if (rpcErr) console.error('Error auto-disbursing via cashier:', rpcErr);
+    }
+
     return data;
   }
 };

@@ -11,6 +11,7 @@ export interface KasLogItem {
   created_at: string;
   payment_method: string;
   gudang_id?: string | null;
+  kategori?: 'OPERASIONAL' | 'GAJI' | 'KASBON' | 'SETORAN' | 'LAIN_LAIN' | null;
   // relasi (jika dijoin dengan profiles / gudang)
   profiles?: {
     nama: string;
@@ -309,6 +310,7 @@ export const kasApi = {
     catatan: string;
     payment_method?: string;
     gudang_id?: string | null;
+    kategori?: 'OPERASIONAL' | 'GAJI' | 'KASBON' | 'SETORAN' | 'LAIN_LAIN';
   }) {
     try {
       const { data: authData } = await supabase.auth.getUser();
@@ -333,6 +335,7 @@ export const kasApi = {
         created_by: userId,
         payment_method: data.payment_method || 'CASH',
         gudang_id: targetGudangId,
+        kategori: data.kategori || (data.tipe === 'TARIK' ? 'OPERASIONAL' : null),
       };
 
       const result = await safeQuery(

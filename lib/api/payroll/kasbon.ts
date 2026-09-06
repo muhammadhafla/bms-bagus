@@ -204,7 +204,13 @@ export const kasbonApi = {
   /**
    * Membuat kasbon langsung (Admin)
    */
-  async createAdmin(userId: string, nominal: number, keterangan: string, status: 'pending' | 'disetujui' = 'disetujui') {
+  async createAdmin(
+    userId: string, 
+    nominal: number, 
+    keterangan: string, 
+    status: 'pending' | 'disetujui' = 'disetujui',
+    options?: { disburseViaCashier?: boolean; gudangId?: string | null }
+  ) {
     try {
       const { data: authData } = await supabase.auth.getUser();
       const adminId = authData.user?.id;
@@ -226,6 +232,15 @@ export const kasbonApi = {
         },
         { isMutation: true }
       );
+
+      if (options?.disburseViaCashier && result.data?.id && status === 'disetujui') {
+        const { error: rpcErr } = await supabase.rpc('disburse_payroll_via_cashier', {
+          p_mutasi_id: result.data.id,
+          p_gudang_id: options.gudangId || null,
+        });
+        if (rpcErr) console.error('Error auto-disbursing kasbon via cashier:', rpcErr);
+      }
+
       return result;
     } catch (err: any) {
       return { data: null, error: { message: err.message || 'Terjadi kesalahan' } };
@@ -235,11 +250,24 @@ export const kasbonApi = {
   /**
    * Memperbarui status kasbon (Untuk Admin)
    */
-  async updateStatus(id: string, status: 'disetujui' | 'ditolak') {
+  async updateStatus(
+    id: string, 
+    status: 'disetujui' | 'ditolak',
+    options?: { disburseViaCashier?: boolean; gudangId?: string | null }
+  ) {
     try {
       const { data: authData } = await supabase.auth.getUser();
       const adminId = authData.user?.id;
       if (!adminId) throw new Error('Not authenticated');
+
+      if (status === 'disetujui' && options?.disburseViaCashier) {
+        const { data: rpcData, error: rpcErr } = await supabase.rpc('disburse_payroll_via_cashier', {
+          p_mutasi_id: id,
+          p_gudang_id: options.gudangId || null,
+        });
+        if (rpcErr) throw rpcErr;
+        return { data: { id, status: 'disetujui' } as any, error: null };
+      }
 
       const payload = {
         status

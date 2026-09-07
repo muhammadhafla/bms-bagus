@@ -66,11 +66,6 @@ export default function PengeluaranOperasionalPage() {
     return filteredList.slice((page - 1) * limit, page * limit);
   }, [filteredList, page, limit]);
 
-  // Summary stats
-  const totalNominal = useMemo(() => {
-    return filteredList.reduce((acc: number, item: any) => acc + (Number(item.nominal) || 0), 0);
-  }, [filteredList]);
-
   // Reset page when search or warehouse changes
   useEffect(() => {
     setPage(1);
@@ -209,62 +204,47 @@ export default function PengeluaranOperasionalPage() {
         </Button>
       </div>
 
-      {/* Filter and Summary Bar */}
-      <div className="mt-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 flex-col sm:flex-row gap-2">
-          {/* Search Input */}
-          <div className="relative flex-1 min-w-[200px]">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-neutral-400 dark:text-neutral-500">
-              <IconSearch size={16} />
-            </div>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari kategori, keterangan, admin..."
-              className="w-full rounded-xl border border-neutral-200/80 bg-white/70 py-2 pl-9 pr-8 text-xs sm:text-sm text-neutral-900 placeholder-neutral-400 shadow-2xs backdrop-blur-md transition-all focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-neutral-800 dark:bg-neutral-900/60 dark:text-white dark:placeholder-neutral-500 dark:focus:bg-neutral-900"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch('')}
-                className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
-              >
-                <IconX size={14} />
-              </button>
-            )}
+      {/* Filter Bar */}
+      <div className="mt-4 flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
+        {/* Search Input */}
+        <div className="relative flex-1 min-w-[200px]">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-neutral-400 dark:text-neutral-500">
+            <IconSearch size={18} />
           </div>
-
-          {/* Warehouse Selector */}
-          <div className="w-full sm:w-60">
-            <SelectInput
-              value={selectedGudangId}
-              onChange={(val) => {
-                setSelectedGudangId(val);
-                setPage(1);
-              }}
-              options={[
-                { label: 'Semua Outlet / Cabang', value: '' },
-                ...gudangList.map((g) => ({
-                  label: `${g.nama} (${g.kode_gudang})`,
-                  value: g.id,
-                })),
-              ]}
-            />
-          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari kategori, keterangan, admin..."
+            className="h-[46px] w-full rounded-xl border-2 border-neutral-200 bg-white py-3 pl-11 pr-10 text-sm text-neutral-900 placeholder-neutral-400 shadow-2xs transition-all focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-500/10 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white dark:placeholder-neutral-500 dark:focus:bg-neutral-950"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+            >
+              <IconX size={16} />
+            </button>
+          )}
         </div>
 
-        {/* Stats Pills */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <div className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200/60 bg-white/60 px-3 py-1.5 text-xs text-neutral-600 shadow-2xs backdrop-blur-md dark:border-neutral-800 dark:bg-neutral-900/60 dark:text-neutral-300">
-            <span className="text-neutral-400 dark:text-neutral-500">Total:</span>
-            <span className="font-bold text-rose-600 dark:text-rose-400">
-              Rp {totalNominal.toLocaleString('id-ID')}
-            </span>
-            <span className="text-[10px] text-neutral-400 dark:text-neutral-500">
-              ({totalItems})
-            </span>
-          </div>
+        {/* Warehouse Selector */}
+        <div className="w-full sm:w-64">
+          <SelectInput
+            value={selectedGudangId}
+            onChange={(val) => {
+              setSelectedGudangId(val);
+              setPage(1);
+            }}
+            options={[
+              { label: 'Semua Outlet / Cabang', value: '' },
+              ...gudangList.map((g) => ({
+                label: `${g.nama} (${g.kode_gudang})`,
+                value: g.id,
+              })),
+            ]}
+          />
         </div>
       </div>
 

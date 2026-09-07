@@ -798,8 +798,11 @@ function WarehouseStocksContent() {
                         <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
                           Stok ({activeGudang?.kode_gudang || 'Gudang'})
                         </th>
-                        <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
-                          Total Seluruh Cabang
+                        <th
+                          className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400"
+                          title="Total akumulasi stok di semua gudang & cabang"
+                        >
+                          Total Stok Global
                         </th>
                         <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
                           Batas (Min/Max)
@@ -1022,8 +1025,11 @@ function WarehouseStocksContent() {
                           </div>
 
                           <div className="flex flex-col">
-                            <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                              Total Seluruh Cabang:
+                            <span
+                              className="text-[11px] text-neutral-500 dark:text-neutral-400"
+                              title="Total akumulasi stok di semua gudang & cabang"
+                            >
+                              Total Stok Global:
                             </span>
                             <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
                               {row.stok_global} {row.unit || 'pcs'}

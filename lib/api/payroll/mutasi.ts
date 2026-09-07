@@ -66,6 +66,20 @@ export const mutasiApi = {
     return { data: data as PayrollMutasi[] };
   },
 
+  // Get mutasi for a specific user by date range (Admin only)
+  async getByUserIdByRange(userId: string, startDate: string, endDate: string) {
+    const { data, error } = await supabase
+      .from('payroll_mutasi')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('tanggal', startDate)
+      .lte('tanggal', endDate)
+      .order('tanggal', { ascending: false });
+
+    if (error) throw error;
+    return data as PayrollMutasi[];
+  },
+
   // Get mutasi for a specific user (Admin only)
   async getByUserId(userId: string, params?: { page?: number; limit?: number }) {
     const page = params?.page || 1;

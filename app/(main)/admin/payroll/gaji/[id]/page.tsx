@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useMemo, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mutasiApi, gajiApi, PayrollMutasi } from '@/lib/api/payroll';
 import { gudangApi } from '@/lib/api/warehouse';
 import { downloadMutasiPdf, downloadSlipGajiPdf } from '@/lib/payroll-pdf-utils';
 import { Card, Button, Modal, TextInput, TextareaInput, SelectInput, ModernPagination, MonthPicker, DataTable, type Column, Badge } from '@/components/ui';
-import { IconArrowLeft, IconWallet, IconCheck, IconX, IconArrowUpRight, IconArrowDownLeft, IconClock, IconPrinter, IconFileText } from '@tabler/icons-react';
-import { format } from 'date-fns';
+import { IconArrowLeft, IconWallet, IconCheck, IconX, IconArrowUpRight, IconArrowDownLeft, IconClock, IconPrinter, IconFileText, IconCalendarEvent, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths, isSameDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { toast } from 'sonner';
+
 
 export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -132,6 +133,32 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
   const [isDownloadingSlip, setIsDownloadingSlip] = useState(false);
+
+  // Calendar Modal State
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+  const monthStart = startOfMonth(calendarMonth);
+  const monthEnd = endOfMonth(calendarMonth);
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+
+  const startDateStr = format(monthStart, 'yyyy-MM-dd');
+  const endDateStr = format(monthEnd, 'yyyy-MM-dd');
+
+  const { data: mutasiMonthData, isLoading: isLoadingMutasiMonth } = useQuery({
+    queryKey: ['admin_payroll_mutasi_month', userId, startDateStr, endDateStr],
+    queryFn: () => mutasiApi.getByUserIdByRange(userId, startDateStr, endDateStr),
+    enabled: isCalendarModalOpen,
+  });
+
+  const selectedDateEvents = useMemo(() => {
+    if (!selectedDate || !mutasiMonthData) return [];
+    return mutasiMonthData.filter(m => isSameDay(new Date(m.tanggal), selectedDate));
+  }, [selectedDate, mutasiMonthData]);
+
 
   const handleDownloadSlip = async () => {
     setIsDownloadingSlip(true);
@@ -319,6 +346,14 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <h2 className="text-lg font-bold text-neutral-900 dark:text-white">Riwayat Mutasi</h2>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              leftIcon={<IconCalendarEvent size={16} />}
+              onClick={() => setIsCalendarModalOpen(true)}
+            >
+              Kalender
+            </Button>
             <Button 
               variant="secondary" 
               size="sm" 
@@ -699,6 +734,135 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
               {isDownloadingSlip ? 'Mengunduh...' : 'Unduh PDF'}
             </Button>
           </div>
+        </div>
+      </Modal>
+
+      {/* Modal Kalender Mutasi */}
+      <Modal
+        isOpen={isCalendarModalOpen}
+        onClose={() => {
+          setIsCalendarModalOpen(false);
+          setSelectedDate(null);
+        }}
+        title={`Kalender Mutasi${profile ? ` — ${profile.nama}` : ''}`}
+        isBottomSheetOnMobile={true}
+      >
+        <div className="flex flex-col mt-2">
+          {/* Calendar Header */}
+          <div className="flex items-center justify-between mb-4">
+            <button 
+              onClick={() => setCalendarMonth(subMonths(calendarMonth, 1))}
+              className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              <IconChevronLeft className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+            </button>
+            <h3 className="font-bold text-neutral-900 dark:text-white capitalize">
+              {format(calendarMonth, 'MMMM yyyy', { locale: localeId })}
+            </h3>
+            <button 
+              onClick={() => setCalendarMonth(addMonths(calendarMonth, 1))}
+              className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              <IconChevronRight className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+            </button>
+          </div>
+
+          {/* Days Header */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map(day => (
+              <div key={day} className="text-center text-[10px] font-bold text-neutral-400 dark:text-neutral-500">
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar Grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays.map((day, idx) => {
+              const isCurrentMonth = isSameMonth(day, calendarMonth);
+              const isSelected = selectedDate ? isSameDay(day, selectedDate) : false;
+              const isTodayDate = isToday(day);
+              const dayEvents = mutasiMonthData?.filter(m => isSameDay(new Date(m.tanggal), day)) || [];
+              
+              return (
+                <button 
+                  key={idx}
+                  onClick={() => setSelectedDate(day)}
+                  className={`
+                    aspect-square p-1 flex flex-col items-center justify-start rounded-lg border transition-all
+                    ${!isCurrentMonth ? 'opacity-30 border-transparent' : 'border-transparent hover:bg-neutral-50 dark:hover:bg-neutral-800/50'}
+                    ${isSelected ? 'ring-2 ring-brand-500 bg-brand-50/50 dark:bg-brand-900/20' : ''}
+                    ${isTodayDate && !isSelected ? 'bg-neutral-100 dark:bg-neutral-800' : ''}
+                  `}
+                >
+                  <span className={`text-xs ${isTodayDate ? 'font-bold text-brand-600 dark:text-brand-400' : 'font-medium text-neutral-700 dark:text-neutral-300'}`}>
+                    {format(day, 'd')}
+                  </span>
+                  
+                  {/* Dots Container */}
+                  <div className="mt-auto flex flex-wrap gap-0.5 justify-center pb-1 px-0.5">
+                    {dayEvents.map(m => (
+                      <div 
+                        key={m.id} 
+                        className={`w-1.5 h-1.5 rounded-full ${m.jenis === 'kredit' ? 'bg-emerald-500' : 'bg-orange-500'}`}
+                      />
+                    ))}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {isLoadingMutasiMonth && (
+            <div className="mt-4 flex justify-center">
+              <div className="h-5 w-5 rounded-full border-2 border-neutral-200 border-t-brand-500 animate-spin"></div>
+            </div>
+          )}
+
+          {/* Legend */}
+          <div className="flex justify-center gap-4 mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-[10px] text-neutral-500 dark:text-neutral-400 font-medium">Penerimaan/Gaji</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-orange-500" />
+              <span className="text-[10px] text-neutral-500 dark:text-neutral-400 font-medium">Penarikan/Kasbon</span>
+            </div>
+          </div>
+          
+          {/* Selected Date Details */}
+          {selectedDate && (
+            <div className="mt-4 bg-neutral-50 dark:bg-neutral-900/50 rounded-xl p-4 border border-neutral-100 dark:border-neutral-800 animate-in fade-in slide-in-from-top-2">
+              <h4 className="font-bold text-sm text-neutral-900 dark:text-white mb-3 capitalize">
+                {format(selectedDate, 'EEEE, d MMMM yyyy', { locale: localeId })}
+              </h4>
+              
+              {selectedDateEvents.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {selectedDateEvents.map(m => (
+                    <div key={m.id} className="flex justify-between items-center bg-white dark:bg-neutral-800 p-3 rounded-lg border border-neutral-100 dark:border-neutral-700 shadow-sm">
+                      <div>
+                        <p className="font-semibold text-xs text-neutral-900 dark:text-white">
+                          {m.keterangan || (m.kategori === 'gaji' ? 'Penerimaan Gaji' : 'Penarikan Dana')}
+                        </p>
+                        <p className="text-[10px] text-neutral-500 dark:text-neutral-400 mt-0.5">
+                          Jam {format(new Date(m.tanggal), 'HH:mm')}
+                        </p>
+                      </div>
+                      <span className={`font-bold text-sm ${m.jenis === 'kredit' ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-600 dark:text-orange-500'}`}>
+                        {m.jenis === 'kredit' ? '+' : '-'} Rp {m.nominal.toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">Tidak ada transaksi mutasi pada tanggal ini.</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </Modal>
 

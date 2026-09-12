@@ -30,7 +30,7 @@ import { Modal } from '@/components/ui/Modal';
 import TextInput from '@/components/ui/TextInput';
 import SelectInput from '@/components/ui/SelectInput';
 import Button from '@/components/ui/Button';
-import { ModernPagination } from '@/components/ui';
+import { ModernPagination, PriceInput } from '@/components/ui';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { PurchaseHistoryModal } from './PurchaseHistoryModal';
 
@@ -641,34 +641,39 @@ export const InventoryTable = React.memo(function InventoryTable({
               placeholder="Pilih kategori"
             />
             {isAdminUser && (
-              <TextInput
+              <PriceInput
                 label="Harga Beli Terakhir"
-                type="number"
                 value={editForm.harga_beli_terakhir}
-                onChange={(e) =>
+                onChange={(val) =>
                   setEditForm((prev) => ({
                     ...prev,
-                    harga_beli_terakhir: parseInt(e.target.value) || 0,
+                    harga_beli_terakhir: val,
                   }))
                 }
               />
             )}
-            <TextInput
+            <PriceInput
               label="Harga Jual"
-              type="number"
               value={editForm.harga_jual}
-              onChange={(e) =>
-                setEditForm((prev) => ({ ...prev, harga_jual: parseInt(e.target.value) || 0 }))
+              onChange={(val) =>
+                setEditForm((prev) => ({ ...prev, harga_jual: val }))
               }
             />
 
             <TextInput
               label="Minimum Stock"
               type="number"
-              value={editForm.minimum_stock}
-              onChange={(e) =>
-                setEditForm((prev) => ({ ...prev, minimum_stock: parseInt(e.target.value) || 0 }))
-              }
+              min={0}
+              value={editForm.minimum_stock === 0 ? '' : editForm.minimum_stock}
+              placeholder="0"
+              onFocus={(e) => e.target.select()}
+              onChange={(e) => {
+                const val = e.target.value;
+                setEditForm((prev) => ({
+                  ...prev,
+                  minimum_stock: val === '' ? 0 : Math.max(0, parseInt(val, 10) || 0),
+                }));
+              }}
             />
           </div>
         </RoleGuard>
@@ -818,10 +823,22 @@ export const InventoryTable = React.memo(function InventoryTable({
           <TextInput
             label="Jumlah (Qty)"
             type="number"
-            value={printForm.qty}
-            onChange={(e) =>
-              setPrintForm((prev) => ({ ...prev, qty: parseInt(e.target.value) || 1 }))
-            }
+            min={1}
+            value={printForm.qty === 0 ? '' : printForm.qty}
+            placeholder="1"
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => {
+              const val = e.target.value;
+              setPrintForm((prev) => ({
+                ...prev,
+                qty: val === '' ? 0 : Math.max(1, parseInt(val, 10) || 1),
+              }));
+            }}
+            onBlur={() => {
+              if (!printForm.qty || printForm.qty < 1) {
+                setPrintForm((prev) => ({ ...prev, qty: 1 }));
+              }
+            }}
             required
           />
 

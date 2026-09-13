@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth';
+import { PageLoadingSpinner } from '@/components/ui';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -23,14 +24,7 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
   }, [user, initialized, isAdmin, requireAdmin, router]);
 
   if (!initialized) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-neutral-50 to-neutral-100">
-        <div className="flex flex-col items-center gap-4">
-          <div className="border-brand-500 h-10 w-10 animate-spin rounded-full border-4 border-t-transparent" />
-          <p className="text-neutral-500">Loading...</p>
-        </div>
-      </div>
-    );
+    return <PageLoadingSpinner message="Memverifikasi sesi..." />;
   }
 
   if (!user) {

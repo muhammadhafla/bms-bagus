@@ -6,6 +6,8 @@ import {
   Button,
   ModernPagination,
   FilterButton,
+  PageLoadingSpinner,
+  Spinner,
 } from '@/components/ui';
 import {
   IconHistory,
@@ -181,7 +183,7 @@ function PrintHistoryContent() {
         }
         refreshingContent={
           <div className="flex items-center justify-center py-4">
-            <div className="border-brand-500 h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" />
+            <Spinner size="sm" />
           </div>
         }
       >
@@ -362,7 +364,7 @@ function PrintHistoryContent() {
 
 export default function PrintHistoryPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center"><IconLoader2 className="animate-spin h-8 w-8 mx-auto text-brand-500" /></div>}>
+    <Suspense fallback={<PageLoadingSpinner fullPage={false} />}>
       <PrintHistoryContent />
     </Suspense>
   );

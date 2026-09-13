@@ -29,6 +29,8 @@ import {
   SelectInput,
   ModernPagination,
   FilterButton,
+  PageLoadingSpinner,
+  Spinner,
 } from '@/components/ui';
 import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -43,14 +45,7 @@ const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ss
 
 export default function WarehouseStocksPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-64 items-center justify-center p-8 text-center text-neutral-500">
-          <div className="border-brand-500 h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" />
-          <span className="ml-3 text-sm font-medium">Memuat stok gudang...</span>
-        </div>
-      }
-    >
+    <Suspense fallback={<PageLoadingSpinner fullPage={false} message="Memuat stok gudang..." />}>
       <WarehouseStocksContent />
     </Suspense>
   );
@@ -316,7 +311,7 @@ function WarehouseStocksContent() {
         }
         refreshingContent={
           <div className="flex items-center justify-center py-4">
-            <div className="border-brand-500 h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" />
+            <Spinner size="sm" />
           </div>
         }
       >

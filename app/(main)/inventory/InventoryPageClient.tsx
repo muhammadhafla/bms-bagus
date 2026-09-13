@@ -14,6 +14,7 @@ import {
   Tooltip,
   AmbientLayout,
   FilterButton,
+  Spinner,
 } from '@/components/ui';
 import { Portal } from '@/components/ui/Portal';
 import {
@@ -218,7 +219,7 @@ export default function InventoryPageClient() {
         }
         refreshingContent={
           <div className="flex items-center justify-center py-4">
-            <div className="border-brand-500 h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" />
+            <Spinner size="sm" />
           </div>
         }
       >

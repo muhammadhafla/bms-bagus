@@ -76,7 +76,10 @@ export const normalizeBarcode = (input: string): string => {
  * Generate UUID v4 idempotency key
  */
 export const generateIdempotencyKey = (): string => {
-  return crypto.randomUUID();
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 };
 
 /**
@@ -291,4 +294,13 @@ export const exportToCSV = (data: (string | number)[][], headers: string[], file
   link.download = filename;
   link.click();
   URL.revokeObjectURL(link.href);
+};
+
+/**
+ * Sanitasi input pencarian agar aman dimasukkan ke dalam filter PostgREST .or()
+ * Mencegah HTTP 400 akibat karakter pemisah sintaks PostgREST (seperti koma, kurung, persen, backslash).
+ */
+export const sanitizeSearchQuery = (query?: string | null): string => {
+  if (!query) return '';
+  return query.replace(/[,()%\\]/g, ' ').trim();
 };

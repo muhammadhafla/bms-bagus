@@ -16,13 +16,17 @@ export function DarkModeProvider({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as Theme | null;
+    let savedTheme: Theme | null = null;
+    try {
+      savedTheme = localStorage.getItem('theme') as Theme | null;
+    } catch {}
+
     const html = document.documentElement;
     let initialTheme: Theme = 'light';
 
     if (savedTheme) {
       initialTheme = savedTheme;
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    } else if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       initialTheme = 'dark';
     }
 
@@ -48,7 +52,9 @@ export function DarkModeProvider({ children }: { children: ReactNode }) {
       document.body.style.backgroundColor = '';
       document.body.style.color = '';
 
-      localStorage.setItem('theme', newTheme);
+      try {
+        localStorage.setItem('theme', newTheme);
+      } catch {}
       return newTheme;
     });
   }, []);

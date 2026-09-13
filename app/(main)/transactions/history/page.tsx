@@ -18,6 +18,7 @@ import {
   Button,
   FilterButton,
   SelectInput,
+  Spinner,
 } from '@/components/ui';
 import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
 import { useQueryClient } from '@tanstack/react-query';
@@ -155,7 +156,7 @@ function TransactionsHistoryContent() {
       }
       refreshingContent={
         <div className="flex items-center justify-center py-4">
-          <div className="border-brand-500 h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" />
+          <Spinner size="sm" />
         </div>
       }
     >

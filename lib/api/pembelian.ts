@@ -1,5 +1,6 @@
 import { supabase } from './client';
 import { safeQuery } from './utils';
+import { sanitizeSearchQuery } from '@/lib/utils';
 
 export interface PembelianItem {
   id?: string;
@@ -78,9 +79,12 @@ export const purchasesApi = {
         query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
       }
       if (options?.search) {
-        query = query.or(
-          `nomor_nota.ilike.%${options.search}%,supplier_nama.ilike.%${options.search}%`,
-        );
+        const cleanSearch = sanitizeSearchQuery(options.search);
+        if (cleanSearch) {
+          query = query.or(
+            `nomor_nota.ilike.%${cleanSearch}%,supplier_nama.ilike.%${cleanSearch}%`,
+          );
+        }
       }
       if (options?.startDate) {
         query = query.gte('tanggal', options.startDate);
@@ -188,9 +192,12 @@ export const purchasesApi = {
     let query = supabase.from('pembelian').select('*', { count: 'exact', head: true });
 
     if (options?.search) {
-      query = query.or(
-        `nomor_nota.ilike.%${options.search}%,supplier_nama.ilike.%${options.search}%`,
-      );
+      const cleanSearch = sanitizeSearchQuery(options.search);
+      if (cleanSearch) {
+        query = query.or(
+          `nomor_nota.ilike.%${cleanSearch}%,supplier_nama.ilike.%${cleanSearch}%`,
+        );
+      }
     }
     if (options?.startDate) {
       query = query.gte('tanggal', options.startDate);

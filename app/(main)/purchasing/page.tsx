@@ -41,7 +41,7 @@ import {
 import { PriceInput } from '@/components/ui/PriceInput';
 import DateInput from '@/components/ui/DateInput';
 import SelectInput from '@/components/ui/SelectInput';
-import { Button, AmbientLayout, Badge, Banner, Modal, TextInput } from '@/components/ui';
+import { Button, AmbientLayout, Badge, Banner, Modal, TextInput, PageLoadingSpinner } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Portal } from '@/components/ui/Portal';
 import { AdminOnly } from '@/components/role';
@@ -658,13 +658,7 @@ function PembelianPageContent() {
 
 export default function PembelianPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="border-brand-500 h-10 w-10 animate-spin rounded-full border-4 border-t-transparent"></div>
-        </div>
-      }
-    >
+    <Suspense fallback={<PageLoadingSpinner />}>
       <PembelianPageContent />
     </Suspense>
   );

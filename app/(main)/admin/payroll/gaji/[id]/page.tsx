@@ -43,7 +43,7 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
     queryKey: ['warehouse-list'],
     queryFn: () => gudangApi.getAll({ activeOnly: true }),
   });
-  const gudangList = gudangRes?.data || [];
+  const gudangList = useMemo(() => gudangRes?.data || [], [gudangRes?.data]);
 
   // Approve/Reject Modal State
   const [selectedMutasi, setSelectedMutasi] = useState<PayrollMutasi | null>(null);

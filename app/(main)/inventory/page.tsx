@@ -1,7 +1,10 @@
+import { Suspense } from 'react';
 import { HydrationBoundary, QueryClient, dehydrate } from '@tanstack/react-query';
 import InventoryPageClient from './InventoryPageClient';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { PageLoadingSpinner } from '@/components/ui';
+import { sanitizeSearchQuery } from '@/lib/utils';
 
 // Metadata and server configuration
 export const metadata = {
@@ -83,9 +86,11 @@ export default async function InventoryPage(props: Props) {
       query = query.order(sortBy, { ascending: sortDir !== 'desc' }).range(offset, offset + limit - 1);
 
       if (search) {
-        const safeQueryString = search.replace(/%/g, '').toLowerCase();
-        const orCondition = `nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`;
-        query = query.or(orCondition);
+        const safeQueryString = sanitizeSearchQuery(search).toLowerCase();
+        if (safeQueryString) {
+          const orCondition = `nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`;
+          query = query.or(orCondition);
+        }
       }
 
       if (activeStatus === 'active') {
@@ -116,7 +121,9 @@ export default async function InventoryPage(props: Props) {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <InventoryPageClient />
+      <Suspense fallback={<PageLoadingSpinner />}>
+        <InventoryPageClient />
+      </Suspense>
     </HydrationBoundary>
   );
 }

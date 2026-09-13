@@ -85,7 +85,7 @@ export default function AdminKasbonClient() {
     queryKey: ['warehouse-list'],
     queryFn: () => gudangApi.getAll({ activeOnly: true }),
   });
-  const gudangList = gudangRes?.data || [];
+  const gudangList = useMemo(() => gudangRes?.data || [], [gudangRes?.data]);
 
   const [approveMetode, setApproveMetode] = useState<'TRANSFER' | 'CASH_KASIR'>('TRANSFER');
   const [approveGudangId, setApproveGudangId] = useState('');

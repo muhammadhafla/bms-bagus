@@ -35,7 +35,7 @@ const nextConfig: NextConfig = {
       script-src 'self' 'unsafe-inline' 'unsafe-eval';
       style-src 'self' 'unsafe-inline';
       img-src 'self' data: https:;
-      connect-src 'self' https://${supabaseHost} wss://${supabaseHost};
+      connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://vitals.vercel-insights.com https://va.vercel-scripts.com;
     `
       .replace(/\s{2,}/g, ' ')
       .trim();

@@ -1,5 +1,6 @@
 import { supabase } from '../client';
 import { safeQuery } from '../utils';
+import { sanitizeSearchQuery } from '@/lib/utils';
 
 export interface Kasbon {
   id: string;
@@ -107,7 +108,10 @@ export const kasbonApi = {
       if (startDate) query = query.gte('tanggal', startDate);
       if (endDate) query = query.lte('tanggal', endDate);
       if (search) {
-        query = query.or(`keterangan.ilike.%${search}%,profiles.nama.ilike.%${search}%`);
+        const cleanSearch = sanitizeSearchQuery(search);
+        if (cleanSearch) {
+          query = query.or(`keterangan.ilike.%${cleanSearch}%,profiles.nama.ilike.%${cleanSearch}%`);
+        }
       }
 
       query = query.order(sortBy, { ascending: sortDir === 'asc' });

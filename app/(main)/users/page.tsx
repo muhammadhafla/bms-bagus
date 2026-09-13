@@ -15,7 +15,7 @@ import {
 } from '@tabler/icons-react';
 import { usePresenceStore } from '@/lib/presence';
 import { toast } from 'sonner';
-import { AmbientLayout, ModernPagination, FilterButton } from '@/components/ui';
+import { AmbientLayout, ModernPagination, FilterButton, PageLoadingSpinner, Spinner } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
@@ -129,11 +129,7 @@ export default function UsersPage() {
   }, [search, roleFilter]);
 
   if (!initialized) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="border-brand-500 h-10 w-10 animate-spin rounded-full border-4 border-t-transparent" />
-      </div>
-    );
+    return <PageLoadingSpinner />;
   }
 
   if (!isAdmin()) {
@@ -154,7 +150,7 @@ export default function UsersPage() {
         }
         refreshingContent={
           <div className="flex items-center justify-center py-4">
-            <div className="border-brand-500 h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" />
+            <Spinner size="sm" />
           </div>
         }
       >

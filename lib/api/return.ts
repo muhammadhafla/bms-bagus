@@ -1,5 +1,6 @@
 import { supabase } from './client';
 import { safeQuery, generateIdempotencyKey } from './utils';
+import { sanitizeSearchQuery } from '@/lib/utils';
 import type { Penjualan } from './penjualan';
 
 export interface ReturnItem {
@@ -305,8 +306,12 @@ export const returnApi = {
       if (options?.limit) query = query.limit(options.limit);
       if (options?.offset)
         query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
-      if (options?.search)
-        query = query.or(`id.ilike.%${options.search}%,supplier_nama.ilike.%${options.search}%`);
+      if (options?.search) {
+        const cleanSearch = sanitizeSearchQuery(options.search);
+        if (cleanSearch) {
+          query = query.or(`id.ilike.%${cleanSearch}%,supplier_nama.ilike.%${cleanSearch}%`);
+        }
+      }
       if (options?.startDate) query = query.gte('tanggal', options.startDate);
       if (options?.endDate) query = query.lte('tanggal', options.endDate);
 

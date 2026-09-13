@@ -35,7 +35,7 @@ export interface DataTableProps<T> {
 
 export function DataTable<T>({
   columns,
-  data,
+  data = [],
   keyField,
   sortKey,
   sortDirection = 'asc',
@@ -51,6 +51,8 @@ export function DataTable<T>({
       onSort(key);
     }
   };
+
+  const safeData = data || [];
 
   if (loading) {
     return (
@@ -86,7 +88,7 @@ export function DataTable<T>({
     );
   }
 
-  if (data.length === 0 && emptyState) {
+  if (safeData.length === 0 && emptyState) {
     return (
       <div className="rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
         {emptyState}
@@ -99,12 +101,12 @@ export function DataTable<T>({
       className={`flex flex-col rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900 ${className}`}
     >
       {/* Mobile View */}
-      {mobileRender && data.length > 0 && (
+      {mobileRender && safeData.length > 0 && (
         <div
           role="list"
           className="block divide-y divide-neutral-100 lg:hidden dark:divide-neutral-800"
         >
-          {data.map((item) => (
+          {safeData.map((item) => (
             <div
               key={String(item[keyField])}
               role={onRowClick ? 'button' : 'listitem'}
@@ -133,7 +135,7 @@ export function DataTable<T>({
 
       {/* Desktop/Default View */}
       <div
-        className={`overflow-x-auto rounded-xl ${mobileRender && data.length > 0 ? 'hidden lg:block' : ''}`}
+        className={`overflow-x-auto rounded-xl ${mobileRender && safeData.length > 0 ? 'hidden lg:block' : ''}`}
       >
         <table className="w-full min-w-[600px]">
           <thead className="sticky top-0 bg-neutral-50 dark:bg-neutral-950">
@@ -183,7 +185,7 @@ export function DataTable<T>({
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
-            {data.map((item) => (
+            {safeData.map((item) => (
               <tr
                 key={String(item[keyField])}
                 tabIndex={onRowClick ? 0 : undefined}

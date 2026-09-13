@@ -23,11 +23,13 @@ export function useInstallPrompt() {
     }
 
     // Cek apakah sudah pernah dismiss (persist di localStorage)
-    const dismissed = localStorage.getItem('pwa-install-dismissed');
-    if (dismissed) {
-      setIsDismissed(true);
-      return;
-    }
+    try {
+      const dismissed = localStorage.getItem('pwa-install-dismissed');
+      if (dismissed) {
+        setIsDismissed(true);
+        return;
+      }
+    } catch {}
 
     // Cek apakah perangkat iOS
     const userAgent = window.navigator.userAgent.toLowerCase();
@@ -61,7 +63,9 @@ export function useInstallPrompt() {
   };
 
   const dismiss = () => {
-    localStorage.setItem('pwa-install-dismissed', 'true');
+    try {
+      localStorage.setItem('pwa-install-dismissed', 'true');
+    } catch {}
     setIsDismissed(true);
   };
 

@@ -19,7 +19,7 @@ import dynamic from 'next/dynamic';
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { AmbientLayout } from '@/components/ui';
+import { AmbientLayout, Spinner } from '@/components/ui';
 import { kategoriApi, Kategori } from '@/lib/api';
 import TextInput from '@/components/ui/TextInput';
 import Button from '@/components/ui/Button';
@@ -164,7 +164,7 @@ export default function KategoriPage() {
         }
         refreshingContent={
           <div className="flex items-center justify-center py-4">
-            <div className="border-brand-500 h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" />
+            <Spinner size="sm" />
           </div>
         }
       >

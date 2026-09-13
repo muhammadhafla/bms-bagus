@@ -1,6 +1,8 @@
+import { Suspense } from 'react';
 import { HydrationBoundary, QueryClient, dehydrate } from '@tanstack/react-query';
 import AdminKasbonClient from './AdminKasbonClient';
 import { kasbonApi } from '@/lib/api/payroll';
+import { PageLoadingSpinner } from '@/components/ui';
 
 export const metadata = {
   title: 'Persetujuan Kasbon',
@@ -40,7 +42,9 @@ export default async function AdminKasbonPage(props: Props) {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <AdminKasbonClient />
+      <Suspense fallback={<PageLoadingSpinner />}>
+        <AdminKasbonClient />
+      </Suspense>
     </HydrationBoundary>
   );
 }

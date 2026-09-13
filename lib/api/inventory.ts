@@ -1,6 +1,6 @@
 import { supabase } from './client';
 import { safeQuery } from './utils';
-import { stringSimilarity } from '@/lib/utils';
+import { stringSimilarity, sanitizeSearchQuery } from '@/lib/utils';
 import { InventoryItem } from '@/types/inventory';
 
 export const inventoryApi = {
@@ -60,9 +60,11 @@ export const inventoryApi = {
     query = query.order(sortBy, { ascending: isAscending }).range(offset, offset + limit - 1);
 
     if (options.search) {
-      const safeQueryString = options.search.replace(/%/g, '').toLowerCase();
-      const orCondition = `nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`;
-      query = query.or(orCondition);
+      const safeQueryString = sanitizeSearchQuery(options.search).toLowerCase();
+      if (safeQueryString) {
+        const orCondition = `nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`;
+        query = query.or(orCondition);
+      }
     }
 
     if (options.activeStatus === 'active') {

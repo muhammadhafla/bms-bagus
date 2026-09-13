@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { IconSettings, IconChevronRight, IconShieldLock, IconArrowDown } from '@tabler/icons-react';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
-import { AmbientLayout } from '@/components/ui';
+import { AmbientLayout, PageLoadingSpinner, Spinner } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 import { AdminOnly } from '@/components/role';
 import EditTierModal from './EditTierModal';
@@ -64,11 +64,7 @@ export default function MemberTiersPage() {
   const isAuthFullyLoaded = initialized && (!user || profile !== null);
 
   if (!isAuthFullyLoaded) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="border-brand-500 h-10 w-10 animate-spin rounded-full border-4 border-t-transparent" />
-      </div>
-    );
+    return <PageLoadingSpinner />;
   }
 
   if (!isAdmin()) {
@@ -94,7 +90,7 @@ export default function MemberTiersPage() {
         }
         refreshingContent={
           <div className="flex items-center justify-center py-4">
-            <div className="border-brand-500 h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" />
+            <Spinner size="sm" />
           </div>
         }
       >

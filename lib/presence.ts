@@ -62,6 +62,7 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
     const { channel } = get();
     if (channel) {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     }
     set({ channel: null, onlineUsers: [] });
   },

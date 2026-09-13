@@ -23,14 +23,17 @@ export const kategoriApi = {
   },
 
   async create(nama: string) {
-    return safeQuery<Kategori>(async () => {
-      const result = await supabase
-        .from('kategori')
-        .insert({ nama: nama.trim() })
-        .select()
-        .single();
-      return { data: result.data, error: result.error as Error | null };
-    });
+    return safeQuery<Kategori>(
+      async () => {
+        const result = await supabase
+          .from('kategori')
+          .insert({ nama: nama.trim() })
+          .select()
+          .single();
+        return { data: result.data, error: result.error as Error | null };
+      },
+      { isMutation: true },
+    );
   },
 
   async getOrCreate(nama: string) {
@@ -42,22 +45,28 @@ export const kategoriApi = {
   },
 
   async update(id: string, nama: string) {
-    return safeQuery<Kategori>(async () => {
-      const result = await supabase
-        .from('kategori')
-        .update({ nama: nama.trim() })
-        .eq('id', id)
-        .select()
-        .single();
-      return { data: result.data, error: result.error as Error | null };
-    });
+    return safeQuery<Kategori>(
+      async () => {
+        const result = await supabase
+          .from('kategori')
+          .update({ nama: nama.trim() })
+          .eq('id', id)
+          .select()
+          .single();
+        return { data: result.data, error: result.error as Error | null };
+      },
+      { isMutation: true },
+    );
   },
 
   async delete(id: string) {
-    return safeQuery<void>(async () => {
-      const result = await supabase.from('kategori').delete().eq('id', id);
-      return { data: result.data, error: result.error as Error | null };
-    });
+    return safeQuery<void>(
+      async () => {
+        const result = await supabase.from('kategori').delete().eq('id', id);
+        return { data: result.data, error: result.error as Error | null };
+      },
+      { isMutation: true },
+    );
   },
 
   async getOrCreateCategories(names: string[]) {

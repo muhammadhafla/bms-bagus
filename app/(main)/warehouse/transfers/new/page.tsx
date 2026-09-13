@@ -19,6 +19,7 @@ import {
   ConfirmDialog,
   TextInput,
   SelectInput,
+  PageLoadingSpinner,
 } from '@/components/ui';
 import DateInput from '@/components/ui/DateInput';
 import { gudangApi, transferStokApi } from '@/lib/api/warehouse';
@@ -36,13 +37,7 @@ import { generateSuratJalanPDF } from '@/lib/warehouse-pdf-utils';
 
 export default function NewTransferPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-500 border-t-transparent"></div>
-        </div>
-      }
-    >
+    <Suspense fallback={<PageLoadingSpinner />}>
       <NewTransferContent />
     </Suspense>
   );

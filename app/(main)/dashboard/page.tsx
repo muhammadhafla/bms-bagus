@@ -31,7 +31,7 @@ import {
   RecentTransaction,
   kasApi,
 } from '@/lib/api';
-import { Card } from '@/components/ui';
+import { Card, PageLoadingSpinner, Spinner } from '@/components/ui';
 
 import { LowStockAlert } from '@/components/dashboard/LowStockAlert';
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
@@ -137,14 +137,7 @@ function HomeContent() {
   }, [user, initialized, router]);
 
   if (!initialized || !mounted) {
-    return (
-      <div className="flex h-full flex-1 items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="border-brand-500 h-10 w-10 animate-spin rounded-full border-4 border-t-transparent" />
-          <p className="text-neutral-500 dark:text-neutral-400">Loading...</p>
-        </div>
-      </div>
-    );
+    return <PageLoadingSpinner />;
   }
 
   if (!user) {
@@ -171,7 +164,7 @@ function HomeContent() {
       }
       refreshingContent={
         <div className="flex items-center justify-center py-4">
-          <div className="border-brand-500 h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" />
+          <Spinner size="sm" />
         </div>
       }
     >

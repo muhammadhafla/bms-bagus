@@ -25,7 +25,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { DashboardStats, LowStockItem, RecentTransaction } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { TransactionModal } from './TransactionModal';
 import { formatTimeWIB, formatDateWIB } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
@@ -105,6 +105,37 @@ export function MobileLaunchpad({
       });
     }
   };
+
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    const stopPropagation = (e: Event) => {
+      // Menghentikan propagasi event sentuh horizontal agar tidak memicu PullToRefresh
+      e.stopPropagation();
+    };
+
+    // Gunakan capture: true untuk memastikan event dicegat sebelum sampai ke listener PullToRefresh
+    const options = { passive: true, capture: true };
+
+    el.addEventListener('touchstart', stopPropagation, options);
+    el.addEventListener('touchmove', stopPropagation, options);
+    el.addEventListener('touchend', stopPropagation, options);
+
+    el.addEventListener('pointerdown', stopPropagation, options);
+    el.addEventListener('pointermove', stopPropagation, options);
+    el.addEventListener('pointerup', stopPropagation, options);
+
+    return () => {
+      el.removeEventListener('touchstart', stopPropagation, options);
+      el.removeEventListener('touchmove', stopPropagation, options);
+      el.removeEventListener('touchend', stopPropagation, options);
+
+      el.removeEventListener('pointerdown', stopPropagation, options);
+      el.removeEventListener('pointermove', stopPropagation, options);
+      el.removeEventListener('pointerup', stopPropagation, options);
+    };
+  }, []);
 
   const queryClient = useQueryClient();
 
@@ -306,7 +337,7 @@ export function MobileLaunchpad({
             <div
               ref={scrollContainerRef}
               onScroll={handleScroll}
-              className="flex w-full overflow-x-auto snap-x snap-mandatory scroll-smooth hide-scrollbar no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden overscroll-x-contain"
+              className="flex w-full overflow-x-auto snap-x snap-mandatory scroll-smooth hide-scrollbar no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden overscroll-x-contain touch-pan-x"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {/* Slide 1: Penjualan Hari Ini */}

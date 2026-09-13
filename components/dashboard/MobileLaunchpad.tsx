@@ -25,7 +25,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { DashboardStats, LowStockItem, RecentTransaction } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { TransactionModal } from './TransactionModal';
 import { formatTimeWIB, formatDateWIB } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
@@ -59,6 +59,32 @@ export function MobileLaunchpad({
   const [selectedLowStock, setSelectedLowStock] = useState<LowStockItem | null>(null);
   const [isDiscontinuing, setIsDiscontinuing] = useState(false);
   const [isSnoozing, setIsSnoozing] = useState(false);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [activeCardIndex, setActiveCardIndex] = useState(0);
+
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    const { scrollLeft, clientWidth } = scrollContainerRef.current;
+    if (clientWidth > 0) {
+      const index = scrollLeft > clientWidth / 2 ? 1 : 0;
+      if (index !== activeCardIndex) {
+        setActiveCardIndex(index);
+      }
+    }
+  };
+
+  const scrollToSlide = (index: number) => {
+    if (!scrollContainerRef.current) return;
+    const targetChild = scrollContainerRef.current.children[index] as HTMLElement | undefined;
+    if (targetChild) {
+      targetChild.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'start',
+      });
+    }
+  };
 
   const queryClient = useQueryClient();
 
@@ -224,50 +250,126 @@ export function MobileLaunchpad({
 
   return (
     <div className="flex flex-col pb-6 pt-2">
-      {/* Header (Admin = Card, Non-Admin = Text Only) */}
+      {/* Header (Admin = Slidable Cards, Non-Admin = Text Only) */}
       {isAdminUser ? (
-        <div className="mb-6 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-4 shadow-lg shadow-brand-500/20 text-white">
-          <Link href="/profile" className="mb-3 flex items-center justify-between transition-opacity active:opacity-70">
-            <div>
-              <h1 className="text-xl leading-tight font-bold text-white">
-                Halo, {profile?.nama?.split(' ')[0] || 'User'} 👋
-              </h1>
-              <p className="text-xs text-brand-100">{todayStr}</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {profile?.avatar_url ? (
-                <div className="relative h-9 w-9 overflow-hidden rounded-full border-2 border-white/20">
-                  <Image
-                    src={profile.avatar_url}
-                    alt="Avatar"
-                    fill
-                    sizes="36px"
-                    className="object-cover"
-                  />
+        <div className="mb-6">
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="flex w-full overflow-x-auto snap-x snap-mandatory scroll-smooth hide-scrollbar overscroll-x-contain gap-3"
+          >
+            {/* Slide 1: Penjualan Hari Ini */}
+            <div className="w-full min-w-full snap-center shrink-0 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-4 shadow-lg shadow-brand-500/20 text-white">
+              <Link href="/profile" className="mb-3 flex items-center justify-between transition-opacity active:opacity-70">
+                <div>
+                  <h1 className="text-xl leading-tight font-bold text-white">
+                    Halo, {profile?.nama?.split(' ')[0] || 'User'} 👋
+                  </h1>
+                  <p className="text-xs text-brand-100">{todayStr}</p>
                 </div>
-              ) : (
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white backdrop-blur-sm">
-                  {profile?.nama?.charAt(0)?.toUpperCase() ||
-                    user?.email?.charAt(0)?.toUpperCase() ||
-                    'U'}
+                <div className="flex items-center gap-3">
+                  {profile?.avatar_url ? (
+                    <div className="relative h-9 w-9 overflow-hidden rounded-full border-2 border-white/20">
+                      <Image
+                        src={profile.avatar_url}
+                        alt="Avatar"
+                        fill
+                        sizes="36px"
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white backdrop-blur-sm">
+                      {profile?.nama?.charAt(0)?.toUpperCase() ||
+                        user?.email?.charAt(0)?.toUpperCase() ||
+                        'U'}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </Link>
+              </Link>
 
-          <Link href="/transactions/history" className="flex flex-col gap-0.5 pt-3 border-t border-white/10 transition-opacity active:opacity-70">
-            <div className="flex items-end gap-3">
-              <p className="text-[2rem] leading-none font-black tracking-tighter text-white">
-                {isLoading ? '...' : `Rp ${(stats?.todaySales || 0).toLocaleString('id-ID')}`}
-              </p>
-              {stats && stats.todaySales > 0 && (
-                <span className="mb-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
-                  +{(stats.todayTransactions || 0)} Trx
-                </span>
-              )}
+              <Link href="/transactions/history" className="flex flex-col gap-0.5 pt-3 border-t border-white/10 transition-opacity active:opacity-70">
+                <div className="flex items-end gap-3">
+                  <p className="text-[2rem] leading-none font-black tracking-tighter text-white">
+                    {isLoading ? '...' : `Rp ${(stats?.todaySales || 0).toLocaleString('id-ID')}`}
+                  </p>
+                  {stats && stats.todaySales > 0 && (
+                    <span className="mb-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
+                      +{(stats.todayTransactions || 0)} Trx
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm font-medium text-brand-100">Penjualan hari ini</p>
+              </Link>
             </div>
-            <p className="text-sm font-medium text-brand-100">Penjualan hari ini</p>
-          </Link>
+
+            {/* Slide 2: Saldo Kas */}
+            <div className="w-full min-w-full snap-center shrink-0 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-4 shadow-lg shadow-brand-500/20 text-white">
+              <Link href="/profile" className="mb-3 flex items-center justify-between transition-opacity active:opacity-70">
+                <div>
+                  <h1 className="text-xl leading-tight font-bold text-white">
+                    Halo, {profile?.nama?.split(' ')[0] || 'User'} 👋
+                  </h1>
+                  <p className="text-xs text-brand-100">{todayStr}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {profile?.avatar_url ? (
+                    <div className="relative h-9 w-9 overflow-hidden rounded-full border-2 border-white/20">
+                      <Image
+                        src={profile.avatar_url}
+                        alt="Avatar"
+                        fill
+                        sizes="36px"
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white backdrop-blur-sm">
+                      {profile?.nama?.charAt(0)?.toUpperCase() ||
+                        user?.email?.charAt(0)?.toUpperCase() ||
+                        'U'}
+                    </div>
+                  )}
+                </div>
+              </Link>
+
+              <Link href="/finance/cash-flow" className="flex flex-col gap-0.5 pt-3 border-t border-white/10 transition-opacity active:opacity-70">
+                <div className="flex items-end gap-3">
+                  <p className="text-[2rem] leading-none font-black tracking-tighter text-white">
+                    {isLoading ? '...' : `Rp ${(kasBalance || 0).toLocaleString('id-ID')}`}
+                  </p>
+                  <span className="mb-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
+                    Kas Global
+                  </span>
+                </div>
+                <p className="text-sm font-medium text-brand-100">Saldo Kas Toko</p>
+              </Link>
+            </div>
+          </div>
+
+          {/* Dots Indicator */}
+          <div className="mt-2.5 flex items-center justify-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => scrollToSlide(0)}
+              aria-label="Slide Penjualan hari ini"
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                activeCardIndex === 0
+                  ? 'w-5 bg-brand-500'
+                  : 'w-1.5 bg-neutral-300 dark:bg-neutral-700 hover:bg-neutral-400'
+              }`}
+            />
+            <button
+              type="button"
+              onClick={() => scrollToSlide(1)}
+              aria-label="Slide Saldo Kas"
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                activeCardIndex === 1
+                  ? 'w-5 bg-brand-500'
+                  : 'w-1.5 bg-neutral-300 dark:bg-neutral-700 hover:bg-neutral-400'
+              }`}
+            />
+          </div>
         </div>
       ) : (
         <div className="mb-6 flex items-center justify-between px-1">

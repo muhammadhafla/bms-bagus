@@ -33,9 +33,22 @@ import { HRAlerts } from '@/components/dashboard/HRAlerts';
 import { inventoryApi } from '@/lib/api/inventory';
 import { useQueryClient } from '@tanstack/react-query';
 
+export interface ActiveShift {
+  userId: string;
+  userName: string;
+  gudangId?: string | null;
+  gudangName?: string | null;
+  pemasukan: number;
+  pengeluaran: number;
+  saldo: number;
+  lastActivity: string;
+  shiftClosed: boolean;
+}
+
 interface MobileLaunchpadProps {
   stats?: DashboardStats | null;
   kasBalance: number;
+  activeShifts?: ActiveShift[];
   lowStock?: LowStockItem[];
   recentTransactions?: RecentTransaction[];
   isAdminUser: boolean;
@@ -46,6 +59,7 @@ interface MobileLaunchpadProps {
 export function MobileLaunchpad({
   stats,
   kasBalance,
+  activeShifts = [],
   lowStock,
   recentTransactions,
   isAdminUser,
@@ -60,6 +74,12 @@ export function MobileLaunchpad({
   const [isDiscontinuing, setIsDiscontinuing] = useState(false);
   const [isSnoozing, setIsSnoozing] = useState(false);
 
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+  const totalActiveShiftBalance = (activeShifts || []).reduce(
+    (acc, s) => acc + (s.saldo || 0),
+    0
+  );
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [activeCardIndex, setActiveCardIndex] = useState(0);
 
@@ -67,7 +87,7 @@ export function MobileLaunchpad({
     if (!scrollContainerRef.current) return;
     const { scrollLeft, clientWidth } = scrollContainerRef.current;
     if (clientWidth > 0) {
-      const index = scrollLeft > clientWidth / 2 ? 1 : 0;
+      const index = Math.min(2, Math.max(0, Math.round(scrollLeft / clientWidth)));
       if (index !== activeCardIndex) {
         setActiveCardIndex(index);
       }
@@ -250,95 +270,90 @@ export function MobileLaunchpad({
 
   return (
     <div className="flex flex-col pb-6 pt-2">
-      {/* Header (Admin = Slidable Cards, Non-Admin = Text Only) */}
+      {/* Header (Admin = Slidable Content Card, Non-Admin = Text Only) */}
       {isAdminUser ? (
-        <div className="mb-6">
-          <div
-            ref={scrollContainerRef}
-            onScroll={handleScroll}
-            className="flex w-full overflow-x-auto snap-x snap-mandatory scroll-smooth hide-scrollbar overscroll-x-contain gap-3"
-          >
-            {/* Slide 1: Penjualan Hari Ini */}
-            <div className="w-full min-w-full snap-center shrink-0 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-4 shadow-lg shadow-brand-500/20 text-white">
-              <Link href="/profile" className="mb-3 flex items-center justify-between transition-opacity active:opacity-70">
-                <div>
-                  <h1 className="text-xl leading-tight font-bold text-white">
-                    Halo, {profile?.nama?.split(' ')[0] || 'User'} 👋
-                  </h1>
-                  <p className="text-xs text-brand-100">{todayStr}</p>
+        <div className="mb-6 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-4 shadow-lg shadow-brand-500/20 text-white">
+          <Link href="/profile" className="mb-3 flex items-center justify-between transition-opacity active:opacity-70">
+            <div>
+              <h1 className="text-xl leading-tight font-bold text-white">
+                Halo, {profile?.nama?.split(' ')[0] || 'User'} 👋
+              </h1>
+              <p className="text-xs text-brand-100">{todayStr}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {profile?.avatar_url ? (
+                <div className="relative h-9 w-9 overflow-hidden rounded-full border-2 border-white/20">
+                  <Image
+                    src={profile.avatar_url}
+                    alt="Avatar"
+                    fill
+                    sizes="36px"
+                    className="object-cover"
+                  />
                 </div>
-                <div className="flex items-center gap-3">
-                  {profile?.avatar_url ? (
-                    <div className="relative h-9 w-9 overflow-hidden rounded-full border-2 border-white/20">
-                      <Image
-                        src={profile.avatar_url}
-                        alt="Avatar"
-                        fill
-                        sizes="36px"
-                        className="object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white backdrop-blur-sm">
-                      {profile?.nama?.charAt(0)?.toUpperCase() ||
-                        user?.email?.charAt(0)?.toUpperCase() ||
-                        'U'}
-                    </div>
-                  )}
+              ) : (
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white backdrop-blur-sm">
+                  {profile?.nama?.charAt(0)?.toUpperCase() ||
+                    user?.email?.charAt(0)?.toUpperCase() ||
+                    'U'}
                 </div>
-              </Link>
+              )}
+            </div>
+          </Link>
 
-              <Link href="/transactions/history" className="flex flex-col gap-0.5 pt-3 border-t border-white/10 transition-opacity active:opacity-70">
-                <div className="flex items-end gap-3">
-                  <p className="text-[2rem] leading-none font-black tracking-tighter text-white">
-                    {isLoading ? '...' : `Rp ${(stats?.todaySales || 0).toLocaleString('id-ID')}`}
+          {/* Slidable Content Area */}
+          <div className="pt-3 border-t border-white/10">
+            <div
+              ref={scrollContainerRef}
+              onScroll={handleScroll}
+              className="flex w-full overflow-x-auto snap-x snap-mandatory scroll-smooth hide-scrollbar no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden overscroll-x-contain"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {/* Slide 1: Penjualan Hari Ini */}
+              <Link
+                href="/transactions/history"
+                className="w-full min-w-full snap-center shrink-0 flex flex-col gap-0.5 transition-opacity active:opacity-70"
+              >
+                <div className="flex items-end gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+                  <p className="text-xl min-[380px]:text-2xl sm:text-[2rem] leading-none font-black tracking-tighter text-white whitespace-nowrap">
+                    {isLoading ? '...' : `Rp\u00A0${(stats?.todaySales || 0).toLocaleString('id-ID')}`}
                   </p>
                   {stats && stats.todaySales > 0 && (
-                    <span className="mb-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
+                    <span className="mb-0.5 sm:mb-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm whitespace-nowrap shrink-0">
                       +{(stats.todayTransactions || 0)} Trx
                     </span>
                   )}
                 </div>
                 <p className="text-sm font-medium text-brand-100">Penjualan hari ini</p>
               </Link>
-            </div>
 
-            {/* Slide 2: Saldo Kas */}
-            <div className="w-full min-w-full snap-center shrink-0 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-4 shadow-lg shadow-brand-500/20 text-white">
-              <Link href="/profile" className="mb-3 flex items-center justify-between transition-opacity active:opacity-70">
-                <div>
-                  <h1 className="text-xl leading-tight font-bold text-white">
-                    Halo, {profile?.nama?.split(' ')[0] || 'User'} 👋
-                  </h1>
-                  <p className="text-xs text-brand-100">{todayStr}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {profile?.avatar_url ? (
-                    <div className="relative h-9 w-9 overflow-hidden rounded-full border-2 border-white/20">
-                      <Image
-                        src={profile.avatar_url}
-                        alt="Avatar"
-                        fill
-                        sizes="36px"
-                        className="object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white backdrop-blur-sm">
-                      {profile?.nama?.charAt(0)?.toUpperCase() ||
-                        user?.email?.charAt(0)?.toUpperCase() ||
-                        'U'}
-                    </div>
-                  )}
-                </div>
-              </Link>
-
-              <Link href="/finance/cash-flow" className="flex flex-col gap-0.5 pt-3 border-t border-white/10 transition-opacity active:opacity-70">
-                <div className="flex items-end gap-3">
-                  <p className="text-[2rem] leading-none font-black tracking-tighter text-white">
-                    {isLoading ? '...' : `Rp ${(kasBalance || 0).toLocaleString('id-ID')}`}
+              {/* Slide 2: Kas Shift Berjalan */}
+              <button
+                type="button"
+                onClick={() => setIsShiftModalOpen(true)}
+                className="w-full min-w-full snap-center shrink-0 flex flex-col gap-0.5 text-left transition-opacity active:opacity-70 cursor-pointer"
+              >
+                <div className="flex items-end gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+                  <p className="text-xl min-[380px]:text-2xl sm:text-[2rem] leading-none font-black tracking-tighter text-white whitespace-nowrap">
+                    {isLoading ? '...' : `Rp\u00A0${totalActiveShiftBalance.toLocaleString('id-ID')}`}
                   </p>
-                  <span className="mb-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
+                  <span className="mb-0.5 sm:mb-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm whitespace-nowrap shrink-0">
+                    {(activeShifts || []).length} Kasir Aktif
+                  </span>
+                </div>
+                <p className="text-sm font-medium text-brand-100">Kas Shift Berjalan (Klik rincian)</p>
+              </button>
+
+              {/* Slide 3: Saldo Kas Toko */}
+              <Link
+                href="/finance/cash-flow"
+                className="w-full min-w-full snap-center shrink-0 flex flex-col gap-0.5 transition-opacity active:opacity-70"
+              >
+                <div className="flex items-end gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+                  <p className="text-xl min-[380px]:text-2xl sm:text-[2rem] leading-none font-black tracking-tighter text-white whitespace-nowrap">
+                    {isLoading ? '...' : `Rp\u00A0${(kasBalance || 0).toLocaleString('id-ID')}`}
+                  </p>
+                  <span className="mb-0.5 sm:mb-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm whitespace-nowrap shrink-0">
                     Kas Global
                   </span>
                 </div>
@@ -347,26 +362,36 @@ export function MobileLaunchpad({
             </div>
           </div>
 
-          {/* Dots Indicator */}
-          <div className="mt-2.5 flex items-center justify-center gap-1.5">
+          {/* Dots Indicator (Inside card) */}
+          <div className="mt-3 flex items-center justify-center gap-1.5">
             <button
               type="button"
               onClick={() => scrollToSlide(0)}
               aria-label="Slide Penjualan hari ini"
               className={`h-1.5 rounded-full transition-all duration-300 ${
                 activeCardIndex === 0
-                  ? 'w-5 bg-brand-500'
-                  : 'w-1.5 bg-neutral-300 dark:bg-neutral-700 hover:bg-neutral-400'
+                  ? 'w-5 bg-white'
+                  : 'w-1.5 bg-white/30 hover:bg-white/50'
               }`}
             />
             <button
               type="button"
               onClick={() => scrollToSlide(1)}
-              aria-label="Slide Saldo Kas"
+              aria-label="Slide Kas Shift Berjalan"
               className={`h-1.5 rounded-full transition-all duration-300 ${
                 activeCardIndex === 1
-                  ? 'w-5 bg-brand-500'
-                  : 'w-1.5 bg-neutral-300 dark:bg-neutral-700 hover:bg-neutral-400'
+                  ? 'w-5 bg-white'
+                  : 'w-1.5 bg-white/30 hover:bg-white/50'
+              }`}
+            />
+            <button
+              type="button"
+              onClick={() => scrollToSlide(2)}
+              aria-label="Slide Saldo Kas Toko"
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                activeCardIndex === 2
+                  ? 'w-5 bg-white'
+                  : 'w-1.5 bg-white/30 hover:bg-white/50'
               }`}
             />
           </div>
@@ -627,6 +652,71 @@ export function MobileLaunchpad({
               </div>
             </button>
           )}
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isShiftModalOpen}
+        onClose={() => setIsShiftModalOpen(false)}
+        title="Kas Shift Berjalan"
+        isBottomSheetOnMobile={true}
+      >
+        <div className="flex flex-col gap-3 pt-1 pb-2">
+          <div className="rounded-2xl bg-neutral-100/80 dark:bg-neutral-800/80 p-3.5 border border-neutral-200/60 dark:border-neutral-700/50">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                Total Uang di Laci Kasir
+              </span>
+              <span className="rounded bg-brand-50 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400 px-2 py-0.5 text-xs font-bold">
+                {(activeShifts || []).length} Kasir Aktif
+              </span>
+            </div>
+            <p className="mt-1 text-2xl font-black text-neutral-900 dark:text-white">
+              Rp {totalActiveShiftBalance.toLocaleString('id-ID')}
+            </p>
+          </div>
+
+          <div className="flex flex-col divide-y divide-neutral-100 dark:divide-neutral-800 max-h-[50vh] overflow-y-auto">
+            {(!activeShifts || activeShifts.length === 0) ? (
+              <p className="py-8 text-center text-sm text-neutral-400">
+                Tidak ada kasir dengan shift aktif saat ini.
+              </p>
+            ) : (
+              activeShifts.map((shift) => (
+                <div
+                  key={`${shift.userId}_${shift.gudangId || 'all'}`}
+                  className="py-3 first:pt-1 last:pb-1"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-neutral-900 dark:text-white truncate">
+                        {shift.userName}
+                      </p>
+                      <p className="text-xs text-neutral-400 mt-0.5">
+                        {shift.gudangName || 'Outlet Kasir'}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                        Rp {(shift.saldo || 0).toLocaleString('id-ID')}
+                      </p>
+                      <span className="inline-block text-[10px] font-semibold text-neutral-400">
+                        Masuk: Rp {(shift.pemasukan || 0).toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <Link
+            href="/finance/cash-flow"
+            onClick={() => setIsShiftModalOpen(false)}
+            className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-neutral-900 dark:bg-white py-2.5 text-sm font-bold text-white dark:text-neutral-900 transition-opacity active:opacity-80"
+          >
+            Buka Buku Arus Kas Lengkap
+          </Link>
         </div>
       </Modal>
     </div>

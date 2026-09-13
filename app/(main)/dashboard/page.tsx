@@ -39,6 +39,7 @@ import { SoftPromptBanner } from '@/components/SoftPromptBanner';
 import { HRAlerts } from '@/components/dashboard/HRAlerts';
 import { MobileLaunchpad } from '@/components/dashboard/MobileLaunchpad';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { formatDateForInputWIB } from '@/lib/utils';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 
@@ -112,6 +113,23 @@ function HomeContent() {
     refetchOnWindowFocus: true,
   });
 
+  const todayDateStr = formatDateForInputWIB(new Date());
+
+  const {
+    data: shiftSummaryRes,
+    isLoading: shiftSummaryLoading,
+    refetch: refetchShiftSummary,
+  } = useQuery({
+    queryKey: ['dashboard', 'shiftSummary', todayDateStr],
+    queryFn: () => kasApi.getShiftSummary(todayDateStr),
+    enabled: !!user && isAdminUser,
+    staleTime: 60 * 1000,
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true,
+  });
+
+  const activeShifts = (shiftSummaryRes?.data || []).filter((s: any) => !s.shiftClosed);
+
   useEffect(() => {
     if (initialized && !user) {
       router.push('/login');
@@ -139,6 +157,7 @@ function HomeContent() {
       refetchLowStock(),
       refetchTx(),
       refetchKas(),
+      refetchShiftSummary(),
     ]);
   };
 
@@ -164,10 +183,11 @@ function HomeContent() {
           <MobileLaunchpad
             stats={stats}
             kasBalance={kasBalance || 0}
+            activeShifts={activeShifts}
             lowStock={lowStock}
             recentTransactions={transactions}
             isAdminUser={isAdminUser}
-            isLoading={statsLoading || kasBalanceLoading}
+            isLoading={statsLoading || kasBalanceLoading || shiftSummaryLoading}
             onRefresh={handleRefresh}
           />
         </div>

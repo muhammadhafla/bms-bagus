@@ -81,7 +81,21 @@ export function MobileLaunchpad({
   );
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const [activeCardIndex, setActiveCardIndex] = useState(0);
+  const activeCardIndexRef = useRef(0);
+
+  useEffect(() => {
+    activeCardIndexRef.current = activeCardIndex;
+  }, [activeCardIndex]);
+
+  const touchStartRef = useRef<{
+    x: number;
+    y: number;
+    time: number;
+    scrollLeft: number;
+    isInsideScroll: boolean;
+  } | null>(null);
 
   const handleScroll = () => {
     if (!scrollContainerRef.current) return;
@@ -107,35 +121,111 @@ export function MobileLaunchpad({
   };
 
   useEffect(() => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
+    const cardEl = cardRef.current;
+    if (!cardEl) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      // Hentikan propagasi agar PullToRefresh tidak mendeteksi awal tarikan
+      e.stopPropagation();
+
+      if (e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      const isInsideScroll = !!scrollContainerRef.current?.contains(e.target as Node);
+
+      touchStartRef.current = {
+        x: touch.clientX,
+        y: touch.clientY,
+        time: Date.now(),
+        scrollLeft: scrollContainerRef.current?.scrollLeft || 0,
+        isInsideScroll,
+      };
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      // Selalu hentikan propagasi agar PullToRefresh tidak menerima gerakan geser
+      e.stopPropagation();
+
+      if (!touchStartRef.current || e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      const dx = touch.clientX - touchStartRef.current.x;
+      const dy = touch.clientY - touchStartRef.current.y;
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+
+      // Jika pengguna menarik ke bawah pada area card: cegah tarikan (kebal dari PTR)
+      if (dy > 0 && absY > absX) {
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+        return;
+      }
+
+      // Jika pengguna menggeser horizontal di area card luar scroll container (misal: header Halo / padding):
+      if (!touchStartRef.current.isInsideScroll && scrollContainerRef.current) {
+        if (absX > absY && absX > 6) {
+          if (e.cancelable) {
+            e.preventDefault();
+          }
+          scrollContainerRef.current.scrollLeft = touchStartRef.current.scrollLeft - dx;
+        }
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      e.stopPropagation();
+
+      if (!touchStartRef.current) return;
+      const touch = e.changedTouches[0];
+      const dx = touch.clientX - touchStartRef.current.x;
+      const dy = touch.clientY - touchStartRef.current.y;
+      const dt = Date.now() - touchStartRef.current.time;
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+
+      // Jika swipe horizontal di area header / luar scroll container, snap ke slide target
+      if (!touchStartRef.current.isInsideScroll && scrollContainerRef.current) {
+        if (absX > absY && (absX > 40 || (absX > 20 && dt < 300))) {
+          if (dx < 0) {
+            scrollToSlide(Math.min(2, activeCardIndexRef.current + 1));
+          } else {
+            scrollToSlide(Math.max(0, activeCardIndexRef.current - 1));
+          }
+        } else if (absX > 10) {
+          scrollToSlide(activeCardIndexRef.current);
+        }
+      }
+
+      touchStartRef.current = null;
+    };
 
     const stopPropagation = (e: Event) => {
-      // Menghentikan propagasi event sentuh horizontal agar tidak memicu PullToRefresh
       e.stopPropagation();
     };
 
-    // Gunakan capture: true untuk memastikan event dicegat sebelum sampai ke listener PullToRefresh
-    const options = { passive: true, capture: true };
+    // Pasang listener pada seluruh card dengan passive: false pada touchmove agar preventDefault() dapat dipanggil
+    cardEl.addEventListener('touchstart', onTouchStart, { passive: true });
+    cardEl.addEventListener('touchmove', onTouchMove, { passive: false });
+    cardEl.addEventListener('touchend', onTouchEnd, { passive: true });
+    cardEl.addEventListener('touchcancel', onTouchEnd, { passive: true });
 
-    el.addEventListener('touchstart', stopPropagation, options);
-    el.addEventListener('touchmove', stopPropagation, options);
-    el.addEventListener('touchend', stopPropagation, options);
-
-    el.addEventListener('pointerdown', stopPropagation, options);
-    el.addEventListener('pointermove', stopPropagation, options);
-    el.addEventListener('pointerup', stopPropagation, options);
+    // Hentikan propagasi pointer & mouse event
+    cardEl.addEventListener('pointerdown', stopPropagation);
+    cardEl.addEventListener('pointermove', stopPropagation);
+    cardEl.addEventListener('pointerup', stopPropagation);
+    cardEl.addEventListener('mousedown', stopPropagation);
 
     return () => {
-      el.removeEventListener('touchstart', stopPropagation, options);
-      el.removeEventListener('touchmove', stopPropagation, options);
-      el.removeEventListener('touchend', stopPropagation, options);
+      cardEl.removeEventListener('touchstart', onTouchStart);
+      cardEl.removeEventListener('touchmove', onTouchMove);
+      cardEl.removeEventListener('touchend', onTouchEnd);
+      cardEl.removeEventListener('touchcancel', onTouchEnd);
 
-      el.removeEventListener('pointerdown', stopPropagation, options);
-      el.removeEventListener('pointermove', stopPropagation, options);
-      el.removeEventListener('pointerup', stopPropagation, options);
+      cardEl.removeEventListener('pointerdown', stopPropagation);
+      cardEl.removeEventListener('pointermove', stopPropagation);
+      cardEl.removeEventListener('pointerup', stopPropagation);
+      cardEl.removeEventListener('mousedown', stopPropagation);
     };
-  }, []);
+  }, [isAdminUser]);
 
   const queryClient = useQueryClient();
 
@@ -303,7 +393,10 @@ export function MobileLaunchpad({
     <div className="flex flex-col pb-6 pt-2">
       {/* Header (Admin = Slidable Content Card, Non-Admin = Text Only) */}
       {isAdminUser ? (
-        <div className="mb-6 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-4 shadow-lg shadow-brand-500/20 text-white">
+        <div
+          ref={cardRef}
+          className="mb-6 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-4 shadow-lg shadow-brand-500/20 text-white touch-pan-x overscroll-contain select-none"
+        >
           <Link href="/profile" className="mb-3 flex items-center justify-between transition-opacity active:opacity-70">
             <div>
               <h1 className="text-xl leading-tight font-bold text-white">

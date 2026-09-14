@@ -71,7 +71,7 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="fixed right-0 bottom-0 left-0 z-50 bg-neutral-100/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.05)] backdrop-blur-md lg:hidden dark:bg-neutral-950/95 dark:shadow-none">
+    <nav className="fixed right-0 bottom-0 left-0 z-50 transform-gpu will-change-transform translate-z-0 [-webkit-backface-visibility:hidden] [backface-visibility:hidden] border-t border-neutral-300/70 bg-neutral-200/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.08)] backdrop-blur-md lg:hidden dark:border-neutral-800 dark:bg-neutral-950/98 dark:shadow-none">
       <div className="flex h-16 items-center justify-around px-2">
         {navItems.map((item) => {
           // Strict match for dashboard, prefix match for others
@@ -92,7 +92,7 @@ export default function BottomNav() {
               className={`flex h-full w-full flex-col items-center justify-center space-y-1 transition-transform select-none active:scale-95 ${
                 isActive
                   ? 'text-brand-600 dark:text-brand-400'
-                  : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200'
+                  : 'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200'
               }`}
             >
               <Icon className={`h-6 w-6 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />

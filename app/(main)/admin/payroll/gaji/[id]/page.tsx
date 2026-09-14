@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mutasiApi, gajiApi, PayrollMutasi } from '@/lib/api/payroll';
+import { kasApi, ActiveShiftItem } from '@/lib/api/kas';
 import { gudangApi } from '@/lib/api/warehouse';
 import { downloadMutasiPdf, downloadSlipGajiPdf } from '@/lib/payroll-pdf-utils';
 import { Card, Button, Modal, TextInput, TextareaInput, SelectInput, ModernPagination, MonthPicker, DataTable, type Column, Badge } from '@/components/ui';
@@ -49,6 +50,7 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
   const [selectedMutasi, setSelectedMutasi] = useState<PayrollMutasi | null>(null);
   const [approveMetode, setApproveMetode] = useState<'TRANSFER' | 'CASH_KASIR'>('TRANSFER');
   const [approveGudangId, setApproveGudangId] = useState('');
+  const [approveShiftId, setApproveShiftId] = useState('');
 
   // Cairkan Gaji Modal State
   const [isCairkanOpen, setIsCairkanOpen] = useState(false);
@@ -56,6 +58,7 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
   const [cairkanKeterangan, setCairkanKeterangan] = useState('Pencairan Gaji');
   const [cairkanMetode, setCairkanMetode] = useState<'TRANSFER' | 'CASH_KASIR'>('TRANSFER');
   const [cairkanGudangId, setCairkanGudangId] = useState('');
+  const [cairkanShiftId, setCairkanShiftId] = useState('');
 
   useEffect(() => {
     if (gudangList.length > 0) {
@@ -64,12 +67,54 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
       if (!approveGudangId && def?.id) setApproveGudangId(def.id);
     }
   }, [gudangList, cairkanGudangId, approveGudangId]);
+
+  // Active shifts query for approve modal
+  const { data: approveShiftsRes } = useQuery({
+    queryKey: ['active-shifts', approveGudangId],
+    queryFn: () => kasApi.getActiveShifts(approveGudangId),
+    enabled: approveMetode === 'CASH_KASIR' && !!approveGudangId,
+  });
+  const approveShifts = useMemo(() => approveShiftsRes?.data || [], [approveShiftsRes?.data]);
+
+  // Active shifts query for cairkan modal
+  const { data: cairkanShiftsRes } = useQuery({
+    queryKey: ['active-shifts', cairkanGudangId],
+    queryFn: () => kasApi.getActiveShifts(cairkanGudangId),
+    enabled: cairkanMetode === 'CASH_KASIR' && !!cairkanGudangId,
+  });
+  const cairkanShifts = useMemo(() => cairkanShiftsRes?.data || [], [cairkanShiftsRes?.data]);
+
+  useEffect(() => {
+    if (approveShifts.length > 0) {
+      if (!approveShiftId || !approveShifts.some(s => s.id === approveShiftId)) {
+        setApproveShiftId(approveShifts[0].id);
+      }
+    } else {
+      setApproveShiftId('');
+    }
+  }, [approveShifts, approveShiftId]);
+
+  useEffect(() => {
+    if (cairkanShifts.length > 0) {
+      if (!cairkanShiftId || !cairkanShifts.some(s => s.id === cairkanShiftId)) {
+        setCairkanShiftId(cairkanShifts[0].id);
+      }
+    } else {
+      setCairkanShiftId('');
+    }
+  }, [cairkanShifts, cairkanShiftId]);
   
   const approveMutation = useMutation({
-    mutationFn: (id: string) => mutasiApi.approvePenarikan(id, {
-      disburseViaCashier: approveMetode === 'CASH_KASIR',
-      gudangId: approveMetode === 'CASH_KASIR' ? approveGudangId : null,
-    }),
+    mutationFn: (id: string) => {
+      if (approveMetode === 'CASH_KASIR' && !approveShiftId) {
+        throw new Error('Pilih shift kasir aktif terlebih dahulu.');
+      }
+      return mutasiApi.approvePenarikan(id, {
+        disburseViaCashier: approveMetode === 'CASH_KASIR',
+        gudangId: approveMetode === 'CASH_KASIR' ? approveGudangId : null,
+        shiftId: approveMetode === 'CASH_KASIR' ? approveShiftId : null,
+      });
+    },
     onSuccess: () => {
       toast.success(approveMetode === 'CASH_KASIR' 
         ? 'Berhasil menyetujui & memotong saldo laci kasir' 
@@ -80,6 +125,7 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_mutasi'] });
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_saldo'] });
       queryClient.invalidateQueries({ queryKey: ['kas_log'] });
+      queryClient.invalidateQueries({ queryKey: ['active-shifts'] });
     },
     onError: (err: any) => toast.error(err.message || 'Gagal menyetujui')
   });
@@ -95,15 +141,21 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
   });
 
   const cairkanMutation = useMutation({
-    mutationFn: () => mutasiApi.insertMutasi({
-      user_id: userId,
-      jenis: 'debit',
-      kategori: 'pencairan',
-      nominal: Number(cairkanNominal.replace(/\D/g, '')),
-      keterangan: cairkanKeterangan,
-      disburseViaCashier: cairkanMetode === 'CASH_KASIR',
-      gudangId: cairkanMetode === 'CASH_KASIR' ? cairkanGudangId : null,
-    }),
+    mutationFn: () => {
+      if (cairkanMetode === 'CASH_KASIR' && !cairkanShiftId) {
+        throw new Error('Pilih shift kasir aktif terlebih dahulu.');
+      }
+      return mutasiApi.insertMutasi({
+        user_id: userId,
+        jenis: 'debit',
+        kategori: 'pencairan',
+        nominal: Number(cairkanNominal.replace(/\D/g, '')),
+        keterangan: cairkanKeterangan,
+        disburseViaCashier: cairkanMetode === 'CASH_KASIR',
+        gudangId: cairkanMetode === 'CASH_KASIR' ? cairkanGudangId : null,
+        shiftId: cairkanMetode === 'CASH_KASIR' ? cairkanShiftId : null,
+      });
+    },
     onSuccess: () => {
       toast.success(cairkanMetode === 'CASH_KASIR'
         ? 'Pencairan tunai kasir berhasil dicatat & saldo kasir terpotong'
@@ -115,6 +167,7 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_mutasi'] });
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_saldo'] });
       queryClient.invalidateQueries({ queryKey: ['kas_log'] });
+      queryClient.invalidateQueries({ queryKey: ['active-shifts'] });
     },
     onError: (err: any) => toast.error(err.message || 'Gagal mencatat pencairan')
   });
@@ -123,6 +176,9 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
     e.preventDefault();
     const num = Number(cairkanNominal.replace(/\D/g, ''));
     if (num <= 0) return toast.error('Nominal harus lebih dari 0');
+    if (cairkanMetode === 'CASH_KASIR' && !cairkanShiftId) {
+      return toast.error('Pilih shift kasir aktif terlebih dahulu');
+    }
     cairkanMutation.mutate();
   };
 
@@ -573,19 +629,40 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
               </div>
 
               {approveMetode === 'CASH_KASIR' && (
-                <div className="mt-2 space-y-1.5 pt-2 border-t border-neutral-200 dark:border-neutral-700">
+                <div className="mt-2 space-y-2 pt-2 border-t border-neutral-200 dark:border-neutral-700">
                   <SelectInput
                     label="Pilih Lokasi Kasir Toko"
                     value={approveGudangId}
-                    onChange={(val) => setApproveGudangId(val)}
+                    onChange={(val) => {
+                      setApproveGudangId(val);
+                      setApproveShiftId('');
+                    }}
                     options={gudangList.map((g) => ({
                       label: `${g.nama} (${g.kode_gudang})`,
                       value: g.id,
                     }))}
                     required
                   />
+
+                  {approveShifts.length > 0 ? (
+                    <SelectInput
+                      label="Pilih Kasir / Shift Aktif"
+                      value={approveShiftId}
+                      onChange={(val) => setApproveShiftId(val)}
+                      options={approveShifts.map((s) => ({
+                        label: `${s.kasir_name} (Buka: ${format(new Date(s.start_time), 'HH:mm', { locale: localeId })})`,
+                        value: s.id,
+                      }))}
+                      required
+                    />
+                  ) : (
+                    <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs">
+                      ⚠️ Tidak ada kasir yang sedang buka shift di cabang ini. Silakan minta kasir buka shift di POS terlebih dahulu atau gunakan metode Transfer.
+                    </div>
+                  )}
+
                   <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                    ℹ️ Saldo laci kasir akan otomatis terpotong di POS dan tidak akan tercatat dobel saat tutup shift.
+                    ℹ️ Saldo laci kasir terpilih akan otomatis terpotong di POS dan tidak akan tercatat dobel saat tutup shift.
                   </p>
                 </div>
               )}
@@ -607,10 +684,10 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
               </Button>
               <Button 
                 variant="primary" 
-                className="w-1/2 !bg-emerald-600 hover:!bg-emerald-700 !border-emerald-600"
+                className="w-1/2 !bg-emerald-600 hover:!bg-emerald-700 !border-emerald-600 disabled:opacity-50" 
                 leftIcon={<IconCheck size={18} />}
                 onClick={() => approveMutation.mutate(selectedMutasi.id)}
-                disabled={rejectMutation.isPending || approveMutation.isPending}
+                disabled={rejectMutation.isPending || approveMutation.isPending || (approveMetode === 'CASH_KASIR' && !approveShiftId)}
               >
                 Setujui
               </Button>
@@ -662,19 +739,40 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
             </div>
 
             {cairkanMetode === 'CASH_KASIR' && (
-              <div className="mt-2 space-y-1.5 pt-2 border-t border-neutral-200 dark:border-neutral-700">
+              <div className="mt-2 space-y-2 pt-2 border-t border-neutral-200 dark:border-neutral-700">
                 <SelectInput
                   label="Pilih Lokasi Kasir Toko"
                   value={cairkanGudangId}
-                  onChange={(val) => setCairkanGudangId(val)}
+                  onChange={(val) => {
+                    setCairkanGudangId(val);
+                    setCairkanShiftId('');
+                  }}
                   options={gudangList.map((g) => ({
                     label: `${g.nama} (${g.kode_gudang})`,
                     value: g.id,
                   }))}
                   required
                 />
+
+                {cairkanShifts.length > 0 ? (
+                  <SelectInput
+                    label="Pilih Kasir / Shift Aktif"
+                    value={cairkanShiftId}
+                    onChange={(val) => setCairkanShiftId(val)}
+                    options={cairkanShifts.map((s) => ({
+                      label: `${s.kasir_name} (Buka: ${format(new Date(s.start_time), 'HH:mm', { locale: localeId })})`,
+                      value: s.id,
+                    }))}
+                    required
+                  />
+                ) : (
+                  <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs">
+                    ⚠️ Tidak ada kasir yang sedang buka shift di cabang ini. Silakan minta kasir buka shift di POS terlebih dahulu atau gunakan metode Transfer.
+                  </div>
+                )}
+
                 <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                  ℹ️ Saldo laci kasir akan otomatis terpotong di POS dan <b>tidak akan tercatat dobel</b> saat tutup shift.
+                  ℹ️ Saldo laci kasir terpilih akan otomatis terpotong di POS dan <b>tidak akan tercatat dobel</b> saat tutup shift.
                 </p>
               </div>
             )}
@@ -703,7 +801,11 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
             <Button variant="secondary" onClick={() => setIsCairkanOpen(false)} type="button">
               Batal
             </Button>
-            <Button variant="primary" type="submit" disabled={cairkanMutation.isPending}>
+            <Button 
+              variant="primary" 
+              type="submit" 
+              disabled={cairkanMutation.isPending || (cairkanMetode === 'CASH_KASIR' && !cairkanShiftId)}
+            >
               {cairkanMutation.isPending ? 'Mencatat...' : 'Catat Pencairan'}
             </Button>
           </div>

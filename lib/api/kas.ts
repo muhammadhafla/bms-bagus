@@ -23,6 +23,16 @@ export interface KasLogItem {
   } | null;
 }
 
+export interface ActiveShiftItem {
+  id: string;
+  kasir_id: string;
+  kasir_name: string;
+  gudang_id: string | null;
+  gudang_name: string | null;
+  start_time: string;
+  opening_cash: number;
+}
+
 export const kasApi = {
   /**
    * Mengambil riwayat kas log secara paginasi dengan filter
@@ -352,4 +362,29 @@ export const kasApi = {
       return { data: null, error: { message: err.message || 'Terjadi kesalahan' } };
     }
   },
+
+  /**
+   * Mengambil sesi shift kasir yang sedang aktif (OPEN)
+   */
+  async getActiveShifts(gudangId?: string | null) {
+    try {
+      let query = supabase
+        .from('shift_sessions')
+        .select('id, kasir_id, kasir_name, gudang_id, gudang_name, start_time, opening_cash')
+        .eq('status', 'OPEN')
+        .order('start_time', { ascending: false });
+
+      if (gudangId) {
+        query = query.eq('gudang_id', gudangId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return { data: (data || []) as ActiveShiftItem[], error: null };
+    } catch (err: any) {
+      console.error('Error fetching active shifts:', err);
+      return { data: [] as ActiveShiftItem[], error: err };
+    }
+  },
 };
+

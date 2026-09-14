@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { kasbonApi, Kasbon, karyawanApi } from '@/lib/api/payroll';
+import { kasApi } from '@/lib/api/kas';
 import { gudangApi } from '@/lib/api/warehouse';
 import { Card, DataTable, Button, Modal, Tabs, TextareaInput, Badge, SelectInput, TextInput, DateRangePicker, FilterButton, ModernPagination, type Column } from '@/components/ui';
 import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
@@ -43,8 +44,8 @@ export default function AdminKasbonClient() {
     if (!('page' in newFilters)) {
       params.set('page', '1');
     }
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [searchParams, pathname, router]);
+    router.push(`${pathname}?${params.toString()}`);
+  }, [searchParams, router, pathname]);
 
   const setStatusFilter = (status: string) => {
     updateFilters({ status });
@@ -89,8 +90,11 @@ export default function AdminKasbonClient() {
 
   const [approveMetode, setApproveMetode] = useState<'TRANSFER' | 'CASH_KASIR'>('TRANSFER');
   const [approveGudangId, setApproveGudangId] = useState('');
+  const [approveShiftId, setApproveShiftId] = useState('');
+
   const [createMetode, setCreateMetode] = useState<'TRANSFER' | 'CASH_KASIR'>('TRANSFER');
   const [createGudangId, setCreateGudangId] = useState('');
+  const [createShiftId, setCreateShiftId] = useState('');
 
   useEffect(() => {
     if (gudangList.length > 0) {
@@ -99,6 +103,42 @@ export default function AdminKasbonClient() {
       if (!createGudangId && def?.id) setCreateGudangId(def.id);
     }
   }, [gudangList, approveGudangId, createGudangId]);
+
+  // Active shifts query for approve modal
+  const { data: approveShiftsRes } = useQuery({
+    queryKey: ['active-shifts', approveGudangId],
+    queryFn: () => kasApi.getActiveShifts(approveGudangId),
+    enabled: approveMetode === 'CASH_KASIR' && !!approveGudangId,
+  });
+  const approveShifts = useMemo(() => approveShiftsRes?.data || [], [approveShiftsRes?.data]);
+
+  // Active shifts query for create modal
+  const { data: createShiftsRes } = useQuery({
+    queryKey: ['active-shifts', createGudangId],
+    queryFn: () => kasApi.getActiveShifts(createGudangId),
+    enabled: createMetode === 'CASH_KASIR' && !!createGudangId,
+  });
+  const createShifts = useMemo(() => createShiftsRes?.data || [], [createShiftsRes?.data]);
+
+  useEffect(() => {
+    if (approveShifts.length > 0) {
+      if (!approveShiftId || !approveShifts.some(s => s.id === approveShiftId)) {
+        setApproveShiftId(approveShifts[0].id);
+      }
+    } else {
+      setApproveShiftId('');
+    }
+  }, [approveShifts, approveShiftId]);
+
+  useEffect(() => {
+    if (createShifts.length > 0) {
+      if (!createShiftId || !createShifts.some(s => s.id === createShiftId)) {
+        setCreateShiftId(createShifts[0].id);
+      }
+    } else {
+      setCreateShiftId('');
+    }
+  }, [createShifts, createShiftId]);
 
   const list = kasbonData?.data || [];
   const totalItems = kasbonData?.total || 0;
@@ -110,11 +150,13 @@ export default function AdminKasbonClient() {
       status: 'disetujui' | 'ditolak', 
       reason?: string,
       disburseViaCashier?: boolean,
-      gudangId?: string | null 
+      gudangId?: string | null,
+      shiftId?: string | null,
     }) => 
       kasbonApi.updateStatus(args.id, args.status, {
         disburseViaCashier: args.disburseViaCashier,
-        gudangId: args.gudangId
+        gudangId: args.gudangId,
+        shiftId: args.shiftId,
       }),
     onSuccess: (res, vars) => {
       if (res.error) {
@@ -132,6 +174,7 @@ export default function AdminKasbonClient() {
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_kasbon'] });
       queryClient.invalidateQueries({ queryKey: ['buku_besar'] });
       queryClient.invalidateQueries({ queryKey: ['kas_log'] });
+      queryClient.invalidateQueries({ queryKey: ['active-shifts'] });
     },
     onError: () => toast.error('Terjadi kesalahan sistem'),
   });
@@ -153,16 +196,22 @@ export default function AdminKasbonClient() {
   });
 
   const createMutation = useMutation({
-    mutationFn: () => kasbonApi.createAdmin(
-      createUserId, 
-      Number(createNominal.replace(/\D/g, '')), 
-      createKeterangan, 
-      createStatus as 'pending' | 'disetujui',
-      {
-        disburseViaCashier: createStatus === 'disetujui' && createMetode === 'CASH_KASIR',
-        gudangId: createMetode === 'CASH_KASIR' ? createGudangId : null,
+    mutationFn: () => {
+      if (createStatus === 'disetujui' && createMetode === 'CASH_KASIR' && !createShiftId) {
+        throw new Error('Pilih shift kasir aktif terlebih dahulu.');
       }
-    ),
+      return kasbonApi.createAdmin(
+        createUserId, 
+        Number(createNominal.replace(/\D/g, '')), 
+        createKeterangan, 
+        createStatus as 'pending' | 'disetujui',
+        {
+          disburseViaCashier: createStatus === 'disetujui' && createMetode === 'CASH_KASIR',
+          gudangId: createMetode === 'CASH_KASIR' ? createGudangId : null,
+          shiftId: createMetode === 'CASH_KASIR' ? createShiftId : null,
+        }
+      );
+    },
     onSuccess: (res) => {
       if (res.error) {
         toast.error('Gagal membuat kasbon: ' + res.error.message);
@@ -180,8 +229,9 @@ export default function AdminKasbonClient() {
       queryClient.invalidateQueries({ queryKey: ['admin_payroll_kasbon'] });
       queryClient.invalidateQueries({ queryKey: ['buku_besar'] });
       queryClient.invalidateQueries({ queryKey: ['kas_log'] });
+      queryClient.invalidateQueries({ queryKey: ['active-shifts'] });
     },
-    onError: () => toast.error('Terjadi kesalahan sistem'),
+    onError: (err: any) => toast.error(err.message || 'Terjadi kesalahan sistem'),
   });
 
   const handleCreateSubmit = (e: React.FormEvent) => {
@@ -189,16 +239,24 @@ export default function AdminKasbonClient() {
     if (!createUserId) return toast.error('Pilih karyawan terlebih dahulu');
     const num = Number(createNominal.replace(/\D/g, ''));
     if (num <= 0) return toast.error('Nominal harus lebih dari 0');
+    if (createStatus === 'disetujui' && createMetode === 'CASH_KASIR' && !createShiftId) {
+      return toast.error('Pilih shift kasir aktif terlebih dahulu');
+    }
     createMutation.mutate();
   };
 
   const handleApprove = () => {
     if (confirmApprove) {
+      if (approveMetode === 'CASH_KASIR' && !approveShiftId) {
+        toast.error('Pilih shift kasir aktif terlebih dahulu');
+        return;
+      }
       updateStatusMutation.mutate({ 
         id: confirmApprove.id, 
         status: 'disetujui',
         disburseViaCashier: approveMetode === 'CASH_KASIR',
         gudangId: approveMetode === 'CASH_KASIR' ? approveGudangId : null,
+        shiftId: approveMetode === 'CASH_KASIR' ? approveShiftId : null,
       });
     }
   };
@@ -676,19 +734,40 @@ export default function AdminKasbonClient() {
                 </div>
 
                 {approveMetode === 'CASH_KASIR' && (
-                  <div className="mt-2 space-y-1.5 pt-2 border-t border-neutral-200 dark:border-neutral-700">
+                  <div className="mt-2 space-y-2 pt-2 border-t border-neutral-200 dark:border-neutral-700">
                     <SelectInput
                       label="Pilih Lokasi Kasir Toko"
                       value={approveGudangId}
-                      onChange={(val) => setApproveGudangId(val)}
+                      onChange={(val) => {
+                        setApproveGudangId(val);
+                        setApproveShiftId('');
+                      }}
                       options={gudangList.map((g) => ({
                         label: `${g.nama} (${g.kode_gudang})`,
                         value: g.id,
                       }))}
                       required
                     />
+
+                    {approveShifts.length > 0 ? (
+                      <SelectInput
+                        label="Pilih Kasir / Shift Aktif"
+                        value={approveShiftId}
+                        onChange={(val) => setApproveShiftId(val)}
+                        options={approveShifts.map((s) => ({
+                          label: `${s.kasir_name} (Buka: ${format(new Date(s.start_time), 'HH:mm', { locale: localeId })})`,
+                          value: s.id,
+                        }))}
+                        required
+                      />
+                    ) : (
+                      <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs">
+                        ⚠️ Tidak ada kasir yang sedang buka shift di cabang ini. Silakan minta kasir buka shift di POS terlebih dahulu atau gunakan metode Transfer.
+                      </div>
+                    )}
+
                     <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                      ℹ️ Saldo laci kasir toko akan otomatis terpotong dan tidak akan tercatat dobel saat tutup shift.
+                      ℹ️ Saldo laci kasir terpilih akan otomatis terpotong di POS dan tidak akan tercatat dobel saat tutup shift.
                     </p>
                   </div>
                 )}
@@ -698,9 +777,10 @@ export default function AdminKasbonClient() {
                 <Button variant="secondary" onClick={() => setConfirmApprove(null)}>Batal</Button>
                 <Button 
                   variant="primary" 
-                  className="bg-emerald-600 hover:bg-emerald-700 border-none"
+                  className="bg-emerald-600 hover:bg-emerald-700 border-none disabled:opacity-50" 
                   onClick={handleApprove}
                   loading={updateStatusMutation.isPending}
+                  disabled={updateStatusMutation.isPending || (approveMetode === 'CASH_KASIR' && !approveShiftId)}
                 >
                   Ya, Setujui
                 </Button>
@@ -826,19 +906,40 @@ export default function AdminKasbonClient() {
                 </div>
 
                 {createMetode === 'CASH_KASIR' && (
-                  <div className="mt-2 space-y-1.5 pt-2 border-t border-neutral-200 dark:border-neutral-700">
+                  <div className="mt-2 space-y-2 pt-2 border-t border-neutral-200 dark:border-neutral-700">
                     <SelectInput
                       label="Pilih Lokasi Kasir Toko"
                       value={createGudangId}
-                      onChange={(val) => setCreateGudangId(val)}
+                      onChange={(val) => {
+                        setCreateGudangId(val);
+                        setCreateShiftId('');
+                      }}
                       options={gudangList.map((g) => ({
                         label: `${g.nama} (${g.kode_gudang})`,
                         value: g.id,
                       }))}
                       required
                     />
+
+                    {createShifts.length > 0 ? (
+                      <SelectInput
+                        label="Pilih Kasir / Shift Aktif"
+                        value={createShiftId}
+                        onChange={(val) => setCreateShiftId(val)}
+                        options={createShifts.map((s) => ({
+                          label: `${s.kasir_name} (Buka: ${format(new Date(s.start_time), 'HH:mm', { locale: localeId })})`,
+                          value: s.id,
+                        }))}
+                        required
+                      />
+                    ) : (
+                      <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs">
+                        ⚠️ Tidak ada kasir yang sedang buka shift di cabang ini. Silakan minta kasir buka shift di POS terlebih dahulu atau gunakan metode Transfer.
+                      </div>
+                    )}
+
                     <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                      ℹ️ Saldo laci kasir akan otomatis terpotong di POS dan tidak akan tercatat dobel saat tutup shift.
+                      ℹ️ Saldo laci kasir terpilih akan otomatis terpotong di POS dan tidak akan tercatat dobel saat tutup shift.
                     </p>
                   </div>
                 )}
@@ -850,6 +951,7 @@ export default function AdminKasbonClient() {
                 type="submit" 
                 variant="primary" 
                 loading={createMutation.isPending}
+                disabled={createMutation.isPending || (createStatus === 'disetujui' && createMetode === 'CASH_KASIR' && !createShiftId)}
               >
                 Simpan Kasbon
               </Button>

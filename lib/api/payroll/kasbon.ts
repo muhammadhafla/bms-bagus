@@ -213,7 +213,7 @@ export const kasbonApi = {
     nominal: number, 
     keterangan: string, 
     status: 'pending' | 'disetujui' = 'disetujui',
-    options?: { disburseViaCashier?: boolean; gudangId?: string | null }
+    options?: { disburseViaCashier?: boolean; gudangId?: string | null; shiftId?: string | null }
   ) {
     try {
       const { data: authData } = await supabase.auth.getUser();
@@ -238,8 +238,12 @@ export const kasbonApi = {
       );
 
       if (options?.disburseViaCashier && result.data?.id && status === 'disetujui') {
-        const { error: rpcErr } = await supabase.rpc('disburse_payroll_via_cashier', {
+        if (!options.shiftId) {
+          throw new Error('Pilih shift kasir aktif terlebih dahulu untuk pencairan tunai laci.');
+        }
+        const { error: rpcErr } = await (supabase.rpc as any)('disburse_payroll_via_cashier', {
           p_mutasi_id: result.data.id,
+          p_shift_id: options.shiftId,
           p_gudang_id: options.gudangId || null,
         });
         if (rpcErr) console.error('Error auto-disbursing kasbon via cashier:', rpcErr);
@@ -257,7 +261,7 @@ export const kasbonApi = {
   async updateStatus(
     id: string, 
     status: 'disetujui' | 'ditolak',
-    options?: { disburseViaCashier?: boolean; gudangId?: string | null }
+    options?: { disburseViaCashier?: boolean; gudangId?: string | null; shiftId?: string | null }
   ) {
     try {
       const { data: authData } = await supabase.auth.getUser();
@@ -265,8 +269,12 @@ export const kasbonApi = {
       if (!adminId) throw new Error('Not authenticated');
 
       if (status === 'disetujui' && options?.disburseViaCashier) {
-        const { data: rpcData, error: rpcErr } = await supabase.rpc('disburse_payroll_via_cashier', {
+        if (!options.shiftId) {
+          throw new Error('Pilih shift kasir aktif terlebih dahulu untuk pencairan tunai laci.');
+        }
+        const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)('disburse_payroll_via_cashier', {
           p_mutasi_id: id,
+          p_shift_id: options.shiftId,
           p_gudang_id: options.gudangId || null,
         });
         if (rpcErr) throw rpcErr;

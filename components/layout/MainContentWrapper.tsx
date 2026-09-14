@@ -24,11 +24,11 @@ export function MainContentWrapper({ children }: { children: React.ReactNode }) 
       >
         {/* Page content */}
         {isHelp ? (
-          <main className="relative flex-1 overflow-auto overscroll-y-none bg-neutral-50 p-0 shadow-none dark:bg-neutral-950">
+          <main className="relative flex-1 overflow-auto bg-neutral-50 p-0 shadow-none dark:bg-neutral-950">
             {children}
           </main>
         ) : (
-          <main className="relative flex-1 overflow-auto overscroll-y-none rounded-none border-0 border-neutral-200/50 bg-white p-4 pb-24 shadow-none lg:rounded-[2rem] lg:border lg:p-6 lg:pb-6 lg:shadow-sm dark:border-neutral-800/50 dark:bg-neutral-900">
+          <main className="relative flex-1 overflow-auto rounded-none border-0 border-neutral-200/50 bg-white p-4 pb-24 shadow-none lg:rounded-[2rem] lg:border lg:p-6 lg:pb-6 lg:shadow-sm dark:border-neutral-800/50 dark:bg-neutral-900">
             <InstallBanner />
             {children}
           </main>

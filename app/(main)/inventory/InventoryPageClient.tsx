@@ -41,6 +41,7 @@ const ImportInventoryCSVWizard = dynamic(
   },
 );
 import { useHotkeys } from 'react-hotkeys-hook';
+import { toast } from 'sonner';
 import CheckboxInput from '@/components/ui/CheckboxInput';
 import { API_ERROR_MESSAGES, UI_MESSAGES, INVENTORY_MESSAGES } from '@/lib/constants';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -70,6 +71,26 @@ export default function InventoryPageClient() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+
+  // Sync state from URL when external navigation occurs (e.g. sidebar click or back/forward)
+  useEffect(() => {
+    const urlSearch = searchParams.get('search') || '';
+    const urlKategori = searchParams.get('kategori') || '';
+    const urlLowStock = searchParams.get('lowStockOnly') === 'true';
+    const urlStatus = (searchParams.get('activeStatus') as any) || 'all';
+    const urlSortBy = searchParams.get('sortBy') || 'nama_barang';
+    const urlSortDir = (searchParams.get('sortDir') as any) || 'asc';
+    const urlPage = Number(searchParams.get('page')) || 1;
+
+    setSearch((prev) => (prev !== urlSearch ? urlSearch : prev));
+    setDebouncedSearch((prev) => (prev !== urlSearch ? urlSearch : prev));
+    setKategori((prev) => (prev !== urlKategori ? urlKategori : prev));
+    setLowStockOnly((prev) => (prev !== urlLowStock ? urlLowStock : prev));
+    setActiveStatus((prev) => (prev !== urlStatus ? urlStatus : prev));
+    setSortBy((prev) => (prev !== urlSortBy ? urlSortBy : prev));
+    setSortDir((prev) => (prev !== urlSortDir ? urlSortDir : prev));
+    setPage((prev) => (prev !== urlPage ? urlPage : prev));
+  }, [searchParams]);
 
   // Sync state to URL
   useEffect(() => {
@@ -167,9 +188,14 @@ export default function InventoryPageClient() {
   const handleDelete = useCallback(
     async (id: string) => {
       const result = await inventoryApi.delete(id);
-      if (!result.error) {
-        queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      if (result.error) {
+        toast.error(result.error.message || 'Gagal menghapus barang');
+        return false;
       }
+      toast.success('Barang berhasil dihapus');
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'low-stock-count'] });
+      return true;
     },
     [queryClient],
   );
@@ -206,24 +232,8 @@ export default function InventoryPageClient() {
     { key: 'Escape', description: 'Reset filter' },
   ];
 
-  return (
-    <ErrorBoundary>
-      <PullToRefresh
-        onRefresh={async () => {
-          await refetch();
-        }}
-        pullingContent={
-          <div className="flex items-center justify-center py-4 text-neutral-400">
-            <IconArrowDown className="h-5 w-5 animate-bounce" />
-          </div>
-        }
-        refreshingContent={
-          <div className="flex items-center justify-center py-4">
-            <Spinner size="sm" />
-          </div>
-        }
-      >
-        <AmbientLayout>
+  const pageContent = (
+    <AmbientLayout>
           {showShortcutsHelp && (
             <Portal>
               <div
@@ -567,10 +577,13 @@ export default function InventoryPageClient() {
                 items={items}
                 onUpdate={handleUpdate}
                 onDelete={handleDelete}
+                onRefresh={refetch}
                 kategoriList={kategoriList}
                 pagination={{
                   page,
                   totalPages,
+                  total: inventoryData?.total || 0,
+                  limit: ITEMS_PER_PAGE,
                   onPageChange: setPage,
                 }}
               />
@@ -586,7 +599,31 @@ export default function InventoryPageClient() {
             }}
           />
         </AmbientLayout>
-      </PullToRefresh>
+  );
+
+  return (
+    <ErrorBoundary>
+      {isMobile ? (
+        <PullToRefresh
+          onRefresh={async () => {
+            await refetch();
+          }}
+          pullingContent={
+            <div className="flex items-center justify-center py-4 text-neutral-400">
+              <IconArrowDown className="h-5 w-5 animate-bounce" />
+            </div>
+          }
+          refreshingContent={
+            <div className="flex items-center justify-center py-4">
+              <Spinner size="sm" />
+            </div>
+          }
+        >
+          {pageContent}
+        </PullToRefresh>
+      ) : (
+        pageContent
+      )}
     </ErrorBoundary>
   );
 }

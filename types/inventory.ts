@@ -33,3 +33,30 @@ export interface InventoryFilters {
   kategori: string;
   lowStock: boolean;
 }
+
+export interface InventoryDeletionCheck {
+  id: string;
+  nama_barang: string;
+  kode_barcode?: string;
+  stok: number;
+  can_delete: boolean;
+  total_transactions: number;
+  breakdown: {
+    penjualan: number;
+    pembelian: number;
+    retur: number;
+    opname: number;
+    adjustment: number;
+    transfer: number;
+    pengeluaran_gudang: number;
+  };
+}
+
+export interface MergeInventoryResult {
+  success: boolean;
+  merged_count: number;
+  target_id: string;
+  target_nama: string;
+  source_names: string;
+  transferred_stock: number;
+}

@@ -588,3 +588,11 @@ input[type='number'] {
   }
 }
 
+/* Fix react-simple-pull-to-refresh breaking normal scroll and trapping layout height */
+.ptr,
+.ptr__children {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow: visible !important;
+}
+

@@ -13,10 +13,11 @@ export function useBodyScrollLock(isLocked: boolean) {
     return () => {
       const currentCount = parseInt(document.body.dataset.scrollLockCount || '1', 10);
       const nextCount = Math.max(0, currentCount - 1);
-      document.body.dataset.scrollLockCount = String(nextCount);
       if (nextCount === 0) {
-        document.body.style.overflow = prevOverflow;
+        document.body.style.overflow = '';
         delete document.body.dataset.scrollLockCount;
+      } else {
+        document.body.dataset.scrollLockCount = String(nextCount);
       }
     };
   }, [isLocked]);

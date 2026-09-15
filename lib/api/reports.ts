@@ -7,12 +7,27 @@ export interface StockMutation {
   barcode?: string;
   nama_barang?: string;
   type: 'in' | 'out';
-  tipe: 'IN' | 'OUT';
+  tipe: 'IN' | 'OUT' | 'ADJUSTMENT' | string;
   qty: number;
   qty_mutation: number;
   transaction_type: string;
   referensi?: string;
   created_at: string;
+}
+
+function determineMutationDirection(tipe: unknown, referensi: unknown): { type: 'in' | 'out'; isPositive: boolean } {
+  const upperTipe = String(tipe || '').toUpperCase();
+  const ref = String(referensi || '').toLowerCase();
+
+  if (upperTipe === 'IN') {
+    return { type: 'in', isPositive: true };
+  }
+  if (upperTipe === 'ADJUSTMENT') {
+    if (ref.includes('penggabungan') || ref.includes('masuk') || ref.includes('increase') || ref.includes('tambah')) {
+      return { type: 'in', isPositive: true };
+    }
+  }
+  return { type: 'out', isPositive: false };
 }
 
 export interface InventoryValue {
@@ -119,20 +134,25 @@ export const reportApi = {
       resData.pop(); // remove the extra item
     }
 
-    const mapped = resData.map((item: Record<string, unknown>): StockMutation => ({
-      id: item.id as string,
-      inventory_id: item.inventory_id as string,
-      barcode: ((item.inventory as Record<string, unknown> | null)?.kode_barcode as string) || '',
-      nama_barang:
-        ((item.inventory as Record<string, unknown> | null)?.nama_barang as string) || '',
-      type: (item.tipe as string) === 'IN' ? 'in' : 'out',
-      tipe: item.tipe as 'IN' | 'OUT',
-      qty: item.qty as number,
-      qty_mutation: (item.tipe as string) === 'IN' ? (item.qty as number) : -(item.qty as number),
-      transaction_type: (item.referensi as string) || '-',
-      referensi: item.referensi as string | undefined,
-      created_at: item.created_at as string,
-    }));
+    const mapped = resData.map((item: Record<string, unknown>): StockMutation => {
+      const { type, isPositive } = determineMutationDirection(item.tipe, item.referensi);
+      const qty = Math.abs(Number(item.qty) || 0);
+
+      return {
+        id: item.id as string,
+        inventory_id: item.inventory_id as string,
+        barcode: ((item.inventory as Record<string, unknown> | null)?.kode_barcode as string) || '',
+        nama_barang:
+          ((item.inventory as Record<string, unknown> | null)?.nama_barang as string) || '',
+        type,
+        tipe: (item.tipe as string) as 'IN' | 'OUT',
+        qty,
+        qty_mutation: isPositive ? qty : -qty,
+        transaction_type: (item.referensi as string) || '-',
+        referensi: item.referensi as string | undefined,
+        created_at: item.created_at as string,
+      };
+    });
 
     return {
       data: mapped,
@@ -399,19 +419,24 @@ export const reportApi = {
 
     if (result.error) return { data: [], error: { message: result.error.message } };
 
-    const mapped = (result.data || []).map((item: any): StockMutation => ({
-      id: item.id as string,
-      inventory_id: item.inventory_id as string,
-      barcode: item.inventory?.kode_barcode || '',
-      nama_barang: item.inventory?.nama_barang || '',
-      type: item.tipe === 'IN' ? 'in' : 'out',
-      tipe: item.tipe,
-      qty: item.qty,
-      qty_mutation: item.tipe === 'IN' ? item.qty : -item.qty,
-      transaction_type: item.referensi || '-',
-      referensi: item.referensi,
-      created_at: item.created_at,
-    }));
+    const mapped = (result.data || []).map((item: any): StockMutation => {
+      const { type, isPositive } = determineMutationDirection(item.tipe, item.referensi);
+      const qty = Math.abs(Number(item.qty) || 0);
+
+      return {
+        id: item.id as string,
+        inventory_id: item.inventory_id as string,
+        barcode: item.inventory?.kode_barcode || '',
+        nama_barang: item.inventory?.nama_barang || '',
+        type,
+        tipe: item.tipe,
+        qty,
+        qty_mutation: isPositive ? qty : -qty,
+        transaction_type: item.referensi || '-',
+        referensi: item.referensi,
+        created_at: item.created_at,
+      };
+    });
     return { data: mapped, error: null };
   },
 

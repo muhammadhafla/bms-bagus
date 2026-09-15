@@ -14,8 +14,11 @@ import {
   IconCheck,
   IconHistory,
   IconBuildingWarehouse,
+  IconGitMerge,
+  IconAlertTriangle,
+  IconBolt,
 } from '@tabler/icons-react';
-import { InventoryItem } from '@/types/inventory';
+import { InventoryItem, InventoryDeletionCheck } from '@/types/inventory';
 import { InventoryStock } from '@/types/warehouse';
 import { supabase } from '@/lib/supabase';
 import { fetchApi } from '@/lib/fetchApi';
@@ -30,20 +33,25 @@ import { Modal } from '@/components/ui/Modal';
 import TextInput from '@/components/ui/TextInput';
 import SelectInput from '@/components/ui/SelectInput';
 import Button from '@/components/ui/Button';
-import { ModernPagination, PriceInput } from '@/components/ui';
+import { ModernPagination, PriceInput, Spinner } from '@/components/ui';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { PurchaseHistoryModal } from './PurchaseHistoryModal';
+import { MergeInventoryModal } from './MergeInventoryModal';
+import { BulkDeleteConfirmModal } from './BulkDeleteConfirmModal';
 
 interface PaginationProps {
   page: number;
   totalPages: number;
+  total?: number;
+  limit?: number;
   onPageChange: (page: number) => void;
 }
 
 interface InventoryTableProps {
   items: InventoryItem[];
   onUpdate: (id: string, data: Partial<InventoryItem>) => void;
-  onDelete?: (id: string) => void;
+  onDelete?: (id: string) => Promise<boolean | void> | void;
+  onRefresh?: () => void;
   pagination?: PaginationProps;
   kategoriList: string[];
 }
@@ -62,6 +70,7 @@ export const InventoryTable = React.memo(function InventoryTable({
   items,
   onUpdate,
   onDelete,
+  onRefresh,
   pagination,
   kategoriList,
 }: InventoryTableProps) {
@@ -130,6 +139,11 @@ export const InventoryTable = React.memo(function InventoryTable({
     minimum_stock: 0,
   });
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [mergeModalOpen, setMergeModalOpen] = useState(false);
+  const [mergeSourceItems, setMergeSourceItems] = useState<InventoryItem[]>([]);
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
+  const [isCheckingDelete, setIsCheckingDelete] = useState(false);
+  const [deletionBlockedInfo, setDeletionBlockedInfo] = useState<InventoryDeletionCheck | null>(null);
   const [discontinueConfirm, setDiscontinueConfirm] = useState(false);
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [templates, setTemplates] = useState<any[]>([]);
@@ -141,6 +155,7 @@ export const InventoryTable = React.memo(function InventoryTable({
   const isAdminUser = useIsAdmin();
   const hasRole = useAuthStore((state) => state.hasRole);
   const canViewHPP = isAdminUser || hasRole('finance');
+  const canEdit = isAdminUser || hasRole('kepala_cabang');
 
   const openSlideOver = useCallback((item: InventoryItem) => {
     setSelectedItem(item);
@@ -210,11 +225,58 @@ export const InventoryTable = React.memo(function InventoryTable({
   const handleDelete = useCallback(async () => {
     if (!selectedItem || !onDelete) return;
 
-    await onDelete(selectedItem.id);
-    toast.success('Barang dihapus');
-    setDeleteConfirm(false);
-    closeSlideOver();
+    const res = await onDelete(selectedItem.id);
+    if (res !== false) {
+      setDeleteConfirm(false);
+      closeSlideOver();
+    }
   }, [selectedItem, onDelete, closeSlideOver]);
+
+  const handlePromptDelete = useCallback(async () => {
+    if (!selectedItem) return;
+    setIsCheckingDelete(true);
+    try {
+      const res = await inventoryApi.checkCanDelete(selectedItem.id);
+      if (res.error || !res.data) {
+        toast.error(res.error?.message || 'Gagal memeriksa kelayakan hapus');
+        return;
+      }
+
+      if (res.data.can_delete) {
+        setDeleteConfirm(true);
+      } else {
+        setDeletionBlockedInfo(res.data);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Terjadi kesalahan saat memeriksa data');
+    } finally {
+      setIsCheckingDelete(false);
+    }
+  }, [selectedItem]);
+
+  const handleOpenBulkMerge = useCallback(() => {
+    const selected = items.filter((i) => selectedIds.has(i.id));
+    if (selected.length === 0) return;
+    setMergeSourceItems(selected);
+    setMergeModalOpen(true);
+  }, [items, selectedIds]);
+
+  const handleOpenBulkDelete = useCallback(() => {
+    const selected = items.filter((i) => selectedIds.has(i.id));
+    if (selected.length === 0) return;
+    setBulkDeleteModalOpen(true);
+  }, [items, selectedIds]);
+
+  const handleMergeSuccess = useCallback(() => {
+    setSelectedIds(new Set());
+    closeSlideOver();
+    if (onRefresh) onRefresh();
+  }, [closeSlideOver, onRefresh]);
+
+  const handleBulkDeleteSuccess = useCallback(() => {
+    setSelectedIds(new Set());
+    if (onRefresh) onRefresh();
+  }, [onRefresh]);
 
   const handleToggleDiscontinue = useCallback(async () => {
     if (!selectedItem) return;
@@ -314,15 +376,39 @@ export const InventoryTable = React.memo(function InventoryTable({
             Barang Dipilih
           </div>
           
-          <div className="relative" ref={bulkSnoozeRef}>
-            <Button 
-              variant="secondary" 
-              size="sm" 
-              onClick={() => setShowBulkSnoozeOpts(!showBulkSnoozeOpts)}
-              className="border-brand-300 text-brand-700 hover:bg-brand-100 dark:border-brand-800 dark:text-brand-300 dark:hover:bg-brand-800"
-            >
-              🕒 Snooze Massal
-            </Button>
+          <div className="flex items-center gap-2.5">
+            {isAdminUser && (
+              <>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleOpenBulkMerge}
+                  leftIcon={<IconGitMerge size={16} />}
+                  className="shadow-2xs"
+                >
+                  Gabung Massal (Merge)
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleOpenBulkDelete}
+                  leftIcon={<IconTrash size={16} />}
+                  className="shadow-2xs"
+                >
+                  Hapus Massal
+                </Button>
+              </>
+            )}
+
+            <div className="relative" ref={bulkSnoozeRef}>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={() => setShowBulkSnoozeOpts(!showBulkSnoozeOpts)}
+                className="border-brand-300 text-brand-700 hover:bg-brand-100 dark:border-brand-800 dark:text-brand-300 dark:hover:bg-brand-800"
+              >
+                🕒 Snooze Massal
+              </Button>
             
             {showBulkSnoozeOpts && (
               <div className="shadow-elevated absolute right-0 top-10 z-30 w-40 rounded-lg border border-neutral-200 bg-white p-2 dark:border-neutral-700 dark:bg-neutral-800">
@@ -347,6 +433,7 @@ export const InventoryTable = React.memo(function InventoryTable({
                 </div>
               </div>
             )}
+          </div>
           </div>
         </div>
       )}
@@ -466,9 +553,16 @@ export const InventoryTable = React.memo(function InventoryTable({
           <ModernPagination
             page={pagination.page}
             totalPages={pagination.totalPages}
+            total={pagination.total}
+            limit={pagination.limit}
             onPageChange={pagination.onPageChange}
             className="hidden rounded-none border-x-0 border-b-0 lg:flex"
           />
+        )}
+        {pagination && pagination.totalPages <= 1 && pagination.total !== undefined && pagination.total > 0 && (
+          <div className="hidden border-t border-neutral-200/50 bg-white/50 p-3 text-center text-xs font-medium text-neutral-500 backdrop-blur-md lg:block dark:border-neutral-800/50 dark:bg-neutral-950/50 dark:text-neutral-400">
+            Menampilkan seluruh {pagination.total} barang
+          </div>
         )}
       </div>
 
@@ -556,185 +650,315 @@ export const InventoryTable = React.memo(function InventoryTable({
         <ModernPagination
           page={pagination.page}
           totalPages={pagination.totalPages}
+          total={pagination.total}
+          limit={pagination.limit}
           onPageChange={pagination.onPageChange}
           className="sticky bottom-0 z-20 -mx-4 mt-4 rounded-none border-x-0 border-b-0 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)] lg:hidden"
         />
+      )}
+      {pagination && pagination.totalPages <= 1 && pagination.total !== undefined && pagination.total > 0 && (
+        <div className="py-3 text-center text-xs font-medium text-neutral-500 lg:hidden dark:text-neutral-400">
+          Menampilkan seluruh {pagination.total} barang
+        </div>
       )}
 
       <Modal
         isOpen={isSlideOverOpen}
         onClose={closeSlideOver}
         title={selectedItem ? `Edit ${selectedItem.nama_barang}` : ''}
-        size="md"
+        size="3xl"
         isBottomSheetOnMobile
-      >
-        <RoleGuard
-          roles={['admin', 'kepala_cabang']}
-          fallback={
-            <div className="space-y-4">
-              {selectedItem?.is_discontinued && (
-                <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
-                  <IconBan size={18} />
-                  Barang telah di-discontinue
-                </div>
+        footer={
+          <div className="flex w-full items-center justify-between">
+            <span className="text-xs text-neutral-400 dark:text-neutral-500">
+              Tekan <kbd className="rounded bg-neutral-200 px-1 py-0.5 text-[10px] font-mono text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">Esc</kbd> untuk menutup
+            </span>
+            <div className="flex items-center gap-2.5">
+              <Button variant="secondary" onClick={closeSlideOver}>
+                Batal
+              </Button>
+              {canEdit && (
+                <Button
+                  variant="primary"
+                  onClick={handleSave}
+                  leftIcon={<IconDeviceFloppy size={18} />}
+                >
+                  Simpan Perubahan
+                </Button>
               )}
-              <div>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">Nama Barang</p>
-                <p className="text-neutral-900 dark:text-white">{editForm.nama_barang}</p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">Barcode</p>
-                <p className="font-mono text-neutral-900 dark:text-white">
-                  {editForm.kode_barcode}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">Kategori</p>
-                <p className="text-neutral-900 dark:text-white">{editForm.id_kategori}</p>
-              </div>
-              {canViewHPP && (
-                <div>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                    Harga Beli Terakhir
-                  </p>
-                  <p className="text-neutral-900 dark:text-white">
-                    {formatCurrency(editForm.harga_beli_terakhir)}
-                  </p>
-                </div>
-              )}
-              <div>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">Harga Jual</p>
-                <p className="text-neutral-900 dark:text-white">
-                  {formatCurrency(editForm.harga_jual)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">Diskon</p>
-                <p className="text-neutral-900 dark:text-white">
-                  {formatCurrency(editForm.diskon)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">Minimum Stock</p>
-                <p className="text-neutral-900 dark:text-white">{editForm.minimum_stock}</p>
-              </div>
             </div>
-          }
-        >
-          <div className="space-y-4">
-            <TextInput
-              label="Nama Barang"
-              value={editForm.nama_barang}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, nama_barang: e.target.value }))}
-              required
-            />
-            <TextInput
-              label="Barcode"
-              value={editForm.kode_barcode}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, kode_barcode: e.target.value }))}
-            />
-            <SelectInput
-              label="Kategori"
-              value={editForm.id_kategori}
-              onChange={(value) => setEditForm((prev) => ({ ...prev, id_kategori: value }))}
-              options={[...kategoriList].sort().map((k) => ({ value: k, label: k }))}
-              placeholder="Pilih kategori"
-            />
-            {isAdminUser && (
-              <PriceInput
-                label="Harga Beli Terakhir"
-                value={editForm.harga_beli_terakhir}
-                onChange={(val) =>
-                  setEditForm((prev) => ({
-                    ...prev,
-                    harga_beli_terakhir: val,
-                  }))
-                }
-              />
-            )}
-            <PriceInput
-              label="Harga Jual"
-              value={editForm.harga_jual}
-              onChange={(val) =>
-                setEditForm((prev) => ({ ...prev, harga_jual: val }))
-              }
-            />
-
-            <TextInput
-              label="Minimum Stock"
-              type="number"
-              min={0}
-              value={editForm.minimum_stock === 0 ? '' : editForm.minimum_stock}
-              placeholder="0"
-              onFocus={(e) => e.target.select()}
-              onChange={(e) => {
-                const val = e.target.value;
-                setEditForm((prev) => ({
-                  ...prev,
-                  minimum_stock: val === '' ? 0 : Math.max(0, parseInt(val, 10) || 0),
-                }));
-              }}
-            />
           </div>
-        </RoleGuard>
-
-        {/* Rincian Stok per Lokasi Gudang */}
-        {selectedItem && (
-          <div className="mt-5 rounded-2xl border border-neutral-200/80 bg-neutral-50/70 p-4 dark:border-neutral-800 dark:bg-neutral-900/60">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-neutral-600 uppercase dark:text-neutral-300">
-                <IconBuildingWarehouse className="h-4 w-4 text-brand-600 dark:text-brand-400" />
-                Rincian Stok per Gudang
-              </span>
-              <Link
-                href={`/warehouse/stocks?search=${encodeURIComponent(selectedItem.kode_barcode || selectedItem.nama_barang)}`}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline dark:text-brand-400 dark:hover:text-brand-300"
-              >
-                Kelola di Gudang &rarr;
-              </Link>
-            </div>
-
-            {loadingWarehouseStocks ? (
-              <div className="py-2 text-center text-xs text-neutral-400 animate-pulse">
-                Memuat rincian stok gudang...
-              </div>
-            ) : warehouseStocks.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-neutral-200 bg-white/60 p-3 text-center text-xs text-neutral-500 dark:border-neutral-800 dark:bg-neutral-950/40 dark:text-neutral-400">
-                Belum ada alokasi stok di modul gudang. Total stok saat ini: <strong className="text-neutral-800 dark:text-neutral-200">{selectedItem.stok} pcs</strong>.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {warehouseStocks.map((ws) => (
-                  <div
-                    key={ws.id}
-                    className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-3 py-2 text-xs shadow-2xs dark:border-neutral-800 dark:bg-neutral-800/80"
-                  >
-                    <div>
-                      <div className="font-semibold text-neutral-900 dark:text-white">
-                        {ws.gudang?.nama || ws.gudang?.kode_gudang || 'Gudang'}
-                      </div>
-                      <div className="flex items-center gap-2 text-[11px] text-neutral-500 dark:text-neutral-400">
-                        <span>Rak: <strong className="font-medium text-neutral-700 dark:text-neutral-300">{ws.rak_lokasi || '-'}</strong></span>
-                        {ws.min_stok !== null && ws.min_stok !== undefined && (
-                          <span>• Min: {ws.min_stok}</span>
-                        )}
-                      </div>
+        }
+        footerClassName="hidden lg:block"
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-6">
+          {/* Kolom Kiri: Form Data Barang */}
+          <div className="lg:col-span-7">
+            <RoleGuard
+              roles={['admin', 'kepala_cabang']}
+              fallback={
+                <div className="space-y-4">
+                  {selectedItem?.is_discontinued && (
+                    <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
+                      <IconBan size={18} className="shrink-0" />
+                      <span>Barang telah di-discontinue</span>
                     </div>
-                    <div className="text-right">
-                      <span className="text-sm font-bold text-neutral-900 dark:text-white">
-                        {ws.stok}
-                      </span>
-                      <span className="text-[11px] text-neutral-500 ml-1">pcs</span>
+                  )}
+                  <div>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">Nama Barang</p>
+                    <p className="text-base font-semibold text-neutral-900 dark:text-white">{editForm.nama_barang}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3.5">
+                    <div>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">Barcode</p>
+                      <p className="font-mono text-sm text-neutral-900 dark:text-white">
+                        {editForm.kode_barcode || '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">Kategori</p>
+                      <p className="text-sm text-neutral-900 dark:text-white">{editForm.id_kategori || '-'}</p>
+                    </div>
+                    {canViewHPP && (
+                      <div>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          Harga Beli Terakhir
+                        </p>
+                        <p className="text-sm font-medium text-neutral-900 dark:text-white">
+                          {formatCurrency(editForm.harga_beli_terakhir)}
+                        </p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">Harga Jual</p>
+                      <p className="text-sm font-medium text-neutral-900 dark:text-white">
+                        {formatCurrency(editForm.harga_jual)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">Diskon</p>
+                      <p className="text-sm text-neutral-900 dark:text-white">
+                        {formatCurrency(editForm.diskon)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">Minimum Stock</p>
+                      <p className="text-sm text-neutral-900 dark:text-white">{editForm.minimum_stock}</p>
                     </div>
                   </div>
-                ))}
+                </div>
+              }
+            >
+              <div className="space-y-3.5">
+                {selectedItem?.is_discontinued && (
+                  <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
+                    <IconBan size={16} className="shrink-0" />
+                    <span>Barang ini telah di-discontinue (tidak aktif di transaksi baru)</span>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <TextInput
+                      label="Nama Barang"
+                      value={editForm.nama_barang}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, nama_barang: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <TextInput
+                      label="Barcode"
+                      value={editForm.kode_barcode}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, kode_barcode: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <SelectInput
+                      label="Kategori"
+                      value={editForm.id_kategori}
+                      onChange={(value) => setEditForm((prev) => ({ ...prev, id_kategori: value }))}
+                      options={[...kategoriList].sort().map((k) => ({ value: k, label: k }))}
+                      placeholder="Pilih kategori"
+                    />
+                  </div>
+                  {isAdminUser && (
+                    <div>
+                      <PriceInput
+                        label="Harga Beli Terakhir"
+                        value={editForm.harga_beli_terakhir}
+                        onChange={(val) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            harga_beli_terakhir: val,
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
+                  <div className={isAdminUser ? '' : 'sm:col-span-2'}>
+                    <PriceInput
+                      label="Harga Jual"
+                      value={editForm.harga_jual}
+                      onChange={(val) =>
+                        setEditForm((prev) => ({ ...prev, harga_jual: val }))
+                      }
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <TextInput
+                      label="Minimum Stock"
+                      type="number"
+                      min={0}
+                      value={editForm.minimum_stock === 0 ? '' : editForm.minimum_stock}
+                      placeholder="0"
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditForm((prev) => ({
+                          ...prev,
+                          minimum_stock: val === '' ? 0 : Math.max(0, parseInt(val, 10) || 0),
+                        }));
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </RoleGuard>
+          </div>
+
+          {/* Kolom Kanan: Rincian Stok Gudang + Aksi Cepat Desktop */}
+          <div className="mt-5 space-y-4 lg:mt-0 lg:col-span-5">
+            {/* Rincian Stok per Lokasi Gudang */}
+            {selectedItem && (
+              <div className="rounded-2xl border border-neutral-200/80 bg-neutral-50/70 p-4 dark:border-neutral-800 dark:bg-neutral-900/60">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-neutral-600 uppercase dark:text-neutral-300">
+                    <IconBuildingWarehouse className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+                    Rincian Stok per Gudang
+                  </span>
+                  <Link
+                    href={`/warehouse/stocks?search=${encodeURIComponent(selectedItem.kode_barcode || selectedItem.nama_barang)}`}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline dark:text-brand-400 dark:hover:text-brand-300"
+                  >
+                    Kelola di Gudang &rarr;
+                  </Link>
+                </div>
+
+                {loadingWarehouseStocks ? (
+                  <div className="py-2 text-center text-xs text-neutral-400 animate-pulse">
+                    Memuat rincian stok gudang...
+                  </div>
+                ) : warehouseStocks.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-neutral-200 bg-white/60 p-3 text-center text-xs text-neutral-500 dark:border-neutral-800 dark:bg-neutral-950/40 dark:text-neutral-400">
+                    Belum ada alokasi stok di modul gudang. Total stok saat ini: <strong className="text-neutral-800 dark:text-neutral-200">{selectedItem.stok} pcs</strong>.
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    {warehouseStocks.map((ws) => (
+                      <div
+                        key={ws.id}
+                        className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-3 py-2 text-xs shadow-2xs dark:border-neutral-800 dark:bg-neutral-800/80"
+                      >
+                        <div>
+                          <div className="font-semibold text-neutral-900 dark:text-white">
+                            {ws.gudang?.nama || ws.gudang?.kode_gudang || 'Gudang'}
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] text-neutral-500 dark:text-neutral-400">
+                            <span>Rak: <strong className="font-medium text-neutral-700 dark:text-neutral-300">{ws.rak_lokasi || '-'}</strong></span>
+                            {ws.min_stok !== null && ws.min_stok !== undefined && (
+                              <span>• Min: {ws.min_stok}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm font-bold text-neutral-900 dark:text-white">
+                            {ws.stok}
+                          </span>
+                          <span className="text-[11px] text-neutral-500 ml-1">pcs</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
 
+            {/* Aksi & Utilitas Barang Cepat (Desktop Only) */}
+            <AdminOnly>
+              <div className="hidden lg:block rounded-2xl border border-neutral-200/80 bg-neutral-50/70 p-4 dark:border-neutral-800 dark:bg-neutral-900/60">
+                <div className="mb-2.5 flex items-center gap-1.5 text-xs font-bold tracking-wider text-neutral-600 uppercase dark:text-neutral-300">
+                  <IconBolt className="h-4 w-4 text-amber-500" />
+                  Aksi & Utilitas Barang
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setHistoryModalOpen(true)}
+                    className="w-full justify-start text-xs font-medium"
+                    leftIcon={<IconHistory size={16} className="text-brand-600 dark:text-brand-400" />}
+                  >
+                    Riwayat Harga
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={openPrintModal}
+                    className="w-full justify-start text-xs font-medium"
+                    leftIcon={<IconPrinter size={16} className="text-blue-600 dark:text-blue-400" />}
+                  >
+                    Cetak Label
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      if (selectedItem) {
+                        setMergeSourceItems([selectedItem]);
+                        setMergeModalOpen(true);
+                      }
+                    }}
+                    className="w-full justify-start text-xs font-medium"
+                    leftIcon={<IconGitMerge size={16} className="text-purple-600 dark:purple-400" />}
+                  >
+                    Gabung (Merge)
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setDiscontinueConfirm(true)}
+                    className="w-full justify-start text-xs font-medium"
+                    leftIcon={
+                      selectedItem?.is_discontinued ? (
+                        <IconCheck size={16} className="text-emerald-600" />
+                      ) : (
+                        <IconBan size={16} className="text-amber-600" />
+                      )
+                    }
+                  >
+                    {selectedItem?.is_discontinued ? 'Aktifkan' : 'Discontinue'}
+                  </Button>
+                </div>
+                <div className="mt-2.5 pt-2.5 border-t border-neutral-200/80 dark:border-neutral-800">
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={handlePromptDelete}
+                    disabled={isCheckingDelete}
+                    className="w-full text-xs font-medium"
+                    leftIcon={isCheckingDelete ? <Spinner size="sm" /> : <IconTrash size={16} />}
+                  >
+                    {isCheckingDelete ? 'Memeriksa Kelayakan...' : 'Hapus Barang'}
+                  </Button>
+                </div>
+              </div>
+            </AdminOnly>
+          </div>
+        </div>
+
+        {/* Mobile Action Buttons Stack (Mobile Only) */}
         <AdminOnly>
-          <div className="mt-6 flex flex-col gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+          <div className="mt-6 flex flex-col gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800 lg:hidden">
             <div className="flex gap-3">
               <Button
                 variant="primary"
@@ -771,9 +995,111 @@ export const InventoryTable = React.memo(function InventoryTable({
             >
               Riwayat Harga Beli
             </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                if (selectedItem) {
+                  setMergeSourceItems([selectedItem]);
+                  setMergeModalOpen(true);
+                }
+              }}
+              className="w-full"
+              leftIcon={<IconGitMerge size={18} />}
+            >
+              Gabung Barang (Merge Duplikat)
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handlePromptDelete}
+              disabled={isCheckingDelete}
+              className="w-full"
+              leftIcon={isCheckingDelete ? <Spinner size="sm" /> : <IconTrash size={18} />}
+            >
+              {isCheckingDelete ? 'Memeriksa Kelayakan...' : 'Hapus Barang'}
+            </Button>
           </div>
         </AdminOnly>
       </Modal>
+
+      <Modal
+        isOpen={!!deletionBlockedInfo}
+        onClose={() => setDeletionBlockedInfo(null)}
+        title="Barang Memiliki Riwayat Transaksi"
+        size="md"
+        isBottomSheetOnMobile
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-xs leading-relaxed text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+            <IconAlertTriangle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <div>
+              <p className="font-semibold text-amber-950 dark:text-amber-100">
+                Barang Tidak Dapat Dihapus Langsung
+              </p>
+              <p className="mt-1">
+                Barang <strong>&quot;{deletionBlockedInfo?.nama_barang}&quot;</strong> telah tercatat dalam <strong>{deletionBlockedInfo?.total_transactions} transaksi</strong> (pembelian/penjualan). Menghapus barang ini secara permanen akan merusak laporan keuangan dan faktur nota supplier.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-neutral-50 dark:bg-neutral-900/60 p-3 border border-neutral-200/80 dark:border-neutral-800 text-xs space-y-1.5">
+            <p className="font-bold text-neutral-700 dark:text-neutral-300 mb-1">Rincian Transaksi Terkait:</p>
+            {deletionBlockedInfo?.breakdown.pembelian ? <p>• Pembelian Supplier: {deletionBlockedInfo.breakdown.pembelian} nota</p> : null}
+            {deletionBlockedInfo?.breakdown.penjualan ? <p>• Penjualan Kasir: {deletionBlockedInfo.breakdown.penjualan} nota</p> : null}
+            {deletionBlockedInfo?.breakdown.retur ? <p>• Retur Penjualan: {deletionBlockedInfo.breakdown.retur} transaksi</p> : null}
+            {deletionBlockedInfo?.breakdown.opname ? <p>• Stock Opname: {deletionBlockedInfo.breakdown.opname} kali</p> : null}
+            {deletionBlockedInfo?.breakdown.adjustment ? <p>• Penyesuaian Stok: {deletionBlockedInfo.breakdown.adjustment} kali</p> : null}
+            {deletionBlockedInfo?.breakdown.transfer ? <p>• Transfer Gudang: {deletionBlockedInfo.breakdown.transfer} kali</p> : null}
+            {deletionBlockedInfo?.breakdown.pengeluaran_gudang ? <p>• Pengeluaran Gudang: {deletionBlockedInfo.breakdown.pengeluaran_gudang} kali</p> : null}
+          </div>
+
+          <p className="text-xs text-neutral-600 dark:text-neutral-400">
+            💡 <strong>Apakah barang ini duplikat?</strong> Anda dapat menggabungkan stok dan riwayat transaksi barang ini ke barang utama menggunakan fitur <strong>Gabung Barang (Merge)</strong>, lalu barang duplikat ini akan otomatis terhapus bersih.
+          </p>
+
+          <div className="flex gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+            <Button
+              variant="secondary"
+              onClick={() => setDeletionBlockedInfo(null)}
+              className="flex-1"
+            >
+              Batal
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                const itemToMerge = selectedItem;
+                setDeletionBlockedInfo(null);
+                if (itemToMerge) {
+                  setMergeSourceItems([itemToMerge]);
+                  setMergeModalOpen(true);
+                }
+              }}
+              leftIcon={<IconGitMerge size={18} />}
+              className="flex-1"
+            >
+              Gabung ke Barang Lain
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <MergeInventoryModal
+        isOpen={mergeModalOpen}
+        onClose={() => setMergeModalOpen(false)}
+        sourceItems={mergeSourceItems}
+        onSuccess={handleMergeSuccess}
+      />
+
+      <BulkDeleteConfirmModal
+        isOpen={bulkDeleteModalOpen}
+        onClose={() => setBulkDeleteModalOpen(false)}
+        selectedItems={items.filter((i) => selectedIds.has(i.id))}
+        onSuccess={handleBulkDeleteSuccess}
+        onRedirectToMerge={(itemsToMerge) => {
+          setMergeSourceItems(itemsToMerge);
+          setMergeModalOpen(true);
+        }}
+      />
 
       <ConfirmDialog
         isOpen={deleteConfirm}

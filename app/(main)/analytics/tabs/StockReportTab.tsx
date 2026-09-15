@@ -133,7 +133,12 @@ export function StockReportTab({ startDate, endDate }: StockReportTabProps) {
                       {mutation.barcode}
                     </td>
                     <td className="px-4 py-3.5 text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                      {mutation.nama_barang}
+                      <div>{mutation.nama_barang}</div>
+                      {mutation.referensi && (
+                        <div className="text-xs text-neutral-500 font-normal mt-0.5">
+                          {mutation.referensi}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3.5 text-center">
                       <span
@@ -202,10 +207,16 @@ export function StockReportTab({ startDate, endDate }: StockReportTabProps) {
                     </span>
                   </div>
                 </div>
-                <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-neutral-500 md:text-xs">
+                <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-neutral-500 md:text-xs">
                   <span className="font-mono">{mutation.barcode}</span>
                   <span>•</span>
                   <span>{formatDateWIB(mutation.created_at)}</span>
+                  {mutation.referensi && (
+                    <>
+                      <span>•</span>
+                      <span className="text-neutral-400 max-w-[200px] truncate">{mutation.referensi}</span>
+                    </>
+                  )}
                 </div>
               </div>
             ))}

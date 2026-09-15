@@ -40,7 +40,8 @@ export default async function InventoryPage(props: Props) {
   const sortBy = typeof searchParams?.sortBy === 'string' ? searchParams.sortBy : 'nama_barang';
   const sortDir = (typeof searchParams?.sortDir === 'string' ? searchParams.sortDir : 'asc') as 'asc' | 'desc';
 
-  const limit = 20;
+  const limitParam = Number(searchParams?.limit);
+  const limit = limitParam && limitParam > 0 ? limitParam : 50;
   const offset = (page - 1) * limit;
 
   let categoryId = undefined;
@@ -59,6 +60,7 @@ export default async function InventoryPage(props: Props) {
     'inventory',
     {
       page,
+      limit,
       search,
       categoryId,
       lowStockOnly,

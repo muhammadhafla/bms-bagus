@@ -1,7 +1,7 @@
 import { supabase } from './client';
 import { safeQuery } from './utils';
-import { stringSimilarity, sanitizeSearchQuery } from '@/lib/utils';
-import { InventoryItem } from '@/types/inventory';
+import { sanitizeSearchQuery } from '@/lib/utils';
+import { InventoryItem, InventoryDeletionCheck, MergeInventoryResult } from '@/types/inventory';
 
 export const inventoryApi = {
   async getAll() {
@@ -259,11 +259,56 @@ export const inventoryApi = {
     );
   },
 
+  async checkCanDelete(id: string) {
+    return safeQuery<InventoryDeletionCheck>(async () => {
+      const result = await supabase.rpc('check_inventory_can_delete', { p_id: id });
+      return { data: result.data as InventoryDeletionCheck, error: result.error as Error | null };
+    });
+  },
+
+  async checkBatchCanDelete(ids: string[]) {
+    if (!ids || ids.length === 0) return { data: [], error: null };
+    return safeQuery<InventoryDeletionCheck[]>(async () => {
+      const result = await supabase.rpc('check_inventory_batch_can_delete', { p_ids: ids });
+      return { data: (result.data || []) as InventoryDeletionCheck[], error: result.error as Error | null };
+    });
+  },
+
   async delete(id: string) {
-    return safeQuery<void>(
+    return safeQuery<{ success: boolean; deleted_count: number }>(
       async () => {
-        const result = await supabase.from('inventory').delete().eq('id', id);
-        return { data: result.data, error: result.error as Error | null };
+        const result = await supabase.rpc('delete_inventory_item', { p_id: id });
+        return { data: result.data as { success: boolean; deleted_count: number }, error: result.error as Error | null };
+      },
+      { isMutation: true },
+    );
+  },
+
+  async deleteBatch(ids: string[]) {
+    if (!ids || ids.length === 0) return { data: { success: true, deleted_count: 0 }, error: null };
+    return safeQuery<{ success: boolean; deleted_count: number }>(
+      async () => {
+        const result = await supabase.rpc('delete_inventory_batch', { p_ids: ids });
+        return { data: result.data as { success: boolean; deleted_count: number }, error: result.error as Error | null };
+      },
+      { isMutation: true },
+    );
+  },
+
+  async mergeDuplicates(sourceIds: string[], targetId: string) {
+    if (!sourceIds || sourceIds.length === 0) {
+      return { data: null, error: new Error('Daftar barang duplikat tidak boleh kosong') };
+    }
+    if (!targetId) {
+      return { data: null, error: new Error('Barang tujuan harus dipilih') };
+    }
+    return safeQuery<MergeInventoryResult>(
+      async () => {
+        const result = await supabase.rpc('merge_duplicate_inventory', {
+          p_source_ids: sourceIds,
+          p_target_id: targetId,
+        });
+        return { data: result.data as MergeInventoryResult, error: result.error as Error | null };
       },
       { isMutation: true },
     );

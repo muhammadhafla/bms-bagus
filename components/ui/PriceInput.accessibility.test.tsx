@@ -35,4 +35,13 @@ describe('PriceInput Accessibility', () => {
     expect(input).toBeInTheDocument();
     expect(input).toHaveAttribute('id', htmlForAttr);
   });
+
+  it('defaults autoComplete to off and applies prevention attributes', () => {
+    render(<PriceInput value={5000} onChange={vi.fn()} />);
+    const input = screen.getByRole('textbox');
+    expect(input).toHaveAttribute('autocomplete', 'off');
+    expect(input).toHaveAttribute('autocorrect', 'off');
+    expect(input).toHaveAttribute('autocapitalize', 'off');
+    expect(input).toHaveAttribute('spellcheck', 'false');
+  });
 });

@@ -100,7 +100,7 @@ export function Modal({
                 </div>
               </div>
             )}
-            <div className="flex-1 overflow-y-auto p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:p-5">
+            <div className="flex-1 overflow-y-auto p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:p-5">
               {children}
             </div>
             {footer && (

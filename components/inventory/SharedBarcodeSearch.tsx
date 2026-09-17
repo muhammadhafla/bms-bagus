@@ -214,6 +214,7 @@ export const SharedBarcodeSearch = React.forwardRef<SharedBarcodeSearchRef, Shar
             }
           }
         }}
+        autoComplete="off"
         disabled={loading || disabled}
         className="focus:ring-brand-500 w-full rounded-xl border border-neutral-200 bg-white py-3.5 pr-4 pl-12 text-base shadow-sm backdrop-blur-md transition-all focus:ring-2 focus:outline-none focus:ring-inset lg:text-lg dark:border-neutral-700 dark:bg-neutral-900"
         autoFocus

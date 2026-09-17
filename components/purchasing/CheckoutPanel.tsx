@@ -175,6 +175,7 @@ export function CheckoutPanel({
                 value={nomorNota}
                 onChange={(e) => setNomorNota(e.target.value)}
                 placeholder="Contoh: INV-2023001"
+                autoComplete="off"
                 inputSize="md"
               />
             </div>

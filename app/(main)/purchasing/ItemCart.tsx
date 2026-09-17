@@ -113,6 +113,7 @@ export const ItemCart = React.memo(function ItemCart({
                       min={1}
                       autoFocus
                       prefix=""
+                      autoComplete="off"
                     />
                   </div>
                 ) : (
@@ -147,6 +148,7 @@ export const ItemCart = React.memo(function ItemCart({
                       className="!rounded-lg border border-neutral-300 bg-white !px-3 !py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
                       min={0}
                       autoFocus
+                      autoComplete="off"
                     />
                   </div>
                 ) : (
@@ -181,6 +183,7 @@ export const ItemCart = React.memo(function ItemCart({
                       className="!rounded-lg border border-neutral-300 bg-white !px-3 !py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
                       min={0}
                       autoFocus
+                      autoComplete="off"
                     />
                   </div>
                 ) : (
@@ -257,6 +260,7 @@ export const ItemCart = React.memo(function ItemCart({
                       min={1}
                       autoFocus
                       prefix=""
+                      autoComplete="off"
                     />
                   </div>
                 ) : (
@@ -291,6 +295,7 @@ export const ItemCart = React.memo(function ItemCart({
                       className="w-full !rounded-xl border border-neutral-300 bg-white !px-3 !py-2.5 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
                       min={0}
                       autoFocus
+                      autoComplete="off"
                     />
                   </div>
                 ) : (
@@ -325,6 +330,7 @@ export const ItemCart = React.memo(function ItemCart({
                       className="w-full !rounded-xl border border-neutral-300 bg-white !px-3 !py-2.5 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
                       min={0}
                       autoFocus
+                      autoComplete="off"
                     />
                   </div>
                 ) : (

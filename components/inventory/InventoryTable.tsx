@@ -749,14 +749,14 @@ export const InventoryTable = React.memo(function InventoryTable({
                 </div>
               }
             >
-              <div className="space-y-3.5">
+              <div className="space-y-2 sm:space-y-3.5">
                 {selectedItem?.is_discontinued && (
                   <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
                     <IconBan size={16} className="shrink-0" />
                     <span>Barang ini telah di-discontinue (tidak aktif di transaksi baru)</span>
                   </div>
                 )}
-                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3.5">
                   <div className="sm:col-span-2">
                     <TextInput
                       label="Nama Barang"
@@ -827,11 +827,11 @@ export const InventoryTable = React.memo(function InventoryTable({
           </div>
 
           {/* Kolom Kanan: Rincian Stok Gudang + Aksi Cepat Desktop */}
-          <div className="mt-5 space-y-4 lg:mt-0 lg:col-span-5">
+          <div className="mt-2.5 space-y-2.5 lg:mt-0 lg:space-y-4 lg:col-span-5">
             {/* Rincian Stok per Lokasi Gudang */}
             {selectedItem && (
-              <div className="rounded-2xl border border-neutral-200/80 bg-neutral-50/70 p-4 dark:border-neutral-800 dark:bg-neutral-900/60">
-                <div className="mb-3 flex items-center justify-between">
+              <div className="rounded-2xl border border-neutral-200/80 bg-neutral-50/70 p-2.5 sm:p-3 lg:p-4 dark:border-neutral-800 dark:bg-neutral-900/60">
+                <div className="mb-2 flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-neutral-600 uppercase dark:text-neutral-300">
                     <IconBuildingWarehouse className="h-4 w-4 text-brand-600 dark:text-brand-400" />
                     Rincian Stok per Gudang
@@ -853,11 +853,11 @@ export const InventoryTable = React.memo(function InventoryTable({
                     Belum ada alokasi stok di modul gudang. Total stok saat ini: <strong className="text-neutral-800 dark:text-neutral-200">{selectedItem.stok} pcs</strong>.
                   </div>
                 ) : (
-                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
                     {warehouseStocks.map((ws) => (
                       <div
                         key={ws.id}
-                        className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-3 py-2 text-xs shadow-2xs dark:border-neutral-800 dark:bg-neutral-800/80"
+                        className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-2.5 py-1.5 text-xs shadow-2xs dark:border-neutral-800 dark:bg-neutral-800/80"
                       >
                         <div>
                           <div className="font-semibold text-neutral-900 dark:text-white">
@@ -956,67 +956,81 @@ export const InventoryTable = React.memo(function InventoryTable({
           </div>
         </div>
 
-        {/* Mobile Action Buttons Stack (Mobile Only) */}
+        {/* Mobile Action Buttons (Mobile Only) */}
         <AdminOnly>
-          <div className="mt-6 flex flex-col gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800 lg:hidden">
-            <div className="flex gap-3">
+          <div className="mt-2.5 flex flex-col gap-2 border-t border-neutral-200 pt-2.5 dark:border-neutral-800 lg:hidden">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSave}
+              className="w-full min-h-[38px] text-xs sm:text-sm font-semibold"
+              leftIcon={<IconDeviceFloppy size={18} />}
+            >
+              Simpan Perubahan
+            </Button>
+
+            <div className="grid grid-cols-2 gap-1.5">
               <Button
-                variant="primary"
-                onClick={handleSave}
-                className="flex-1"
-                leftIcon={<IconDeviceFloppy size={18} />}
+                variant="secondary"
+                size="sm"
+                onClick={openPrintModal}
+                className="w-full justify-center text-xs font-medium min-h-[36px]"
+                leftIcon={<IconPrinter size={15} className="text-blue-600 dark:text-blue-400" />}
               >
-                Simpan Perubahan
+                Cetak Label
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setHistoryModalOpen(true)}
+                className="w-full justify-center text-xs font-medium min-h-[36px]"
+                leftIcon={<IconHistory size={15} className="text-brand-600 dark:text-brand-400" />}
+              >
+                Riwayat Harga
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  if (selectedItem) {
+                    setMergeSourceItems([selectedItem]);
+                    setMergeModalOpen(true);
+                  }
+                }}
+                className="w-full justify-center text-xs font-medium min-h-[36px]"
+                leftIcon={<IconGitMerge size={15} className="text-purple-600 dark:purple-400" />}
+              >
+                Gabung (Merge)
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setDiscontinueConfirm(true)}
+                className="w-full justify-center text-xs font-medium min-h-[36px]"
+                leftIcon={
+                  selectedItem?.is_discontinued ? (
+                    <IconCheck size={15} className="text-emerald-600" />
+                  ) : (
+                    <IconBan size={15} className="text-amber-600" />
+                  )
+                }
+              >
+                {selectedItem?.is_discontinued ? 'Aktifkan' : 'Discontinue'}
               </Button>
             </div>
-            <Button
-              variant="secondary"
-              onClick={() => setDiscontinueConfirm(true)}
-              className="w-full"
-              leftIcon={
-                selectedItem?.is_discontinued ? <IconCheck size={18} /> : <IconBan size={18} />
-              }
-            >
-              {selectedItem?.is_discontinued ? 'Aktifkan Kembali' : 'Discontinue Barang'}
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={openPrintModal}
-              className="w-full"
-              leftIcon={<IconPrinter size={18} />}
-            >
-              Cetak Label
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => setHistoryModalOpen(true)}
-              className="w-full"
-              leftIcon={<IconHistory size={18} />}
-            >
-              Riwayat Harga Beli
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                if (selectedItem) {
-                  setMergeSourceItems([selectedItem]);
-                  setMergeModalOpen(true);
-                }
-              }}
-              className="w-full"
-              leftIcon={<IconGitMerge size={18} />}
-            >
-              Gabung Barang (Merge Duplikat)
-            </Button>
-            <Button
-              variant="danger"
-              onClick={handlePromptDelete}
-              disabled={isCheckingDelete}
-              className="w-full"
-              leftIcon={isCheckingDelete ? <Spinner size="sm" /> : <IconTrash size={18} />}
-            >
-              {isCheckingDelete ? 'Memeriksa Kelayakan...' : 'Hapus Barang'}
-            </Button>
+
+            <div>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handlePromptDelete}
+                disabled={isCheckingDelete}
+                className="w-full text-xs font-medium min-h-[36px]"
+                leftIcon={isCheckingDelete ? <Spinner size="sm" /> : <IconTrash size={15} />}
+              >
+                {isCheckingDelete ? 'Memeriksa Kelayakan...' : 'Hapus Barang'}
+              </Button>
+            </div>
           </div>
         </AdminOnly>
       </Modal>

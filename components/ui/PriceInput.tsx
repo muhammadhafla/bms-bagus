@@ -18,6 +18,7 @@ interface PriceInputProps {
   suffix?: string;
   label?: string;
   error?: string;
+  autoComplete?: string;
 }
 
 /**
@@ -50,6 +51,7 @@ export const PriceInput = ({
   suffix,
   label,
   error,
+  autoComplete = 'off',
 }: PriceInputProps) => {
   const defaultId = useId();
   const inputId = id || defaultId;
@@ -222,6 +224,13 @@ export const PriceInput = ({
           placeholder={actualPlaceholder}
           id={inputId}
           name={name}
+          autoComplete={autoComplete}
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          data-lpignore="true"
+          data-1p-ignore="true"
+          data-form-type="other"
           disabled={disabled}
           className={`peer w-full ${prefix ? 'pl-10' : 'pl-4'} ${suffix ? 'pr-10' : 'pr-4'} ${label ? 'pt-6 pb-2' : 'py-3'} rounded-xl border-2 transition-all outline-none ${
             !isValid || error

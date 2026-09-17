@@ -114,6 +114,7 @@ export function ItemCart({
                         min={1}
                         autoFocus
                         prefix=""
+                        autoComplete="off"
                       />
                     </div>
                   ) : (

@@ -247,15 +247,15 @@ describe('stringSimilarity', () => {
 });
 
 describe('generateAutoBarcode', () => {
-  it('should generate barcode with AUTO- prefix', () => {
+  it('should generate barcode with AUTO- prefix and alphanumeric parts', () => {
     const barcode = generateAutoBarcode();
-    expect(barcode).toMatch(/^AUTO-\d{6}$/);
+    expect(barcode).toMatch(/^AUTO-[A-Z0-9]+-[A-Z0-9]+$/);
   });
 
-  it('should generate valid 6-digit number', () => {
-    const barcode = generateAutoBarcode();
-    const numPart = parseInt(barcode.split('-')[1], 10);
-    expect(numPart).toBeGreaterThanOrEqual(100000);
-    expect(numPart).toBeLessThanOrEqual(999999);
+  it('should generate unique barcodes across multiple calls', () => {
+    const b1 = generateAutoBarcode();
+    const b2 = generateAutoBarcode();
+    expect(b1).not.toBe(b2);
+    expect(b1.startsWith('AUTO-')).toBe(true);
   });
 });

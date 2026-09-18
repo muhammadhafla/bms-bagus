@@ -33,7 +33,7 @@ export function ModernPagination({
         onClick={() => onPageChange(Math.max(1, page - 1))}
         disabled={page === 1}
         aria-label="Halaman sebelumnya"
-        className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white p-2 text-neutral-700 shadow-sm transition-all hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
+        className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white p-2 text-neutral-700 shadow-sm transition-all hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 sm:px-4 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
       >
         <IconChevronLeft className="h-5 w-5" aria-hidden="true" />
         <span className="hidden text-sm font-semibold sm:inline">Sebelumnya</span>
@@ -56,7 +56,7 @@ export function ModernPagination({
         onClick={() => onPageChange(Math.min(totalPages, page + 1))}
         disabled={page === totalPages}
         aria-label="Halaman berikutnya"
-        className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white p-2 text-neutral-700 shadow-sm transition-all hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
+        className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white p-2 text-neutral-700 shadow-sm transition-all hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 sm:px-4 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
       >
         <span className="hidden text-sm font-semibold sm:inline">Berikutnya</span>
         <IconChevronRight className="h-5 w-5" aria-hidden="true" />

@@ -29,6 +29,7 @@ export function DateRangePicker({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const popoverId = useId();
+  const triggerId = `${popoverId}-trigger`;
   const focusTrapRef = useFocusTrap(isOpen);
 
   useEffect(() => {
@@ -120,16 +121,21 @@ export function DateRangePicker({
   return (
     <div className={`relative ${className}`} ref={containerRef}>
       {label && !isFloating && (
-        <label className="mb-1.5 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+        <label
+          htmlFor={triggerId}
+          className="mb-1.5 block text-sm font-medium text-neutral-700 dark:text-neutral-300"
+        >
           {label}
         </label>
       )}
       <button
+        id={triggerId}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         aria-controls={popoverId}
+        aria-label={label ? `${label}: ${displayValue}` : displayValue}
         className={
           isFloating
             ? `peer flex w-full items-center gap-3 pr-4 pl-4 ${label ? 'pt-6 pb-2' : 'py-3'} focus:border-brand-500 rounded-xl border-2 border-neutral-200 bg-neutral-50 text-left transition-all outline-none focus:bg-white focus:shadow-[0_0_0_4px_rgba(99,102,241,0.1)] dark:border-neutral-800 dark:bg-neutral-900 dark:focus:bg-neutral-950`
@@ -148,6 +154,7 @@ export function DateRangePicker({
 
       {label && isFloating && (
         <label
+          htmlFor={triggerId}
           className={`pointer-events-none absolute top-2 left-4 z-10 max-w-[calc(100%-3rem)] truncate text-[11px] font-semibold tracking-wide text-neutral-500 uppercase transition-all dark:text-neutral-400`}
         >
           {label}
@@ -158,7 +165,7 @@ export function DateRangePicker({
         <>
           {/* Mobile Overlay */}
           <div
-            className="animate-fade-in fixed inset-0 z-40 bg-black/40 sm:hidden"
+            className="animate-fade-in fixed inset-0 z-[59] bg-black/50 backdrop-blur-sm sm:hidden"
             onClick={() => setIsOpen(false)}
           />
 
@@ -168,7 +175,7 @@ export function DateRangePicker({
             id={popoverId}
             role="dialog"
             aria-label={label || 'Pilih rentang tanggal'}
-            className="animate-slide-up sm:animate-fade-in-up fixed inset-x-0 bottom-0 z-50 w-full rounded-t-2xl border border-neutral-200 bg-white p-4 shadow-xl sm:absolute sm:inset-auto sm:top-full sm:left-0 sm:mt-2 sm:w-[340px] sm:rounded-xl sm:p-5 sm:shadow-lg dark:border-neutral-800 dark:bg-neutral-900"
+            className="animate-slide-up sm:animate-fade-in-up fixed inset-x-0 bottom-0 z-[60] w-full rounded-t-2xl border border-neutral-200 bg-white p-4 shadow-xl sm:absolute sm:inset-auto sm:top-full sm:left-0 sm:mt-2 sm:w-[340px] sm:rounded-xl sm:p-5 sm:shadow-lg dark:border-neutral-800 dark:bg-neutral-900"
           >
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-semibold text-neutral-900 dark:text-white">Pilih Periode</h3>

@@ -66,7 +66,10 @@ export const usePembelianStore = create<PembelianStore>()(
       addItem: (item, initialQty = 1) =>
         set((state) => {
           const existingIndex = state.items.findIndex(
-            (i) => i.id === item.id && i.harga_beli === item.harga_beli,
+            (i) =>
+              i.id === item.id &&
+              i.harga_beli === item.harga_beli &&
+              (i.diskon || 0) === (item.diskon || 0),
           );
 
           if (existingIndex >= 0) {
@@ -83,7 +86,8 @@ export const usePembelianStore = create<PembelianStore>()(
             };
           }
 
-          const harga_final = item.harga_beli || 0;
+          const harga_final =
+            (item as any).harga_final ?? Math.max(0, (item.harga_beli || 0) - (item.diskon || 0));
           const newItem: CartItem = {
             ...item,
             qty: initialQty,
@@ -111,7 +115,7 @@ export const usePembelianStore = create<PembelianStore>()(
           return {
             items: state.items.map((item) => {
               if (item.id !== id) return item;
-              const harga_final = harga;
+              const harga_final = Math.max(0, harga - (item.diskon || 0));
               return { ...item, harga_beli: harga, harga_final, subtotal: item.qty * harga_final };
             }),
           };

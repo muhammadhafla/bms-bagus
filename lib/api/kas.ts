@@ -375,7 +375,7 @@ export const kasApi = {
         .order('start_time', { ascending: false });
 
       if (gudangId) {
-        query = query.eq('gudang_id', gudangId);
+        query = query.or(`gudang_id.eq.${gudangId},gudang_id.is.null`);
       }
 
       const { data, error } = await query;

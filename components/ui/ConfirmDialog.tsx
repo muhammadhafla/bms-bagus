@@ -111,6 +111,7 @@ export function ConfirmDialog({
                 onCancel();
               }}
               className="px-5 font-medium"
+              autoFocus={danger}
             >
               {cancelLabel}
             </Button>
@@ -122,7 +123,7 @@ export function ConfirmDialog({
                 onConfirm();
               }}
               className="px-5 font-medium shadow-sm"
-              autoFocus
+              autoFocus={!danger}
             >
               {confirmLabel}
             </Button>

@@ -34,6 +34,8 @@ vi.mock('@/lib/auth', () => {
     cleanup: vi.fn(),
     checkAndRefreshSession: vi.fn(),
     signOut: vi.fn(),
+    hasRole: vi.fn((role: string) => role === 'admin'),
+    hasAnyRole: vi.fn((roles: string[]) => roles.includes('admin')),
   };
   const useAuthStore = vi.fn((selector?: any) => (selector ? selector(store) : store)) as any;
   useAuthStore.getState = () => store;

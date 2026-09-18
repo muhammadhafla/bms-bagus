@@ -328,8 +328,21 @@ export default function InventoryPageClient() {
                     aria-label="Cari nama atau barcode"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="focus:border-brand-500 focus:shadow-brand w-full rounded-xl border border-neutral-200/60 bg-white py-2 pr-3 pl-9 text-sm shadow-sm transition-all focus:outline-none sm:py-3 sm:text-base dark:border-neutral-800/60 dark:bg-neutral-900"
+                    className="focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 w-full rounded-xl border border-neutral-200/60 bg-white py-2 pr-9 pl-9 text-sm shadow-sm transition-all focus:outline-none sm:py-3 sm:text-base dark:border-neutral-800/60 dark:bg-neutral-900"
                   />
+                  {search && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearch('');
+                        searchInputRef.current?.focus();
+                      }}
+                      aria-label="Hapus pencarian"
+                      className="absolute top-1/2 right-3 -translate-y-1/2 rounded-lg p-1 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+                    >
+                      <IconX size={16} />
+                    </button>
+                  )}
                 </div>
 
                 <FilterButton

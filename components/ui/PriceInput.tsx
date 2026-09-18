@@ -55,6 +55,7 @@ export const PriceInput = ({
 }: PriceInputProps) => {
   const defaultId = useId();
   const inputId = id || defaultId;
+  const errorId = `${inputId}-error`;
   const inputRef = useRef<HTMLInputElement>(null);
   const [displayValue, setDisplayValue] = useState<string>('');
   const [isFocused, setIsFocused] = useState(false);
@@ -232,6 +233,8 @@ export const PriceInput = ({
           data-1p-ignore="true"
           data-form-type="other"
           disabled={disabled}
+          aria-invalid={!isValid || Boolean(error)}
+          aria-describedby={error ? errorId : undefined}
           className={`peer w-full ${prefix ? 'pl-10' : 'pl-4'} ${suffix ? 'pr-10' : 'pr-4'} ${label ? 'pt-6 pb-2' : 'py-3'} rounded-xl border-2 transition-all outline-none ${
             !isValid || error
               ? 'border-accent-rose-400 focus:border-accent-rose-500 bg-accent-rose-50/30 focus:shadow-[0_0_0_4px_rgba(244,63,94,0.15)]'
@@ -257,7 +260,12 @@ export const PriceInput = ({
         )}
       </div>
       {error && (
-        <p className="text-accent-rose-600 dark:text-accent-rose-400 animate-fade-in-up pl-1 text-sm">
+        <p
+          id={errorId}
+          role="alert"
+          aria-live="polite"
+          className="text-accent-rose-600 dark:text-accent-rose-400 animate-fade-in-up pl-1 text-sm"
+        >
           {error}
         </p>
       )}

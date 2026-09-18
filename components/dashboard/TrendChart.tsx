@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Card, CardTitle } from '@/components/ui';
+import { IconChartLine } from '@tabler/icons-react';
 
 interface TrendChartProps {
   data: TrendData[];
@@ -69,6 +70,32 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
         <div className="animate-pulse">
           <div className="mb-4 h-6 w-40 rounded bg-neutral-200/50 dark:bg-neutral-700/50" />
           <div className="h-52 rounded-xl bg-neutral-200/50 dark:bg-neutral-700/50" />
+        </div>
+      </Card>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <Card
+        padding="md"
+        variant="flat"
+        className="flex h-full flex-col border border-neutral-200 bg-white rounded-xl dark:border-neutral-800 dark:bg-neutral-900"
+      >
+        <CardTitle className="mb-4 shrink-0">Trend 7 Hari Terakhir</CardTitle>
+        <div
+          className="flex flex-1 flex-col items-center justify-center py-12 text-center"
+          style={{ minHeight: 350 }}
+        >
+          <div className="rounded-full bg-neutral-100 p-3 text-neutral-400 dark:bg-neutral-800 dark:text-neutral-500">
+            <IconChartLine className="h-8 w-8" stroke={1.5} />
+          </div>
+          <p className="mt-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+            Belum Ada Data Transaksi
+          </p>
+          <p className="mt-1 max-w-[280px] text-xs text-neutral-500 dark:text-neutral-400">
+            Grafik penjualan dan pembelian akan otomatis muncul di sini setelah transaksi tercatat.
+          </p>
         </div>
       </Card>
     );

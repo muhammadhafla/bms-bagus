@@ -86,6 +86,7 @@ export default function BottomNav() {
             <Link
               key={item.title}
               href={item.href}
+              aria-current={isActive ? 'page' : undefined}
               onClick={() => {
                 haptic.light();
               }}

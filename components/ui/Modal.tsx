@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useCallback, useId, useState } from 'react';
-import { IconX } from '@tabler/icons-react';
+
 import { Portal } from './Portal';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
@@ -129,10 +129,10 @@ export function Modal({
           aria-labelledby={title ? titleId : undefined}
           className={`relative w-full ${sizeClasses[size]} flex flex-col bg-white shadow-xl dark:bg-neutral-950 ${
             isFullScreenOnMobile
-              ? 'animate-slide-up sm:animate-scale-in h-[100dvh] rounded-none pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:pt-0'
+              ? 'animate-slide-up sm:animate-fade-in-up h-[100dvh] rounded-none pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:pt-0'
               : isBottomSheetOnMobile
-                ? 'animate-slide-up sm:animate-scale-in max-h-[90vh] rounded-t-2xl pb-[env(safe-area-inset-bottom)] sm:max-h-full sm:rounded-2xl'
-                : 'animate-scale-in max-h-[90vh] rounded-2xl sm:max-h-full'
+                ? 'animate-slide-up sm:animate-fade-in-up max-h-[90vh] rounded-t-2xl pb-[env(safe-area-inset-bottom)] sm:max-h-full sm:rounded-2xl'
+                : 'animate-fade-in-up max-h-[90vh] rounded-2xl sm:max-h-full'
           }`}
         >
           {isBottomSheetOnMobile && (
@@ -150,13 +150,6 @@ export function Modal({
                 </h2>
                 {headerExtra}
               </div>
-              <button
-                onClick={onClose}
-                className="focus:ring-brand-500 -mr-1 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700 focus:ring-2 focus:outline-none dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
-                aria-label="Tutup"
-              >
-                <IconX className="h-4 w-4 sm:h-5 sm:w-5" />
-              </button>
             </div>
           )}
           <div className="flex-1 overflow-y-auto p-4 sm:p-5">{children}</div>

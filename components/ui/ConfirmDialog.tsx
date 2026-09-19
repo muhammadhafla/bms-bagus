@@ -66,7 +66,7 @@ export function ConfirmDialog({
         <div
           ref={focusTrapRef}
           tabIndex={-1}
-          className="animate-scale-in relative w-full max-w-md overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-xl focus:outline-none dark:border-neutral-800 dark:bg-neutral-900"
+          className="animate-fade-in-up relative w-full max-w-md overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-xl focus:outline-none dark:border-neutral-800 dark:bg-neutral-900"
         >
           <div
             className={`border-b p-6 ${

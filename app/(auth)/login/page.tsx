@@ -25,7 +25,7 @@ export default function LoginPage() {
       />
 
       <div className="relative w-full max-w-md px-4">
-        <div className="shadow-elevated animate-scale-in rounded-3xl border border-neutral-200 bg-white p-8 dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="shadow-elevated animate-fade-in-up rounded-3xl border border-neutral-200 bg-white p-8 dark:border-neutral-800 dark:bg-neutral-900">
           <div className="mb-8 text-center">
             <div className="relative mx-auto mb-3 inline-flex h-24 w-24 items-center justify-center p-2 transition-all dark:rounded-3xl dark:bg-white dark:shadow-md">
               {/* eslint-disable-next-line @next/next/no-img-element */}

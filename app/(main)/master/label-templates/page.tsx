@@ -6,7 +6,6 @@ import {
   IconEdit,
   IconTrash,
   IconTemplate,
-  IconX,
   IconArrowDown,
 } from '@tabler/icons-react';
 import { AmbientLayout, Button } from '@/components/ui';
@@ -401,19 +400,13 @@ export default function LabelTemplatesPage() {
                 onClick={() => setIsModalOpen(false)}
               >
                 <div
-                  className="shadow-elevated animate-slide-up sm:animate-scale-in flex h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border-t border-neutral-200 bg-white sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:rounded-b-2xl sm:border dark:border-neutral-800 dark:bg-neutral-900"
+                  className="shadow-elevated animate-slide-up sm:animate-fade-in-up flex h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border-t border-neutral-200 bg-white sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:rounded-b-2xl sm:border dark:border-neutral-800 dark:bg-neutral-900"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex items-center justify-between border-b border-neutral-100 bg-neutral-50/50 px-4 py-4 sm:px-6 dark:border-neutral-800 dark:bg-neutral-950/50">
                     <h2 className="text-lg font-bold tracking-tight text-neutral-900 sm:text-xl dark:text-white">
                       {editingId ? 'Edit Template' : 'Tambah Template Baru'}
                     </h2>
-                    <button
-                      onClick={() => setIsModalOpen(false)}
-                      className="rounded-lg p-1 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
-                    >
-                      <IconX size={22} />
-                    </button>
                   </div>
 
                   <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-hidden">

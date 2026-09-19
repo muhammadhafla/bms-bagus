@@ -241,7 +241,7 @@ export default function InventoryPageClient() {
                 onClick={() => setShowShortcutsHelp(false)}
               >
                 <div
-                  className="shadow-elevated animate-scale-in w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900"
+                  className="shadow-elevated animate-fade-in-up w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <h2 className="mb-4 text-xl font-bold text-neutral-900 dark:text-white">

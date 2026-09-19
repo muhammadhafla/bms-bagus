@@ -84,56 +84,31 @@ export default function LedgerPage() {
 
   const isLoading = isLoadingLedger || (!!startDateStr && isLoadingOpening);
 
-  // 3. Hitung Saldo Berjalan & Rekapitulasi secara Akurat
+  // 3. Rekapitulasi (Saldo Berjalan sudah dihitung di database)
   const { ledgerWithSaldo, totalPemasukan, totalPengeluaran, saldoAkhir, baselineOpeningBalance } = useMemo(() => {
     const list = rawLedgerData || [];
-    // Urutkan secara kronologis (terlama ke terbaru) untuk menghitung saldo berjalan
-    const chronological = [...list].reverse();
-    
-    // Jika tidak ada filter tanggal, saldo awal mulai dari 0
     const startBalance = startDateStr ? Number(openingBalance) || 0 : 0;
     
-    const accumulated = chronological.reduce(
-      (acc, item: any) => {
-        const nominal = Number(item.nominal) || 0;
-        let newSaldo = acc.currentSaldo;
-        let newMasuk = acc.sumMasuk;
-        let newKeluar = acc.sumKeluar;
-
-        if (item.tipe_transaksi === 'PEMASUKAN') {
-          newSaldo += nominal;
-          newMasuk += nominal;
-        } else {
-          newSaldo -= nominal;
-          newKeluar += nominal;
-        }
-
-        acc.items.push({
-          ...item,
-          saldo_berjalan: newSaldo
-        });
-
-        return {
-          items: acc.items,
-          currentSaldo: newSaldo,
-          sumMasuk: newMasuk,
-          sumKeluar: newKeluar
-        };
-      },
-      {
-        items: [] as any[],
-        currentSaldo: startBalance,
-        sumMasuk: 0,
-        sumKeluar: 0
+    let sumMasuk = 0;
+    let sumKeluar = 0;
+    
+    list.forEach((item: any) => {
+      const nominal = Number(item.nominal) || 0;
+      if (item.tipe_transaksi === 'PEMASUKAN') {
+        sumMasuk += nominal;
+      } else {
+        sumKeluar += nominal;
       }
-    );
+    });
 
-    // Balik kembali agar urutan terbaru berada di atas (DESC)
+    // Karena list di-order descending (terbaru di atas), saldoAkhir adalah saldo_berjalan dari item pertama
+    const currentSaldo = list.length > 0 ? Number(list[0].saldo_berjalan) : startBalance;
+
     return {
-      ledgerWithSaldo: accumulated.items.reverse(),
-      totalPemasukan: accumulated.sumMasuk,
-      totalPengeluaran: accumulated.sumKeluar,
-      saldoAkhir: accumulated.currentSaldo,
+      ledgerWithSaldo: list,
+      totalPemasukan: sumMasuk,
+      totalPengeluaran: sumKeluar,
+      saldoAkhir: currentSaldo,
       baselineOpeningBalance: startBalance
     };
   }, [rawLedgerData, startDateStr, openingBalance]);

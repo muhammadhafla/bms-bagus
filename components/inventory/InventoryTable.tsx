@@ -100,7 +100,7 @@ export const InventoryTable = React.memo(function InventoryTable({
       setSelectedIds(new Set());
       // A full refresh of data would normally happen via a callback, 
       // but since we are modifying locally, we can just trigger a reload or leave it to user to refresh
-      window.location.reload(); 
+      onRefresh?.();
     } catch (err) {
       toast.error('Gagal melakukan snooze massal');
     } finally {

@@ -31,7 +31,7 @@ import {
 } from '@/components/ui';
 import { transferStokApi } from '@/lib/api/warehouse';
 import { TransferStok, StatusTransfer } from '@/types/warehouse';
-import { generateSuratJalanPDF } from '@/lib/warehouse-pdf-utils';
+
 import { useAuthStore } from '@/lib/auth';
 
 export default function WarehouseTransfersPage() {
@@ -235,7 +235,7 @@ function WarehouseTransfersContent() {
             size="sm"
             variant="ghost"
             leftIcon={<IconPrinter className="h-4 w-4 text-neutral-600" />}
-            onClick={() => generateSuratJalanPDF(row)}
+            onClick={() => window.open(`/api/export/warehouse/surat-jalan/${row.id}`, '_blank')}
             title="Cetak Surat Jalan"
           />
           {row.status === 'DRAFT' && canCancelTransfer && (
@@ -481,7 +481,7 @@ function WarehouseTransfersContent() {
                 <Button
                   variant="secondary"
                   leftIcon={<IconPrinter className="h-4 w-4" />}
-                  onClick={() => generateSuratJalanPDF(selectedTransfer)}
+                  onClick={() => window.open(`/api/export/warehouse/surat-jalan/${selectedTransfer.id}`, '_blank')}
                 >
                   Cetak Surat Jalan (PDF)
                 </Button>

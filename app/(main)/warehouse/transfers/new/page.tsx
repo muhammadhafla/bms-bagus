@@ -33,7 +33,7 @@ import { TransferItemCart } from '@/components/warehouse/TransferItemCart';
 import { TransferCheckoutPanel } from '@/components/warehouse/TransferCheckoutPanel';
 import { useTransferShortcuts } from '@/components/warehouse/useTransferShortcuts';
 import { useTransferTableNavigation } from '@/components/warehouse/useTransferTableNavigation';
-import { generateSuratJalanPDF } from '@/lib/warehouse-pdf-utils';
+
 
 export default function NewTransferPage() {
   return (
@@ -521,7 +521,7 @@ function NewTransferContent() {
                   size="lg"
                   className="w-full shadow-brand"
                   leftIcon={<IconPrinter className="h-5 w-5" />}
-                  onClick={() => generateSuratJalanPDF(createdTransfer)}
+                  onClick={() => window.open(`/api/export/warehouse/surat-jalan/${createdTransfer.id}`, '_blank')}
                 >
                   Cetak Surat Jalan (PDF)
                 </Button>

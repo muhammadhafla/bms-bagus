@@ -223,53 +223,16 @@ export default function ReturnPage() {
     }
   }, [selectedSupplier, previewData, totalReturn, note, handleReset, queryClient]);
 
-  const handleExportPdf = useCallback(async () => {
+  const handleExportPdf = useCallback(() => {
     if (!lastReturnId) return;
 
     try {
-      const result = await returnApi.getReturnDetail(lastReturnId);
-      if (result.error || !result.data) {
-        setError('Gagal mengambil data return');
-        return;
-      }
-
-      const returnData = {
-        id: result.data.id,
-        tanggal: result.data.tanggal,
-        supplier_nama: result.data.supplier_nama || selectedSupplier?.nama || '',
-        note: result.data.note,
-        items:
-          result.data.items?.map(
-            (item: {
-              nama_barang: string;
-              nomor_nota: string;
-              tanggal_pembelian: string;
-              qty: number;
-              harga_beli: number;
-              diskon: number;
-              subtotal: number;
-            }) => ({
-              nama_barang: item.nama_barang,
-              nomor_nota: item.nomor_nota || '-',
-              tanggal_pembelian: item.tanggal_pembelian || '-',
-              qty: item.qty,
-              harga_beli: item.harga_beli,
-              diskon: item.diskon || 0,
-              harga_final: item.subtotal,
-            }),
-          ) || [],
-        total: result.data.total || 0,
-      };
-
-      const { generateReturnPdf } = await import('@/lib/pdf-utils');
-      const pdfBuffer = await generateReturnPdf(returnData);
-      const blob = new Blob([new Uint8Array(pdfBuffer)], { type: 'application/pdf' });
-      downloadPdf(blob, `return-${lastReturnId.slice(0, 8)}.pdf`);
+      window.open(`/api/export/inventory/return/${lastReturnId}`, '_blank');
     } catch (err) {
       console.error('PDF export error:', err);
       setError('Gagal export PDF');
     }
-  }, [lastReturnId, selectedSupplier]);
+  }, [lastReturnId]);
 
   return (
     <AmbientLayout>

@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { gajiApi, SlipGaji } from '@/lib/api/payroll';
-import { downloadSlipGajiPdf } from '@/lib/payroll-pdf-utils';
+
 import { ModernPagination, Card, Button, Badge } from '@/components/ui';
 import { IconFileText, IconDownload, IconArrowLeft } from '@tabler/icons-react';
 
@@ -31,12 +31,8 @@ function SlipGajiContent() {
   const totalItems = slipData?.total || 0;
   const totalPages = Math.ceil(totalItems / limit) || 1;
 
-  const handleDownload = async (slip: SlipGaji) => {
-    try {
-      await downloadSlipGajiPdf(slip);
-    } catch (error) {
-      console.error(error);
-    }
+  const handleDownload = (slip: SlipGaji) => {
+    window.open(`/api/export/payroll/slip-gaji/${slip.id}`, '_blank');
   };
 
   // format periode YYYY-MM ke Bulan Tahun (cth: Agustus 2026)

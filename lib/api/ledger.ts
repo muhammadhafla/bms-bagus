@@ -108,22 +108,15 @@ export const ledgerApi = {
     search?: string,
     gudangId?: string
   ) {
-    let query = supabase
-      .from('buku_besar')
-      .select('*, profiles(nama), gudang:gudang_id(id, nama, kode_gudang)')
-      .order('tanggal', { ascending: false })
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.rpc('get_ledger_with_balance', {
+      p_start_date: startDate || null,
+      p_end_date: endDate || null,
+      p_tipe: tipe || null,
+      p_sumber: sumber || null,
+      p_search: search || null,
+      p_gudang_id: gudangId || null
+    });
 
-    if (startDate) query = query.gte('tanggal', startDate);
-    if (endDate) query = query.lte('tanggal', endDate);
-    if (tipe) query = query.eq('tipe_transaksi', tipe);
-    if (sumber) query = query.eq('sumber', sumber);
-    if (gudangId) query = query.eq('gudang_id', gudangId);
-    if (search && search.trim() !== '') {
-      query = query.ilike('keterangan', `%${search.trim()}%`);
-    }
-
-    const { data, error } = await query;
     if (error) throw error;
     return data;
   },

@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mutasiApi, gajiApi, PayrollMutasi } from '@/lib/api/payroll';
 import { kasApi, ActiveShiftItem } from '@/lib/api/kas';
 import { gudangApi } from '@/lib/api/warehouse';
-import { downloadMutasiPdf, downloadSlipGajiPdf } from '@/lib/payroll-pdf-utils';
+
 import { Card, Button, Modal, TextInput, TextareaInput, SelectInput, ModernPagination, MonthPicker, DataTable, type Column, Badge } from '@/components/ui';
 import { IconArrowLeft, IconWallet, IconCheck, IconX, IconArrowUpRight, IconArrowDownLeft, IconClock, IconPrinter, IconFileText, IconCalendarEvent, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths, isSameDay } from 'date-fns';
@@ -228,14 +228,12 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
       if (res.error) throw res.error;
       
       const slipData = res.data?.find((s: any) => s.user_id === userId || s.id === userId); 
-      // Note: id fallback in case the preview returns `id` as the user_id field.
       
       if (!slipData && res.data && res.data.length > 0) {
-        // If search returned only 1 result and it matches the name, we can use it just in case ID mapping fails
         const firstMatch = res.data[0];
         if (firstMatch.profiles?.nama === profile?.nama) {
-          await downloadSlipGajiPdf(firstMatch as any);
-          toast.success('Slip Gaji berhasil diunduh', { id: toastId });
+          window.open(`/api/export/payroll/slip-gaji/${firstMatch.id}`, '_blank');
+          toast.success('Slip Gaji berhasil dibuka', { id: toastId });
           setIsSlipOpen(false);
           return;
         }
@@ -245,11 +243,11 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
         throw new Error('Data slip gaji tidak ditemukan untuk karyawan ini pada periode tersebut.');
       }
       
-      await downloadSlipGajiPdf(slipData as any);
-      toast.success('Slip Gaji berhasil diunduh', { id: toastId });
+      window.open(`/api/export/payroll/slip-gaji/${slipData.id}`, '_blank');
+      toast.success('Slip Gaji berhasil dibuka', { id: toastId });
       setIsSlipOpen(false);
-    } catch (error: any) {
-      toast.error(error.message || 'Gagal mengunduh slip gaji', { id: toastId });
+    } catch (err: any) {
+      toast.error(err.message || 'Terjadi kesalahan', { id: toastId });
     } finally {
       setIsDownloadingSlip(false);
     }
@@ -423,8 +421,7 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
               size="sm" 
               leftIcon={<IconPrinter size={16} />}
               onClick={() => {
-                const name = profile?.nama || 'Karyawan';
-                downloadMutasiPdf(list, name, saldo);
+                window.open(`/api/export/payroll/mutasi/${userId}?startDate=${startDateStr}&endDate=${endDateStr}&saldo=${saldo}`, '_blank');
               }}
               disabled={!list || list.length === 0}
             >

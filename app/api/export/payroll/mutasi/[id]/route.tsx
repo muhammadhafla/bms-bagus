@@ -1,8 +1,11 @@
 import React from 'react';
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { renderToStream } from '@react-pdf/renderer';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-import { supabase } from '@/lib/supabase';
+import { createServerClient } from '@supabase/ssr';
+
+export const dynamic = 'force-dynamic';
 
 const styles = StyleSheet.create({
   page: { flexDirection: 'column', padding: 40, fontFamily: 'Helvetica', fontSize: 11 },
@@ -71,13 +74,54 @@ export async function GET(request: Request, context: any) {
   const endDate = searchParams.get('endDate');
   const saldoParam = searchParams.get('saldo');
   const saldo = saldoParam ? Number(saldoParam) : 0;
+
+  // 1. Inisialisasi client Supabase dengan Cookie sesi login
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll() {},
+      },
+    }
+  );
   
   try {
-    // Get profile name
-    const { data: profile } = await supabase.from('profiles').select('nama').eq('id', userId).single();
+    // 2. Verifikasi status login
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return new NextResponse('Unauthorized: Silakan login terlebih dahulu.', { status: 401 });
+    }
+
+    // 3. Cek peran pengguna (apakah Admin)
+    const { data: requesterProfile } = await supabase
+      .from('profiles')
+      .select('roles')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const requesterRoles: string[] = requesterProfile?.roles || [];
+    const isAdmin = requesterRoles.includes('admin');
+
+    // 4. Validasi Anti-IDOR: hanya Admin atau Karyawan pemilik mutasi
+    if (!isAdmin && user.id !== userId) {
+      return new NextResponse('Forbidden: Anda tidak memiliki izin untuk melihat riwayat mutasi ini.', { status: 403 });
+    }
+
+    // 5. Ambil data profil karyawan
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('nama')
+      .eq('id', userId)
+      .maybeSingle();
+
     const profileName = profile?.nama || 'Karyawan';
 
-    // Get mutasi data
+    // 6. Ambil data mutasi dengan filter tanggal akurat
     let query = supabase
       .from('payroll_mutasi')
       .select('*')
@@ -86,12 +130,12 @@ export async function GET(request: Request, context: any) {
       .order('created_at', { ascending: false });
 
     if (startDate) query = query.gte('tanggal', startDate);
-    if (endDate) query = query.lte('tanggal', endDate);
+    if (endDate) query = query.lte('tanggal', `${endDate}T23:59:59.999Z`);
 
     const { data: mutasiData, error } = await query;
 
     if (error || !mutasiData) {
-      return new NextResponse('Gagal memuat data mutasi', { status: 500 });
+      return new NextResponse('Gagal memuat data mutasi: ' + (error?.message || 'Data tidak ditemukan'), { status: 500 });
     }
 
     const stream = await renderToStream(<MutasiPDF mutasiData={mutasiData} profileName={profileName} saldo={saldo} />);

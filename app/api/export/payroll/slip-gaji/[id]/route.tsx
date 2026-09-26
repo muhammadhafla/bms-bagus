@@ -1,8 +1,12 @@
 import React from 'react';
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { renderToStream } from '@react-pdf/renderer';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+
+export const dynamic = 'force-dynamic';
 
 const styles = StyleSheet.create({
   page: { flexDirection: 'column', padding: 40, fontFamily: 'Helvetica', fontSize: 11 },
@@ -26,11 +30,18 @@ const styles = StyleSheet.create({
 });
 
 const formatCurrency = (amount: number | string) => {
-  return `Rp ${Number(amount).toLocaleString('id-ID')}`;
+  const num = Number(amount);
+  if (isNaN(num)) return 'Rp 0';
+  if (num < 0) {
+    return `-Rp ${Math.abs(num).toLocaleString('id-ID')}`;
+  }
+  return `Rp ${num.toLocaleString('id-ID')}`;
 };
 
 const SlipGajiPDF = ({ slip }: { slip: any }) => {
-  const totalPotongan = Number(slip.total_denda_telat) + Number(slip.total_potongan_kasbon);
+  const totalPotongan = Number(slip.total_denda_telat || 0) + Number(slip.total_potongan_kasbon || 0);
+  const isMinus = Number(slip.gaji_bersih) < 0;
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -54,7 +65,7 @@ const SlipGajiPDF = ({ slip }: { slip: any }) => {
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.labelRight}>Total Jam Telat</Text>
-              <Text>: {Number(slip.total_jam_telat).toFixed(1)} Jam</Text>
+              <Text>: {Number(slip.total_jam_telat || 0).toFixed(1)} Jam</Text>
             </View>
           </View>
         </View>
@@ -75,12 +86,12 @@ const SlipGajiPDF = ({ slip }: { slip: any }) => {
           <View style={styles.tableRow}>
             <Text style={styles.cellCol1}>Uang Lembur</Text>
             <Text style={styles.cellCol2}>{formatCurrency(slip.total_gaji_lembur)}</Text>
-            <Text style={styles.cellCol3}>{formatCurrency(Number(slip.total_gaji_harian) + Number(slip.total_gaji_lembur))}</Text>
+            <Text style={styles.cellCol3}>{formatCurrency(Number(slip.total_gaji_harian || 0) + Number(slip.total_gaji_lembur || 0))}</Text>
           </View>
 
-          <View style={styles.tableRow}><Text style={styles.tableSection}>POTONGAN</Text></View>
+          <View style={styles.tableRow}><Text style={styles.tableSection}>POTONGAN & PENCAIRAN</Text></View>
           <View style={styles.tableRow}>
-            <Text style={styles.cellCol1}>Potongan Kasbon</Text>
+            <Text style={styles.cellCol1}>Pencairan / Kasbon Diambil</Text>
             <Text style={styles.cellCol2}>{formatCurrency(slip.total_potongan_kasbon)}</Text>
             <Text style={styles.cellCol3}>{formatCurrency(slip.total_potongan_kasbon)}</Text>
           </View>
@@ -91,7 +102,9 @@ const SlipGajiPDF = ({ slip }: { slip: any }) => {
           </View>
 
           <View style={styles.tableRow}>
-            <Text style={{ ...styles.cellCol1, fontWeight: 'bold' }}>TOTAL GAJI BERSIH</Text>
+            <Text style={{ ...styles.cellCol1, fontWeight: 'bold' }}>
+              {isMinus ? 'TANGGUNGAN KASBON (MINUS)' : 'TOTAL SISA GAJI BERSIH'}
+            </Text>
             <Text style={styles.cellCol2}></Text>
             <Text style={{ ...styles.cellCol3, fontWeight: 'bold' }}>{formatCurrency(slip.gaji_bersih)}</Text>
           </View>
@@ -115,19 +128,87 @@ const SlipGajiPDF = ({ slip }: { slip: any }) => {
 };
 
 export async function GET(request: Request, context: any) {
-  // Use context.params in Next.js 15
   const params = await context.params;
   const id = params.id;
+  const { searchParams } = new URL(request.url);
+  const periode = searchParams.get('periode');
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  // 1. Verifikasi sesi login pengguna yang meminta
+  const cookieStore = await cookies();
+  const supabaseAuth = createServerClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '', {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll() {},
+    },
+  });
+
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+  if (!user) {
+    return new NextResponse('Unauthorized: Silakan login terlebih dahulu.', { status: 401 });
+  }
+
+  // 2. Client query data
+  const supabase = serviceKey
+    ? createClient(supabaseUrl, serviceKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      })
+    : supabaseAuth;
   
   try {
-    const { data: slip, error } = await supabase
-      .from('payroll_gaji')
+    // Cek peran pengguna peminta (apakah Admin)
+    const { data: requesterProfile } = await supabase
+      .from('profiles')
+      .select('roles')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const requesterRoles: string[] = requesterProfile?.roles || [];
+    const isAdmin = requesterRoles.includes('admin');
+
+    // 3. Cari berdasarkan ID slip_gaji
+    let { data: slip, error } = await supabase
+      .from('slip_gaji')
       .select('*, profiles:user_id(nama)')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
-    if (error || !slip) {
+    if (error) {
+      console.error('[Export Slip Error]:', error);
+      return new NextResponse(`Error query slip_gaji: ${error.message}`, { status: 500 });
+    }
+
+    // 4. Fallback: jika id yang dikirim adalah user_id
+    if (!slip) {
+      let userQuery = supabase
+        .from('slip_gaji')
+        .select('*, profiles:user_id(nama)')
+        .eq('user_id', id);
+
+      if (periode) {
+        userQuery = userQuery.eq('periode_bulan', periode);
+      } else {
+        userQuery = userQuery.order('created_at', { ascending: false });
+      }
+
+      const userRes = await userQuery.limit(1).maybeSingle();
+      if (userRes.error) {
+        console.error('[Export Slip UserRes Error]:', userRes.error);
+      }
+      slip = userRes.data;
+    }
+
+    if (!slip) {
       return new NextResponse('Data slip gaji tidak ditemukan', { status: 404 });
+    }
+
+    // 5. Validasi Hak Akses (Anti-IDOR): Hanya Admin atau Karyawan Pemilik Slip
+    if (!isAdmin && slip.user_id !== user.id) {
+      return new NextResponse('Forbidden: Anda tidak memiliki izin untuk melihat slip gaji ini.', { status: 403 });
     }
 
     const stream = await renderToStream(<SlipGajiPDF slip={slip} />);

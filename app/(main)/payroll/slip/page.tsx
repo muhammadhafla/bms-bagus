@@ -7,6 +7,7 @@ import { gajiApi, SlipGaji } from '@/lib/api/payroll';
 
 import { ModernPagination, Card, Button, Badge } from '@/components/ui';
 import { IconFileText, IconDownload, IconArrowLeft } from '@tabler/icons-react';
+import { toast } from 'sonner';
 
 function SlipGajiContent() {
   const router = useRouter();
@@ -31,8 +32,42 @@ function SlipGajiContent() {
   const totalItems = slipData?.total || 0;
   const totalPages = Math.ceil(totalItems / limit) || 1;
 
-  const handleDownload = (slip: SlipGaji) => {
-    window.open(`/api/export/payroll/slip-gaji/${slip.id}`, '_blank');
+  const handleDownload = async (slip: SlipGaji) => {
+    const toastId = toast.loading('Mempersiapkan slip gaji...');
+    let previewTab: Window | null = null;
+    try {
+      previewTab = window.open('about:blank', '_blank');
+      if (previewTab) {
+        previewTab.document.write(`
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: #555;">
+            <p style="font-size: 16px; font-weight: 600; margin-bottom: 6px;">Memuat Dokumen Slip Gaji...</p>
+            <p style="font-size: 13px; color: #888;">Mohon tunggu sebentar</p>
+          </div>
+        `);
+      }
+
+      const response = await fetch(`/api/export/payroll/slip-gaji/${slip.id}`);
+      if (!response.ok) {
+        const errorMsg = await response.text();
+        throw new Error(errorMsg || 'Gagal memuat file PDF slip gaji');
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      if (previewTab) {
+        previewTab.location.href = blobUrl;
+      } else {
+        window.open(blobUrl, '_blank');
+      }
+
+      toast.success('Slip Gaji berhasil dibuka', { id: toastId });
+    } catch (err: any) {
+      if (previewTab) {
+        previewTab.close();
+      }
+      toast.error(err.message || 'Terjadi kesalahan', { id: toastId });
+    }
   };
 
   // format periode YYYY-MM ke Bulan Tahun (cth: Agustus 2026)

@@ -12,11 +12,17 @@ export interface MonthPickerProps {
   label?: string;
   className?: string;
   disabled?: boolean;
+  variant?: 'popover' | 'inline';
 }
 
 const MONTH_NAMES = [
   'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
   'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+];
+
+const FULL_MONTH_NAMES = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ];
 
 export function MonthPicker({
@@ -25,6 +31,7 @@ export function MonthPicker({
   label,
   className = '',
   disabled = false,
+  variant = 'popover',
 }: MonthPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -36,15 +43,24 @@ export function MonthPicker({
   const initialYear = getYear(initialDate);
 
   const [viewYear, setViewYear] = useState(initialYear);
+  const lastParsedYearRef = useRef<number | null>(initialYear);
 
-  // Sync view year when opening if value changed externally
+  // Sync view year if value changed externally
   useEffect(() => {
-    if (isOpen && value) {
-      setViewYear(getYear(parse(value, 'yyyy-MM', new Date())));
+    if (value) {
+      try {
+        const y = getYear(parse(value, 'yyyy-MM', new Date()));
+        if (lastParsedYearRef.current !== y) {
+          lastParsedYearRef.current = y;
+          setViewYear(y);
+        }
+      } catch {}
     }
-  }, [isOpen, value]);
+  }, [value]);
 
   useEffect(() => {
+    if (variant === 'inline') return;
+
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -63,13 +79,16 @@ export function MonthPicker({
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen]);
+  }, [isOpen, variant]);
 
   const handleSelectMonth = (monthIndex: number) => {
     const yearStr = viewYear.toString();
     const monthStr = (monthIndex + 1).toString().padStart(2, '0');
+    lastParsedYearRef.current = viewYear;
     onChange(`${yearStr}-${monthStr}`);
-    setIsOpen(false);
+    if (variant === 'popover') {
+      setIsOpen(false);
+    }
   };
 
   const getDisplayValue = () => {
@@ -82,6 +101,89 @@ export function MonthPicker({
     }
   };
 
+  // Inline Variant (Embedded directly in dialogs, drawers, or pages)
+  if (variant === 'inline') {
+    return (
+      <div
+        className={`w-full rounded-2xl border border-neutral-200/90 bg-white p-3.5 sm:p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900 ${className}`}
+        role="group"
+        aria-label="Pilih Periode Bulan"
+      >
+        {/* Header with Year Selector */}
+        <div className="flex items-center justify-between mb-3 px-1">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => setViewYear((y) => y - 1)}
+            aria-label="Tahun Sebelumnya"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
+          >
+            <IconChevronLeft size={20} />
+          </button>
+
+          <div className="flex flex-col items-center">
+            <span className="font-extrabold text-base sm:text-lg text-neutral-900 dark:text-white tracking-tight">
+              {viewYear}
+            </span>
+            {value && (
+              <span className="text-[11px] font-semibold text-brand-600 dark:text-brand-400 capitalize">
+                {getDisplayValue()}
+              </span>
+            )}
+          </div>
+
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => setViewYear((y) => y + 1)}
+            aria-label="Tahun Berikutnya"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
+          >
+            <IconChevronRight size={20} />
+          </button>
+        </div>
+
+        {/* 12 Months Grid */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          {MONTH_NAMES.map((mName, i) => {
+            const monthCode = (i + 1).toString().padStart(2, '0');
+            const isSelected = value === `${viewYear}-${monthCode}`;
+            const now = new Date();
+            const isCurrentMonthYear = getYear(now) === viewYear && now.getMonth() === i;
+
+            return (
+              <button
+                key={i}
+                type="button"
+                disabled={disabled}
+                onClick={() => handleSelectMonth(i)}
+                aria-pressed={isSelected}
+                aria-label={`${FULL_MONTH_NAMES[i]} ${viewYear}`}
+                className={`py-2.5 px-2 rounded-xl text-xs sm:text-sm font-semibold transition-all relative flex flex-col items-center justify-center min-h-[44px]
+                  focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none active:scale-[0.98]
+                  ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
+                  ${
+                    isSelected
+                      ? 'bg-brand-600 text-white shadow-xs font-bold ring-2 ring-brand-500/30 dark:bg-brand-500'
+                      : isCurrentMonthYear
+                      ? 'border border-brand-400/60 bg-brand-50/50 text-brand-700 dark:border-brand-600/60 dark:bg-brand-950/30 dark:text-brand-300 hover:bg-brand-100/60'
+                      : 'border border-neutral-200/80 bg-neutral-50/50 text-neutral-700 hover:bg-neutral-100 hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-800/50 dark:text-neutral-300 dark:hover:bg-neutral-800'
+                  }
+                `}
+              >
+                <span>{mName}</span>
+                {isCurrentMonthYear && !isSelected && (
+                  <span className="text-[9px] font-normal opacity-75 leading-none mt-0.5">Kini</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Popover Variant (Dropdown Button)
   return (
     <div className={`relative w-full ${className}`} ref={containerRef}>
       <button
@@ -125,7 +227,8 @@ export function MonthPicker({
             <button
               type="button"
               onClick={() => setViewYear(y => y - 1)}
-              className="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-white transition-colors"
+              aria-label="Tahun Sebelumnya"
+              className="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
             >
               <IconChevronLeft size={20} />
             </button>
@@ -135,7 +238,8 @@ export function MonthPicker({
             <button
               type="button"
               onClick={() => setViewYear(y => y + 1)}
-              className="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-white transition-colors"
+              aria-label="Tahun Berikutnya"
+              className="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
             >
               <IconChevronRight size={20} />
             </button>
@@ -143,15 +247,23 @@ export function MonthPicker({
 
           <div className="grid grid-cols-3 gap-2">
             {MONTH_NAMES.map((mName, i) => {
-              const isSelected = value === `${viewYear}-${(i + 1).toString().padStart(2, '0')}`;
+              const monthCode = (i + 1).toString().padStart(2, '0');
+              const isSelected = value === `${viewYear}-${monthCode}`;
+              const now = new Date();
+              const isCurrentMonthYear = getYear(now) === viewYear && now.getMonth() === i;
+
               return (
                 <button
                   key={i}
                   type="button"
                   onClick={() => handleSelectMonth(i)}
-                  className={`py-2 px-1 rounded-xl text-sm font-medium transition-colors
+                  aria-pressed={isSelected}
+                  aria-label={`${FULL_MONTH_NAMES[i]} ${viewYear}`}
+                  className={`py-2 px-1 rounded-xl text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none active:scale-[0.98]
                     ${isSelected 
-                      ? 'bg-brand-500 text-white shadow-sm' 
+                      ? 'bg-brand-600 text-white shadow-xs font-semibold' 
+                      : isCurrentMonthYear
+                      ? 'border border-brand-400/60 bg-brand-50/50 text-brand-700 dark:border-brand-600/60 dark:bg-brand-950/30 dark:text-brand-300 hover:bg-brand-100/60'
                       : 'text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800'}
                   `}
                 >

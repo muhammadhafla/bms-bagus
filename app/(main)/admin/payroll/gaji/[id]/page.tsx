@@ -189,6 +189,7 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
   const [isDownloadingSlip, setIsDownloadingSlip] = useState(false);
+  const [isDownloadingMutasi, setIsDownloadingMutasi] = useState(false);
 
   // Calendar Modal State
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
@@ -219,37 +220,93 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
   const handleDownloadSlip = async () => {
     setIsDownloadingSlip(true);
     const toastId = toast.loading('Mengambil data slip gaji...');
+    let previewTab: Window | null = null;
     try {
-      const res = await gajiApi.getByPeriode({ 
-        periode: slipPeriode, 
-        search: profile?.nama || '',
-        limit: 100 
-      });
+      const res = await gajiApi.getOrGenerateSlip(userId, slipPeriode);
       if (res.error) throw res.error;
       
-      const slipData = res.data?.find((s: any) => s.user_id === userId || s.id === userId); 
-      
-      if (!slipData && res.data && res.data.length > 0) {
-        const firstMatch = res.data[0];
-        if (firstMatch.profiles?.nama === profile?.nama) {
-          window.open(`/api/export/payroll/slip-gaji/${firstMatch.id}`, '_blank');
-          toast.success('Slip Gaji berhasil dibuka', { id: toastId });
-          setIsSlipOpen(false);
-          return;
-        }
-      }
-
-      if (!slipData) {
+      const slipData = res.data;
+      if (!slipData?.id) {
         throw new Error('Data slip gaji tidak ditemukan untuk karyawan ini pada periode tersebut.');
       }
-      
-      window.open(`/api/export/payroll/slip-gaji/${slipData.id}`, '_blank');
+
+      // Buka safe preview tab untuk menghindari pop-up blocker
+      previewTab = window.open('about:blank', '_blank');
+      if (previewTab) {
+        previewTab.document.write(`
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: #555;">
+            <p style="font-size: 16px; font-weight: 600; margin-bottom: 6px;">Memuat Dokumen Slip Gaji...</p>
+            <p style="font-size: 13px; color: #888;">Mohon tunggu sebentar</p>
+          </div>
+        `);
+      }
+
+      // Fetch file PDF dan buat masked Blob URL
+      const response = await fetch(`/api/export/payroll/slip-gaji/${slipData.id}`);
+      if (!response.ok) {
+        const errorMsg = await response.text();
+        throw new Error(errorMsg || 'Gagal memuat file PDF slip gaji');
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      if (previewTab) {
+        previewTab.location.href = blobUrl;
+      } else {
+        window.open(blobUrl, '_blank');
+      }
+
       toast.success('Slip Gaji berhasil dibuka', { id: toastId });
       setIsSlipOpen(false);
     } catch (err: any) {
+      if (previewTab) {
+        previewTab.close();
+      }
       toast.error(err.message || 'Terjadi kesalahan', { id: toastId });
     } finally {
       setIsDownloadingSlip(false);
+    }
+  };
+
+  const handleDownloadMutasi = async () => {
+    setIsDownloadingMutasi(true);
+    const toastId = toast.loading('Mempersiapkan riwayat mutasi...');
+    let previewTab: Window | null = null;
+    try {
+      previewTab = window.open('about:blank', '_blank');
+      if (previewTab) {
+        previewTab.document.write(`
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: #555;">
+            <p style="font-size: 16px; font-weight: 600; margin-bottom: 6px;">Memuat Riwayat Mutasi...</p>
+            <p style="font-size: 13px; color: #888;">Mohon tunggu sebentar</p>
+          </div>
+        `);
+      }
+
+      const response = await fetch(`/api/export/payroll/mutasi/${userId}?startDate=${startDateStr}&endDate=${endDateStr}&saldo=${saldo}`);
+      if (!response.ok) {
+        const errorMsg = await response.text();
+        throw new Error(errorMsg || 'Gagal memuat file riwayat mutasi');
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      if (previewTab) {
+        previewTab.location.href = blobUrl;
+      } else {
+        window.open(blobUrl, '_blank');
+      }
+
+      toast.success('Riwayat mutasi berhasil dibuka', { id: toastId });
+    } catch (err: any) {
+      if (previewTab) {
+        previewTab.close();
+      }
+      toast.error(err.message || 'Terjadi kesalahan', { id: toastId });
+    } finally {
+      setIsDownloadingMutasi(false);
     }
   };
 
@@ -420,9 +477,8 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
               variant="secondary" 
               size="sm" 
               leftIcon={<IconPrinter size={16} />}
-              onClick={() => {
-                window.open(`/api/export/payroll/mutasi/${userId}?startDate=${startDateStr}&endDate=${endDateStr}&saldo=${saldo}`, '_blank');
-              }}
+              loading={isDownloadingMutasi}
+              onClick={handleDownloadMutasi}
               disabled={!list || list.length === 0}
             >
               Mutasi PDF
@@ -814,22 +870,37 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
         isOpen={isSlipOpen}
         onClose={() => setIsSlipOpen(false)}
         title="Cetak Slip Gaji"
+        isBottomSheetOnMobile={true}
       >
-        <div className="mt-4 flex flex-col gap-4">
-          <div className="rounded-xl bg-blue-50 p-3 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 text-sm">
-            Pilih periode bulan untuk mengunduh slip gaji karyawan ini.
+        <div className="mt-2 flex flex-col gap-4">
+          <div className="rounded-xl bg-blue-50 dark:bg-blue-950/40 p-3 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 text-xs sm:text-sm flex items-start gap-2.5">
+            <IconFileText className="w-5 h-5 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <div>
+              <p className="font-semibold text-neutral-900 dark:text-white">Unduh Slip Gaji Karyawan</p>
+              <p className="text-neutral-600 dark:text-neutral-300 text-xs mt-0.5">
+                Pilih periode bulan untuk mengunduh slip gaji {profile?.nama ? <span className="font-semibold text-neutral-900 dark:text-white">{profile.nama}</span> : 'karyawan ini'}.
+              </p>
+            </div>
           </div>
           
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Periode</label>
-            <MonthPicker value={slipPeriode} onChange={setSlipPeriode} />
+            <MonthPicker 
+              variant="inline" 
+              value={slipPeriode} 
+              onChange={setSlipPeriode} 
+            />
           </div>
           
-          <div className="mt-4 flex gap-3 justify-end">
-            <Button variant="secondary" onClick={() => setIsSlipOpen(false)}>
+          <div className="flex gap-3 justify-end pt-3 border-t border-neutral-100 dark:border-neutral-800">
+            <Button variant="secondary" onClick={() => setIsSlipOpen(false)} type="button">
               Batal
             </Button>
-            <Button variant="primary" onClick={handleDownloadSlip} disabled={isDownloadingSlip}>
+            <Button 
+              variant="primary" 
+              onClick={handleDownloadSlip} 
+              disabled={isDownloadingSlip}
+              leftIcon={<IconPrinter size={16} />}
+            >
               {isDownloadingSlip ? 'Mengunduh...' : 'Unduh PDF'}
             </Button>
           </div>

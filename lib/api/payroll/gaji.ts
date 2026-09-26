@@ -152,6 +152,65 @@ export const gajiApi = {
   },
 
   /**
+   * Ambil atau generate slip gaji on-demand untuk karyawan tertentu (Admin)
+   */
+  async getOrGenerateSlip(userId: string, periode: string): Promise<{ data: SlipGaji | null; error: { message: string } | null }> {
+    try {
+      // 1. Cek apakah slip sudah ada di database
+      const { data: existing } = await supabase
+        .from('slip_gaji')
+        .select(`*, profiles(nama)`)
+        .eq('user_id', userId)
+        .eq('periode_bulan', periode)
+        .maybeSingle();
+
+      if (existing) {
+        return { data: existing as SlipGaji, error: null };
+      }
+
+      // 2. Jika belum ada, panggil RPC preview_gaji untuk mendapatkan kalkulasi
+      const previewRes = await supabase.rpc('preview_gaji', { p_periode: periode });
+      if (previewRes.error) {
+        throw new Error(previewRes.error.message || 'Gagal menghitung slip gaji');
+      }
+
+      const match = (previewRes.data as any[])?.find((item: any) => item.user_id === userId);
+      if (!match) {
+        throw new Error('Data slip gaji tidak ditemukan untuk karyawan ini pada periode tersebut.');
+      }
+
+      // 3. Auto-persist sebagai draft ke slip_gaji
+      const insertPayload = {
+        user_id: match.user_id,
+        periode_bulan: match.periode_bulan,
+        total_hari_hadir: match.total_hari_hadir,
+        total_jam_telat: match.total_jam_telat,
+        total_jam_lembur: match.total_jam_lembur,
+        total_gaji_harian: match.total_gaji_harian,
+        total_denda_telat: match.total_denda_telat,
+        total_gaji_lembur: match.total_gaji_lembur,
+        total_potongan_kasbon: match.total_potongan_kasbon,
+        gaji_bersih: match.gaji_bersih,
+        status_pembayaran: 'draft' as const,
+      };
+
+      const { data: savedSlip, error: insertError } = await supabase
+        .from('slip_gaji')
+        .upsert(insertPayload, { onConflict: 'user_id, periode_bulan' })
+        .select(`*, profiles(nama)`)
+        .single();
+
+      if (insertError) {
+        throw new Error(insertError.message || 'Gagal menyimpan draft slip gaji');
+      }
+
+      return { data: savedSlip as SlipGaji, error: null };
+    } catch (err: any) {
+      return { data: null, error: { message: err.message || 'Terjadi kesalahan' } };
+    }
+  },
+
+  /**
    * Simpan Slip (Draft) / Generate (Admin)
    */
   async upsertSlip(payload: Partial<SlipGaji> & { user_id: string, periode_bulan: string }) {

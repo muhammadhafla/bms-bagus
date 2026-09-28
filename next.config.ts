@@ -13,6 +13,7 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ['@react-pdf/renderer', 'pdfkit'],
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
@@ -22,6 +23,9 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizePackageImports: ['recharts', 'pdfmake', '@tabler/icons-react'],
+    outputFileTracingIncludes: {
+      '/api/export/**/*': ['./node_modules/pdfkit/js/standard-fonts/**/*'],
+    },
   },
   async headers() {
     const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL

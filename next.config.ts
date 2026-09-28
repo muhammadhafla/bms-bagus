@@ -21,11 +21,11 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [{ protocol: 'https', hostname: '*.supabase.co', pathname: '/storage/**' }],
   },
+  outputFileTracingIncludes: {
+    '/api/export/**/*': ['./node_modules/pdfkit/js/standard-fonts/**/*'],
+  },
   experimental: {
     optimizePackageImports: ['recharts', 'pdfmake', '@tabler/icons-react'],
-    outputFileTracingIncludes: {
-      '/api/export/**/*': ['./node_modules/pdfkit/js/standard-fonts/**/*'],
-    },
   },
   async headers() {
     const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL

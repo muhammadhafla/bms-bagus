@@ -118,11 +118,11 @@ export default function SlipGajiPreviewModal({ isOpen, onClose, slip }: SlipGaji
         </div>
 
         {/* Total Bersih */}
-        <div className={`mt-2 flex justify-between items-center p-4 rounded-xl border ${isMinus ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/50' : 'bg-brand-50 dark:bg-brand-950/30 border-brand-200 dark:border-brand-900/50'}`}>
-          <span className={`font-bold ${isMinus ? 'text-red-700 dark:text-red-400' : 'text-brand-700 dark:text-brand-400'}`}>
+        <div className={`mt-2 flex flex-col sm:flex-row justify-between sm:items-center gap-2 p-4 rounded-xl border ${isMinus ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/50' : 'bg-brand-50 dark:bg-brand-950/30 border-brand-200 dark:border-brand-900/50'}`}>
+          <span className={`text-sm sm:text-base font-bold ${isMinus ? 'text-red-700 dark:text-red-400' : 'text-brand-700 dark:text-brand-400'}`}>
             {isMinus ? 'TANGGUNGAN KASBON (MINUS)' : 'TOTAL SISA GAJI BERSIH'}
           </span>
-          <span className={`text-xl font-black ${isMinus ? 'text-red-700 dark:text-red-400' : 'text-brand-700 dark:text-brand-400'}`}>
+          <span className={`text-lg sm:text-xl font-black ${isMinus ? 'text-red-700 dark:text-red-400' : 'text-brand-700 dark:text-brand-400'}`}>
             {formatCurrency(slip.gaji_bersih)}
           </span>
         </div>

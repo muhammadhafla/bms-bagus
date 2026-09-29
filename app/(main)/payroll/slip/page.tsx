@@ -92,10 +92,10 @@ function SlipGajiContent() {
               <Button 
                 variant="secondary" 
                 className="w-full mt-2 font-semibold" 
-                leftIcon={<IconDownload size={16} />}
+                leftIcon={<IconFileText size={16} />}
                 onClick={() => handleDownload(slip)}
               >
-                Download PDF
+                Lihat Slip
               </Button>
             </Card>
           ))

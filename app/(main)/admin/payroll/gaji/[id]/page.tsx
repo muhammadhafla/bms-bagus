@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 
 import { downloadOrShareFile } from '@/lib/utils/file-share';
 import SlipGajiPreviewModal from '@/components/payroll/SlipGajiPreviewModal';
+import MutasiPreviewModal from '@/components/payroll/MutasiPreviewModal';
 
 export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -193,6 +194,8 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
   const [isDownloadingSlip, setIsDownloadingSlip] = useState(false);
   const [selectedSlip, setSelectedSlip] = useState<any>(null);
   const [isSlipPreviewOpen, setIsSlipPreviewOpen] = useState(false);
+  
+  const [isMutasiPreviewOpen, setIsMutasiPreviewOpen] = useState(false);
 
   const [isDownloadingMutasi, setIsDownloadingMutasi] = useState(false);
 
@@ -213,7 +216,7 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
   const { data: mutasiMonthData, isLoading: isLoadingMutasiMonth } = useQuery({
     queryKey: ['admin_payroll_mutasi_month', userId, startDateStr, endDateStr],
     queryFn: () => mutasiApi.getByUserIdByRange(userId, startDateStr, endDateStr),
-    enabled: isCalendarModalOpen,
+    enabled: isCalendarModalOpen || isMutasiPreviewOpen,
   });
 
   const selectedDateEvents = useMemo(() => {
@@ -242,16 +245,6 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
       toast.error(err.message || 'Terjadi kesalahan', { id: toastId });
     } finally {
       setIsDownloadingSlip(false);
-    }
-  };
-
-  const handleDownloadMutasi = async () => {
-    setIsDownloadingMutasi(true);
-    try {
-      const url = `/api/export/payroll/mutasi/${userId}?startDate=${startDateStr}&endDate=${endDateStr}&saldo=${saldo}`;
-      await downloadOrShareFile(url, `Mutasi_${profile?.nama || 'Karyawan'}_${startDateStr}_${endDateStr}.pdf`, 'Riwayat Mutasi');
-    } finally {
-      setIsDownloadingMutasi(false);
     }
   };
 
@@ -421,12 +414,11 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
             <Button 
               variant="secondary" 
               size="sm" 
-              leftIcon={<IconPrinter size={16} />}
-              loading={isDownloadingMutasi}
-              onClick={handleDownloadMutasi}
+              leftIcon={<IconFileText size={16} />}
+              onClick={() => setIsMutasiPreviewOpen(true)}
               disabled={!list || list.length === 0}
             >
-              Mutasi PDF
+              Lihat Mutasi
             </Button>
           </div>
         </div>
@@ -846,7 +838,7 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
               disabled={isDownloadingSlip}
               leftIcon={<IconPrinter size={16} />}
             >
-              {isDownloadingSlip ? 'Mengunduh...' : 'Unduh PDF'}
+              {isDownloadingSlip ? 'Memuat...' : 'Lihat Slip Gaji'}
             </Button>
           </div>
         </div>
@@ -985,6 +977,17 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
         isOpen={isSlipPreviewOpen} 
         onClose={() => setIsSlipPreviewOpen(false)} 
         slip={selectedSlip} 
+      />
+
+      <MutasiPreviewModal
+        isOpen={isMutasiPreviewOpen}
+        onClose={() => setIsMutasiPreviewOpen(false)}
+        mutasiData={mutasiMonthData}
+        startDateStr={startDateStr}
+        endDateStr={endDateStr}
+        saldo={saldo}
+        userId={userId}
+        namaKaryawan={profile?.nama || 'Karyawan'}
       />
     </div>
   );

@@ -16,6 +16,7 @@ import {
 } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { downloadOrShareFile } from '@/lib/utils/file-share';
 
 import { useKehadiranMutations } from './_hooks/useKehadiranMutations';
 import { KehadiranTable } from './_components/KehadiranTable';
@@ -169,7 +170,8 @@ function AdminKehadiranContent() {
   };
 
   const handleExportCsv = async () => {
-    window.open(`/api/export/kehadiran/csv?startDate=${startDate}&endDate=${endDate}&lokasiId=${lokasiId}&statusHadir=${statusHadir}`, '_blank');
+    const url = `/api/export/kehadiran/csv?startDate=${startDate}&endDate=${endDate}&lokasiId=${lokasiId}&statusHadir=${statusHadir}`;
+    await downloadOrShareFile(url, `Rekap_Kehadiran_${startDate}_${endDate}.csv`, 'Rekap Kehadiran', 'text/csv');
   };
 
   const getActiveFilters = () => {

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } fr
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { downloadOrShareFile } from '@/lib/utils/file-share';
 import {
   IconTruckDelivery,
   IconArrowLeft,
@@ -521,7 +522,7 @@ function NewTransferContent() {
                   size="lg"
                   className="w-full shadow-brand"
                   leftIcon={<IconPrinter className="h-5 w-5" />}
-                  onClick={() => window.open(`/api/export/warehouse/surat-jalan/${createdTransfer.id}`, '_blank')}
+                  onClick={() => downloadOrShareFile(`/api/export/warehouse/surat-jalan/${createdTransfer.id}`, `Surat_Jalan_${createdTransfer.nomor_referensi || createdTransfer.id}.pdf`, 'Surat Jalan')}
                 >
                   Cetak Surat Jalan (PDF)
                 </Button>

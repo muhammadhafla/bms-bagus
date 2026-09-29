@@ -1,0 +1,167 @@
+:root {
+  --p2m-duration: 2500ms;
+  --p2m-ease-gravity: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+  --p2m-ease-yank: cubic-bezier(0.36, 0, 0.66, -0.2);
+  --p2m-ease-dissolve: linear;
+  
+  --path-stand: path('M 150 120 L 300 120 C 360 120, 360 220, 300 220 L 150 220 L 150 380 L 320 380 C 390 380, 390 220, 320 220');
+  --path-collapse: path('M 140 450 L 250 460 C 300 470, 320 420, 260 430 L 160 440 L 200 470 L 290 460 C 340 450, 330 480, 280 470');
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #111;
+  overflow: hidden;
+  font-family: sans-serif;
+}
+
+.app-background {
+  position: absolute;
+  inset: 0;
+  background: #f4f4f5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #333;
+  z-index: 1;
+}
+
+.app-background h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.app-background p {
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.app-background button {
+  margin-top: 2rem;
+  padding: 12px 24px;
+  font-size: 1.1rem;
+  background: #e04c19;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.app-background button:hover {
+  transform: scale(1.05);
+}
+
+#splash-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: #111;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Phase 3: Final Dissolve */
+  animation: dissolve 600ms linear 1800ms forwards;
+}
+
+@keyframes dissolve {
+  to {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+#logo-root {
+  width: 512px;
+  height: 512px;
+  overflow: visible;
+}
+
+/* Common stroke styles */
+.rope {
+  fill: none;
+  stroke: #e04c19;
+  stroke-width: 45;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Path 1: The 'B' collapsing into the pile */
+#anim-b-to-pile {
+  /* Phase 1: Gravity Collapse (0 - 800ms) */
+  animation: 
+    collapse 800ms cubic-bezier(0.55, 0.085, 0.68, 0.53) 0ms forwards,
+    hide-pile 10ms linear 800ms forwards;
+}
+
+@keyframes collapse {
+  0% {
+    d: var(--path-stand);
+  }
+  100% {
+    d: var(--path-collapse);
+  }
+}
+
+@keyframes hide-pile {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Path 2: The Yank Track (Escape route + Pile) */
+#anim-yank-track {
+  opacity: 0;
+  /* D_pile is roughly 250, D_escape is 750 (out of 1000 total length) */
+  stroke-dasharray: 250 1000;
+  stroke-dashoffset: -750; /* Places the dash exactly over the pile at the end of the track */
+  
+  /* Phase 2: Show exactly when Phase 1 ends, then yank */
+  animation: 
+    show-track 10ms linear 800ms forwards,
+    yank 800ms cubic-bezier(0.36, 0, 0.66, -0.2) 800ms forwards;
+}
+
+@keyframes show-track {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes yank {
+  0% {
+    stroke-dashoffset: -750; /* At the pile */
+  }
+  100% {
+    stroke-dashoffset: 250; /* Off the top right screen */
+  }
+}
+
+.controls {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  background: rgba(0,0,0,0.8);
+  padding: 10px 20px;
+  border-radius: 20px;
+  display: flex;
+  gap: 15px;
+  color: white;
+}
+.controls button {
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  padding: 5px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.controls button:hover {
+  background: #444;
+}

@@ -13,6 +13,8 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInte
 import { id as localeId } from 'date-fns/locale';
 import { toast } from 'sonner';
 
+import { downloadOrShareFile } from '@/lib/utils/file-share';
+import SlipGajiPreviewModal from '@/components/payroll/SlipGajiPreviewModal';
 
 export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -189,6 +191,9 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
   const [isDownloadingSlip, setIsDownloadingSlip] = useState(false);
+  const [selectedSlip, setSelectedSlip] = useState<any>(null);
+  const [isSlipPreviewOpen, setIsSlipPreviewOpen] = useState(false);
+
   const [isDownloadingMutasi, setIsDownloadingMutasi] = useState(false);
 
   // Calendar Modal State
@@ -220,7 +225,6 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
   const handleDownloadSlip = async () => {
     setIsDownloadingSlip(true);
     const toastId = toast.loading('Mengambil data slip gaji...');
-    let previewTab: Window | null = null;
     try {
       const res = await gajiApi.getOrGenerateSlip(userId, slipPeriode);
       if (res.error) throw res.error;
@@ -230,39 +234,11 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
         throw new Error('Data slip gaji tidak ditemukan untuk karyawan ini pada periode tersebut.');
       }
 
-      // Buka safe preview tab untuk menghindari pop-up blocker
-      previewTab = window.open('about:blank', '_blank');
-      if (previewTab) {
-        previewTab.document.write(`
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: #555;">
-            <p style="font-size: 16px; font-weight: 600; margin-bottom: 6px;">Memuat Dokumen Slip Gaji...</p>
-            <p style="font-size: 13px; color: #888;">Mohon tunggu sebentar</p>
-          </div>
-        `);
-      }
-
-      // Fetch file PDF dan buat masked Blob URL
-      const response = await fetch(`/api/export/payroll/slip-gaji/${slipData.id}`);
-      if (!response.ok) {
-        const errorMsg = await response.text();
-        throw new Error(errorMsg || 'Gagal memuat file PDF slip gaji');
-      }
-
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-
-      if (previewTab) {
-        previewTab.location.href = blobUrl;
-      } else {
-        window.open(blobUrl, '_blank');
-      }
-
-      toast.success('Slip Gaji berhasil dibuka', { id: toastId });
-      setIsSlipOpen(false);
+      setSelectedSlip(slipData);
+      setIsSlipPreviewOpen(true);
+      toast.dismiss(toastId);
+      setIsSlipOpen(false); // Tutup modal pilih periode
     } catch (err: any) {
-      if (previewTab) {
-        previewTab.close();
-      }
       toast.error(err.message || 'Terjadi kesalahan', { id: toastId });
     } finally {
       setIsDownloadingSlip(false);
@@ -271,40 +247,9 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
 
   const handleDownloadMutasi = async () => {
     setIsDownloadingMutasi(true);
-    const toastId = toast.loading('Mempersiapkan riwayat mutasi...');
-    let previewTab: Window | null = null;
     try {
-      previewTab = window.open('about:blank', '_blank');
-      if (previewTab) {
-        previewTab.document.write(`
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: #555;">
-            <p style="font-size: 16px; font-weight: 600; margin-bottom: 6px;">Memuat Riwayat Mutasi...</p>
-            <p style="font-size: 13px; color: #888;">Mohon tunggu sebentar</p>
-          </div>
-        `);
-      }
-
-      const response = await fetch(`/api/export/payroll/mutasi/${userId}?startDate=${startDateStr}&endDate=${endDateStr}&saldo=${saldo}`);
-      if (!response.ok) {
-        const errorMsg = await response.text();
-        throw new Error(errorMsg || 'Gagal memuat file riwayat mutasi');
-      }
-
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-
-      if (previewTab) {
-        previewTab.location.href = blobUrl;
-      } else {
-        window.open(blobUrl, '_blank');
-      }
-
-      toast.success('Riwayat mutasi berhasil dibuka', { id: toastId });
-    } catch (err: any) {
-      if (previewTab) {
-        previewTab.close();
-      }
-      toast.error(err.message || 'Terjadi kesalahan', { id: toastId });
+      const url = `/api/export/payroll/mutasi/${userId}?startDate=${startDateStr}&endDate=${endDateStr}&saldo=${saldo}`;
+      await downloadOrShareFile(url, `Mutasi_${profile?.nama || 'Karyawan'}_${startDateStr}_${endDateStr}.pdf`, 'Riwayat Mutasi');
     } finally {
       setIsDownloadingMutasi(false);
     }
@@ -1036,6 +981,11 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
         </div>
       </Modal>
 
+      <SlipGajiPreviewModal 
+        isOpen={isSlipPreviewOpen} 
+        onClose={() => setIsSlipPreviewOpen(false)} 
+        slip={selectedSlip} 
+      />
     </div>
   );
 }

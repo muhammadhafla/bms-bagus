@@ -21,6 +21,7 @@ import { PriceInput } from '@/components/ui/PriceInput';
 import { Button, AmbientLayout } from '@/components/ui';
 import { SelectInput } from '@/components/ui/SelectInput';
 import { Portal } from '@/components/ui/Portal';
+import { downloadOrShareFile } from '@/lib/utils/file-share';
 
 const downloadPdf = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
@@ -227,7 +228,7 @@ export default function ReturnPage() {
     if (!lastReturnId) return;
 
     try {
-      window.open(`/api/export/inventory/return/${lastReturnId}`, '_blank');
+      await downloadOrShareFile(`/api/export/inventory/return/${lastReturnId}`, `Bukti_Retur_${lastReturnId}.pdf`, 'Bukti Retur');
     } catch (err) {
       console.error('PDF export error:', err);
       setError('Gagal export PDF');

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logo Motion Showcase</title>
+  <link rel="stylesheet" href="motion.css">
+</head>
+<body>
+
+  <!-- The mock app behind the overlay -->
+  <div class="app-background">
+    <h1>Welcome to Dashboard</h1>
+    <p>The splash screen has dissolved, and the app is ready.</p>
+    <button onclick="alert('App is interactive!')">Get Started</button>
+  </div>
+
+  <!-- The Fullscreen Splash Overlay -->
+  <div id="splash-overlay">
+    <svg id="logo-root" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+      <!-- Path 1: Morphs from Standing 'B' to the Collapsed Pile -->
+      <path id="anim-b-to-pile" class="rope" d="M 150 120 L 300 120 C 360 120, 360 220, 300 220 L 150 220 L 150 380 L 320 380 C 390 380, 390 220, 320 220" />
+      
+      <!-- Path 2: The Yank Track. Starts way off-screen top-right, connects to the Pile floor, and perfectly traces the Pile -->
+      <path id="anim-yank-track" class="rope" pathLength="1000" d="M 1500 -1000 L 140 450 L 250 460 C 300 470, 320 420, 260 430 L 160 440 L 200 470 L 290 460 C 340 450, 330 480, 280 470" />
+    </svg>
+  </div>
+
+  <!-- Controls for the Showcase -->
+  <div class="controls">
+    <button onclick="replay()">Replay Animation</button>
+  </div>
+
+  <script>
+    function replay() {
+      // Re-trigger the animations by cloning and replacing the overlay
+      const overlay = document.getElementById('splash-overlay');
+      const newOverlay = overlay.cloneNode(true);
+      overlay.parentNode.replaceChild(newOverlay, overlay);
+    }
+    
+    // QA Hook for pixel2motion
+    window.__p2mReady = true;
+  </script>
+</body>
+</html>

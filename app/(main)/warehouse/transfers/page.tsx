@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { downloadOrShareFile } from '@/lib/utils/file-share';
 import {
   IconTruckDelivery,
   IconPlus,
@@ -235,7 +236,7 @@ function WarehouseTransfersContent() {
             size="sm"
             variant="ghost"
             leftIcon={<IconPrinter className="h-4 w-4 text-neutral-600" />}
-            onClick={() => window.open(`/api/export/warehouse/surat-jalan/${row.id}`, '_blank')}
+            onClick={() => downloadOrShareFile(`/api/export/warehouse/surat-jalan/${row.id}`, `Surat_Jalan_${row.nomor_referensi || row.id}.pdf`, 'Surat Jalan')}
             title="Cetak Surat Jalan"
           />
           {row.status === 'DRAFT' && canCancelTransfer && (
@@ -481,7 +482,7 @@ function WarehouseTransfersContent() {
                 <Button
                   variant="secondary"
                   leftIcon={<IconPrinter className="h-4 w-4" />}
-                  onClick={() => window.open(`/api/export/warehouse/surat-jalan/${selectedTransfer.id}`, '_blank')}
+                  onClick={() => downloadOrShareFile(`/api/export/warehouse/surat-jalan/${selectedTransfer.id}`, `Surat_Jalan_${selectedTransfer.nomor_referensi || selectedTransfer.id}.pdf`, 'Surat Jalan')}
                 >
                   Cetak Surat Jalan (PDF)
                 </Button>

@@ -224,7 +224,7 @@ export default function ReturnPage() {
     }
   }, [selectedSupplier, previewData, totalReturn, note, handleReset, queryClient]);
 
-  const handleExportPdf = useCallback(() => {
+  const handleExportPdf = useCallback(async () => {
     if (!lastReturnId) return;
 
     try {

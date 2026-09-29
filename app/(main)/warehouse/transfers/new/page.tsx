@@ -522,7 +522,7 @@ function NewTransferContent() {
                   size="lg"
                   className="w-full shadow-brand"
                   leftIcon={<IconPrinter className="h-5 w-5" />}
-                  onClick={() => downloadOrShareFile(`/api/export/warehouse/surat-jalan/${createdTransfer.id}`, `Surat_Jalan_${createdTransfer.nomor_referensi || createdTransfer.id}.pdf`, 'Surat Jalan')}
+                  onClick={() => downloadOrShareFile(`/api/export/warehouse/surat-jalan/${createdTransfer.id}`, `Surat_Jalan_${createdTransfer.id}.pdf`, 'Surat Jalan')}
                 >
                   Cetak Surat Jalan (PDF)
                 </Button>

@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { mutasiApi } from '@/lib/api/payroll';
-import { Card, Button, TextInput, ModernPagination } from '@/components/ui';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { mutasiApi, gajiApi } from '@/lib/api/payroll';
+import { Card, Button, TextInput, ModernPagination, ConfirmDialog } from '@/components/ui';
 import { IconReport, IconWallet, IconSearch, IconArrowRight } from '@tabler/icons-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
+import { toast } from 'sonner';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 
@@ -18,9 +19,27 @@ export default function AdminGajiDashboard() {
   const [search, setSearch] = useState('');
   const limit = 20;
 
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
   const { data: balancesData, isLoading, refetch } = useQuery({
     queryKey: ['admin_payroll_balances', { page, search }],
     queryFn: () => mutasiApi.getAllBalances({ page, limit, search }),
+  });
+
+  const prosesGajiMutation = useMutation({
+    mutationFn: async (periode: string) => {
+      const res = await gajiApi.prosesKalkulasi(periode);
+      if (res.error) throw new Error(res.error.message);
+      return res;
+    },
+    onSuccess: () => {
+      toast.success('Gaji dan EWA untuk bulan ini berhasil diproses!');
+      setIsConfirmOpen(false);
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Gagal memproses gaji');
+    }
   });
 
   const list = balancesData?.data || [];
@@ -43,21 +62,10 @@ export default function AdminGajiDashboard() {
           <Button 
             variant="primary" 
             leftIcon={<IconReport size={18} />}
-            onClick={async () => {
-              if (confirm('Apakah Anda yakin ingin memproses gaji dan tutup buku untuk bulan ini? Tindakan ini akan menghitung Gaji Bulanan dan memasukkannya ke saldo EWA.')) {
-                const periode = new Date().toISOString().substring(0, 7);
-                const { gajiApi } = await import('@/lib/api/payroll');
-                const res = await gajiApi.prosesKalkulasi(periode);
-                if (res.error) {
-                  alert('Gagal memproses gaji: ' + res.error.message);
-                } else {
-                  alert('Proses gaji berhasil!');
-                  refetch();
-                }
-              }
-            }}
+            onClick={() => setIsConfirmOpen(true)}
+            disabled={prosesGajiMutation.isPending}
           >
-            Tutup Buku Gaji
+            {prosesGajiMutation.isPending ? 'Memproses...' : 'Tutup Buku Gaji'}
           </Button>
         </div>
 
@@ -162,6 +170,19 @@ export default function AdminGajiDashboard() {
         )}
 
       </div>
+
+      <ConfirmDialog
+        isOpen={isConfirmOpen}
+        title="Tutup Buku Gaji?"
+        message="Apakah Anda yakin ingin memproses gaji dan tutup buku untuk bulan ini? Tindakan ini akan menghitung Gaji Bulanan dan memasukkannya ke saldo EWA."
+        confirmLabel="Ya, Proses Gaji"
+        cancelLabel="Batal"
+        onConfirm={() => {
+          const periode = new Date().toISOString().substring(0, 7);
+          prosesGajiMutation.mutate(periode);
+        }}
+        onCancel={() => setIsConfirmOpen(false)}
+      />
     </PullToRefresh>
   );
 }

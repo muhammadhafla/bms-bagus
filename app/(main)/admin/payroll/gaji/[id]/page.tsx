@@ -185,6 +185,39 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
     cairkanMutation.mutate();
   };
 
+  // Bonus Manual Modal State
+  const [isBonusOpen, setIsBonusOpen] = useState(false);
+  const [bonusNominal, setBonusNominal] = useState('');
+  const [bonusKeterangan, setBonusKeterangan] = useState('Bonus Insentif');
+  const [bonusJenis, setBonusJenis] = useState<'kredit' | 'debit'>('kredit');
+
+  const bonusMutation = useMutation({
+    mutationFn: () => mutasiApi.insertMutasi({
+      user_id: userId,
+      jenis: bonusJenis,
+      kategori: 'lainnya',
+      nominal: Number(bonusNominal.replace(/\D/g, '')),
+      keterangan: bonusKeterangan,
+      status: 'disetujui'
+    }),
+    onSuccess: () => {
+      toast.success('Mutasi manual berhasil dicatat');
+      setIsBonusOpen(false);
+      setBonusNominal('');
+      setBonusKeterangan('Bonus Insentif');
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_mutasi'] });
+      queryClient.invalidateQueries({ queryKey: ['admin_payroll_saldo'] });
+    },
+    onError: (err: any) => toast.error(err.message || 'Gagal mencatat mutasi')
+  });
+
+  const handleBonus = (e: React.FormEvent) => {
+    e.preventDefault();
+    const num = Number(bonusNominal.replace(/\D/g, ''));
+    if (num <= 0) return toast.error('Nominal harus lebih dari 0');
+    bonusMutation.mutate();
+  };
+
   // Slip Gaji Modal
   const [isSlipOpen, setIsSlipOpen] = useState(false);
   const [slipPeriode, setSlipPeriode] = useState(() => {
@@ -376,6 +409,13 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
         </div>
         
         <div className="flex w-full md:w-auto gap-3">
+          <Button 
+            variant="secondary"
+            className="w-full md:w-auto shadow-sm"
+            onClick={() => setIsBonusOpen(true)}
+          >
+            Tambah Mutasi Manual
+          </Button>
           <Button 
             variant="primary" 
             className="w-full md:w-auto shadow-sm"
@@ -971,6 +1011,63 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
             </div>
           )}
         </div>
+      </Modal>
+
+      {/* Modal Tambah Bonus / Mutasi Manual */}
+      <Modal
+        isOpen={isBonusOpen}
+        onClose={() => setIsBonusOpen(false)}
+        title="Tambah Mutasi Manual"
+      >
+        <form onSubmit={handleBonus} className="flex flex-col gap-4 mt-4">
+          <div className="rounded-xl bg-blue-50 p-3 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 text-sm">
+            Fitur ini untuk memberikan bonus manual atau memotong saldo secara khusus di luar sistem absensi.
+          </div>
+          
+          <SelectInput
+            label="Jenis Mutasi"
+            value={bonusJenis}
+            onChange={(v) => setBonusJenis(v as 'kredit' | 'debit')}
+            options={[
+              { label: 'Bonus / Insentif (Menambah Saldo Gaji)', value: 'kredit' },
+              { label: 'Potongan Manual (Mengurangi Saldo Gaji)', value: 'debit' }
+            ]}
+            required
+          />
+
+          <TextInput
+            label="Nominal (Rp)"
+            value={bonusNominal}
+            onChange={(e) => {
+              const num = e.target.value.replace(/\D/g, '');
+              setBonusNominal(num ? Number(num).toLocaleString('id-ID') : '');
+            }}
+            placeholder="0"
+            required
+            className="text-lg font-bold"
+          />
+          
+          <TextInput
+            label="Keterangan"
+            value={bonusKeterangan}
+            onChange={(e) => setBonusKeterangan(e.target.value)}
+            placeholder={bonusJenis === 'kredit' ? 'Contoh: Bonus Target Penjualan' : 'Contoh: Denda Barang Hilang'}
+            required
+          />
+          
+          <div className="mt-4 flex gap-3 justify-end">
+            <Button variant="secondary" onClick={() => setIsBonusOpen(false)} type="button">
+              Batal
+            </Button>
+            <Button 
+              variant="primary" 
+              type="submit" 
+              disabled={bonusMutation.isPending}
+            >
+              {bonusMutation.isPending ? 'Menyimpan...' : 'Simpan Mutasi'}
+            </Button>
+          </div>
+        </form>
       </Modal>
 
       <SlipGajiPreviewModal 

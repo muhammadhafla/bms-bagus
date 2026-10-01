@@ -16,6 +16,8 @@ export interface SlipGaji {
   gaji_bulanan: number;
   total_hari_libur: number;
   total_potongan_libur: number;
+  total_bonus: number;
+  total_potongan_lain: number;
   gaji_bersih: number;
   status_pembayaran: 'draft' | 'dibayar';
   dibayar_pada: string | null;
@@ -199,6 +201,8 @@ export const gajiApi = {
         gaji_bulanan: match.gaji_bulanan,
         total_hari_libur: match.total_hari_libur,
         total_potongan_libur: match.total_potongan_libur,
+        total_bonus: match.total_bonus,
+        total_potongan_lain: match.total_potongan_lain,
         status_pembayaran: 'draft' as const,
       };
 

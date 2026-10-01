@@ -20,8 +20,8 @@ export default function SlipGajiPreviewModal({ isOpen, onClose, slip }: SlipGaji
   if (!slip) return null;
 
   const namaKaryawan = slip.profiles?.nama || 'Karyawan';
-  const totalPotongan = Number(slip.total_denda_telat || 0) + Number(slip.total_potongan_kasbon || 0) + Number(slip.total_potongan_libur || 0);
-  const totalPendapatan = Number(slip.total_gaji_harian || 0) + Number(slip.total_gaji_lembur || 0);
+  const totalPotongan = Number(slip.total_denda_telat || 0) + Number(slip.total_potongan_kasbon || 0) + Number(slip.total_potongan_libur || 0) + Number(slip.total_potongan_lain || 0);
+  const totalPendapatan = Number(slip.total_gaji_harian || 0) + Number(slip.total_gaji_lembur || 0) + Number(slip.total_bonus || 0);
   const isMinus = Number(slip.gaji_bersih) < 0;
 
   const handleShareOrDownload = async () => {
@@ -87,6 +87,12 @@ export default function SlipGajiPreviewModal({ isOpen, onClose, slip }: SlipGaji
                 <span className="text-neutral-600 dark:text-neutral-400">Uang Lembur</span>
                 <span className="font-medium text-neutral-900 dark:text-white">{formatCurrency(slip.total_gaji_lembur)}</span>
               </div>
+              {Number(slip.total_bonus) > 0 && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-neutral-600 dark:text-neutral-400">Bonus / Insentif</span>
+                  <span className="font-medium text-neutral-900 dark:text-white">{formatCurrency(slip.total_bonus)}</span>
+                </div>
+              )}
             </div>
             <div className="flex justify-between items-center mt-4 pt-3 border-t border-dashed border-neutral-200 dark:border-neutral-800">
               <span className="font-semibold text-sm text-neutral-900 dark:text-white">Total Pendapatan</span>
@@ -112,6 +118,12 @@ export default function SlipGajiPreviewModal({ isOpen, onClose, slip }: SlipGaji
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-neutral-600 dark:text-neutral-400">Potongan Absen/Libur</span>
                   <span className="font-medium text-neutral-900 dark:text-white">{formatCurrency(slip.total_potongan_libur)}</span>
+                </div>
+              )}
+              {Number(slip.total_potongan_lain) > 0 && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-neutral-600 dark:text-neutral-400">Potongan Lainnya</span>
+                  <span className="font-medium text-neutral-900 dark:text-white">{formatCurrency(slip.total_potongan_lain)}</span>
                 </div>
               )}
             </div>

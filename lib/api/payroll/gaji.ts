@@ -195,6 +195,10 @@ export const gajiApi = {
         total_gaji_lembur: match.total_gaji_lembur,
         total_potongan_kasbon: match.total_potongan_kasbon,
         gaji_bersih: match.gaji_bersih,
+        tipe_gaji: match.tipe_gaji,
+        gaji_bulanan: match.gaji_bulanan,
+        total_hari_libur: match.total_hari_libur,
+        total_potongan_libur: match.total_potongan_libur,
         status_pembayaran: 'draft' as const,
       };
 

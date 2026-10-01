@@ -35,11 +35,30 @@ export default function AdminGajiDashboard() {
       <div className="flex flex-col gap-3 px-3 pt-1 pb-20 w-full md:px-6 md:pt-4 md:pb-20 max-w-7xl mx-auto">
         
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-neutral-900 dark:text-white">Dashboard Keuangan</h1>
             <p className="hidden md:block text-sm text-neutral-500 mt-1">Pantau saldo hak gaji dan kasbon seluruh karyawan.</p>
           </div>
+          <Button 
+            variant="primary" 
+            leftIcon={<IconReport size={18} />}
+            onClick={async () => {
+              if (confirm('Apakah Anda yakin ingin memproses gaji dan tutup buku untuk bulan ini? Tindakan ini akan menghitung Gaji Bulanan dan memasukkannya ke saldo EWA.')) {
+                const periode = new Date().toISOString().substring(0, 7);
+                const { gajiApi } = await import('@/lib/api/payroll');
+                const res = await gajiApi.prosesKalkulasi(periode);
+                if (res.error) {
+                  alert('Gagal memproses gaji: ' + res.error.message);
+                } else {
+                  alert('Proses gaji berhasil!');
+                  refetch();
+                }
+              }
+            }}
+          >
+            Tutup Buku Gaji
+          </Button>
         </div>
 
         {/* Widgets */}

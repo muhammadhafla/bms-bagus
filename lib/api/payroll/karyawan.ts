@@ -9,6 +9,9 @@ export interface Karyawan {
   gaji_harian: number;
   denda_telat_per_jam: number;
   lembur_per_jam: number;
+  tipe_gaji: 'harian' | 'bulanan';
+  gaji_bulanan: number;
+  jatah_libur_bulanan: number;
   nama_bank: string | null;
   no_rekening: string | null;
   status_karyawan: 'aktif' | 'nonaktif';

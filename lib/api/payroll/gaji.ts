@@ -12,6 +12,10 @@ export interface SlipGaji {
   total_denda_telat: number;
   total_gaji_lembur: number;
   total_potongan_kasbon: number;
+  tipe_gaji: 'harian' | 'bulanan';
+  gaji_bulanan: number;
+  total_hari_libur: number;
+  total_potongan_libur: number;
   gaji_bersih: number;
   status_pembayaran: 'draft' | 'dibayar';
   dibayar_pada: string | null;
@@ -156,7 +160,7 @@ export const gajiApi = {
    */
   async getOrGenerateSlip(userId: string, periode: string): Promise<{ data: SlipGaji | null; error: { message: string } | null }> {
     try {
-      // 1. Cek apakah slip sudah ada di database
+      // 1. Cek apakah slip sudah ada di database dan sudah dibayar
       const { data: existing } = await supabase
         .from('slip_gaji')
         .select(`*, profiles(nama)`)
@@ -164,7 +168,7 @@ export const gajiApi = {
         .eq('periode_bulan', periode)
         .maybeSingle();
 
-      if (existing) {
+      if (existing && existing.status_pembayaran === 'dibayar') {
         return { data: existing as SlipGaji, error: null };
       }
 

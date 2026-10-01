@@ -31,12 +31,16 @@ function AdminKaryawanContent() {
   const [formGajiHarian, setFormGajiHarian] = useState(0);
   const [formDendaTelat, setFormDendaTelat] = useState(0);
   const [formLembur, setFormLembur] = useState(0);
+  const [formTipeGaji, setFormTipeGaji] = useState<'harian' | 'bulanan'>('harian');
+  const [formGajiBulanan, setFormGajiBulanan] = useState(0);
 
   useEffect(() => {
     if (selectedUser) {
       setFormGajiHarian(selectedUser.gaji_harian);
       setFormDendaTelat(selectedUser.denda_telat_per_jam);
       setFormLembur(selectedUser.lembur_per_jam);
+      setFormTipeGaji(selectedUser.tipe_gaji || 'harian');
+      setFormGajiBulanan(selectedUser.gaji_bulanan || 0);
     }
   }, [selectedUser]);
 
@@ -103,6 +107,9 @@ function AdminKaryawanContent() {
       gaji_harian: formGajiHarian,
       denda_telat_per_jam: formDendaTelat,
       lembur_per_jam: formLembur,
+      tipe_gaji: formTipeGaji,
+      gaji_bulanan: formGajiBulanan,
+      jatah_libur_bulanan: Number(fd.get('jatah_libur_bulanan')) || 0,
       nama_bank: fd.get('nama_bank') as string,
       no_rekening: fd.get('no_rekening') as string,
     };
@@ -252,8 +259,41 @@ function AdminKaryawanContent() {
               />
             </div>
             
+            <div className="flex flex-col gap-1.5 mb-2">
+              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Tipe Penggajian</label>
+              <select
+                name="tipe_gaji"
+                value={formTipeGaji}
+                onChange={(e) => setFormTipeGaji(e.target.value as 'harian' | 'bulanan')}
+                className="rounded-lg border border-neutral-200/60 bg-neutral-50 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-neutral-800 dark:bg-neutral-900/50"
+              >
+                <option value="harian">Harian (Per Kehadiran)</option>
+                <option value="bulanan">Bulanan (Gaji Tetap)</option>
+              </select>
+            </div>
+
+            {formTipeGaji === 'bulanan' && (
+              <div className="grid grid-cols-2 gap-4">
+                <PriceInput
+                  label="Gaji Bulanan"
+                  name="gaji_bulanan"
+                  value={formGajiBulanan}
+                  onChange={setFormGajiBulanan}
+                />
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Jatah Libur (Hari)</label>
+                  <input
+                    type="number"
+                    name="jatah_libur_bulanan"
+                    defaultValue={selectedUser.jatah_libur_bulanan || 0}
+                    className="rounded-lg border border-neutral-200/60 bg-neutral-50 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-neutral-800 dark:bg-neutral-900/50"
+                  />
+                </div>
+              </div>
+            )}
+
             <PriceInput
-              label="Gaji Harian"
+              label={formTipeGaji === 'bulanan' ? 'Potongan Per Hari Libur (Eks. Gaji Harian)' : 'Gaji Harian'}
               name="gaji_harian"
               value={formGajiHarian}
               onChange={setFormGajiHarian}

@@ -20,7 +20,7 @@ export default function SlipGajiPreviewModal({ isOpen, onClose, slip }: SlipGaji
   if (!slip) return null;
 
   const namaKaryawan = slip.profiles?.nama || 'Karyawan';
-  const totalPotongan = Number(slip.total_denda_telat || 0) + Number(slip.total_potongan_kasbon || 0);
+  const totalPotongan = Number(slip.total_denda_telat || 0) + Number(slip.total_potongan_kasbon || 0) + Number(slip.total_potongan_libur || 0);
   const totalPendapatan = Number(slip.total_gaji_harian || 0) + Number(slip.total_gaji_lembur || 0);
   const isMinus = Number(slip.gaji_bersih) < 0;
 
@@ -80,7 +80,7 @@ export default function SlipGajiPreviewModal({ isOpen, onClose, slip }: SlipGaji
             </h3>
             <div className="flex flex-col gap-3">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-neutral-600 dark:text-neutral-400">Gaji Pokok (Hadir)</span>
+                <span className="text-neutral-600 dark:text-neutral-400">{slip.tipe_gaji === 'bulanan' ? 'Gaji Pokok (Bulanan)' : 'Gaji Pokok (Hadir)'}</span>
                 <span className="font-medium text-neutral-900 dark:text-white">{formatCurrency(slip.total_gaji_harian)}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
@@ -108,6 +108,12 @@ export default function SlipGajiPreviewModal({ isOpen, onClose, slip }: SlipGaji
                 <span className="text-neutral-600 dark:text-neutral-400">Denda Keterlambatan</span>
                 <span className="font-medium text-neutral-900 dark:text-white">{formatCurrency(slip.total_denda_telat)}</span>
               </div>
+              {Number(slip.total_potongan_libur) > 0 && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-neutral-600 dark:text-neutral-400">Potongan Absen/Libur</span>
+                  <span className="font-medium text-neutral-900 dark:text-white">{formatCurrency(slip.total_potongan_libur)}</span>
+                </div>
+              )}
             </div>
             <div className="flex justify-between items-center mt-4 pt-3 border-t border-dashed border-neutral-200 dark:border-neutral-800">
               <span className="font-semibold text-sm text-neutral-900 dark:text-white">Total Potongan</span>

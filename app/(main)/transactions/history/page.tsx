@@ -195,7 +195,7 @@ function TransactionsHistoryContent() {
           <div className={`no-scrollbar flex w-full items-center gap-2 overflow-x-auto whitespace-nowrap ${activeFilters.length > 0 ? 'mb-2 py-2' : 'hidden sm:flex mb-2 py-2'}`}>
             {activeFilters.length === 0 && (
               <span className="text-sm text-neutral-500 italic dark:text-neutral-400">
-                Menampilkan semua data (100 transaksi terakhir)
+                Menampilkan semua data
               </span>
             )}
             {activeFilters.map((badge) => (

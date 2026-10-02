@@ -104,6 +104,7 @@ export function KehadiranFilters({
           onClick={onExportCsv}
           loading={isExporting}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl !min-h-0 !p-0 sm:w-auto sm:!px-3.5 sm:!py-2 text-xs font-semibold"
+          aria-label="Ekspor CSV"
         >
           <IconDownload size={17} className="shrink-0" />
           <span className="hidden sm:inline">Ekspor CSV</span>
@@ -113,6 +114,7 @@ export function KehadiranFilters({
           variant="primary" 
           onClick={onOpenCreate}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl !min-h-0 !p-0 sm:w-auto sm:!px-4 sm:!py-2"
+          aria-label="Tambah Entri"
         >
           <IconPlus size={18} className="shrink-0" />
           <span className="hidden font-medium sm:inline">Tambah Entri</span>
@@ -204,8 +206,10 @@ export function FilterBadges({ activeFilters, totalItems }: { activeFilters: any
           {badge.label}
           {badge.onRemove && (
             <button
+              type="button"
               onClick={badge.onRemove}
-              className="text-neutral-400 transition-colors hover:text-neutral-600 dark:hover:text-neutral-200"
+              className="text-neutral-400 transition-colors hover:text-neutral-600 dark:hover:text-neutral-200 active:scale-[0.95] focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:outline-none rounded-sm"
+              aria-label={`Hapus filter ${badge.label}`}
             >
               <IconX size={14} />
             </button>

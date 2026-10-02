@@ -256,116 +256,39 @@ function AdminKehadiranContent() {
         />
       </div>
 
-      {/* 5-Card Live Stats Summary Widget */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 my-1">
-        {/* Card 1: Hadir Hari Ini */}
-        <div className="rounded-2xl border border-neutral-200/80 bg-white p-3.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-wider uppercase text-neutral-500">Hadir Hari Ini</span>
-            <div className="p-1 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
-              <IconUserCheck size={16} />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white font-mono">
-              {isLoadingSummary ? '--' : `${summaryData?.total_hadir || 0}/${summaryData?.total_aktif || 0}`}
-            </div>
-            <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
-              {isLoadingSummary ? 'Memuat...' : `${summaryData?.hadir_tepat || 0} tepat, ${summaryData?.hadir_telat || 0} telat`}
-            </p>
-          </div>
+      {/* Compact Live Stats Summary */}
+      <div className="grid grid-cols-3 divide-x divide-neutral-200/60 dark:divide-neutral-800 bg-white border border-neutral-200/80 rounded-xl shadow-sm dark:bg-neutral-900 dark:border-neutral-800 my-2">
+        {/* Hadir */}
+        <div className="flex flex-col p-3">
+          <span className="text-[10px] font-bold tracking-wider uppercase text-neutral-500 mb-1">Hadir</span>
+          <span className="text-lg font-black text-neutral-900 dark:text-white font-mono leading-none">
+            {isLoadingSummary ? '--' : `${summaryData?.total_hadir || 0}/${summaryData?.total_aktif || 0}`}
+          </span>
+          <span className="text-[10px] text-neutral-500 mt-1 leading-none">
+            {isLoadingSummary ? '...' : `${summaryData?.hadir_tepat || 0} tepat, ${summaryData?.hadir_telat || 0} telat`}
+          </span>
         </div>
 
-        {/* Card 2: Terlambat */}
-        <div className="rounded-2xl border border-neutral-200/80 bg-white p-3.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-wider uppercase text-neutral-500">Terlambat</span>
-            <div className="p-1 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
-              <IconClock size={16} />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 font-mono">
-              {isLoadingSummary ? '--' : summaryData?.hadir_telat || 0}
-            </div>
-            <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
-              Datang setelah jam masuk
-            </p>
-          </div>
+        {/* Terlambat */}
+        <div className="flex flex-col p-3">
+          <span className="text-[10px] font-bold tracking-wider uppercase text-amber-600 dark:text-amber-500 mb-1">Telat</span>
+          <span className="text-lg font-black text-amber-600 dark:text-amber-400 font-mono leading-none">
+            {isLoadingSummary ? '--' : summaryData?.hadir_telat || 0}
+          </span>
+          <span className="text-[10px] text-neutral-500 mt-1 leading-none">
+            Butuh tinjauan
+          </span>
         </div>
 
-        {/* Card 3: Izin / Sakit / Off */}
-        <div className="rounded-2xl border border-neutral-200/80 bg-white p-3.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-wider uppercase text-neutral-500">Izin/Sakit/Off</span>
-            <div className="p-1 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
-              <IconCalendarEvent size={16} />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400 font-mono">
-              {isLoadingSummary ? '--' : (summaryData?.izin || 0) + (summaryData?.sakit || 0) + (summaryData?.off || 0)}
-            </div>
-            <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
-              {isLoadingSummary ? 'Memuat...' : `${summaryData?.izin || 0} izin, ${summaryData?.sakit || 0} sakit, ${summaryData?.off || 0} off`}
-            </p>
-          </div>
-        </div>
-
-        {/* Card 4: Pulang Awal */}
-        <div 
-          onClick={() => {
-            setActiveTab('pulang_awal');
-            setSelectedPulangAwalIds([]);
-          }}
-          className={`rounded-2xl border p-3.5 shadow-sm dark:bg-neutral-900 flex flex-col justify-between cursor-pointer transition-colors ${
-            activeTab === 'pulang_awal' 
-              ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 ring-1 ring-amber-500' 
-              : 'border-neutral-200/80 bg-white hover:border-amber-400 dark:border-neutral-800'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-wider uppercase text-neutral-500">Pulang Awal</span>
-            <div className="p-1 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
-              <IconAlertCircle size={16} />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 font-mono">
-              {isLoadingSummary ? '--' : summaryData?.pending_pulang_awal || 0}
-            </div>
-            <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5 font-medium">
-              {(summaryData?.pending_pulang_awal || 0) > 0 ? 'Tinjau pulang awal \u2192' : 'Tidak ada antrean'}
-            </p>
-          </div>
-        </div>
-
-        {/* Card 5: Pending Lembur */}
-        <div 
-          onClick={() => {
-            setActiveTab('lembur');
-            setSelectedLemburIds([]);
-          }}
-          className={`rounded-2xl border p-3.5 shadow-sm dark:bg-neutral-900 flex flex-col justify-between cursor-pointer transition-colors ${
-            activeTab === 'lembur' 
-              ? 'border-teal-500 bg-teal-50/50 dark:bg-teal-950/20 ring-1 ring-teal-500' 
-              : 'border-neutral-200/80 bg-white hover:border-teal-400 dark:border-neutral-800'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-wider uppercase text-neutral-500">Pending Lembur</span>
-            <div className="p-1 rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-950/40 dark:text-teal-400">
-              <IconClock size={16} />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-black text-teal-600 dark:text-teal-400 font-mono">
-              {isLoadingSummary ? '--' : summaryData?.pending_lembur || 0}
-            </div>
-            <p className="text-[11px] text-teal-600 dark:text-teal-400 mt-0.5 font-medium">
-              {(summaryData?.pending_lembur || 0) > 0 ? 'Tinjau lembur \u2192' : 'Tidak ada antrean'}
-            </p>
-          </div>
+        {/* Izin/Sakit/Off */}
+        <div className="flex flex-col p-3">
+          <span className="text-[10px] font-bold tracking-wider uppercase text-blue-600 dark:text-blue-500 mb-1">Absen</span>
+          <span className="text-lg font-black text-blue-600 dark:text-blue-400 font-mono leading-none">
+            {isLoadingSummary ? '--' : (summaryData?.izin || 0) + (summaryData?.sakit || 0) + (summaryData?.off || 0)}
+          </span>
+          <span className="text-[10px] text-neutral-500 mt-1 leading-none truncate">
+            {isLoadingSummary ? '...' : `${summaryData?.izin || 0}i ${summaryData?.sakit || 0}s ${summaryData?.off || 0}o`}
+          </span>
         </div>
       </div>
 

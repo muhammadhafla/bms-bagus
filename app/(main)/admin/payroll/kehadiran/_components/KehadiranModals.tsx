@@ -510,7 +510,7 @@ export function KehadiranModals({
                   { onSuccess: () => setReviewPulangAwalModalItem(null) }
                 )}
                 disabled={reviewPulangAwalMutation.isPending}
-                className="flex items-start gap-3 p-3.5 rounded-2xl border-2 border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/40 hover:bg-emerald-50 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 text-left transition-all cursor-pointer group"
+                className="flex items-start gap-3 p-3.5 rounded-2xl border-2 border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/40 hover:bg-emerald-50 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 text-left transition-all cursor-pointer group active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
               >
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 mt-0.5">
                   <IconCheck size={18} stroke={2.5} />
@@ -531,7 +531,7 @@ export function KehadiranModals({
                   { onSuccess: () => setReviewPulangAwalModalItem(null) }
                 )}
                 disabled={reviewPulangAwalMutation.isPending}
-                className="flex items-start gap-3 p-3.5 rounded-2xl border-2 border-slate-200 dark:border-neutral-700 bg-slate-50/50 hover:bg-slate-100/70 dark:bg-neutral-800/40 dark:hover:bg-neutral-800/70 text-left transition-all cursor-pointer group"
+                className="flex items-start gap-3 p-3.5 rounded-2xl border-2 border-slate-200 dark:border-neutral-700 bg-slate-50/50 hover:bg-slate-100/70 dark:bg-neutral-800/40 dark:hover:bg-neutral-800/70 text-left transition-all cursor-pointer group active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:outline-none"
               >
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-200 text-slate-700 dark:bg-neutral-700 dark:text-neutral-300 mt-0.5">
                   <IconClock size={18} />

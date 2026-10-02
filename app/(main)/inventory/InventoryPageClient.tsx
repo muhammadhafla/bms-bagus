@@ -70,6 +70,7 @@ export default function InventoryPageClient() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const lastPushedSearchRef = useRef(searchParams.get('search') || '');
   const queryClient = useQueryClient();
 
   // Sync state from URL when external navigation occurs (e.g. sidebar click or back/forward)
@@ -82,8 +83,12 @@ export default function InventoryPageClient() {
     const urlSortDir = (searchParams.get('sortDir') as any) || 'asc';
     const urlPage = Number(searchParams.get('page')) || 1;
 
-    setSearch((prev) => (prev !== urlSearch ? urlSearch : prev));
-    setDebouncedSearch((prev) => (prev !== urlSearch ? urlSearch : prev));
+    if (urlSearch !== lastPushedSearchRef.current) {
+      setSearch(urlSearch);
+      setDebouncedSearch(urlSearch);
+      lastPushedSearchRef.current = urlSearch;
+    }
+
     setKategori((prev) => (prev !== urlKategori ? urlKategori : prev));
     setLowStockOnly((prev) => (prev !== urlLowStock ? urlLowStock : prev));
     setActiveStatus((prev) => (prev !== urlStatus ? urlStatus : prev));
@@ -108,6 +113,7 @@ export default function InventoryPageClient() {
     
     const currentQueryString = searchParams.toString();
     if (queryString !== currentQueryString) {
+      lastPushedSearchRef.current = debouncedSearch;
       router.replace(newUrl, { scroll: false });
     }
   }, [debouncedSearch, kategori, lowStockOnly, activeStatus, sortBy, sortDir, page, pathname, router, searchParams]);

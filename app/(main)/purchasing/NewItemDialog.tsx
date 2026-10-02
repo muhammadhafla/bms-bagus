@@ -131,7 +131,7 @@ export function NewItemDialog({
     if (nama_barang.trim() && !submitting) {
       handleSubmit(new Event('submit') as unknown as React.FormEvent);
     }
-  }, { enableOnFormTags: true, enabled: open });
+  }, { enableOnFormTags: true, enabled: open }, [nama_barang, submitting, open, handleSubmit]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {

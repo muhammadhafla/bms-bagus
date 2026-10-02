@@ -32,7 +32,7 @@ export function usePembelianShortcuts({
       setEditMode('qty');
       setEditValue(items[0].qty);
     }
-  }, { enableOnFormTags: true, enabled });
+  }, { enableOnFormTags: true, enabled }, [items, enabled, setSelectedIndex, setEditMode, setEditValue]);
 
   useHotkeys('f3', (e) => {
     e.preventDefault();
@@ -41,7 +41,7 @@ export function usePembelianShortcuts({
       setEditMode('harga');
       setEditValue(items[0].harga_beli || 0);
     }
-  }, { enableOnFormTags: true, enabled });
+  }, { enableOnFormTags: true, enabled }, [items, enabled, setSelectedIndex, setEditMode, setEditValue]);
 
   useHotkeys('f4', (e) => {
     e.preventDefault();
@@ -50,7 +50,7 @@ export function usePembelianShortcuts({
       setEditMode('harga_jual');
       setEditValue(items[0].harga_jual || 0);
     }
-  }, { enableOnFormTags: true, enabled });
+  }, { enableOnFormTags: true, enabled }, [items, enabled, setSelectedIndex, setEditMode, setEditValue]);
 
   useHotkeys('delete', (e) => {
     e.preventDefault();
@@ -58,23 +58,23 @@ export function usePembelianShortcuts({
       removeItem(items[selectedIndex].id);
       setSelectedIndex((prev) => (prev === null ? null : Math.max(0, prev - 1)));
     }
-  }, { enableOnFormTags: true, enabled });
+  }, { enableOnFormTags: true, enabled }, [items, selectedIndex, enabled, removeItem, setSelectedIndex]);
 
   useHotkeys('escape', (e) => {
     e.preventDefault();
     setEditMode(null);
     setSelectedIndex(null);
-  }, { enableOnFormTags: true, enabled });
+  }, { enableOnFormTags: true, enabled }, [enabled, setEditMode, setSelectedIndex]);
 
   useHotkeys('f6', (e) => {
     e.preventDefault();
     setShowResetConfirm(true);
-  }, { enableOnFormTags: true, enabled });
+  }, { enableOnFormTags: true, enabled }, [enabled, setShowResetConfirm]);
 
   useHotkeys('f9', (e) => {
     e.preventDefault();
     if (items.length > 0 && !submitting) {
       handleSimpan();
     }
-  }, { enableOnFormTags: true, enabled });
+  }, { enableOnFormTags: true, enabled }, [items, submitting, enabled, handleSimpan]);
 }

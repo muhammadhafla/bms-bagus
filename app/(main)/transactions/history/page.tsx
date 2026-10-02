@@ -252,29 +252,23 @@ function TransactionsHistoryContent() {
                 />
               </div>
 
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <SelectInput
-                    label="Urutkan Berdasarkan"
-                    value={tempSortBy}
-                    onChange={(val) => setTempSortBy(val)}
-                    options={[
-                      { label: 'Tanggal & Waktu', value: 'created_at' },
-                      { label: 'Total Transaksi', value: 'total' },
-                    ]}
-                  />
-                </div>
-                <div className="w-1/3">
-                  <SelectInput
-                    label="Arah Urutan"
-                    value={tempSortDir}
-                    onChange={(val) => setTempSortDir(val as 'asc' | 'desc')}
-                    options={[
-                      { label: 'Turun', value: 'desc' },
-                      { label: 'Naik', value: 'asc' },
-                    ]}
-                  />
-                </div>
+              <div>
+                <SelectInput
+                  label="Urutkan Berdasarkan"
+                  value={`${tempSortBy}:${tempSortDir}`}
+                  onChange={(val) => {
+                    const [newSortBy, newSortDir] = val.split(':');
+                    setTempSortBy(newSortBy);
+                    setTempSortDir(newSortDir as 'asc' | 'desc');
+                  }}
+                  clearable={false}
+                  options={[
+                    { label: 'Tanggal & Waktu: Terbaru', value: 'created_at:desc' },
+                    { label: 'Tanggal & Waktu: Terlama', value: 'created_at:asc' },
+                    { label: 'Total Transaksi: Tertinggi', value: 'total:desc' },
+                    { label: 'Total Transaksi: Terendah', value: 'total:asc' },
+                  ]}
+                />
               </div>
 
               <div className="mt-6 flex gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">

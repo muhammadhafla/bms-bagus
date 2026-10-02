@@ -19,6 +19,7 @@ interface PurchaseHistoryModalProps {
   onClose: () => void;
   inventoryId: string | null;
   itemName?: string;
+  nested?: boolean;
 }
 
 export function PurchaseHistoryModal({
@@ -26,6 +27,7 @@ export function PurchaseHistoryModal({
   onClose,
   inventoryId,
   itemName,
+  nested = false,
 }: PurchaseHistoryModalProps) {
   const [page, setPage] = useState(1);
   const limit = 10;
@@ -52,6 +54,8 @@ export function PurchaseHistoryModal({
       onClose={onClose}
       title={itemName ? `Riwayat Harga: ${itemName}` : 'Riwayat Harga Beli'}
       size="lg"
+      isBottomSheetOnMobile
+      nested={nested}
     >
       <div className="space-y-4">
         {isLoading ? (
@@ -101,36 +105,36 @@ export function PurchaseHistoryModal({
               </table>
             </div>
 
-            {/* Mobile View */}
-            <div className="block space-y-3 md:hidden">
-              {historyData.map((item: any) => (
-                <div
-                  key={item.id}
-                  className="flex flex-col gap-3 rounded-xl border border-neutral-200/60 bg-white p-4 shadow-sm dark:border-neutral-800/60 dark:bg-neutral-900"
-                >
-                  <div className="flex items-start justify-between border-b border-neutral-100 pb-3 dark:border-neutral-800">
-                    <div className="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
-                      <IconCalendar size={16} />
-                      <span className="font-medium text-neutral-900 dark:text-white">
-                        {formatDate(item.tanggal)}
-                      </span>
-                    </div>
-                    <div className="text-brand-600 dark:text-brand-400 flex items-center gap-2 font-semibold">
-                      <span>{formatCurrency(item.harga_beli)}</span>
+            {/* Mobile View - Timeline Style */}
+            <div className="block md:hidden px-1 pt-1">
+              <div className="relative pl-6 space-y-6 before:absolute before:inset-y-1.5 before:left-[9px] before:w-px before:bg-neutral-200 dark:before:bg-neutral-800">
+                {historyData.map((item: any, idx: number) => (
+                  <div key={item.id} className="relative">
+                    {/* Timeline Dot */}
+                    <div className="absolute -left-[29px] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-white bg-brand-500 shadow-sm dark:ring-neutral-950 dark:bg-brand-500" />
+                    
+                    {/* Content */}
+                    <div className="flex items-start justify-between bg-white dark:bg-neutral-900 rounded-xl p-3 shadow-sm border border-neutral-100 dark:border-neutral-800/60 ml-1">
+                      <div className="flex flex-col pr-2 min-w-0">
+                        <span className="text-[10px] font-bold tracking-widest text-neutral-400 dark:text-neutral-500 uppercase">
+                          {formatDate(item.tanggal)}
+                        </span>
+                        <span className="mt-1 text-sm font-semibold text-neutral-800 dark:text-neutral-200 truncate">
+                          {item.supplier_nama || 'Tanpa Supplier'}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end shrink-0 pl-3">
+                        <span className="text-sm font-bold text-brand-600 dark:text-brand-400">
+                          {formatCurrency(item.harga_beli)}
+                        </span>
+                        <span className="mt-1 text-[11px] font-medium text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-md">
+                          {item.qty} pcs
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-300">
-                      <IconBuildingStore size={16} className="text-neutral-400" />
-                      <span className="max-w-[150px] truncate">{item.supplier_nama || '-'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-neutral-700 dark:text-neutral-200">
-                      <IconHash size={16} className="text-neutral-400" />
-                      <span className="font-medium">{item.qty} pcs</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
             {totalPages > 1 && (

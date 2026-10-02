@@ -30,6 +30,7 @@ interface MergeInventoryModalProps {
   onClose: () => void;
   sourceItems: InventoryItem[];
   onSuccess?: (result: MergeInventoryResult) => void;
+  nested?: boolean;
 }
 
 export function MergeInventoryModal({
@@ -37,6 +38,7 @@ export function MergeInventoryModal({
   onClose,
   sourceItems,
   onSuccess,
+  nested = false,
 }: MergeInventoryModalProps) {
   // Mode selection: 'from_selection' (if multiple items checked) or 'search_catalog'
   const isMultiSelection = sourceItems.length > 1;
@@ -109,7 +111,11 @@ export function MergeInventoryModal({
           `Berhasil menggabungkan ${effectiveSourceItems.length} barang ke "${targetItem.nama_barang}"`
         );
         if (onSuccess) {
-          onSuccess(result.data);
+          try {
+            onSuccess(result.data);
+          } catch (e) {
+            console.error('Error in onSuccess callback:', e);
+          }
         }
         onClose();
       }
@@ -201,6 +207,7 @@ export function MergeInventoryModal({
       headerExtra={headerInfoExtra}
       size="lg"
       isBottomSheetOnMobile
+      nested={nested}
     >
       <div className="space-y-6">
         {/* Step 1: Daftar Barang Duplikat */}

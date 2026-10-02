@@ -19,6 +19,7 @@ interface ModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
   isBottomSheetOnMobile?: boolean;
   isFullScreenOnMobile?: boolean;
+  nested?: boolean;
 }
 
 export function Modal({
@@ -32,6 +33,7 @@ export function Modal({
   size = 'md',
   isBottomSheetOnMobile = false,
   isFullScreenOnMobile = false,
+  nested = false,
 }: ModalProps) {
   const titleId = useId();
   const focusTrapRef = useFocusTrap(isOpen);
@@ -78,14 +80,15 @@ export function Modal({
   if (mounted && isBottomSheetOnMobile && !isDesktop) {
     return (
       <Drawer.Root
+        nested={nested}
         open={isOpen}
         onOpenChange={(open) => {
           if (!open) onClose();
         }}
       >
         <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 z-[100] bg-black/50" />
-          <Drawer.Content className="fixed right-0 bottom-0 left-0 z-[101] flex max-h-[96vh] flex-col rounded-t-2xl bg-white outline-none dark:bg-neutral-950">
+          <Drawer.Overlay className={`fixed inset-0 bg-black/50 ${nested ? 'z-[120]' : 'z-[100]'}`} />
+          <Drawer.Content className={`fixed right-0 bottom-0 left-0 flex max-h-[96vh] flex-col rounded-t-2xl bg-white outline-none dark:bg-neutral-950 ${nested ? 'z-[121]' : 'z-[101]'}`}>
             <div className="mx-auto mt-2.5 mb-1 h-1 w-10 shrink-0 rounded-full bg-neutral-300 dark:bg-neutral-700" />
             {title && (
               <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-4 py-2.5 dark:border-neutral-800">
@@ -119,7 +122,7 @@ export function Modal({
   return (
     <Portal>
       <div
-        className={`fixed inset-0 z-[100] flex ${isBottomSheetOnMobile ? 'items-end sm:items-center' : 'items-center'} justify-center ${isBottomSheetOnMobile || isFullScreenOnMobile ? 'p-0 sm:p-4' : 'p-3 sm:p-4'} animate-fade-in`}
+        className={`fixed inset-0 ${nested ? 'z-[130]' : 'z-[110]'} flex ${isBottomSheetOnMobile ? 'items-end sm:items-center' : 'items-center'} justify-center ${isBottomSheetOnMobile || isFullScreenOnMobile ? 'p-0 sm:p-4' : 'p-3 sm:p-4'} animate-fade-in`}
       >
         <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
         <div

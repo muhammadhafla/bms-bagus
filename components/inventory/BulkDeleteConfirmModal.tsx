@@ -82,7 +82,13 @@ export function BulkDeleteConfirmModal({
         toast.error(result.error.message || 'Gagal menghapus barang');
       } else {
         toast.success(`Berhasil menghapus ${cleanItems.length} barang secara permanen.`);
-        if (onSuccess) onSuccess();
+        if (onSuccess) {
+          try {
+            onSuccess();
+          } catch (e) {
+            console.error(e);
+          }
+        }
         onClose();
       }
     } catch (err: any) {

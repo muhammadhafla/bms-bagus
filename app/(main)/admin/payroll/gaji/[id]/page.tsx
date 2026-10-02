@@ -8,7 +8,7 @@ import { kasApi, ActiveShiftItem } from '@/lib/api/kas';
 import { gudangApi } from '@/lib/api/warehouse';
 
 import { Card, Button, Modal, TextInput, TextareaInput, SelectInput, ModernPagination, MonthPicker, DataTable, type Column, Badge } from '@/components/ui';
-import { IconArrowLeft, IconWallet, IconCheck, IconX, IconArrowUpRight, IconArrowDownLeft, IconClock, IconPrinter, IconFileText, IconCalendarEvent, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import { IconArrowLeft, IconWallet, IconCheck, IconX, IconArrowUpRight, IconArrowDownLeft, IconClock, IconPrinter, IconFileText, IconCalendarEvent, IconChevronLeft, IconChevronRight, IconReceipt, IconHistory } from '@tabler/icons-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths, isSameDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -359,33 +359,33 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
   ];
 
   return (
-    <div className="flex flex-col gap-4 md:gap-6 px-4 pt-1 pb-6 md:p-6 lg:p-8 md:pb-20 w-full mx-auto">
+    <div className="flex flex-col gap-4 md:gap-6 px-3 pt-2 pb-6 md:px-6 md:pt-4 lg:p-8 md:pb-20 w-full mx-auto max-w-7xl">
       
       {/* Header */}
       <div className="flex items-center gap-3">
         <button 
           onClick={() => router.back()}
-          className="p-1.5 md:p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0"
+          className="p-1 md:p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0"
         >
-          <IconArrowLeft className="h-6 w-6 text-neutral-600 dark:text-neutral-400" />
+          <IconArrowLeft className="h-5 w-5 text-neutral-600 dark:text-neutral-400" />
         </button>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           {profile && (
-            <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 flex items-center justify-center font-bold text-lg shrink-0">
+            <div className="h-9 w-9 md:h-11 md:w-11 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 flex items-center justify-center font-bold text-base md:text-lg shrink-0">
               {profile.nama?.charAt(0).toUpperCase()}
             </div>
           )}
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-neutral-900 dark:text-white leading-tight capitalize">
+            <h1 className="text-lg md:text-xl font-bold text-neutral-900 dark:text-white leading-tight capitalize">
               {profile ? profile.nama : 'Detail Mutasi Karyawan'}
             </h1>
-            <p className="text-neutral-500 mt-1 hidden md:block">Kelola pencairan dan kasbon karyawan ini.</p>
+            <p className="text-sm text-neutral-500 mt-0.5 hidden md:block">Kelola pencairan dan kasbon karyawan ini.</p>
           </div>
         </div>
       </div>
 
       {/* Saldo Card */}
-      <div className="rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-5 shadow-sm">
+      <div className="rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-5 shadow-sm">
         <div className="flex flex-row items-center gap-4">
           <div className={`p-3.5 rounded-2xl ${
             saldo > 0 ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
@@ -408,17 +408,10 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
           </div>
         </div>
         
-        <div className="flex w-full md:w-auto gap-3">
-          <Button 
-            variant="secondary"
-            className="w-full md:w-auto shadow-sm"
-            onClick={() => setIsBonusOpen(true)}
-          >
-            Tambah Mutasi Manual
-          </Button>
+        <div className="flex flex-col w-full md:w-auto gap-2 mt-2 md:mt-0">
           <Button 
             variant="primary" 
-            className="w-full md:w-auto shadow-sm"
+            className="w-full md:w-auto shadow-sm py-2.5"
             onClick={() => {
                // Pre-fill with positive saldo if any
                setCairkanNominal(saldo > 0 ? saldo.toString() : '');
@@ -427,6 +420,13 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
           >
             Cairkan / Beri Kasbon
           </Button>
+          <Button 
+            variant="secondary"
+            className="w-full md:w-auto text-sm border-none bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+            onClick={() => setIsBonusOpen(true)}
+          >
+            Tambah Mutasi Manual
+          </Button>
         </div>
       </div>
 
@@ -434,31 +434,36 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <h2 className="text-lg font-bold text-neutral-900 dark:text-white">Riwayat Mutasi</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar w-full sm:w-auto">
             <Button 
               variant="secondary" 
               size="sm" 
+              className="rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 whitespace-nowrap shadow-sm text-xs sm:text-sm px-2.5 sm:px-3"
               leftIcon={<IconCalendarEvent size={16} />}
               onClick={() => setIsCalendarModalOpen(true)}
             >
-              Kalender
+              <span className="hidden min-[360px]:inline">Kalender</span>
             </Button>
             <Button 
               variant="secondary" 
               size="sm" 
-              leftIcon={<IconFileText size={16} />}
+              className="rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 whitespace-nowrap shadow-sm text-xs sm:text-sm px-2.5 sm:px-3"
+              leftIcon={<IconReceipt size={16} />}
               onClick={() => setIsSlipOpen(true)}
             >
-              Slip Gaji
+              <span className="hidden min-[360px]:inline sm:hidden">Slip</span>
+              <span className="hidden sm:inline">Slip Gaji</span>
             </Button>
             <Button 
               variant="secondary" 
               size="sm" 
-              leftIcon={<IconFileText size={16} />}
+              className="rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 whitespace-nowrap shadow-sm text-xs sm:text-sm px-2.5 sm:px-3 disabled:opacity-50"
+              leftIcon={<IconHistory size={16} />}
               onClick={() => setIsMutasiPreviewOpen(true)}
               disabled={!list || list.length === 0}
             >
-              Lihat Mutasi
+              <span className="hidden min-[360px]:inline sm:hidden">Mutasi</span>
+              <span className="hidden sm:inline">Lihat Mutasi</span>
             </Button>
           </div>
         </div>
@@ -491,19 +496,19 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
         </div>
 
         {/* Mobile Card Layout */}
-        <div className="flex lg:hidden bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-4 sm:p-6 shadow-sm flex-col">
+        <div className="flex lg:hidden bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-3xl p-2 sm:p-5 shadow-sm flex-col">
           {isLoading ? (
             <div className="p-8 text-center text-sm text-neutral-500">Memuat data...</div>
           ) : !list || list.length === 0 ? (
             <div className="p-8 text-center text-sm text-neutral-500">Belum ada riwayat mutasi.</div>
           ) : (
-            <>
+            <div className="flex flex-col gap-1.5">
               {list.map((item: PayrollMutasi, index: number) => (
                 <div 
                   key={item.id} 
-                  className={`py-4 flex flex-row items-center justify-between gap-4 transition-all ${
-                    index !== list.length - 1 ? 'border-b border-neutral-100 dark:border-neutral-800' : ''
-                  } ${item.status === 'pending' ? 'bg-amber-50/50 dark:bg-amber-900/10 -mx-4 px-4 rounded-xl' : ''}`}
+                  className={`p-3 md:p-4 flex flex-row items-center justify-between gap-3 transition-all rounded-2xl hover:bg-neutral-50 dark:hover:bg-neutral-800/50 cursor-pointer ${
+                    item.status === 'pending' ? 'bg-amber-50/50 dark:bg-amber-900/10' : ''
+                  }`}
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
@@ -522,18 +527,19 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
                       )}
                     </div>
                     
-                    <div className="min-w-0 truncate">
-                      <div className="flex items-center gap-2">
-                        <p className="font-bold text-sm text-neutral-900 dark:text-white truncate">
-                          {item.keterangan || 'Tanpa Keterangan'}
+                    <div className="min-w-0 flex-1 truncate">
+                      <p className="font-bold text-sm text-neutral-900 dark:text-white truncate group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                        {item.keterangan || 'Tanpa Keterangan'}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <p className="text-[11px] text-neutral-500">
+                          {format(new Date(item.tanggal), 'd MMM yyyy, HH:mm', { locale: localeId })}
                         </p>
-                        <Badge variant="default" className="text-[10px] px-1.5 py-0 min-h-0 h-4 capitalize">
+                        <span className="text-neutral-300 dark:text-neutral-700 text-[10px]">•</span>
+                        <Badge variant="default" className="text-[9px] px-1.5 py-0 min-h-0 h-4 capitalize tracking-wide font-medium bg-neutral-100 border-none text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
                           {item.kategori}
                         </Badge>
                       </div>
-                      <p className="text-xs text-neutral-500 mt-0.5">
-                        {format(new Date(item.tanggal), 'd MMM yyyy, HH:mm', { locale: localeId })}
-                      </p>
                     </div>
                   </div>
                   
@@ -544,7 +550,7 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
                           ? 'text-amber-600 dark:text-amber-500' 
                           : item.jenis === 'kredit' 
                             ? 'text-emerald-600 dark:text-emerald-400' 
-                            : 'text-neutral-900 dark:text-white'
+                            : 'text-rose-600 dark:text-rose-400'
                       }`}>
                         {item.jenis === 'kredit' ? '' : '-'}Rp {item.nominal.toLocaleString('id-ID')}
                       </p>
@@ -570,11 +576,11 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
               ))}
               
               {totalPages > 1 && (
-                <div className="mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800">
+                <div className="mt-2 pt-4 border-t border-neutral-100 dark:border-neutral-800">
                   <ModernPagination page={page} totalPages={totalPages} total={totalItems} limit={limit} onPageChange={setPage} />
                 </div>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>

@@ -1102,6 +1102,7 @@ export const InventoryTable = React.memo(function InventoryTable({
         onClose={() => setMergeModalOpen(false)}
         sourceItems={mergeSourceItems}
         onSuccess={handleMergeSuccess}
+        nested={isSlideOverOpen || bulkDeleteModalOpen || !!deletionBlockedInfo}
       />
 
       <BulkDeleteConfirmModal
@@ -1146,6 +1147,8 @@ export const InventoryTable = React.memo(function InventoryTable({
         onClose={() => setPrintModalOpen(false)}
         title="Cetak Label"
         size="sm"
+        isBottomSheetOnMobile
+        nested={isSlideOverOpen}
       >
         <div className="space-y-4">
           <p className="text-sm text-neutral-600 dark:text-neutral-400">
@@ -1204,6 +1207,7 @@ export const InventoryTable = React.memo(function InventoryTable({
         onClose={() => setHistoryModalOpen(false)}
         inventoryId={selectedItem?.id || null}
         itemName={selectedItem?.nama_barang}
+        nested={isSlideOverOpen}
       />
     </>
   );

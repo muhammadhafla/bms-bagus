@@ -439,6 +439,7 @@ export default function InventoryPageClient() {
                 <SelectInput
                   value={activeStatus}
                   onChange={(val) => setActiveStatus(val as 'all' | 'active' | 'discontinued')}
+                  clearable={false}
                   options={[
                     { value: 'all', label: 'Semua Status' },
                     { value: 'active', label: 'Hanya Barang Aktif' },
@@ -459,6 +460,7 @@ export default function InventoryPageClient() {
                     setSortBy(newSortBy);
                     setSortDir(newSortDir as 'asc' | 'desc');
                   }}
+                  clearable={false}
                   options={[
                     { value: 'nama_barang:asc', label: 'Nama Barang (A ke Z)' },
                     { value: 'nama_barang:desc', label: 'Nama Barang (Z ke A)' },

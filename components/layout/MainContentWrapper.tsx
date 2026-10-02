@@ -38,7 +38,7 @@ export function MainContentWrapper({ children }: { children: React.ReactNode }) 
       {/* Bottom Navigation for Mobile */}
       <BottomNav />
       {/* Global Toaster */}
-      <Toaster richColors position="top-center" />
+      <Toaster richColors position="top-center" style={{ zIndex: 9999 }} />
     </>
   );
 }

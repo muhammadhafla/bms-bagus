@@ -78,6 +78,7 @@ export function CashFlowFilterPanel({
             label="Tipe Transaksi"
             value={tempFilters.typeFilter}
             onChange={(val) => handleChange('typeFilter', val)}
+            clearable={false}
             options={[
               { label: 'Semua Tipe', value: 'all' },
               { label: 'Penjualan (JUAL)', value: 'JUAL' },
@@ -89,29 +90,23 @@ export function CashFlowFilterPanel({
           />
         </div>
 
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <SelectInput
-              label="Urutkan Berdasarkan"
-              value={tempFilters.sortBy}
-              onChange={(val) => handleChange('sortBy', val)}
-              options={[
-                { label: 'Tanggal & Waktu', value: 'created_at' },
-                { label: 'Nominal', value: 'jumlah' },
-              ]}
-            />
-          </div>
-          <div className="w-1/3">
-            <SelectInput
-              label="Arah Urutan"
-              value={tempFilters.sortDir}
-              onChange={(val) => handleChange('sortDir', val)}
-              options={[
-                { label: 'Turun', value: 'desc' },
-                { label: 'Naik', value: 'asc' },
-              ]}
-            />
-          </div>
+        <div>
+          <SelectInput
+            label="Urutkan Berdasarkan"
+            value={`${tempFilters.sortBy}:${tempFilters.sortDir}`}
+            onChange={(val) => {
+              const [newSortBy, newSortDir] = val.split(':');
+              handleChange('sortBy', newSortBy);
+              handleChange('sortDir', newSortDir);
+            }}
+            clearable={false}
+            options={[
+              { label: 'Tanggal & Waktu: Terbaru', value: 'created_at:desc' },
+              { label: 'Tanggal & Waktu: Terlama', value: 'created_at:asc' },
+              { label: 'Nominal: Terbesar ke Terkecil', value: 'jumlah:desc' },
+              { label: 'Nominal: Terkecil ke Terbesar', value: 'jumlah:asc' },
+            ]}
+          />
         </div>
 
         <div className="mt-6 flex gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">

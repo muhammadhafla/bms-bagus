@@ -501,6 +501,7 @@ export default function AdminKasbonClient() {
                   setTempSortBy(newSortBy);
                   setTempSortDir(newSortDir as 'asc' | 'desc');
                 }}
+                clearable={false}
                 options={[
                   { label: 'Waktu Dibuat: Terbaru', value: 'created_at:desc' },
                   { label: 'Waktu Dibuat: Terlama', value: 'created_at:asc' },

@@ -4,6 +4,7 @@ import { useState, useEffect, ReactNode } from 'react';
 import { IconSearch } from '@tabler/icons-react';
 import { ModernPagination } from '@/components/ui';
 import { useQuery } from '@tanstack/react-query';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 export interface PaginationOptions {
   limit: number;
@@ -42,10 +43,12 @@ export function TransactionHistoryTable<T extends { id: string }>({
   renderMobileCard,
   renderTableHeader,
   renderTableRow,
-  limit = 10,
+  limit: propLimit,
   sortBy,
   sortDir,
 }: TransactionHistoryTableProps<T>) {
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const limit = propLimit || (isDesktop ? 50 : 20);
   const [page, setPage] = useState(1);
 
   // Reset page to 1 when filters change

@@ -23,6 +23,7 @@ export interface AvailableReturnItem {
   pembelian_id: string;
   inventory_id: string;
   nama_barang: string;
+  barcode?: string;
   harga_beli: number;
   diskon?: number;
   qty_original: number;
@@ -172,6 +173,17 @@ export const returnApi = {
       });
       return { data: result.data, error: result.error as Error | null };
     });
+  },
+
+  async findSuppliersByBarcode(barcode: string) {
+    return safeQuery<{ supplier_id: string; supplier_nama: string; total_qty_remaining: number }[]>(
+      async () => {
+        const result = await supabase.rpc('find_suppliers_for_return_by_barcode', {
+          p_barcode: barcode,
+        });
+        return { data: result.data, error: result.error as Error | null };
+      }
+    );
   },
 
   async submitBatchReturn(data: BatchReturnInput) {

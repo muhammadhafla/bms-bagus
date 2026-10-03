@@ -403,10 +403,11 @@ function WarehouseOutboundContent() {
           <CardContent className="p-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <div>
-                <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                <label htmlFor="filter-gudang" className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
                   Filter Lokasi Gudang:
                 </label>
                 <SelectInput
+                  id="filter-gudang"
                   value={selectedGudangId}
                   onChange={(val) => {
                     setSelectedGudangId(val);
@@ -423,10 +424,11 @@ function WarehouseOutboundContent() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                <label htmlFor="filter-tipe" className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
                   Filter Tipe:
                 </label>
                 <SelectInput
+                  id="filter-tipe"
                   value={selectedTipe}
                   onChange={(val) => {
                     setSelectedTipe(val);
@@ -502,10 +504,11 @@ function WarehouseOutboundContent() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                  <label htmlFor="input-gudang-sumber" className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
                     Gudang Sumber:
                   </label>
                   <SelectInput
+                    id="input-gudang-sumber"
                     value={formGudangId}
                     onChange={(val) => {
                       setFormGudangId(val);
@@ -519,10 +522,11 @@ function WarehouseOutboundContent() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                  <label htmlFor="input-kategori-pengeluaran" className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
                     Alasan / Kategori Pengeluaran:
                   </label>
                   <SelectInput
+                    id="input-kategori-pengeluaran"
                     value={formTipe}
                     onChange={(val) => setFormTipe(val as TipePengeluaranGudang)}
                     options={[
@@ -538,10 +542,11 @@ function WarehouseOutboundContent() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                <label htmlFor="input-catatan" className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
                   Catatan Tambahan:
                 </label>
                 <TextInput
+                  id="input-catatan"
                   value={formCatatan}
                   onChange={(e) => setFormCatatan(e.target.value)}
                   placeholder="Contoh: Pecah saat penataan rak / Kadaluarsa batch Juli"
@@ -550,10 +555,11 @@ function WarehouseOutboundContent() {
 
               {/* Item Search */}
               <div className="relative pt-2">
-                <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                <label htmlFor="input-cari-barang" className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
                   Cari Barang di Gudang Terpilih:
                 </label>
                 <TextInput
+                  id="input-cari-barang"
                   value={searchItem}
                   onChange={(e) => setSearchItem(e.target.value)}
                   placeholder="Scan barcode atau ketik nama barang..."
@@ -566,7 +572,7 @@ function WarehouseOutboundContent() {
                         key={res.inventory_id}
                         type="button"
                         onClick={() => handleAddItemToCart(res)}
-                        className="flex w-full items-center justify-between px-3 py-2 text-left text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800 border-b border-neutral-100 dark:border-neutral-800 last:border-0"
+                        className="flex w-full items-center justify-between border-b border-neutral-100 px-3 py-2 text-left text-xs transition-colors last:border-0 hover:bg-neutral-100 focus-visible:bg-neutral-100 focus-visible:outline-none active:bg-neutral-200 dark:border-neutral-800 dark:hover:bg-neutral-800 dark:focus-visible:bg-neutral-800 dark:active:bg-neutral-700"
                       >
                         <div>
                           <p className="font-semibold text-neutral-900 dark:text-white">
@@ -614,8 +620,9 @@ function WarehouseOutboundContent() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <label className="text-neutral-500 text-[11px]">Qty:</label>
+                          <label htmlFor={`qty-${item.inventory_id}`} className="text-[11px] text-neutral-500">Qty:</label>
                           <input
+                            id={`qty-${item.inventory_id}`}
                             type="number"
                             min="1"
                             max={item.stok_tersedia}
@@ -623,11 +630,12 @@ function WarehouseOutboundContent() {
                             onChange={(e) =>
                               handleUpdateQty(item.inventory_id, parseInt(e.target.value) || 1)
                             }
-                            className="w-16 rounded border border-neutral-300 bg-white px-2 py-1 text-center font-bold text-neutral-900 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                            className="w-16 rounded border border-neutral-300 bg-white px-2 py-1 text-center font-bold text-neutral-900 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
                           />
                           <Button
                             size="sm"
                             variant="ghost"
+                            title="Hapus barang dari daftar"
                             leftIcon={<IconX className="h-4 w-4 text-rose-500" />}
                             onClick={() => handleRemoveCartItem(item.inventory_id)}
                           />
@@ -752,10 +760,11 @@ function WarehouseOutboundContent() {
               {/* Reject Note Input */}
               {showRejectInput && (
                 <div className="space-y-2 p-3 rounded-lg border border-rose-200 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/20">
-                  <label className="block text-xs font-bold text-rose-800 dark:text-rose-300">
+                  <label htmlFor="input-reject-note" className="block text-xs font-bold text-rose-800 dark:text-rose-300">
                     Alasan Penolakan Pengeluaran:
                   </label>
                   <TextInput
+                    id="input-reject-note"
                     value={rejectNote}
                     onChange={(e) => setRejectNote(e.target.value)}
                     placeholder="Contoh: Barang masih layak pakai / Qty tidak sesuai"

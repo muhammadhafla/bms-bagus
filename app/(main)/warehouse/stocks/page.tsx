@@ -357,7 +357,7 @@ function WarehouseStocksContent() {
 
                 <Button
                   variant="primary"
-                  onClick={() => router.push('/warehouse/transfers?action=new')}
+                  onClick={() => router.push('/warehouse/transfers/new')}
                   className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl !p-2 shadow-sm transition-shadow hover:shadow-md sm:h-auto sm:!px-4 sm:!py-2"
                 >
                   <IconArrowsExchange size={18} className="shrink-0" />
@@ -417,8 +417,9 @@ function WarehouseStocksContent() {
                     />
                     {search && (
                       <button
+                        aria-label="Hapus pencarian"
                         onClick={() => setSearch('')}
-                        className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+                        className="absolute top-1/2 right-3 -translate-y-1/2 rounded-full text-neutral-400 hover:text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 active:scale-90 transition-transform dark:hover:text-neutral-200"
                       >
                         <IconX size={16} />
                       </button>
@@ -447,8 +448,9 @@ function WarehouseStocksContent() {
                           categoryId}
                       </span>
                       <button
+                        aria-label="Hapus filter kategori"
                         onClick={() => setCategoryId('')}
-                        className="text-brand-500 hover:text-brand-700 dark:hover:text-brand-200"
+                        className="rounded-full text-brand-500 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 active:scale-90 transition-transform dark:hover:text-brand-200"
                       >
                         <IconX size={14} />
                       </button>
@@ -465,8 +467,9 @@ function WarehouseStocksContent() {
                           : 'Stok Tersedia (> 0)'}
                       </span>
                       <button
+                        aria-label="Hapus filter status stok"
                         onClick={() => setStockStatus('all')}
-                        className="text-accent-rose-500 hover:text-accent-rose-700 dark:hover:text-accent-rose-200"
+                        className="rounded-full text-accent-rose-500 hover:text-accent-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-rose-500 active:scale-90 transition-transform dark:hover:text-accent-rose-200"
                       >
                         <IconX size={14} />
                       </button>
@@ -479,8 +482,9 @@ function WarehouseStocksContent() {
                         {rakStatus === 'unassigned' ? 'Belum Diatur Rak' : 'Sudah Ada Lokasi Rak'}
                       </span>
                       <button
+                        aria-label="Hapus filter status rak"
                         onClick={() => setRakStatus('all')}
-                        className="text-amber-500 hover:text-amber-700 dark:hover:text-amber-200"
+                        className="rounded-full text-amber-500 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 active:scale-90 transition-transform dark:hover:text-amber-200"
                       >
                         <IconX size={14} />
                       </button>
@@ -504,11 +508,12 @@ function WarehouseStocksContent() {
                           : 'Terbaru'}
                       </span>
                       <button
+                        aria-label="Hapus pengurutan"
                         onClick={() => {
                           setSortBy('updated_at');
                           setSortDir('desc');
                         }}
-                        className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+                        className="rounded-full text-neutral-400 hover:text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 active:scale-90 transition-transform dark:hover:text-neutral-200"
                       >
                         <IconX size={14} />
                       </button>
@@ -519,8 +524,9 @@ function WarehouseStocksContent() {
                     <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
                       <span>Pencarian: &quot;{debouncedSearch}&quot;</span>
                       <button
+                        aria-label="Hapus filter pencarian"
                         onClick={() => setSearch('')}
-                        className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+                        className="rounded-full text-neutral-400 hover:text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 active:scale-90 transition-transform dark:hover:text-neutral-200"
                       >
                         <IconX size={14} />
                       </button>
@@ -529,7 +535,7 @@ function WarehouseStocksContent() {
 
                   <button
                     onClick={resetAllFilters}
-                    className="text-[11px] font-semibold text-brand-600 hover:underline dark:text-brand-400 ml-1 cursor-pointer"
+                    className="ml-1 cursor-pointer rounded px-1 text-[11px] font-semibold text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-brand-400"
                   >
                     Reset Semua
                   </button>
@@ -900,7 +906,7 @@ function WarehouseStocksContent() {
                                   leftIcon={<IconArrowsExchange className="h-4 w-4" />}
                                   onClick={() =>
                                     router.push(
-                                      `/warehouse/transfers?action=new&itemBarcode=${encodeURIComponent(
+                                      `/warehouse/transfers/new?itemBarcode=${encodeURIComponent(
                                         row.kode_barcode,
                                       )}&asal=${activeGudangId}`,
                                     )
@@ -1061,7 +1067,7 @@ function WarehouseStocksContent() {
                             leftIcon={<IconArrowsExchange size={14} />}
                             onClick={() =>
                               router.push(
-                                `/warehouse/transfers?action=new&itemBarcode=${encodeURIComponent(
+                                `/warehouse/transfers/new?itemBarcode=${encodeURIComponent(
                                   row.kode_barcode,
                                 )}&asal=${activeGudangId}`,
                               )
@@ -1131,10 +1137,11 @@ function WarehouseStocksContent() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                  <label htmlFor="input-rak-lokasi" className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
                     Posisi Rak / Bin (Contoh: Rak A-02-B, Bin 12):
                   </label>
                   <TextInput
+                    id="input-rak-lokasi"
                     value={rakLokasi}
                     onChange={(e) => setRakLokasi(e.target.value)}
                     placeholder="Masukkan kode rak atau bin..."
@@ -1143,10 +1150,11 @@ function WarehouseStocksContent() {
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                    <label htmlFor="input-min-stok" className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
                       Stok Minimum (Alert Peringatan):
                     </label>
                     <TextInput
+                      id="input-min-stok"
                       type="number"
                       value={String(minStok)}
                       onChange={(e) => setMinStok(Number(e.target.value))}
@@ -1155,10 +1163,11 @@ function WarehouseStocksContent() {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                    <label htmlFor="input-max-stok" className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
                       Stok Maksimum (Kapasitas Rak):
                     </label>
                     <TextInput
+                      id="input-max-stok"
                       type="number"
                       value={maxStok}
                       onChange={(e) => setMaxStok(e.target.value)}

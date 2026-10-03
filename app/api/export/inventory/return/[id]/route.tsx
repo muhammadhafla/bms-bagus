@@ -1,8 +1,12 @@
 import React from 'react';
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { renderToStream } from '@react-pdf/renderer';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-import { supabase } from '@/lib/supabase';
+import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
+
+export const dynamic = 'force-dynamic';
 
 const styles = StyleSheet.create({
   page: { flexDirection: 'column', padding: 30, fontFamily: 'Helvetica', fontSize: 10 },
@@ -88,6 +92,36 @@ export async function GET(request: Request, context: any) {
   // Use context.params in Next.js 15
   const params = await context.params;
   const id = params.id;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  // 1. Verifikasi sesi login pengguna menggunakan cookies
+  const cookieStore = await cookies();
+  const supabaseAuth = createServerClient(
+    supabaseUrl,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll() {},
+      },
+    }
+  );
+
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+  if (!user) {
+    return new NextResponse('Unauthorized: Silakan login terlebih dahulu.', { status: 401 });
+  }
+
+  // 2. Client query data (service role jika tersedia, fallback ke supabaseAuth)
+  const supabase = serviceKey
+    ? createClient(supabaseUrl, serviceKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      })
+    : supabaseAuth;
   
   try {
     const { data, error } = await supabase

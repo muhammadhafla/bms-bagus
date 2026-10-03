@@ -10,6 +10,7 @@ interface ResponsivePanelProps {
   children: React.ReactNode;
   snapPoints?: (number | string)[];
   defaultSnap?: number | string;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 export function ResponsivePanel({
@@ -19,6 +20,7 @@ export function ResponsivePanel({
   children,
   snapPoints,
   defaultSnap,
+  size = 'md',
 }: ResponsivePanelProps) {
   const [direction, setDirection] = useState<'bottom' | 'right'>('bottom');
 
@@ -44,7 +46,12 @@ export function ResponsivePanel({
         <Drawer.Content
           className={`fixed z-[101] flex flex-col bg-white focus:outline-none dark:bg-neutral-950 ${
             isDesktop
-              ? 'top-0 right-0 h-full w-full max-w-md shadow-xl'
+              ? `top-0 right-0 h-full w-full ${
+                  size === 'sm' ? 'max-w-sm' :
+                  size === 'lg' ? 'max-w-lg' :
+                  size === 'xl' ? 'max-w-2xl' :
+                  'max-w-md'
+                } shadow-xl`
               : 'right-0 bottom-0 left-0 max-h-[92svh] rounded-t-2xl pb-[env(safe-area-inset-bottom)]'
           } `}
         >

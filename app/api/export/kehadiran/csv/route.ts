@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { format } from 'date-fns';
-import { supabase } from '@/lib/supabase';
+import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import Papa from 'papaparse';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -9,6 +13,36 @@ export async function GET(request: Request) {
   const endDate = searchParams.get('endDate');
   const lokasiId = searchParams.get('lokasiId');
   const statusHadir = searchParams.get('statusHadir');
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  // 1. Verifikasi sesi login pengguna menggunakan cookies
+  const cookieStore = await cookies();
+  const supabaseAuth = createServerClient(
+    supabaseUrl,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll() {},
+      },
+    }
+  );
+
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+  if (!user) {
+    return new NextResponse('Unauthorized: Silakan login terlebih dahulu.', { status: 401 });
+  }
+
+  // 2. Client query data
+  const supabase = serviceKey
+    ? createClient(supabaseUrl, serviceKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      })
+    : supabaseAuth;
 
   try {
     let query = supabase

@@ -42,6 +42,7 @@ export { default as EmptyState } from './EmptyState';
 export { default as Footer } from './Footer';
 export { SlideOver } from './SlideOver';
 export { Modal } from './Modal';
+export { ResponsivePanel } from './ResponsivePanel';
 export { default as AmbientLayout } from './AmbientLayout';
 export { Portal } from './Portal';
 export { FilterButton } from './FilterButton';

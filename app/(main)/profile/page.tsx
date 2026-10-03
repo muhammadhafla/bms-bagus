@@ -33,7 +33,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
-  const { user, profile, refreshSession, signOut } = useAuthStore();
+  const { user, profile, refreshSession, signOut, hasRole } = useAuthStore();
   const isAdminUser = useIsAdmin();
   const { theme, toggleTheme } = useDarkMode();
   const router = useRouter();
@@ -531,6 +531,29 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex-1 text-sm font-semibold text-neutral-900 dark:text-white">
                       Riwayat Cetak
+                    </div>
+                    <IconChevronRight className="h-4 w-4 text-neutral-400" />
+                  </Link>
+              </div>
+            )}
+
+            {/* Operasional Gudang */}
+            {(isAdminUser || hasRole('kepala_cabang') || hasRole('kepala_gudang') || hasRole('staff_gudang')) && (
+              <div className="flex flex-col overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                <div className="px-4 pt-3 pb-1">
+                  <p className="text-[10px] font-bold tracking-wider text-neutral-400 uppercase">
+                    Operasional Gudang
+                  </p>
+                </div>
+                  <Link
+                    href="/warehouse/transfers"
+                    className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-50 dark:bg-cyan-900/30">
+                      <IconTruck className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                    </div>
+                    <div className="flex-1 text-sm font-semibold text-neutral-900 dark:text-white">
+                      Mutasi & Transfer Stok
                     </div>
                     <IconChevronRight className="h-4 w-4 text-neutral-400" />
                   </Link>

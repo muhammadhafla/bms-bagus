@@ -91,30 +91,34 @@ export async function GET(request: Request, context: any) {
   
   try {
     const { data, error } = await supabase
-      .from('retur_pembelian')
-      .select('*, supplier:id_supplier(nama), items:retur_pembelian_items(*, barang:id_barang(nama_barang))')
+      .from('pembelian_return')
+      .select('*, items:pembelian_return_items(*, inventory:inventory_id(nama_barang))')
       .eq('id', id)
       .single();
 
     if (error || !data) {
+      console.error('Error fetching return data:', error);
       return new NextResponse('Data tidak ditemukan', { status: 404 });
     }
 
+    // Calculate total from items
+    const total = data.items?.reduce((sum: number, item: any) => sum + (item.harga_final * item.qty), 0) || 0;
+
     const returnData = {
       id: data.id,
-      tanggal: data.tanggal,
-      supplier_nama: data.supplier?.nama || '-',
-      note: data.catatan,
+      tanggal: new Date(data.tanggal).toLocaleDateString('id-ID'),
+      supplier_nama: data.supplier_nama || '-',
+      note: data.note,
       items: data.items?.map((item:any) => ({
-        nama_barang: item.barang?.nama_barang,
-        nomor_nota: item.nomor_nota,
-        tanggal_pembelian: item.tanggal_pembelian,
+        nama_barang: item.inventory?.nama_barang || item.nama_barang,
+        nomor_nota: item.pembelian_id || '-',
+        tanggal_pembelian: '-',
         qty: item.qty,
         harga_beli: item.harga_beli,
         diskon: item.diskon,
         harga_final: item.harga_final
       })) || [],
-      total: data.total
+      total: total
     };
 
     const stream = await renderToStream(<ReturnPDF data={returnData} />);

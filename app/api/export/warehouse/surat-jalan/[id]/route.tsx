@@ -19,8 +19,8 @@ const SuratJalanPDF = ({ data }: { data: any }) => (
         <Text>SURAT JALAN / TRANSFER STOK</Text>
       </View>
       <View style={{ marginBottom: 20 }}>
-        <Text style={{ fontSize: 12 }}>ID Transfer: {data.id}</Text>
-        <Text style={{ fontSize: 12 }}>Tanggal: {data.tanggal_transfer}</Text>
+        <Text style={{ fontSize: 12 }}>ID Transfer: {data.nomor_transfer || data.id}</Text>
+        <Text style={{ fontSize: 12 }}>Tanggal: {new Date(data.tanggal_kirim || data.created_at).toLocaleDateString('id-ID')}</Text>
         <Text style={{ fontSize: 12 }}>Asal: {data.gudang_asal?.nama}</Text>
         <Text style={{ fontSize: 12 }}>Tujuan: {data.gudang_tujuan?.nama}</Text>
       </View>
@@ -33,9 +33,9 @@ const SuratJalanPDF = ({ data }: { data: any }) => (
       
       {data.items?.map((item: any, i: number) => (
         <View style={styles.row} key={i}>
-          <Text style={styles.cell}>{item.barang?.nama_barang || item.id_barang}</Text>
-          <Text style={styles.cell}>{item.qty}</Text>
-          <Text style={styles.cell}>{item.keterangan || '-'}</Text>
+          <Text style={styles.cell}>{item.inventory?.nama_barang || item.inventory_id}</Text>
+          <Text style={styles.cell}>{item.qty_kirim}</Text>
+          <Text style={styles.cell}>{item.catatan || '-'}</Text>
         </View>
       ))}
       
@@ -55,11 +55,12 @@ export async function GET(request: Request, context: any) {
   try {
     const { data, error } = await supabase
       .from('transfer_stok')
-      .select('*, gudang_asal:id_gudang_asal(nama), gudang_tujuan:id_gudang_tujuan(nama), items:transfer_stok_items(*, barang:id_barang(nama_barang))')
+      .select('*, gudang_asal:gudang_asal_id(nama), gudang_tujuan:gudang_tujuan_id(nama), items:transfer_stok_items(*, inventory:inventory_id(nama_barang))')
       .eq('id', id)
       .single();
 
     if (error || !data) {
+      console.error('Error fetching data for PDF:', error);
       return new NextResponse('Data tidak ditemukan', { status: 404 });
     }
 
@@ -69,7 +70,7 @@ export async function GET(request: Request, context: any) {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="Surat_Jalan_${id}.pdf"`
+        'Content-Disposition': `inline; filename="Surat_Jalan_${data.nomor_transfer || id}.pdf"`
       },
     });
   } catch (err: any) {

@@ -55,7 +55,7 @@ export async function GET(request: Request, context: any) {
   try {
     const { data, error } = await supabase
       .from('transfer_stok')
-      .select('*, gudang_asal:gudang_asal_id(nama), gudang_tujuan:gudang_tujuan_id(nama), items:transfer_stok_items(*, inventory:inventory_id(nama_barang))')
+      .select('*, gudang_asal:gudang!transfer_stok_gudang_asal_id_fkey(nama), gudang_tujuan:gudang!transfer_stok_gudang_tujuan_id_fkey(nama), items:transfer_stok_items(*, inventory:inventory(nama_barang))')
       .eq('id', id)
       .single();
 

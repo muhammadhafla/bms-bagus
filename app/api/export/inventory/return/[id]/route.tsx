@@ -92,7 +92,7 @@ export async function GET(request: Request, context: any) {
   try {
     const { data, error } = await supabase
       .from('pembelian_return')
-      .select('*, items:pembelian_return_items(*, inventory:inventory_id(nama_barang))')
+      .select('*, items:pembelian_return_items(*, inventory:inventory(nama_barang))')
       .eq('id', id)
       .single();
 

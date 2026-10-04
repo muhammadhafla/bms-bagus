@@ -7,6 +7,7 @@ import { usePwaUpdate } from '@/hooks/usePwaUpdate';
 import { InstallBanner } from '@/components/ui/InstallBanner';
 import BottomNav from '@/components/ui/BottomNav';
 import { Toaster } from 'sonner';
+import { PosAuthRealtimeListener } from './PosAuthRealtimeListener';
 
 export function MainContentWrapper({ children }: { children: React.ReactNode }) {
   const { contentMargin } = useSidebarContext();
@@ -39,6 +40,8 @@ export function MainContentWrapper({ children }: { children: React.ReactNode }) 
       <BottomNav />
       {/* Global Toaster */}
       <Toaster richColors position="top-center" style={{ zIndex: 9999 }} />
+      {/* Realtime POS Authorization Listener */}
+      <PosAuthRealtimeListener />
     </>
   );
 }

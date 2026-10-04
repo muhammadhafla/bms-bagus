@@ -4,7 +4,9 @@ import React, { useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore, useIsAdmin } from '@/lib/auth';
+import { posAuthApi } from '@/lib/api/pos-auth';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useDarkMode } from '@/components/DarkModeProvider';
 import Tooltip from '@/components/ui/Tooltip';
@@ -38,6 +40,7 @@ import {
   IconBuildingWarehouse,
   IconTrash,
   IconHelpCircle,
+  IconShieldLock,
 } from '@tabler/icons-react';
 
 import { useSidebarContext } from './SidebarProvider';
@@ -49,6 +52,7 @@ const OPERASIONAL_ITEMS = [
   { href: '/transactions/history', title: 'Riwayat Transaksi', icon: IconHistory },
   { href: '/transactions/return', title: 'Retur', icon: IconArrowBack },
   { href: '/inventory/promo', title: 'Manajemen Promo', icon: IconTicket },
+  { href: '/admin/pos-auth', title: 'Otorisasi POS', icon: IconShieldLock },
 ];
 
 const INVENTORY_ITEMS = [
@@ -104,29 +108,44 @@ interface SidebarLinkProps {
   icon: React.ElementType;
   isActive: boolean;
   sidebarCollapsed: boolean;
+  badge?: number | string;
 }
 
-function SidebarLink({ href, title, icon: Icon, isActive, sidebarCollapsed }: SidebarLinkProps) {
+function SidebarLink({ href, title, icon: Icon, isActive, sidebarCollapsed, badge }: SidebarLinkProps) {
   const link = (
     <Link
       href={href}
       aria-current={isActive ? 'page' : undefined}
-      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+      className={`relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
         isActive
           ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 font-semibold'
           : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100'
       }`}
     >
-      <Icon className={`h-4 w-4 flex-shrink-0 ${sidebarCollapsed ? 'lg:h-3 lg:w-3' : ''}`} />
-      <span className={`transition-all ${sidebarCollapsed ? 'lg:hidden' : 'lg:block'}`}>
+      <div className="relative flex-shrink-0">
+        <Icon className={`h-4 w-4 ${sidebarCollapsed ? 'lg:h-3 lg:w-3' : ''}`} />
+        {badge && sidebarCollapsed && (
+          <span className="absolute -top-1.5 -right-1.5 hidden h-2 w-2 rounded-full bg-amber-500 lg:block animate-ping" />
+        )}
+      </div>
+      <span className={`flex-1 transition-all ${sidebarCollapsed ? 'lg:hidden' : 'lg:block'}`}>
         {title}
       </span>
+      {badge ? (
+        <span
+          className={`inline-flex items-center justify-center rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm animate-pulse ${
+            sidebarCollapsed ? 'lg:hidden' : ''
+          }`}
+        >
+          {badge}
+        </span>
+      ) : null}
     </Link>
   );
 
   if (sidebarCollapsed) {
     return (
-      <Tooltip content={title} position="right" className="block w-full">
+      <Tooltip content={badge ? `${title} (${badge})` : title} position="right" className="block w-full">
         {link}
       </Tooltip>
     );
@@ -222,11 +241,24 @@ export function Sidebar() {
     setMobileMenuOpen(false);
   }, [pathname, setMobileMenuOpen]);
 
+  const canAccessPosAuth = isAdminUser || isKepalaGudang;
+  const { data: activePosRequests } = useQuery({
+    queryKey: ['pos-auth-active'],
+    queryFn: async () => {
+      const res = await posAuthApi.getActiveRequests();
+      return res.data || [];
+    },
+    enabled: !!canAccessPosAuth,
+    refetchInterval: 15000,
+  });
+  const activePosAuthCount = activePosRequests?.length || 0;
+
   const operasionalItems = useMemo(() => OPERASIONAL_ITEMS.filter(item => {
     if (item.href === '/purchasing') return isAdminUser || isKepalaGudang || isFinanceUser;
     if (item.href === '/transactions/history') return isKasir || isAdminUser || isFinanceUser;
     if (item.href === '/transactions/return') return isKasir || isWarehouseUser || isAdminUser;
     if (item.href === '/inventory/promo') return isAdminUser;
+    if (item.href === '/admin/pos-auth') return isAdminUser || isKepalaGudang;
     return true;
   }), [isAdminUser, isKepalaGudang, isFinanceUser, isKasir, isWarehouseUser]);
 
@@ -367,6 +399,11 @@ export function Sidebar() {
                       icon={item.icon}
                       isActive={pathname === item.href}
                       sidebarCollapsed={!isSidebarVisible}
+                      badge={
+                        item.href === '/admin/pos-auth' && activePosAuthCount > 0
+                          ? activePosAuthCount
+                          : undefined
+                      }
                     />
                   ))}
                 </div>

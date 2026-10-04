@@ -20,6 +20,7 @@ import {
   IconReceipt,
   IconBuildingWarehouse,
   IconUserCheck,
+  IconShieldLock,
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -31,7 +32,8 @@ import { formatTimeWIB, formatDateWIB } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
 import { HRAlerts } from '@/components/dashboard/HRAlerts';
 import { inventoryApi } from '@/lib/api/inventory';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { posAuthApi } from '@/lib/api/pos-auth';
 
 export interface ActiveShift {
   userId: string;
@@ -66,7 +68,23 @@ export function MobileLaunchpad({
   isLoading,
   onRefresh,
 }: MobileLaunchpadProps) {
-  const { profile, user } = useAuthStore();
+  const { profile, user, isKepalaGudang, isKepalaCabang } = useAuthStore();
+  const canAccessPosAuth =
+    isAdminUser ||
+    (typeof isKepalaGudang === 'function' && isKepalaGudang()) ||
+    (typeof isKepalaCabang === 'function' && isKepalaCabang());
+
+  const { data: activePosRequests } = useQuery({
+    queryKey: ['pos-auth-active'],
+    queryFn: async () => {
+      const res = await posAuthApi.getActiveRequests();
+      return res.data || [];
+    },
+    enabled: !!canAccessPosAuth,
+    refetchInterval: 15000,
+  });
+  const activePosAuthCount = activePosRequests?.length || 0;
+
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null);
   const [selectedTxType, setSelectedTxType] = useState<'penjualan' | 'pembelian' | null>(null);
@@ -265,6 +283,18 @@ export function MobileLaunchpad({
   };
 
   const adminMenus = [
+    ...(canAccessPosAuth
+      ? [
+          {
+            href: '/admin/pos-auth',
+            title: 'Otorisasi',
+            icon: IconShieldLock,
+            color: 'text-amber-600',
+            bg: 'bg-neutral-100 dark:bg-neutral-800',
+            badge: activePosAuthCount,
+          },
+        ]
+      : []),
     {
       href: '/warehouse/transfers',
       title: 'Mutasi',
@@ -352,6 +382,18 @@ export function MobileLaunchpad({
   ];
 
   const staffMenus = [
+    ...(canAccessPosAuth
+      ? [
+          {
+            href: '/admin/pos-auth',
+            title: 'Otorisasi',
+            icon: IconShieldLock,
+            color: 'text-amber-600',
+            bg: 'bg-neutral-100 dark:bg-neutral-800',
+            badge: activePosAuthCount,
+          },
+        ]
+      : []),
     {
       href: '/payroll',
       title: 'Absensi',
@@ -565,9 +607,14 @@ export function MobileLaunchpad({
                 className="group flex flex-col items-center gap-1.5 transition-transform select-none active:scale-90"
               >
                 <div
-                  className={`flex h-11 w-11 items-center justify-center rounded-lg ${item.bg} transition-all group-hover:brightness-95`}
+                  className={`relative flex h-11 w-11 items-center justify-center rounded-lg ${item.bg} transition-all group-hover:brightness-95`}
                 >
                   <Icon className={`h-6 w-6 ${item.color}`} stroke={2.5} />
+                  {'badge' in item && typeof item.badge === 'number' && item.badge > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-black text-white shadow-xs animate-pulse">
+                      {item.badge}
+                    </span>
+                  )}
                 </div>
                 <span className="text-center text-[10px] font-bold tracking-tight text-neutral-700 dark:text-neutral-300">
                   {item.title}

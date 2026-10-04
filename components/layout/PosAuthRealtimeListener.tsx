@@ -12,11 +12,11 @@ import { PosAuthorization } from '@/types/pos-auth';
 export function PosAuthRealtimeListener() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { profile, isAdmin, isKepalaGudang } = useAuthStore();
+  const { profile, isAdmin, isKepalaGudang, isKepalaCabang } = useAuthStore();
 
   useEffect(() => {
-    // Hanya pasang listener jika user adalah Admin atau Kepala Gudang
-    const canAuthorize = isAdmin() || isKepalaGudang();
+    // Hanya pasang listener jika user adalah Admin, Kepala Gudang, atau Kepala Cabang
+    const canAuthorize = isAdmin() || isKepalaGudang() || isKepalaCabang();
     if (!profile || !canAuthorize) return;
 
     const channel = supabase
@@ -37,8 +37,8 @@ export function PosAuthRealtimeListener() {
           if (payload.eventType === 'INSERT') {
             const newReq = payload.new as PosAuthorization;
 
-            // Jika kepala gudang (non-admin), verifikasi kesesuaian cabang
-            if (!isAdmin() && isKepalaGudang()) {
+            // Jika kepala gudang / kepala cabang (non-admin), verifikasi kesesuaian cabang
+            if (!isAdmin() && (isKepalaGudang() || isKepalaCabang())) {
               if (newReq.gudang_id && newReq.gudang_id !== profile.default_gudang_id) {
                 return; // Bukan untuk cabang user ini
               }
@@ -73,7 +73,7 @@ export function PosAuthRealtimeListener() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [profile, isAdmin, isKepalaGudang, queryClient, router]);
+  }, [profile, isAdmin, isKepalaGudang, isKepalaCabang, queryClient, router]);
 
   return null;
 }

@@ -3,8 +3,8 @@ import PosAuthClient from './PosAuthClient';
 import { PageLoadingSpinner } from '@/components/ui';
 
 export const metadata = {
-  title: 'Otorisasi PIN POS | BMS',
-  description: 'Kelola permohonan otorisasi PIN akses pengaturan POS kasir',
+  title: 'Otorisasi POS | BMS',
+  description: 'Pusat penanganan otorisasi kasir POS',
 };
 
 export default function PosAuthPage() {

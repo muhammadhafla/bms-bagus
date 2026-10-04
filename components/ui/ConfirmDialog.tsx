@@ -16,6 +16,7 @@ interface ConfirmDialogProps {
   onConfirm: () => void;
   onCancel: () => void;
   danger?: boolean;
+  isLoading?: boolean;
 }
 
 export function ConfirmDialog({
@@ -27,6 +28,7 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
   danger = false,
+  isLoading = false,
 }: ConfirmDialogProps) {
   const focusTrapRef = useFocusTrap(isOpen);
   const haptic = useHaptic();
@@ -106,6 +108,7 @@ export function ConfirmDialog({
           <div className="flex justify-end gap-3 border-t border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-950/50">
             <Button
               variant="secondary"
+              disabled={isLoading}
               onClick={() => {
                 haptic.light();
                 onCancel();
@@ -117,6 +120,8 @@ export function ConfirmDialog({
             </Button>
             <Button
               variant={danger ? 'danger' : 'primary'}
+              loading={isLoading}
+              disabled={isLoading}
               onClick={() => {
                 if (danger) haptic.heavy();
                 else haptic.medium();

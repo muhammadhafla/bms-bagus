@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/lib/api/client';
 import { posAuthApi } from '@/lib/api/pos-auth';
 import { PosAuthorization, PosAuthStatus } from '@/types/pos-auth';
 import { formatCurrency, formatDateTimeWIB } from '@/lib/utils';
@@ -14,7 +16,7 @@ import {
   IconCopy,
   IconBrandWhatsapp,
   IconX,
-  IconRefresh,
+  IconArrowDown,
   IconClock,
   IconBuildingStore,
   IconSearch,
@@ -38,6 +40,8 @@ import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
 import { ModernPagination } from '@/components/ui/ModernPagination';
 import SelectInput from '@/components/ui/SelectInput';
 import { Spinner } from '@/components/ui';
+
+const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 
 const ACTION_CONFIG: Record<
   string,
@@ -117,11 +121,33 @@ export default function PosAuthClient() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
+  // Real-time synchronization: Otomatis invalidate cache query saat ada perubahan pada pos_authorizations
+  useEffect(() => {
+    const channel = supabase
+      .channel('pos-auth-page-sync')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'pos_authorizations',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['pos-auth-active'] });
+          queryClient.invalidateQueries({ queryKey: ['pos-auth-history'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   // Query Permohonan Aktif (Pending & Belum Kedaluwarsa)
   const {
     data: activeRequests = [],
     isLoading: isLoadingActive,
-    isRefetching: isRefetchingActive,
     refetch: refetchActive,
   } = useQuery({
     queryKey: ['pos-auth-active'],
@@ -132,6 +158,15 @@ export default function PosAuthClient() {
     },
     refetchInterval: 10000,
   });
+
+  // Handler untuk Pull to Refresh gesture
+  const handlePullRefresh = async () => {
+    haptic.light();
+    await Promise.all([
+      refetchActive(),
+      activeTab === 'history' ? refetchHistory() : Promise.resolve(),
+    ]);
+  };
 
   // Query Riwayat
   const {
@@ -292,7 +327,20 @@ export default function PosAuthClient() {
   const totalHistoryPages = Math.ceil(totalHistoryCount / 15) || 1;
 
   return (
-    <div className="space-y-5 lg:space-y-6">
+    <PullToRefresh
+      onRefresh={handlePullRefresh}
+      pullingContent={
+        <div className="flex items-center justify-center py-3 text-neutral-400">
+          <IconArrowDown className="h-5 w-5 animate-bounce" />
+        </div>
+      }
+      refreshingContent={
+        <div className="flex items-center justify-center py-3">
+          <Spinner size="sm" />
+        </div>
+      }
+    >
+      <div className="space-y-5 lg:space-y-6">
       {/* Header Halaman */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
@@ -301,7 +349,7 @@ export default function PosAuthClient() {
           </div>
           <div>
             <h1 className="text-xl font-extrabold tracking-tight text-neutral-900 sm:text-2xl dark:text-white">
-              Otorisasi Supervisor POS
+              Otorisasi POS
             </h1>
             <p className="hidden sm:block text-xs text-neutral-500 sm:text-sm dark:text-neutral-400">
               Pusat penanganan otorisasi kasir (Pengaturan, Void, Diskon, Ubah Harga, Retur) dengan model Tarik Tugas.
@@ -309,31 +357,13 @@ export default function PosAuthClient() {
           </div>
         </div>
 
-        {/* Indikator Realtime & Tombol Segarkan */}
-        <div className="flex items-center gap-2.5 self-start sm:self-auto">
-          <div className="flex items-center gap-2 rounded-full border border-emerald-200/80 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-2xs dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-            </span>
-            Real-time Aktif
-          </div>
-
-          <button
-            onClick={() => {
-              haptic.light();
-              refetchActive();
-              if (activeTab === 'history') refetchHistory();
-            }}
-            disabled={isLoadingActive || isRefetchingActive}
-            aria-label="Segarkan data otorisasi"
-            className="flex h-9 items-center gap-1.5 rounded-xl border border-neutral-200/80 bg-white px-3 text-xs font-semibold text-neutral-700 shadow-2xs transition-all hover:bg-neutral-50 active:scale-[0.98] disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
-          >
-            <IconRefresh
-              className={`h-4 w-4 ${isRefetchingActive ? 'animate-spin text-brand-600' : ''}`}
-            />
-            <span className="hidden sm:inline">Segarkan</span>
-          </button>
+        {/* Indikator Realtime */}
+        <div className="flex items-center gap-2 self-start sm:self-auto rounded-full border border-emerald-200/80 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-2xs dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+          </span>
+          Real-time Aktif
         </div>
       </div>
 
@@ -720,6 +750,7 @@ export default function PosAuthClient() {
         onCancel={() => setTakeoverConfirmId(null)}
       />
     </div>
+  </PullToRefresh>
   );
 }
 

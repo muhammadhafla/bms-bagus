@@ -340,15 +340,15 @@ export default function PosAuthClient() {
         </div>
       }
     >
-      <div className="space-y-5 lg:space-y-6">
-      {/* Header Halaman */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-600 shadow-xs dark:bg-brand-500/20 dark:text-brand-400">
-            <IconShieldLock className="h-6 w-6" stroke={1.5} />
+      <div className="space-y-4 sm:space-y-5 lg:space-y-6">
+      {/* Header Halaman (Sejajar Horizontal untuk Menghemat Space Vertikal di Mobile) */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-600 shadow-xs dark:bg-brand-500/20 dark:text-brand-400">
+            <IconShieldLock className="h-5 w-5 sm:h-6 sm:w-6" stroke={1.5} />
           </div>
-          <div>
-            <h1 className="text-xl font-extrabold tracking-tight text-neutral-900 sm:text-2xl dark:text-white">
+          <div className="min-w-0">
+            <h1 className="text-lg font-extrabold tracking-tight text-neutral-900 sm:text-2xl dark:text-white truncate">
               Otorisasi POS
             </h1>
             <p className="hidden sm:block text-xs text-neutral-500 sm:text-sm dark:text-neutral-400">
@@ -357,13 +357,13 @@ export default function PosAuthClient() {
           </div>
         </div>
 
-        {/* Indikator Realtime */}
-        <div className="flex items-center gap-2 self-start sm:self-auto rounded-full border border-emerald-200/80 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-2xs dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
+        {/* Indikator Realtime di Kanan Atas */}
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-full border border-emerald-200/80 bg-emerald-50 px-2.5 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-emerald-700 shadow-2xs dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
           </span>
-          Real-time Aktif
+          <span>Real-time Aktif</span>
         </div>
       </div>
 

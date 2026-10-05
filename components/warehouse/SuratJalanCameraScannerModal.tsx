@@ -78,57 +78,56 @@ export function SuratJalanCameraScannerModal({
           throw new Error('Gagal memuat pustaka scanner kamera.');
         }
 
-        // Get devices if not already loaded
-        let targetCameraId: string = cameraId || '';
-        if (!targetCameraId) {
-          const devices = await Html5Qrcode.getCameras();
-          if (!devices || devices.length === 0) {
-            throw new Error('Tidak ada perangkat kamera yang terdeteksi.');
-          }
-
-          setCameras(devices);
-
-          // Prefer back/environment camera for mobile
-          const backCam = devices.find(
-            (d: any) =>
-              d.label.toLowerCase().includes('back') ||
-              d.label.toLowerCase().includes('belakang') ||
-              d.label.toLowerCase().includes('environment'),
-          );
-          targetCameraId = (backCam || devices[0])?.id || '';
-          setSelectedCameraId(targetCameraId);
-        }
-
-        if (!targetCameraId) {
-          throw new Error('Perangkat kamera tidak valid.');
-        }
-
         const scanner = new Html5Qrcode('surat-jalan-reader');
         scannerRef.current = scanner;
 
-        await scanner.start(
-          targetCameraId,
-          {
-            fps: 15,
-            qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-              const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-              return {
-                width: Math.floor(minEdge * 0.85),
-                height: Math.floor(minEdge * 0.65), // rectangular for both 1D and 2D
-              };
-            },
-            aspectRatio: 1.0,
+        const scanConfig = {
+          fps: 15,
+          qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            return {
+              width: Math.floor(minEdge * 0.85),
+              height: Math.floor(minEdge * 0.65), // rectangular for both 1D and 2D
+            };
           },
-          (decodedText: string) => {
-            // Success callback
-            stopScanner().then(() => {
-              onScanSuccess(decodedText.trim());
-            });
-          },
-          () => {
-            // Silent frame error (normal during searching)
-          },
-        );
+          aspectRatio: 1.0,
+        };
+
+        const onScan = (decodedText: string) => {
+          stopScanner().then(() => {
+            onScanSuccess(decodedText.trim());
+          });
+        };
+
+        // Jika cameraId spesifik sudah ditentukan (misal user switch camera)
+        if (cameraId) {
+          await scanner.start(cameraId, scanConfig, onScan, () => {});
+          setSelectedCameraId(cameraId);
+        } else {
+          // Default: Mulai dengan facingMode environment (otomatis memicu prompt izin di PWA/mobile)
+          try {
+            await scanner.start({ facingMode: 'environment' }, scanConfig, onScan, () => {});
+          } catch (envErr) {
+            console.warn('Start with environment facingMode failed, fallback to available device:', envErr);
+            // Fallback jika facingMode environment tidak tersedia (misal di laptop webcam)
+            const devices = await Html5Qrcode.getCameras();
+            if (!devices || devices.length === 0) {
+              throw new Error('Tidak ada perangkat kamera yang terdeteksi.');
+            }
+            await scanner.start(devices[0].id, scanConfig, onScan, () => {});
+            setSelectedCameraId(devices[0].id);
+          }
+        }
+
+        // Ambil daftar perangkat kamera setelah izin berhasil diberikan untuk tombol switch kamera
+        try {
+          const devices = await Html5Qrcode.getCameras();
+          if (devices && devices.length > 0) {
+            setCameras(devices);
+          }
+        } catch (camErr) {
+          console.debug('Failed to list secondary cameras:', camErr);
+        }
 
         // Check torch capabilities
         try {

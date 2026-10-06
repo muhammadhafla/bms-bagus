@@ -108,6 +108,22 @@ export const kasApi = {
    */
   async getSummary(options: { startDate?: string; endDate?: string; userId?: string; gudangId?: string }) {
     try {
+      const rpcRes = await (supabase.rpc as any)('get_kas_summary', {
+        p_start_date: options.startDate ? options.startDate + 'T00:00:00+07:00' : null,
+        p_end_date: options.endDate ? options.endDate + 'T23:59:59+07:00' : null,
+        p_user_id: options.userId || null,
+        p_gudang_id: options.gudangId || null,
+      });
+
+      if (!rpcRes.error && rpcRes.data) {
+        return {
+          pemasukan: Number(rpcRes.data.pemasukan || 0),
+          pengeluaran: Number(rpcRes.data.pengeluaran || 0),
+          saldo: Number(rpcRes.data.saldo || 0),
+          error: null,
+        };
+      }
+
       let query = supabase.from('kas_log').select('tipe, jumlah');
 
       if (options.startDate) {

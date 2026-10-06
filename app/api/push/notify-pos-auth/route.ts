@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sendPushNotification } from '@/lib/push';
-import { createAdminClient, verifyAuth } from '@/lib/api/auth-guard';
+import { createAdminClient, verifyWebhookOrAuth } from '@/lib/api/auth-guard';
 
 const ACTION_LABELS: Record<string, string> = {
   access_settings: 'Pengaturan POS',
@@ -12,26 +12,9 @@ const ACTION_LABELS: Record<string, string> = {
 
 export async function POST(request: Request) {
   try {
-    // Verifikasi otorisasi via webhook secret atau sesi terotentikasi
-    const secretHeader = request.headers.get('x-webhook-secret');
-    const expectedSecret = process.env.CRON_SECRET || process.env.WEBHOOK_SECRET;
-
-    let isAuthorized = false;
-    if (expectedSecret && secretHeader === expectedSecret) {
-      isAuthorized = true;
-    } else {
-      const { user } = await verifyAuth(request);
-      if (user) {
-        isAuthorized = true;
-      }
-    }
-
-    // Tetap izinkan jika request datang dari internal network / pg_net webhook
-    if (!isAuthorized) {
-      const authHeader = request.headers.get('authorization');
-      if (authHeader?.includes(process.env.SUPABASE_SERVICE_ROLE_KEY || '')) {
-        isAuthorized = true;
-      }
+    const authResult = await verifyWebhookOrAuth(request);
+    if (!authResult.authorized) {
+      return authResult.error;
     }
 
     const body = await request.json();
@@ -49,13 +32,13 @@ export async function POST(request: Request) {
       .select('id')
       .contains('roles', ['admin']);
 
-    // Dan user dengan role 'kepala_gudang' di cabang yang sama (jika gudang_id ada)
+    // Dan user dengan role 'kepala_cabang' atau 'kepala_gudang' di cabang yang sama (jika gudang_id ada)
     let kepalaGudang: { id: string }[] = [];
     if (body.gudang_id) {
       const { data: kg } = await supabase
         .from('profiles')
         .select('id')
-        .contains('roles', ['kepala_gudang'])
+        .overlaps('roles', ['kepala_cabang', 'kepala_gudang'])
         .eq('default_gudang_id', body.gudang_id);
       if (kg) {
         kepalaGudang = kg;

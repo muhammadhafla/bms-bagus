@@ -168,7 +168,7 @@ export async function GET(request: Request, context: any) {
       .maybeSingle();
 
     const requesterRoles: string[] = requesterProfile?.roles || [];
-    const isAdmin = requesterRoles.includes('admin');
+    const isAdminOrFinance = requesterRoles.includes('admin') || requesterRoles.includes('finance');
 
     // 3. Cari berdasarkan ID slip_gaji
     let { data: slip, error } = await supabase
@@ -206,8 +206,8 @@ export async function GET(request: Request, context: any) {
       return new NextResponse('Data slip gaji tidak ditemukan', { status: 404 });
     }
 
-    // 5. Validasi Hak Akses (Anti-IDOR): Hanya Admin atau Karyawan Pemilik Slip
-    if (!isAdmin && slip.user_id !== user.id) {
+    // 5. Validasi Hak Akses (Anti-IDOR): Hanya Admin/Finance atau Karyawan Pemilik Slip
+    if (!isAdminOrFinance && slip.user_id !== user.id) {
       return new NextResponse('Forbidden: Anda tidak memiliki izin untuk melihat slip gaji ini.', { status: 403 });
     }
 

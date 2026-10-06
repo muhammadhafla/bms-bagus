@@ -91,28 +91,23 @@ export async function POST(request: Request) {
       );
     }
 
-    // Add profile data (Wait slightly to let database trigger create the profile first)
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const { error: updateError } = await supabaseAdmin
-      .from('profiles')
-      .update({
-        nama,
-        username: username || null,
-        roles: assignedRoles,
-        default_gudang_id: default_gudang_id || null,
-      })
-      .eq('id', newUser.user.id);
-
-    // If update fails, insert fallback
-    if (updateError) {
-      await supabaseAdmin.from('profiles').insert({
+    // Upsert profile data deterministically (eliminates race condition with auth trigger)
+    const { error: upsertError } = await supabaseAdmin.from('profiles').upsert(
+      {
         id: newUser.user.id,
         nama,
         username: username || null,
         roles: assignedRoles,
         default_gudang_id: default_gudang_id || null,
-      });
+      },
+      { onConflict: 'id' },
+    );
+
+    if (upsertError) {
+      return NextResponse.json(
+        { error: upsertError.message || 'Gagal menyimpan profil user' },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ success: true, user: newUser.user });

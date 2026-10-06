@@ -220,13 +220,20 @@ export const kasbonApi = {
       const adminId = authData.user?.id;
       if (!adminId) throw new Error('Not authenticated');
 
+      const shouldDisburseViaCashier = Boolean(options?.disburseViaCashier && status === 'disetujui');
+      if (shouldDisburseViaCashier && !options?.shiftId) {
+        throw new Error('Pilih shift kasir aktif terlebih dahulu untuk pencairan tunai laci.');
+      }
+
+      // Insert as 'pending' first when disbursing via cashier so that disburse_payroll_via_cashier
+      // approves it atomically alongside the shift deduction and ledger entry.
       const payload = {
         user_id: userId,
         jenis: 'debit',
         kategori: 'kasbon',
         nominal,
         keterangan,
-        status
+        status: shouldDisburseViaCashier ? 'pending' : status
       };
 
       const result = await safeQuery(
@@ -237,16 +244,17 @@ export const kasbonApi = {
         { isMutation: true }
       );
 
-      if (options?.disburseViaCashier && result.data?.id && status === 'disetujui') {
-        if (!options.shiftId) {
-          throw new Error('Pilih shift kasir aktif terlebih dahulu untuk pencairan tunai laci.');
-        }
+      if (shouldDisburseViaCashier && result.data?.id && options?.shiftId) {
         const { error: rpcErr } = await (supabase.rpc as any)('disburse_payroll_via_cashier', {
           p_mutasi_id: result.data.id,
           p_shift_id: options.shiftId,
           p_gudang_id: options.gudangId || null,
         });
-        if (rpcErr) console.error('Error auto-disbursing kasbon via cashier:', rpcErr);
+        if (rpcErr) {
+          await supabase.from('payroll_mutasi').delete().eq('id', result.data.id);
+          throw new Error(rpcErr.message || 'Gagal mencairkan kasbon melalui laci kasir.');
+        }
+        result.data.status = 'disetujui';
       }
 
       return result;

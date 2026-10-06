@@ -34,7 +34,19 @@ export async function safeQuery<T>(
     if (options?.isMutation) {
       result = await operation();
     } else {
-      result = await retryWithBackoff(operation);
+      result = await retryWithBackoff(async () => {
+        const res = await operation();
+        const msg = res.error?.message || '';
+        if (
+          res.error &&
+          (msg.includes('Failed to fetch') ||
+            msg.includes('FetchError') ||
+            msg.includes('Network request failed'))
+        ) {
+          throw res.error;
+        }
+        return res;
+      });
     }
   } catch (err) {
     let errorMessage = err instanceof Error ? err.message : (err as any)?.message || String(err);

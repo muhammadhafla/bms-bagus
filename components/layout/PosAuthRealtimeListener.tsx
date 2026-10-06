@@ -16,7 +16,7 @@ export function PosAuthRealtimeListener() {
 
   useEffect(() => {
     // Hanya pasang listener jika user adalah Admin, Kepala Gudang, atau Kepala Cabang
-    const canAuthorize = isAdmin() || isKepalaGudang() || isKepalaCabang();
+    const canAuthorize = Boolean(isAdmin?.() || isKepalaGudang?.() || isKepalaCabang?.());
     if (!profile || !canAuthorize) return;
 
     const channel = supabase
@@ -38,7 +38,7 @@ export function PosAuthRealtimeListener() {
             const newReq = payload.new as PosAuthorization;
 
             // Jika kepala gudang / kepala cabang (non-admin), verifikasi kesesuaian cabang
-            if (!isAdmin() && (isKepalaGudang() || isKepalaCabang())) {
+            if (!isAdmin?.() && (isKepalaGudang?.() || isKepalaCabang?.())) {
               if (newReq.gudang_id && newReq.gudang_id !== profile.default_gudang_id) {
                 return; // Bukan untuk cabang user ini
               }

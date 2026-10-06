@@ -124,6 +124,27 @@ export async function GET(request: Request, context: any) {
     : supabaseAuth;
   
   try {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      return new NextResponse('ID retur tidak valid', { status: 400 });
+    }
+
+    const { data: requesterProfile } = await supabase
+      .from('profiles')
+      .select('roles')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const requesterRoles: string[] = requesterProfile?.roles || [];
+    const allowedRoles = ['admin', 'finance', 'kepala_cabang', 'kepala_gudang', 'staff_gudang', 'kasir'];
+    const isAllowed = allowedRoles.some((r) => requesterRoles.includes(r));
+
+    if (!isAllowed) {
+      return new NextResponse('Forbidden: Anda tidak memiliki izin untuk mengunduh Bukti Retur.', {
+        status: 403,
+      });
+    }
+
     const { data, error } = await supabase
       .from('pembelian_return')
       .select('*, items:pembelian_return_items(*, inventory:inventory(nama_barang))')

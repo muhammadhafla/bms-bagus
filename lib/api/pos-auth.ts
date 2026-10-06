@@ -34,7 +34,8 @@ export const posAuthApi = {
           data: data as { success: boolean; pin_code: string; claimed_by_name: string; message: string } | null,
           error: error as Error | null,
         };
-      }
+      },
+      { isMutation: true }
     );
   },
 
@@ -42,16 +43,19 @@ export const posAuthApi = {
    * Melepas tugas otorisasi kembali ke antrean umum (Release Task)
    */
   async release(id: string) {
-    return safeQuery<{ success: boolean; message: string }>(async () => {
-      const { data, error } = await supabase.rpc('release_pos_authorization', {
-        p_id: id,
-      });
+    return safeQuery<{ success: boolean; message: string }>(
+      async () => {
+        const { data, error } = await supabase.rpc('release_pos_authorization', {
+          p_id: id,
+        });
 
-      return {
-        data: data as { success: boolean; message: string } | null,
-        error: error as Error | null,
-      };
-    });
+        return {
+          data: data as { success: boolean; message: string } | null,
+          error: error as Error | null,
+        };
+      },
+      { isMutation: true }
+    );
   },
 
   /**
@@ -68,7 +72,8 @@ export const posAuthApi = {
           data: data as { success: boolean; pin_code: string; claimed_by_name: string; message: string } | null,
           error: error as Error | null,
         };
-      }
+      },
+      { isMutation: true }
     );
   },
 
@@ -119,13 +124,16 @@ export const posAuthApi = {
    * Menolak permohonan otorisasi secara langsung oleh Admin / Kepala Gudang
    */
   async rejectRequest(id: string) {
-    return safeQuery<{ success: boolean; message: string }>(async () => {
-      const { data, error } = await supabase.rpc('reject_pos_authorization', {
-        p_id: id,
-      });
+    return safeQuery<{ success: boolean; message: string }>(
+      async () => {
+        const { data, error } = await supabase.rpc('reject_pos_authorization', {
+          p_id: id,
+        });
 
-      return { data: data as { success: boolean; message: string } | null, error: error as Error | null };
-    });
+        return { data: data as { success: boolean; message: string } | null, error: error as Error | null };
+      },
+      { isMutation: true }
+    );
   },
 
   /**
@@ -137,19 +145,22 @@ export const posAuthApi = {
     deviceName?: string,
     actionMetadata?: Record<string, any>
   ) {
-    return safeQuery<{ success: boolean; request_id: string; expires_at: string; message: string }>(async () => {
-      const { data, error } = await supabase.rpc('request_pos_authorization', {
-        p_action_type: actionType,
-        p_gudang_id: gudangId || null,
-        p_device_name: deviceName || null,
-        p_action_metadata: actionMetadata || {},
-      });
+    return safeQuery<{ success: boolean; request_id: string; expires_at: string; message: string }>(
+      async () => {
+        const { data, error } = await supabase.rpc('request_pos_authorization', {
+          p_action_type: actionType,
+          p_gudang_id: gudangId || null,
+          p_device_name: deviceName || null,
+          p_action_metadata: actionMetadata || {},
+        });
 
-      return {
-        data: data as { success: boolean; request_id: string; expires_at: string; message: string } | null,
-        error: error as Error | null,
-      };
-    });
+        return {
+          data: data as { success: boolean; request_id: string; expires_at: string; message: string } | null,
+          error: error as Error | null,
+        };
+      },
+      { isMutation: true }
+    );
   },
 
   /**
@@ -168,7 +179,8 @@ export const posAuthApi = {
           data: data as { success: boolean; message: string; attempts_remaining?: number; is_blocked?: boolean } | null,
           error: error as Error | null,
         };
-      }
+      },
+      { isMutation: true }
     );
   },
 };

@@ -45,6 +45,23 @@ export async function GET(request: Request) {
     : supabaseAuth;
 
   try {
+    // 3. Verifikasi RBAC: Hanya Admin, Finance, atau Kepala Cabang
+    const { data: requesterProfile } = await supabase
+      .from('profiles')
+      .select('roles')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const requesterRoles: string[] = requesterProfile?.roles || [];
+    const allowedRoles = ['admin', 'finance', 'kepala_cabang', 'kepala_gudang'];
+    const isAllowed = allowedRoles.some((r) => requesterRoles.includes(r));
+
+    if (!isAllowed) {
+      return new NextResponse('Forbidden: Anda tidak memiliki izin untuk mengunduh laporan kehadiran.', {
+        status: 403,
+      });
+    }
+
     let query = supabase
       .from('kehadiran')
       .select('*, profiles(nama), lokasi_masuk:lokasi_masuk_id(nama), lokasi_pulang:lokasi_pulang_id(nama)')
@@ -53,6 +70,10 @@ export async function GET(request: Request) {
     if (startDate) query = query.gte('tanggal', startDate);
     if (endDate) query = query.lte('tanggal', endDate);
     if (lokasiId && lokasiId !== 'all') {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(lokasiId)) {
+        return new NextResponse('Invalid lokasiId format', { status: 400 });
+      }
       query = query.or(`lokasi_masuk_id.eq.${lokasiId},lokasi_pulang_id.eq.${lokasiId}`);
     }
     if (statusHadir && statusHadir !== 'all') {

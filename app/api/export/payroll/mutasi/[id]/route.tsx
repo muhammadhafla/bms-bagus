@@ -105,10 +105,10 @@ export async function GET(request: Request, context: any) {
       .maybeSingle();
 
     const requesterRoles: string[] = requesterProfile?.roles || [];
-    const isAdmin = requesterRoles.includes('admin');
+    const isAdminOrFinance = requesterRoles.includes('admin') || requesterRoles.includes('finance');
 
-    // 4. Validasi Anti-IDOR: hanya Admin atau Karyawan pemilik mutasi
-    if (!isAdmin && user.id !== userId) {
+    // 4. Validasi Anti-IDOR: hanya Admin/Finance atau Karyawan pemilik mutasi
+    if (!isAdminOrFinance && user.id !== userId) {
       return new NextResponse('Forbidden: Anda tidak memiliki izin untuk melihat riwayat mutasi ini.', { status: 403 });
     }
 

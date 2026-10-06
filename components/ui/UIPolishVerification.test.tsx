@@ -28,12 +28,15 @@ vi.mock('next/image', () => ({
 vi.mock('@/lib/auth', () => {
   const store = {
     user: { id: 'user-id', email: 'test@example.com' },
-    profile: { nama: 'Test User', role: 'admin' },
+    profile: { nama: 'Test User', role: 'admin', roles: ['admin'] },
     initialized: true,
     initialize: vi.fn(),
     cleanup: vi.fn(),
     checkAndRefreshSession: vi.fn(),
     signOut: vi.fn(),
+    isAdmin: vi.fn(() => true),
+    isKepalaGudang: vi.fn(() => false),
+    isKepalaCabang: vi.fn(() => false),
     hasRole: vi.fn((role: string) => role === 'admin'),
     hasAnyRole: vi.fn((roles: string[]) => roles.includes('admin')),
   };

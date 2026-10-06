@@ -539,6 +539,29 @@ export async function GET(request: Request, context: any) {
     : supabaseAuth;
 
   try {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      return new NextResponse('ID dokumen tidak valid', { status: 400 });
+    }
+
+    const { data: requesterProfile } = await supabase
+      .from('profiles')
+      .select('roles, default_gudang_id')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const requesterRoles: string[] = requesterProfile?.roles || [];
+    const isAdmin = requesterRoles.includes('admin');
+    const isWarehouseStaff =
+      isAdmin ||
+      ['kepala_cabang', 'kepala_gudang', 'staff_gudang'].some((r) => requesterRoles.includes(r));
+
+    if (!isWarehouseStaff) {
+      return new NextResponse('Forbidden: Anda tidak memiliki izin untuk mengunduh Surat Jalan.', {
+        status: 403,
+      });
+    }
+
     const { data, error } = await supabase
       .from('transfer_stok')
       .select(
@@ -569,6 +592,19 @@ export async function GET(request: Request, context: any) {
     if (error || !data) {
       console.error('Error fetching data for PDF:', error);
       return new NextResponse('Data tidak ditemukan', { status: 404 });
+    }
+
+    // Isolasi Cabang untuk non-admin
+    const userGudangId = requesterProfile?.default_gudang_id;
+    if (
+      !isAdmin &&
+      userGudangId &&
+      data.gudang_asal_id !== userGudangId &&
+      data.gudang_tujuan_id !== userGudangId
+    ) {
+      return new NextResponse('Forbidden: Surat Jalan ini bukan milik cabang penempatan Anda.', {
+        status: 403,
+      });
     }
 
     // Load Company Logo

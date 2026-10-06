@@ -100,3 +100,30 @@ export async function verifyRoles(
   return { user, profile: { id: profile.id, roles: userRoles }, error: null };
 }
 
+export async function verifyWebhookOrAuth(
+  request: Request,
+): Promise<{ authorized: true; error: null } | { authorized: false; error: NextResponse }> {
+  const secretHeader = request.headers.get('x-webhook-secret');
+  const expectedSecret = process.env.CRON_SECRET || process.env.WEBHOOK_SECRET;
+
+  if (expectedSecret && expectedSecret.length > 0 && secretHeader === expectedSecret) {
+    return { authorized: true, error: null };
+  }
+
+  const authHeader = request.headers.get('authorization');
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (serviceKey && serviceKey.length > 10 && authHeader === `Bearer ${serviceKey}`) {
+    return { authorized: true, error: null };
+  }
+
+  const { user } = await verifyAuth(request);
+  if (user) {
+    return { authorized: true, error: null };
+  }
+
+  return {
+    authorized: false,
+    error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+  };
+}
+

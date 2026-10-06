@@ -279,28 +279,35 @@ export const mutasiApi = {
     shiftId?: string | null;
   }) {
     const { disburseViaCashier, gudangId, shiftId, ...payload } = args;
+    const targetStatus = payload.status || 'disetujui';
+    const shouldDisburseViaCashier = Boolean(disburseViaCashier && targetStatus === 'disetujui');
+
+    if (shouldDisburseViaCashier && !shiftId) {
+      throw new Error('Pilih shift kasir aktif terlebih dahulu untuk pencairan tunai laci.');
+    }
 
     const { data, error } = await supabase
       .from('payroll_mutasi')
       .insert({
         ...payload,
-        status: payload.status || 'disetujui'
+        status: shouldDisburseViaCashier ? 'pending' : targetStatus
       })
       .select()
       .single();
 
     if (error) throw error;
 
-    if (disburseViaCashier && data?.id) {
-      if (!shiftId) {
-        throw new Error('Pilih shift kasir aktif terlebih dahulu untuk pencairan tunai laci.');
-      }
+    if (shouldDisburseViaCashier && data?.id && shiftId) {
       const { error: rpcErr } = await (supabase.rpc as any)('disburse_payroll_via_cashier', {
         p_mutasi_id: data.id,
         p_shift_id: shiftId,
         p_gudang_id: gudangId || null,
       });
-      if (rpcErr) console.error('Error auto-disbursing via cashier:', rpcErr);
+      if (rpcErr) {
+        await supabase.from('payroll_mutasi').delete().eq('id', data.id);
+        throw new Error(rpcErr.message || 'Gagal mencairkan mutasi melalui laci kasir.');
+      }
+      data.status = 'disetujui';
     }
 
     return data;

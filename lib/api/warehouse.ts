@@ -60,10 +60,13 @@ export const gudangApi = {
     is_active?: boolean;
     is_default?: boolean;
   }) {
-    return safeQuery<Gudang>(async () => {
-      const result = await supabase.from('gudang').insert(data).select().single();
-      return { data: result.data as Gudang | null, error: result.error as Error | null };
-    });
+    return safeQuery<Gudang>(
+      async () => {
+        const result = await supabase.from('gudang').insert(data).select().single();
+        return { data: result.data as Gudang | null, error: result.error as Error | null };
+      },
+      { isMutation: true },
+    );
   },
 
   async update(
@@ -80,17 +83,23 @@ export const gudangApi = {
       is_default: boolean;
     }>,
   ) {
-    return safeQuery<Gudang>(async () => {
-      const result = await supabase.from('gudang').update(data).eq('id', id).select().single();
-      return { data: result.data as Gudang | null, error: result.error as Error | null };
-    });
+    return safeQuery<Gudang>(
+      async () => {
+        const result = await supabase.from('gudang').update(data).eq('id', id).select().single();
+        return { data: result.data as Gudang | null, error: result.error as Error | null };
+      },
+      { isMutation: true },
+    );
   },
 
   async delete(id: string) {
-    return safeQuery<void>(async () => {
-      const result = await supabase.from('gudang').delete().eq('id', id);
-      return { data: undefined, error: result.error as Error | null };
-    });
+    return safeQuery<void>(
+      async () => {
+        const result = await supabase.from('gudang').delete().eq('id', id);
+        return { data: undefined, error: result.error as Error | null };
+      },
+      { isMutation: true },
+    );
   },
 };
 
@@ -114,12 +123,10 @@ export const warehouseStockApi = {
       const limit = Math.min(100, Math.max(1, options?.limit || 20));
       const offset = (page - 1) * limit;
 
-      const hasCategoryFilter = !!options?.categoryId;
       const hasSearch = !!options?.search?.trim();
-      const inventoryJoin = (hasCategoryFilter || hasSearch)
-        ? `inventory:inventory_id!inner (`
-        : `inventory:inventory_id (`;
 
+      // Selalu gunakan !inner agar filter inventory.is_discontinued = false
+      // dieksekusi di SQL sebelum pemotongan halaman (.range)
       let query = supabase
         .from('inventory_stocks')
         .select(
@@ -129,7 +136,7 @@ export const warehouseStockApi = {
           min_stok,
           max_stok,
           rak_lokasi,
-          ${inventoryJoin}
+          inventory:inventory_id!inner (
             id,
             nama_barang,
             kode_barcode,
@@ -146,7 +153,8 @@ export const warehouseStockApi = {
         `,
           { count: 'exact' },
         )
-        .eq('gudang_id', gudangId);
+        .eq('gudang_id', gudangId)
+        .eq('inventory.is_discontinued', false);
 
       if (options?.categoryId) {
         query = query.eq('inventory.id_kategori', options.categoryId);
@@ -212,7 +220,7 @@ export const warehouseStockApi = {
         }));
 
       return {
-        data: { data: rows, count: res.count || rows.length },
+        data: { data: rows, count: res.count ?? rows.length },
         error: null,
       };
     });
@@ -223,17 +231,20 @@ export const warehouseStockApi = {
     gudangId: string,
     data: { rak_lokasi?: string | null; min_stok?: number; max_stok?: number | null },
   ) {
-    return safeQuery<InventoryStock>(async () => {
-      const result = await supabase.rpc('update_stock_bin', {
-        p_inventory_id: inventoryId,
-        p_gudang_id: gudangId,
-        p_rak_lokasi: data.rak_lokasi || null,
-        p_min_stok: data.min_stok !== undefined ? Number(data.min_stok) : null,
-        p_max_stok: data.max_stok !== undefined && data.max_stok !== null ? Number(data.max_stok) : null,
-      });
+    return safeQuery<InventoryStock>(
+      async () => {
+        const result = await supabase.rpc('update_stock_bin', {
+          p_inventory_id: inventoryId,
+          p_gudang_id: gudangId,
+          p_rak_lokasi: data.rak_lokasi || null,
+          p_min_stok: data.min_stok !== undefined ? Number(data.min_stok) : null,
+          p_max_stok: data.max_stok !== undefined && data.max_stok !== null ? Number(data.max_stok) : null,
+        });
 
-      return { data: result.data as InventoryStock | null, error: result.error as Error | null };
-    });
+        return { data: result.data as InventoryStock | null, error: result.error as Error | null };
+      },
+      { isMutation: true },
+    );
   },
 
   async getStockByItem(inventoryId: string) {
@@ -250,21 +261,33 @@ export const warehouseStockApi = {
 
   async getSummary() {
     return safeQuery<WarehouseSummary>(async () => {
-      // 1. Total gudang
+      const rpcRes = await (supabase.rpc as any)('get_warehouse_stock_summary');
+      if (!rpcRes.error && rpcRes.data) {
+        return {
+          data: {
+            total_gudang: Number(rpcRes.data.total_gudang || 0),
+            total_item_unique: Number(rpcRes.data.total_item_unique || 0),
+            total_stok_pusat: Number(rpcRes.data.total_stok_pusat || 0),
+            total_stok_cabang: Number(rpcRes.data.total_stok_cabang || 0),
+            total_transfer_in_transit: Number(rpcRes.data.total_transfer_in_transit || 0),
+            total_low_stock_items: Number(rpcRes.data.total_low_stock_items || 0),
+          },
+          error: null,
+        };
+      }
+
+      // Fallback jika RPC belum tersedia
       const { count: gudangCount } = await supabase
         .from('gudang')
         .select('*', { count: 'exact', head: true })
         .eq('is_active', true);
 
-      // 2. Total items
       const { count: itemCount } = await supabase
         .from('inventory')
         .select('*', { count: 'exact', head: true })
         .eq('is_discontinued', false);
 
-      // 3. Sum stocks per warehouse
       const { data: stocks } = await supabase.from('inventory_stocks').select('gudang_id, stok');
-
       const { data: gudangList } = await supabase.from('gudang').select('id, tipe');
 
       let stokPusat = 0;
@@ -281,13 +304,11 @@ export const warehouseStockApi = {
         }
       });
 
-      // 4. In transit transfers
       const { count: inTransitCount } = await supabase
         .from('transfer_stok')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'IN_TRANSIT');
 
-      // 5. Low stock count
       const { count: lowStockCount } = await supabase
         .from('inventory_stocks')
         .select('*', { count: 'exact', head: true })
@@ -477,67 +498,92 @@ export const transferStokApi = {
     },
     userId?: string,
   ) {
-    return safeQuery<TransferStok>(async () => {
-      // 1. Generate nomor transfer
-      const { data: nomorData, error: nomorError } = await supabase.rpc('generate_nomor_transfer');
-      if (nomorError) throw nomorError;
-
-      const nomorTransfer = nomorData || `TRF/${Date.now()}`;
-
-      // 2. Insert Header
-      const { data: header, error: headerError } = await supabase
-        .from('transfer_stok')
-        .insert({
-          nomor_transfer: nomorTransfer,
-          gudang_asal_id: data.gudang_asal_id,
-          gudang_tujuan_id: data.gudang_tujuan_id,
-          kurir_pengirim: data.kurir_pengirim,
-          catatan: data.catatan,
-          status: 'DRAFT',
-          created_by: userId || null,
-        })
-        .select()
-        .single();
-
-      if (headerError || !header) throw headerError;
-
-      // 3. Insert Items
-      const itemRows = data.items.map((it) => ({
-        transfer_id: header.id,
-        inventory_id: it.inventory_id,
-        qty_kirim: it.qty_kirim,
-        qty_terima: 0,
-        catatan: it.catatan,
-      }));
-
-      const { error: itemsError } = await supabase.from('transfer_stok_items').insert(itemRows);
-      if (itemsError) throw itemsError;
-
-      // 4. Auto kirim jika diminta
-      if (data.autoKirim && userId) {
-        const { error: kirimError } = await supabase.rpc('kirim_transfer_stok', {
-          p_transfer_id: header.id,
-          p_user: userId,
+    return safeQuery<TransferStok>(
+      async () => {
+        const rpcRes = await (supabase.rpc as any)('create_transfer_stok_batch', {
+          p_gudang_asal_id: data.gudang_asal_id,
+          p_gudang_tujuan_id: data.gudang_tujuan_id,
+          p_kurir_pengirim: data.kurir_pengirim || null,
+          p_catatan: data.catatan || null,
+          p_auto_kirim: !!data.autoKirim,
+          p_items: data.items,
+          p_user: userId || null,
         });
-        if (kirimError) throw kirimError;
-      }
 
-      return { data: header as TransferStok, error: null };
-    });
+        if (!rpcRes.error && rpcRes.data) {
+          return { data: rpcRes.data as TransferStok, error: null };
+        }
+
+        const isFnMissing =
+          rpcRes.error?.code === 'PGRST202' ||
+          String(rpcRes.error?.message || '').includes('create_transfer_stok_batch');
+
+        if (rpcRes.error && !isFnMissing) {
+          return { data: null, error: rpcRes.error as Error };
+        }
+
+        // Fallback if RPC is not yet deployed
+        const { data: nomorData, error: nomorError } = await supabase.rpc('generate_nomor_transfer');
+        if (nomorError) throw nomorError;
+
+        const nomorTransfer = nomorData || `TRF/${Date.now()}`;
+
+        const { data: header, error: headerError } = await supabase
+          .from('transfer_stok')
+          .insert({
+            nomor_transfer: nomorTransfer,
+            gudang_asal_id: data.gudang_asal_id,
+            gudang_tujuan_id: data.gudang_tujuan_id,
+            kurir_pengirim: data.kurir_pengirim,
+            catatan: data.catatan,
+            status: 'DRAFT',
+            created_by: userId || null,
+          })
+          .select()
+          .single();
+
+        if (headerError || !header) throw headerError;
+
+        const itemRows = data.items.map((it) => ({
+          transfer_id: header.id,
+          inventory_id: it.inventory_id,
+          qty_kirim: it.qty_kirim,
+          qty_terima: 0,
+          catatan: it.catatan,
+        }));
+
+        const { error: itemsError } = await supabase.from('transfer_stok_items').insert(itemRows);
+        if (itemsError) throw itemsError;
+
+        if (data.autoKirim && userId) {
+          const { error: kirimError } = await supabase.rpc('kirim_transfer_stok', {
+            p_transfer_id: header.id,
+            p_user: userId,
+          });
+          if (kirimError) throw kirimError;
+        }
+
+        return { data: header as TransferStok, error: null };
+      },
+      { isMutation: true },
+    );
   },
 
   async kirim(transferId: string, userId: string) {
-    return safeQuery<{ success: boolean; status: string }>(async () => {
-      const result = await supabase.rpc('kirim_transfer_stok', {
-        p_transfer_id: transferId,
-        p_user: userId,
-      });
+    return safeQuery<{ success: boolean; status: string }>(
+      async () => {
+        const result = await supabase.rpc('kirim_transfer_stok', {
+          p_transfer_id: transferId,
+          p_user: userId,
+        });
 
-      return {
-        data: result.data as { success: boolean; status: string } | null,
-        error: result.error as Error | null,
-      };
-    });
+        return {
+          data: result.data as { success: boolean; status: string } | null,
+          error: result.error as Error | null,
+        };
+      },
+      { isMutation: true },
+    );
   },
 
   async terima(
@@ -545,34 +591,40 @@ export const transferStokApi = {
     items: Array<{ inventory_id: string; qty_terima: number; catatan?: string }>,
     userId: string,
   ) {
-    return safeQuery<{ success: boolean; status: string }>(async () => {
-      const result = await supabase.rpc('terima_transfer_stok', {
-        p_transfer_id: transferId,
-        p_items: items,
-        p_user: userId,
-      });
+    return safeQuery<{ success: boolean; status: string }>(
+      async () => {
+        const result = await supabase.rpc('terima_transfer_stok', {
+          p_transfer_id: transferId,
+          p_items: items,
+          p_user: userId,
+        });
 
-      return {
-        data: result.data as { success: boolean; status: string } | null,
-        error: result.error as Error | null,
-      };
-    });
+        return {
+          data: result.data as { success: boolean; status: string } | null,
+          error: result.error as Error | null,
+        };
+      },
+      { isMutation: true },
+    );
   },
 
   async cancel(transferId: string, catatan?: string) {
-    return safeQuery<void>(async () => {
-      const result = await supabase
-        .from('transfer_stok')
-        .update({
-          status: 'CANCELED',
-          catatan: catatan ? `Dibatalkan: ${catatan}` : undefined,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', transferId)
-        .eq('status', 'DRAFT');
+    return safeQuery<void>(
+      async () => {
+        const result = await supabase
+          .from('transfer_stok')
+          .update({
+            status: 'CANCELED',
+            catatan: catatan ? `Dibatalkan: ${catatan}` : undefined,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', transferId)
+          .eq('status', 'DRAFT');
 
-      return { data: undefined, error: result.error as Error | null };
-    });
+        return { data: undefined, error: result.error as Error | null };
+      },
+      { isMutation: true },
+    );
   },
 };
 
@@ -683,46 +735,55 @@ export const pengeluaranGudangApi = {
     },
     userId?: string,
   ) {
-    return safeQuery<string>(async () => {
-      const result = await supabase.rpc('execute_pengeluaran_gudang', {
-        p_gudang_id: data.gudang_id,
-        p_tipe: data.tipe,
-        p_catatan: data.catatan || '',
-        p_items: data.items,
-        p_user: userId || null,
-        p_auto_approve: !!data.autoApprove,
-      });
+    return safeQuery<string>(
+      async () => {
+        const result = await supabase.rpc('execute_pengeluaran_gudang', {
+          p_gudang_id: data.gudang_id,
+          p_tipe: data.tipe,
+          p_catatan: data.catatan || '',
+          p_items: data.items,
+          p_user: userId || null,
+          p_auto_approve: !!data.autoApprove,
+        });
 
-      return { data: result.data as string | null, error: result.error as Error | null };
-    });
+        return { data: result.data as string | null, error: result.error as Error | null };
+      },
+      { isMutation: true },
+    );
   },
 
   async approve(pengeluaranId: string, userId: string) {
-    return safeQuery<{ success: boolean; status: string }>(async () => {
-      const result = await supabase.rpc('approve_pengeluaran_gudang', {
-        p_pengeluaran_id: pengeluaranId,
-        p_user: userId,
-      });
+    return safeQuery<{ success: boolean; status: string }>(
+      async () => {
+        const result = await supabase.rpc('approve_pengeluaran_gudang', {
+          p_pengeluaran_id: pengeluaranId,
+          p_user: userId,
+        });
 
-      return {
-        data: result.data as { success: boolean; status: string } | null,
-        error: result.error as Error | null,
-      };
-    });
+        return {
+          data: result.data as { success: boolean; status: string } | null,
+          error: result.error as Error | null,
+        };
+      },
+      { isMutation: true },
+    );
   },
 
   async reject(pengeluaranId: string, note: string, userId: string) {
-    return safeQuery<{ success: boolean; status: string }>(async () => {
-      const result = await supabase.rpc('reject_pengeluaran_gudang', {
-        p_pengeluaran_id: pengeluaranId,
-        p_note: note || 'Ditolak oleh admin/supervisor',
-        p_user: userId,
-      });
+    return safeQuery<{ success: boolean; status: string }>(
+      async () => {
+        const result = await supabase.rpc('reject_pengeluaran_gudang', {
+          p_pengeluaran_id: pengeluaranId,
+          p_note: note || 'Ditolak oleh admin/supervisor',
+          p_user: userId,
+        });
 
-      return {
-        data: result.data as { success: boolean; status: string } | null,
-        error: result.error as Error | null,
-      };
-    });
+        return {
+          data: result.data as { success: boolean; status: string } | null,
+          error: result.error as Error | null,
+        };
+      },
+      { isMutation: true },
+    );
   },
 };

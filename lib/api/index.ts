@@ -15,7 +15,6 @@ export {
   type PaginatedResult,
   type TopSellingItem,
 } from './reports';
-export { receiptApi, type ReceiptTemplate, type ReceiptLogo } from './receipt';
 export { kategoriApi, type Kategori } from './kategori';
 export {
   stockOpnameApi,

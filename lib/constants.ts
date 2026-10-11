@@ -5,15 +5,6 @@ export const DEFAULT_TIMEOUT = 30000;
 export const MAX_DISKON_PERCENT = 100;
 export const MIN_QTY = 1;
 
-export const ROUTES = {
-  INVENTORY: '/inventory',
-  PEMBELIAN: '/pembelian',
-  PENJUALAN: '/penjualan',
-  RETURN: '/return',
-  REPORTS: '/reports',
-  RECEIPT: '/receipt',
-} as const;
-
 export const STORAGE_KEYS = {
   IDEMPOTENCY_KEY: 'idempotency_key',
   LAST_SYNC: 'last_sync',

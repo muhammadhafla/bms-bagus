@@ -269,6 +269,42 @@ export const kehadiranApi = {
   },
 
   /**
+   * Ambil jumlah lembur yang butuh tinjauan (Ringan untuk Badge Counter)
+   */
+  async getPendingLemburCount(client?: any): Promise<{ count: number; error: Error | null }> {
+    try {
+      const sb = client || supabase;
+      const { count, error } = await sb
+        .from('kehadiran')
+        .select('*', { count: 'exact', head: true })
+        .eq('status_lembur', 'pending');
+
+      if (error) return { count: 0, error: error as Error };
+      return { count: count || 0, error: null };
+    } catch (err: any) {
+      return { count: 0, error: err };
+    }
+  },
+
+  /**
+   * Ambil jumlah pulang awal yang butuh tinjauan (Ringan untuk Badge Counter)
+   */
+  async getPendingPulangAwalCount(client?: any): Promise<{ count: number; error: Error | null }> {
+    try {
+      const sb = client || supabase;
+      const { count, error } = await sb
+        .from('kehadiran')
+        .select('*', { count: 'exact', head: true })
+        .eq('status_pulang_awal', 'pending');
+
+      if (error) return { count: 0, error: error as Error };
+      return { count: count || 0, error: null };
+    } catch (err: any) {
+      return { count: 0, error: err };
+    }
+  },
+
+  /**
    * Review Pulang Awal (Admin: 'hitung_penuh' | 'sesuai_durasi')
    */
   async reviewPulangAwal(id: string, keputusan: 'hitung_penuh' | 'sesuai_durasi', catatan?: string) {

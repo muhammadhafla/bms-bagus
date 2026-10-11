@@ -156,7 +156,6 @@ export default function PosAuthClient() {
       if (res.error) throw res.error;
       return res.data || [];
     },
-    refetchInterval: 10000,
   });
 
   // Handler untuk Pull to Refresh gesture

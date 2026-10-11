@@ -81,7 +81,6 @@ export function MobileLaunchpad({
       return res.data || [];
     },
     enabled: !!canAccessPosAuth,
-    refetchInterval: 15000,
   });
   const activePosAuthCount = activePosRequests?.length || 0;
 

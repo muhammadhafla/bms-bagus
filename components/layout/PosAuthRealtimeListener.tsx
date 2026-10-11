@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/api/client';
 import { useAuthStore } from '@/lib/auth';
-import { soundEffects } from '@/lib/audio';
+import { playChime } from '@/lib/utils/audio-feedback';
 import { toast } from 'sonner';
 import { PosAuthorization } from '@/types/pos-auth';
 
@@ -45,7 +45,7 @@ export function PosAuthRealtimeListener() {
             }
 
             // Bunyikan chime notifikasi audio
-            soundEffects.playChime();
+            playChime();
 
             const actionLabelMap: Record<string, string> = {
               access_settings: 'Pengaturan POS',

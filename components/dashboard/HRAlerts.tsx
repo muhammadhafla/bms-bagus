@@ -7,27 +7,21 @@ import Link from 'next/link';
 import { kasbonApi, kehadiranApi } from '@/lib/api/payroll';
 
 export function HRAlerts({ variant = 'default' }: { variant?: 'default' | 'mobile' }) {
-  const { data: kasbonList, isLoading: kasbonLoading } = useQuery({
-    queryKey: ['admin_payroll_kasbon', 'pending'],
-    queryFn: () => kasbonApi.getAll({ status: 'pending' }).then(res => res.data),
-    refetchInterval: 60000,
+  const { data: kasbonCount = 0, isLoading: kasbonLoading } = useQuery({
+    queryKey: ['admin_payroll_kasbon', 'pending_count'],
+    queryFn: () => kasbonApi.getPendingCount().then((res) => res.count),
   });
 
-  const { data: lemburList, isLoading: lemburLoading } = useQuery({
-    queryKey: ['admin_payroll_lembur', 'pending'],
-    queryFn: () => kehadiranApi.getPendingLembur().then(res => res.data),
-    refetchInterval: 60000,
+  const { data: lemburCount = 0, isLoading: lemburLoading } = useQuery({
+    queryKey: ['admin_payroll_lembur', 'pending_count'],
+    queryFn: () => kehadiranApi.getPendingLemburCount().then((res) => res.count),
   });
 
-  const { data: pulangAwalList, isLoading: pulangAwalLoading } = useQuery({
-    queryKey: ['admin_payroll_pulang_awal', 'pending'],
-    queryFn: () => kehadiranApi.getPendingPulangAwal().then(res => res.data),
-    refetchInterval: 60000,
+  const { data: pulangAwalCount = 0, isLoading: pulangAwalLoading } = useQuery({
+    queryKey: ['admin_payroll_pulang_awal', 'pending_count'],
+    queryFn: () => kehadiranApi.getPendingPulangAwalCount().then((res) => res.count),
   });
 
-  const kasbonCount = kasbonList?.length || 0;
-  const lemburCount = lemburList?.length || 0;
-  const pulangAwalCount = pulangAwalList?.length || 0;
   const isLoading = kasbonLoading || lemburLoading || pulangAwalLoading;
 
   if (variant === 'mobile') {

@@ -42,6 +42,10 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import { useAuthStore } from '@/lib/auth';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
+const EditStockBinModal = dynamic(
+  () => import('@/components/warehouse/EditStockBinModal'),
+  { ssr: false },
+);
 
 export default function WarehouseStocksPage() {
   return (
@@ -87,9 +91,6 @@ function WarehouseStocksContent() {
 
   // Modal State for Edit Bin/Rack
   const [editingItem, setEditingItem] = useState<WarehouseItemStock | null>(null);
-  const [rakLokasi, setRakLokasi] = useState('');
-  const [minStok, setMinStok] = useState<number>(0);
-  const [maxStok, setMaxStok] = useState<string>('');
 
   // Sync state to URL
   useEffect(() => {
@@ -246,34 +247,8 @@ function WarehouseStocksContent() {
     setSortDir('desc');
   }, []);
 
-  // Mutation for updating rack / bin
-  const updateBinMutation = useMutation({
-    mutationFn: async () => {
-      if (!editingItem || !activeGudangId) return;
-      const res = await warehouseStockApi.updateStockBin(editingItem.inventory_id, activeGudangId, {
-        rak_lokasi: rakLokasi.trim() || null,
-        min_stok: Number(minStok) || 0,
-        max_stok: maxStok ? Number(maxStok) : null,
-      });
-      if (res.error) throw res.error;
-      return res.data;
-    },
-    onSuccess: () => {
-      toast.success('Lokasi rak & batas stok berhasil diperbarui');
-      queryClient.invalidateQueries({ queryKey: ['warehouse-stocks'] });
-      queryClient.invalidateQueries({ queryKey: ['warehouse-summary'] });
-      setEditingItem(null);
-    },
-    onError: (err: any) => {
-      toast.error(err.message || 'Gagal menyimpan perubahan');
-    },
-  });
-
   const handleOpenEdit = useCallback((item: WarehouseItemStock) => {
     setEditingItem(item);
-    setRakLokasi(item.rak_lokasi || '');
-    setMinStok(item.min_stok || 0);
-    setMaxStok(item.max_stok ? String(item.max_stok) : '');
   }, []);
 
   const handleFocusSearch = useCallback(() => {
@@ -1111,92 +1086,18 @@ function WarehouseStocksContent() {
           </div>
 
           {/* Modal Edit Rack / Bin Location */}
-          {editingItem && (
-            <Modal
-              isOpen={!!editingItem}
-              onClose={() => setEditingItem(null)}
-              title={`Atur Rak & Batas Stok - ${activeGudang?.kode_gudang || ''}`}
-              isFullScreenOnMobile
-              size="md"
-            >
-              <div className="space-y-4">
-                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3.5 dark:border-neutral-800 dark:bg-neutral-900">
-                  <p className="text-sm font-bold text-neutral-900 dark:text-white">
-                    {editingItem.nama_barang}
-                  </p>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-neutral-500">
-                    <span className="font-mono">Barcode: {editingItem.kode_barcode}</span>
-                    <span>•</span>
-                    <span>
-                      Stok Saat Ini:{' '}
-                      <strong className="text-neutral-800 dark:text-neutral-200">
-                        {editingItem.stok_gudang} {editingItem.unit || 'pcs'}
-                      </strong>
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="input-rak-lokasi" className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-                    Posisi Rak / Bin (Contoh: Rak A-02-B, Bin 12):
-                  </label>
-                  <TextInput
-                    id="input-rak-lokasi"
-                    value={rakLokasi}
-                    onChange={(e) => setRakLokasi(e.target.value)}
-                    placeholder="Masukkan kode rak atau bin..."
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <label htmlFor="input-min-stok" className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-                      Stok Minimum (Alert Peringatan):
-                    </label>
-                    <TextInput
-                      id="input-min-stok"
-                      type="number"
-                      value={String(minStok)}
-                      onChange={(e) => setMinStok(Number(e.target.value))}
-                      placeholder="0"
-                      disabled={!canEditThresholds}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="input-max-stok" className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-                      Stok Maksimum (Kapasitas Rak):
-                    </label>
-                    <TextInput
-                      id="input-max-stok"
-                      type="number"
-                      value={maxStok}
-                      onChange={(e) => setMaxStok(e.target.value)}
-                      placeholder="Opsional"
-                      disabled={!canEditThresholds}
-                    />
-                  </div>
-                  {!canEditThresholds && (
-                    <p className="col-span-2 text-[11px] text-amber-600 dark:text-amber-400">
-                      * Batas stok minimum dan maksimum hanya dapat diubah oleh Admin atau Kepala Gudang.
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex justify-end gap-2 border-t border-neutral-200 pt-4 dark:border-neutral-800">
-                  <Button variant="secondary" onClick={() => setEditingItem(null)}>
-                    Batal
-                  </Button>
-                  <Button
-                    variant="primary"
-                    loading={updateBinMutation.isPending}
-                    onClick={() => updateBinMutation.mutate()}
-                  >
-                    Simpan Perubahan
-                  </Button>
-                </div>
-              </div>
-            </Modal>
-          )}
+          <EditStockBinModal
+            isOpen={!!editingItem}
+            onClose={() => setEditingItem(null)}
+            item={editingItem}
+            activeGudangId={activeGudangId}
+            activeGudangKode={activeGudang?.kode_gudang}
+            canEditThresholds={canEditThresholds}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['warehouse-stocks'] });
+              queryClient.invalidateQueries({ queryKey: ['warehouse-summary'] });
+            }}
+          />
         </AmbientLayout>
       </PullToRefresh>
     </ErrorBoundary>

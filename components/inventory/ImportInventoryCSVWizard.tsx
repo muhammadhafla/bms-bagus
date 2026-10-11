@@ -188,8 +188,7 @@ export default function ImportInventoryCSVWizard({
 
       // Check DB existence
       const names = uniqueProcessed.map((d) => d.nama_barang);
-      const allInventory = await inventoryApi.getAll();
-      const existRes = await inventoryApi.checkBatchExistence(names, allInventory.data || []);
+      const existRes = await inventoryApi.checkBatchExistenceByName(names);
       if (existRes.error) throw new Error(existRes.error.message);
 
       const existingMap = new Map(

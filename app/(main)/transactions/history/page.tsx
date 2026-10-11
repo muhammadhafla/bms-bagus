@@ -26,10 +26,33 @@ import dynamic from 'next/dynamic';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 
-import { RiwayatPenjualanTab } from '@/components/transactions/RiwayatPenjualanTab';
-import { RiwayatPembelianTab } from '@/components/transactions/RiwayatPembelianTab';
-import { RiwayatReturPenjualanTab } from '@/components/transactions/RiwayatReturPenjualanTab';
-import { RiwayatReturPembelianTab } from '@/components/transactions/RiwayatReturPembelianTab';
+const TabSkeleton = () => (
+  <div className="h-72 w-full animate-pulse rounded-3xl border border-white/40 bg-white/70 p-6 dark:border-white/10 dark:bg-neutral-900/60">
+    <div className="mb-4 h-6 w-48 rounded-lg bg-neutral-200 dark:bg-neutral-800" />
+    <div className="space-y-3">
+      <div className="h-12 w-full rounded-xl bg-neutral-100 dark:bg-neutral-800/50" />
+      <div className="h-12 w-full rounded-xl bg-neutral-100 dark:bg-neutral-800/50" />
+      <div className="h-12 w-full rounded-xl bg-neutral-100 dark:bg-neutral-800/50" />
+    </div>
+  </div>
+);
+
+const RiwayatPenjualanTab = dynamic(
+  () => import('@/components/transactions/RiwayatPenjualanTab').then((m) => m.RiwayatPenjualanTab),
+  { ssr: false, loading: () => <TabSkeleton /> },
+);
+const RiwayatPembelianTab = dynamic(
+  () => import('@/components/transactions/RiwayatPembelianTab').then((m) => m.RiwayatPembelianTab),
+  { ssr: false, loading: () => <TabSkeleton /> },
+);
+const RiwayatReturPenjualanTab = dynamic(
+  () => import('@/components/transactions/RiwayatReturPenjualanTab').then((m) => m.RiwayatReturPenjualanTab),
+  { ssr: false, loading: () => <TabSkeleton /> },
+);
+const RiwayatReturPembelianTab = dynamic(
+  () => import('@/components/transactions/RiwayatReturPembelianTab').then((m) => m.RiwayatReturPembelianTab),
+  { ssr: false, loading: () => <TabSkeleton /> },
+);
 import { useAuthStore, useIsAdmin } from '@/lib/auth';
 
 type HistoryType = 'penjualan' | 'pembelian' | 'retur_penjualan' | 'retur_pembelian';

@@ -13,7 +13,6 @@ import {
   IconBuildingWarehouse,
   IconShield,
 } from '@tabler/icons-react';
-import { usePresenceStore } from '@/lib/presence';
 import { toast } from 'sonner';
 import { AmbientLayout, ModernPagination, FilterButton, PageLoadingSpinner, Spinner } from '@/components/ui';
 import { useRouter } from 'next/navigation';
@@ -73,7 +72,6 @@ export default function UsersPage() {
   const LIMIT = 10;
   const { isAdmin, initialized, user, profile } = useAuthStore();
   const router = useRouter();
-  const { onlineUsers } = usePresenceStore();
 
   useEffect(() => {
     const isAuthFullyLoaded = initialized && (!user || profile !== null);
@@ -398,7 +396,6 @@ export default function UsersPage() {
                     </tr>
                   ) : (
                     pagedUsers.map((u) => {
-                      const isOnline = onlineUsers.includes(u.id);
                       const userRoles = u.roles && u.roles.length > 0 ? u.roles : ['staff_gudang'];
                       return (
                         <tr
@@ -416,15 +413,7 @@ export default function UsersPage() {
                           }
                         >
                           <td className="px-5 py-4 font-medium text-neutral-900 dark:text-neutral-100">
-                            <div className="flex items-center gap-2">
-                              {u.nama}
-                              {isOnline && (
-                                <span className="relative flex h-2.5 w-2.5" title="Online">
-                                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-                                </span>
-                              )}
-                            </div>
+                            <div>{u.nama}</div>
                             {u.username && (
                               <div className="text-xs text-neutral-400 dark:text-neutral-500">
                                 @{u.username}

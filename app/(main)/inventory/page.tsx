@@ -4,7 +4,7 @@ import InventoryPageClient from './InventoryPageClient';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { PageLoadingSpinner } from '@/components/ui';
-import { sanitizeSearchQuery } from '@/lib/utils';
+import { inventoryApi } from '@/lib/api/inventory';
 
 // Metadata and server configuration
 export const metadata = {
@@ -42,7 +42,6 @@ export default async function InventoryPage(props: Props) {
 
   const limitParam = Number(searchParams?.limit);
   const limit = limitParam && limitParam > 0 ? limitParam : 50;
-  const offset = (page - 1) * limit;
 
   let categoryId = undefined;
   if (categoryName) {
@@ -72,53 +71,21 @@ export default async function InventoryPage(props: Props) {
 
   await queryClient.prefetchQuery({
     queryKey,
-    queryFn: async () => {
-      let query;
-
-      if (lowStockOnly) {
-        query = supabaseServer
-          .rpc('get_low_stock_items', {}, { count: 'exact' })
-          .select('*, id_kategori:id_kategori(*)');
-      } else {
-        query = supabaseServer
-          .from('inventory')
-          .select('*, id_kategori:id_kategori(*)', { count: 'exact' });
-      }
-
-      query = query.order(sortBy, { ascending: sortDir !== 'desc' }).range(offset, offset + limit - 1);
-
-      if (search) {
-        const safeQueryString = sanitizeSearchQuery(search).toLowerCase();
-        if (safeQueryString) {
-          const orCondition = `nama_barang.ilike.%${safeQueryString}%,kode_barcode.ilike.%${safeQueryString}%`;
-          query = query.or(orCondition);
-        }
-      }
-
-      if (activeStatus === 'active') {
-        query = query.eq('is_discontinued', false);
-      } else if (activeStatus === 'discontinued') {
-        query = query.eq('is_discontinued', true);
-      }
-
-      if (categoryId) {
-        query = query.eq('id_kategori', categoryId);
-      }
-
-      const { data, count, error } = await query;
-
-      const total = count || 0;
-      const items = data || [];
-
-      return {
-        data: items,
-        total,
-        page,
-        limit,
-        hasMore: offset + items.length < total,
-        error: error ? error.message : null,
-      };
-    },
+    queryFn: () =>
+      inventoryApi.getPaginated(
+        {
+          page,
+          limit,
+          search,
+          categoryId,
+          categoryName,
+          lowStockOnly,
+          activeStatus,
+          sortBy,
+          sortDir,
+        },
+        supabaseServer,
+      ),
   });
 
   return (

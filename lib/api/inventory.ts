@@ -26,17 +26,21 @@ export const inventoryApi = {
     });
   },
 
-  async getPaginated(options: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    categoryId?: string;
-    categoryName?: string;
-    lowStockOnly?: boolean;
-    activeStatus?: 'all' | 'active' | 'discontinued';
-    sortBy?: string;
-    sortDir?: 'asc' | 'desc';
-  }) {
+  async getPaginated(
+    options: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      categoryId?: string;
+      categoryName?: string;
+      lowStockOnly?: boolean;
+      activeStatus?: 'all' | 'active' | 'discontinued';
+      sortBy?: string;
+      sortDir?: 'asc' | 'desc';
+    },
+    client?: any,
+  ) {
+    const sb = client || supabase;
     const page = Math.max(1, options.page || 1);
     const limit = Math.min(100, Math.max(1, options.limit || 20));
     const offset = (page - 1) * limit;
@@ -47,11 +51,11 @@ export const inventoryApi = {
     let query;
 
     if (options.lowStockOnly) {
-      query = supabase
+      query = sb
         .rpc('get_low_stock_items', {}, { count: 'exact' })
         .select('*, id_kategori:id_kategori(*)');
     } else {
-      query = supabase
+      query = sb
         .from('inventory')
         .select('*, id_kategori:id_kategori(*)', { count: 'exact' });
     }
@@ -77,7 +81,7 @@ export const inventoryApi = {
     
     // Fallback to query by categoryName if categoryId is not provided
     if (!resolvedCategoryId && options.categoryName) {
-      const catResult = await supabase
+      const catResult = await sb
         .from('kategori')
         .select('id')
         .eq('nama', options.categoryName)
@@ -424,6 +428,45 @@ export const inventoryApi = {
         error: result.error as Error | null,
       };
     });
+  },
+
+  /**
+   * Pencocokan eksistensi nama barang langsung ke database PostgreSQL (Bebas limit 1.000)
+   */
+  async checkBatchExistenceByName(
+    names: string[],
+    client?: any,
+  ): Promise<{ existing: InventoryItem[]; missing: string[]; error: Error | null }> {
+    if (!names || names.length === 0) return { existing: [], missing: [], error: null };
+
+    const sb = client || supabase;
+    const trimmedNames = [...new Set(names.map((n) => n.trim()).filter(Boolean))];
+    const CHUNK_SIZE = 100;
+    const existing: InventoryItem[] = [];
+
+    try {
+      for (let i = 0; i < trimmedNames.length; i += CHUNK_SIZE) {
+        const chunk = trimmedNames.slice(i, i + CHUNK_SIZE);
+        const { data, error } = await sb
+          .from('inventory')
+          .select('id, nama_barang, kode_barcode, harga_beli_terakhir, harga_jual, diskon, stok, unit, id_kategori')
+          .in('nama_barang', chunk);
+
+        if (error) throw error;
+        if (data) existing.push(...(data as InventoryItem[]));
+      }
+
+      const existingNamesMap = new Set(
+        existing.map((item) => item.nama_barang.toLowerCase().trim()),
+      );
+      const missing = trimmedNames.filter(
+        (name) => !existingNamesMap.has(name.toLowerCase().trim()),
+      );
+
+      return { existing, missing, error: null };
+    } catch (err: any) {
+      return { existing: [], missing: names, error: err };
+    }
   },
 
   async checkBatchExistence(

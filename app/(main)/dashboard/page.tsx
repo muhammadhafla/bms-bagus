@@ -64,7 +64,6 @@ function HomeContent() {
     queryKey: ['dashboard', 'stats'],
     queryFn: () => dashboardApi.getStats().then((res) => res.data),
     staleTime: 60 * 1000,
-    refetchInterval: 60000,
     refetchOnWindowFocus: true,
   });
 
@@ -76,7 +75,6 @@ function HomeContent() {
     queryKey: ['dashboard', 'lowStock'],
     queryFn: () => dashboardApi.getLowStockItems().then((res) => res.data),
     staleTime: 60 * 1000,
-    refetchInterval: 60000,
     refetchOnWindowFocus: true,
   });
 
@@ -88,7 +86,6 @@ function HomeContent() {
     queryKey: ['dashboard', 'transactions'],
     queryFn: () => dashboardApi.getRecentTransactions().then((res) => res.data),
     staleTime: 60 * 1000,
-    refetchInterval: 60000,
     refetchOnWindowFocus: true,
   });
 
@@ -109,7 +106,6 @@ function HomeContent() {
     },
     enabled: !!user,
     staleTime: 60 * 1000,
-    refetchInterval: 60000,
     refetchOnWindowFocus: true,
   });
 
@@ -124,7 +120,6 @@ function HomeContent() {
     queryFn: () => kasApi.getShiftSummary(todayDateStr),
     enabled: !!user && isAdminUser,
     staleTime: 60 * 1000,
-    refetchInterval: 60000,
     refetchOnWindowFocus: true,
   });
 

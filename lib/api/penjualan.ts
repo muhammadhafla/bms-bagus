@@ -63,12 +63,9 @@ export const penjualanApi = {
         .select('*', { count: 'exact' })
         .order(sortBy, { ascending: isAscending });
 
-      if (options?.limit) {
-        query = query.limit(options.limit);
-      }
-      if (options?.offset) {
-        query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
-      }
+      const limit = options?.limit || 10;
+      const offset = options?.offset || 0;
+      query = query.range(offset, offset + limit - 1);
       if (options?.search) {
         // Asumsi penjualan memiliki id (atau kolom lain) yang bisa dicari.
         query = query.ilike('id', `%${options.search}%`);

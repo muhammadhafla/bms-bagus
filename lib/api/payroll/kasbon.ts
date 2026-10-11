@@ -82,10 +82,30 @@ export const kasbonApi = {
   },
 
   /**
+   * Mengambil jumlah kasbon berstatus pending (Ringan untuk Badge Counter)
+   */
+  async getPendingCount(client?: any): Promise<{ count: number; error: Error | null }> {
+    try {
+      const sb = client || supabase;
+      const { count, error } = await sb
+        .from('payroll_mutasi')
+        .select('*', { count: 'exact', head: true })
+        .eq('jenis', 'debit')
+        .eq('status', 'pending');
+
+      if (error) return { count: 0, error: error as Error };
+      return { count: count || 0, error: null };
+    } catch (err: any) {
+      return { count: 0, error: err };
+    }
+  },
+
+  /**
    * Mengambil semua kasbon/penarikan (Untuk Admin, bisa filter pending)
    */
-  async getAll(params: GetKasbonParams = {}): Promise<KasbonPaginatedResponse> {
+  async getAll(params: GetKasbonParams = {}, client?: any): Promise<KasbonPaginatedResponse> {
     try {
+      const sb = client || supabase;
       const {
         page = 1,
         limit = 20,
@@ -99,7 +119,7 @@ export const kasbonApi = {
       const offset = (page - 1) * limit;
 
       // Use inner join on profiles if searching by profile name
-      let query = supabase
+      let query = sb
         .from('payroll_mutasi')
         .select(`*, profiles!inner(nama)`, { count: 'exact' })
         .eq('jenis', 'debit');
@@ -127,13 +147,13 @@ export const kasbonApi = {
       // Fetch balances for the users in the result
       const userIds = [...new Set(data.map((d: any) => d.user_id))];
       if (userIds.length > 0) {
-        const { data: balancesData } = await supabase
+        const { data: balancesData } = await sb
           .from('vw_payroll_saldo')
           .select('user_id, total_saldo')
           .in('user_id', userIds);
           
         if (balancesData) {
-          const balancesMap = new Map(balancesData.map((b) => [b.user_id, b.total_saldo]));
+          const balancesMap = new Map(balancesData.map((b: any) => [b.user_id, b.total_saldo]));
           data = data.map((d: any) => {
             if (d.profiles) {
               return {

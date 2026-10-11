@@ -35,9 +35,24 @@ import SelectInput from '@/components/ui/SelectInput';
 import Button from '@/components/ui/Button';
 import { ModernPagination, PriceInput, Spinner } from '@/components/ui';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { PurchaseHistoryModal } from './PurchaseHistoryModal';
-import { MergeInventoryModal } from './MergeInventoryModal';
-import { BulkDeleteConfirmModal } from './BulkDeleteConfirmModal';
+import dynamic from 'next/dynamic';
+
+const PurchaseHistoryModal = dynamic(
+  () => import('./PurchaseHistoryModal').then((mod) => mod.PurchaseHistoryModal),
+  { ssr: false },
+);
+const MergeInventoryModal = dynamic(
+  () => import('./MergeInventoryModal').then((mod) => mod.MergeInventoryModal),
+  { ssr: false },
+);
+const BulkDeleteConfirmModal = dynamic(
+  () => import('./BulkDeleteConfirmModal').then((mod) => mod.BulkDeleteConfirmModal),
+  { ssr: false },
+);
+const InventoryPrintModal = dynamic(
+  () => import('./InventoryPrintModal'),
+  { ssr: false },
+);
 
 interface PaginationProps {
   page: number;
@@ -146,9 +161,6 @@ export const InventoryTable = React.memo(function InventoryTable({
   const [deletionBlockedInfo, setDeletionBlockedInfo] = useState<InventoryDeletionCheck | null>(null);
   const [discontinueConfirm, setDiscontinueConfirm] = useState(false);
   const [printModalOpen, setPrintModalOpen] = useState(false);
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [printForm, setPrintForm] = useState({ template_id: '', qty: 1 });
-  const [isPrinting, setIsPrinting] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [warehouseStocks, setWarehouseStocks] = useState<InventoryStock[]>([]);
   const [loadingWarehouseStocks, setLoadingWarehouseStocks] = useState(false);
@@ -299,61 +311,7 @@ export const InventoryTable = React.memo(function InventoryTable({
     handleSave();
   }, { enableOnFormTags: true, enabled: isSlideOverOpen });
 
-  const openPrintModal = async () => {
-    if (!selectedItem) return;
-    setPrintModalOpen(true);
-    setPrintForm({ template_id: '', qty: 1 });
-    try {
-      const res = await fetchApi('/api/templates');
-      const data = await res.json();
-      if (data.templates) {
-        setTemplates(data.templates);
-        if (data.templates.length > 0) {
-          setPrintForm((prev) => ({ ...prev, template_id: data.templates[0].id }));
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching templates', err);
-    }
-  };
 
-  const handlePrintSubmit = async () => {
-    if (!selectedItem || !printForm.template_id) return;
-    setIsPrinting(true);
-    try {
-      // Harga akhir setelah diskon
-      const finalPrice = (selectedItem.harga_jual || 0) - (selectedItem.diskon || 0);
-
-      const itemData = {
-        name: selectedItem.nama_barang,
-        price: formatCurrency(finalPrice),
-        barcode: selectedItem.kode_barcode,
-      };
-      const payload_json = Array(printForm.qty).fill(itemData);
-
-      const res = await fetchApi('/api/print', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          template_id: printForm.template_id,
-          payload_json,
-        }),
-      });
-
-      if (res.ok) {
-        toast.success('Antrean cetak berhasil dibuat');
-        setPrintModalOpen(false);
-      } else {
-        const errorData = await res.json();
-        toast.error(errorData.error || 'Gagal membuat antrean cetak');
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Terjadi kesalahan sistem');
-    } finally {
-      setIsPrinting(false);
-    }
-  };
 
   if (items.length === 0) {
     return (
@@ -903,7 +861,7 @@ export const InventoryTable = React.memo(function InventoryTable({
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={openPrintModal}
+                    onClick={() => setPrintModalOpen(true)}
                     className="w-full justify-start text-xs font-medium"
                     leftIcon={<IconPrinter size={16} className="text-blue-600 dark:text-blue-400" />}
                   >
@@ -973,7 +931,7 @@ export const InventoryTable = React.memo(function InventoryTable({
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={openPrintModal}
+                onClick={() => setPrintModalOpen(true)}
                 className="w-full justify-center text-xs font-medium min-h-[36px]"
                 leftIcon={<IconPrinter size={15} className="text-blue-600 dark:text-blue-400" />}
               >
@@ -1142,65 +1100,12 @@ export const InventoryTable = React.memo(function InventoryTable({
         danger={!selectedItem?.is_discontinued}
       />
 
-      <Modal
+      <InventoryPrintModal
         isOpen={printModalOpen}
         onClose={() => setPrintModalOpen(false)}
-        title="Cetak Label"
-        size="sm"
-        isBottomSheetOnMobile
+        item={selectedItem}
         nested={isSlideOverOpen}
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
-            Cetak label untuk <strong>{selectedItem?.nama_barang}</strong>
-          </p>
-
-          <SelectInput
-            label="Template Label"
-            value={printForm.template_id}
-            onChange={(val) => setPrintForm((prev) => ({ ...prev, template_id: val }))}
-            options={templates.map((t) => ({ value: t.id, label: t.name }))}
-            placeholder="Pilih template"
-          />
-
-          <TextInput
-            label="Jumlah (Qty)"
-            type="number"
-            min={1}
-            value={printForm.qty === 0 ? '' : printForm.qty}
-            placeholder="1"
-            onFocus={(e) => e.target.select()}
-            onChange={(e) => {
-              const val = e.target.value;
-              setPrintForm((prev) => ({
-                ...prev,
-                qty: val === '' ? 0 : Math.max(1, parseInt(val, 10) || 1),
-              }));
-            }}
-            onBlur={() => {
-              if (!printForm.qty || printForm.qty < 1) {
-                setPrintForm((prev) => ({ ...prev, qty: 1 }));
-              }
-            }}
-            required
-          />
-
-          <div className="mt-6 flex gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">
-            <Button variant="secondary" onClick={() => setPrintModalOpen(false)} className="flex-1">
-              Batal
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handlePrintSubmit}
-              disabled={isPrinting || !printForm.template_id}
-              className="flex-1"
-              leftIcon={<IconPrinter size={18} />}
-            >
-              {isPrinting ? 'Memproses...' : 'Cetak'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      />
 
       <PurchaseHistoryModal
         isOpen={historyModalOpen}

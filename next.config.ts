@@ -25,7 +25,7 @@ const nextConfig: NextConfig = {
     '/api/export/**/*': ['./node_modules/pdfkit/js/standard-fonts/**/*'],
   },
   experimental: {
-    optimizePackageImports: ['recharts', 'pdfmake', '@tabler/icons-react'],
+    optimizePackageImports: ['recharts', '@tabler/icons-react'],
   },
   async headers() {
     const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL

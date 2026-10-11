@@ -48,13 +48,6 @@ vi.mock('@/lib/auth', () => {
   };
 });
 
-vi.mock('@/lib/presence', () => ({
-  usePresenceStore: vi.fn(() => ({
-    initializePresence: vi.fn(),
-    cleanupPresence: vi.fn(),
-  })),
-}));
-
 vi.mock('@/components/DarkModeProvider', () => ({
   useDarkMode: vi.fn(() => ({
     theme: 'light',

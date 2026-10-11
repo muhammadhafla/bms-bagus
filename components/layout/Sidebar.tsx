@@ -249,7 +249,6 @@ export function Sidebar() {
       return res.data || [];
     },
     enabled: !!canAccessPosAuth,
-    refetchInterval: 15000,
   });
   const activePosAuthCount = activePosRequests?.length || 0;
 

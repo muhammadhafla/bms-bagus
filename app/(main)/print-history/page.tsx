@@ -27,13 +27,18 @@ import { PrintJob } from './types';
 import { PrintHistoryTable } from './components/PrintHistoryTable';
 import { PrintHistoryMobileList } from './components/PrintHistoryMobileList';
 import { PrintFilterSidebar } from './components/PrintFilterSidebar';
+import { gudangApi } from '@/lib/api/warehouse';
+import { useAuthStore } from '@/lib/auth';
+import { Gudang } from '@/types/warehouse';
 
 function PrintHistoryContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { profile, isAdmin } = useAuthStore();
 
   const [jobs, setJobs] = useState<PrintJob[]>([]);
+  const [warehouses, setWarehouses] = useState<Gudang[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -42,6 +47,7 @@ function PrintHistoryContent() {
   const startDate = searchParams.get('startDate') || '';
   const endDate = searchParams.get('endDate') || '';
   const status = searchParams.get('status') || '';
+  const gudangId = searchParams.get('gudang_id') || '';
   const page = parseInt(searchParams.get('page') || '1', 10);
   const limit = 20;
 
@@ -52,19 +58,38 @@ function PrintHistoryContent() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
 
+  useEffect(() => {
+    const loadWarehouses = async () => {
+      try {
+        const { data } = await gudangApi.getAll({ activeOnly: true });
+        if (data) setWarehouses(data);
+      } catch (err) {
+        console.error('Failed to fetch warehouses', err);
+      }
+    };
+    loadWarehouses();
+  }, []);
+
   const updateFilter = (newFilters: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
     Object.entries(newFilters).forEach(([key, value]) => {
+      const paramKey = key === 'gudangId' ? 'gudang_id' : key;
       if (value === null || value === '') {
-        params.delete(key);
+        params.delete(paramKey);
       } else {
-        params.set(key, value);
+        params.set(paramKey, value);
       }
     });
 
     // Reset page to 1 if filter (other than page itself) changes
-    if (newFilters.page === undefined && (newFilters.startDate !== undefined || newFilters.endDate !== undefined || newFilters.status !== undefined)) {
-       params.delete('page'); // Removing page means it defaults to 1
+    if (
+      newFilters.page === undefined &&
+      (newFilters.startDate !== undefined ||
+        newFilters.endDate !== undefined ||
+        newFilters.status !== undefined ||
+        newFilters.gudangId !== undefined)
+    ) {
+      params.delete('page'); // Removing page means it defaults to 1
     }
 
     router.push(`${pathname}?${params.toString()}`);
@@ -81,6 +106,7 @@ function PrintHistoryContent() {
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
       if (status) params.append('status', status);
+      if (gudangId) params.append('gudang_id', gudangId);
 
       const res = await fetchApi(`/api/print/history?${params.toString()}`, { signal });
 
@@ -105,7 +131,7 @@ function PrintHistoryContent() {
         setLoading(false);
       }
     }
-  }, [page, startDate, endDate, status]);
+  }, [page, startDate, endDate, status, gudangId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -135,8 +161,10 @@ function PrintHistoryContent() {
     try {
       const res = await fetchApi('/api/print', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           template_id: jobToRetry.template_id,
+          gudang_id: jobToRetry.gudang_id,
           payload_json: jobToRetry.payload_json,
         }),
       });
@@ -157,6 +185,14 @@ function PrintHistoryContent() {
   };
 
   const activeFilters = [];
+  if (gudangId) {
+    const selectedG = warehouses.find((w) => w.id === gudangId);
+    activeFilters.push({
+      id: 'gudang',
+      label: `Gudang: ${selectedG ? selectedG.nama : 'Dipilih'}`,
+      onRemove: () => updateFilter({ gudangId: '' }),
+    });
+  }
   if (startDate || endDate) {
     activeFilters.push({
       id: 'date',
@@ -250,6 +286,8 @@ function PrintHistoryContent() {
           status={status}
           startDate={startDate}
           endDate={endDate}
+          gudangId={gudangId}
+          warehouses={warehouses}
           onFilterChange={updateFilter}
         />
 

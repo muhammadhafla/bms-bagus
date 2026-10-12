@@ -8,7 +8,10 @@ import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import { InventoryItem } from '@/types/inventory';
 import { Template } from '@/types';
+import { Gudang } from '@/types/warehouse';
 import { fetchApi } from '@/lib/fetchApi';
+import { gudangApi } from '@/lib/api/warehouse';
+import { useAuthStore } from '@/lib/auth';
 import { formatCurrency, normalizeBarcode, debounce } from '@/lib/utils';
 import {
   IconPrinter,
@@ -28,6 +31,7 @@ import { SharedBarcodeSearch } from '@/components/inventory/SharedBarcodeSearch'
 
 export default function BulkPrintPage() {
   const router = useRouter();
+  const { profile } = useAuthStore();
   const { items, addItem, updateQty, removeItem, reset } = useBulkPrintStore();
   const { data: inventoryData } = useQuery({
     queryKey: ['inventory', 'all'],
@@ -47,6 +51,8 @@ export default function BulkPrintPage() {
 
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [warehouses, setWarehouses] = useState<Gudang[]>([]);
+  const [selectedGudang, setSelectedGudang] = useState('');
 
   const [barcodeInput, setBarcodeInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -58,9 +64,26 @@ export default function BulkPrintPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const fetchWarehouses = useCallback(async () => {
+    try {
+      const { data } = await gudangApi.getAll({ activeOnly: true });
+      if (data && data.length > 0) {
+        setWarehouses(data);
+        const userGudang = profile?.default_gudang_id
+          ? data.find((g) => g.id === profile.default_gudang_id)
+          : null;
+        const defaultGudang = data.find((g) => g.is_default);
+        setSelectedGudang((userGudang || defaultGudang || data[0]).id);
+      }
+    } catch (err) {
+      console.error('Error fetching warehouses:', err);
+    }
+  }, [profile]);
+
   useEffect(() => {
     fetchTemplates();
-  }, []);
+    fetchWarehouses();
+  }, [fetchWarehouses]);
 
   const fetchTemplates = async () => {
     try {
@@ -190,6 +213,11 @@ export default function BulkPrintPage() {
     if (items.length === 0) return;
     if (submitting) return;
 
+    if (!selectedGudang) {
+      setError('Silakan pilih Gudang Tujuan terlebih dahulu');
+      return;
+    }
+
     if (!selectedTemplate) {
       setError('Silakan pilih Template Label terlebih dahulu');
       return;
@@ -226,6 +254,7 @@ export default function BulkPrintPage() {
         },
         body: JSON.stringify({
           template_id: selectedTemplate,
+          gudang_id: selectedGudang,
           payload_json,
         }),
       });
@@ -247,7 +276,7 @@ export default function BulkPrintPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [items, selectedTemplate, submitting, reset, focusInput]);
+  }, [items, selectedTemplate, selectedGudang, submitting, reset, focusInput]);
 
   return (
     <AmbientLayout>
@@ -276,12 +305,28 @@ export default function BulkPrintPage() {
               </div>
             </div>
 
-            <div className="flex w-full items-end gap-3 lg:w-auto lg:gap-4">
-              <div className="w-full flex-1 lg:max-w-[250px] lg:min-w-[200px]">
+            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-end sm:gap-3">
+              <div className="w-full sm:w-[220px]">
                 <SelectInput
-                  label="Template Global:"
+                  label="Gudang:"
+                  value={selectedGudang}
+                  onChange={setSelectedGudang}
+                  clearable={false}
+                  inputSize="sm"
+                  options={warehouses.map((w) => ({
+                    value: w.id,
+                    label: `${w.nama} (${w.kode_gudang})${w.is_default ? ' - Utama' : ''}`,
+                  }))}
+                  placeholder="-- Pilih Gudang --"
+                />
+              </div>
+              <div className="w-full sm:w-[200px]">
+                <SelectInput
+                  label="Template:"
                   value={selectedTemplate}
                   onChange={setSelectedTemplate}
+                  clearable={false}
+                  inputSize="sm"
                   options={templates.map((t) => ({ value: t.id, label: t.name }))}
                   placeholder="-- Pilih Template --"
                 />

@@ -6,7 +6,9 @@ interface Props {
   status: string;
   startDate: string;
   endDate: string;
-  onFilterChange: (filters: { status?: string; startDate?: string; endDate?: string }) => void;
+  gudangId: string;
+  warehouses: Array<{ id: string; nama: string; kode_gudang: string; is_default?: boolean }>;
+  onFilterChange: (filters: { status?: string; startDate?: string; endDate?: string; gudangId?: string }) => void;
 }
 
 export function PrintFilterSidebar({
@@ -15,11 +17,33 @@ export function PrintFilterSidebar({
   status,
   startDate,
   endDate,
+  gudangId,
+  warehouses,
   onFilterChange,
 }: Props) {
   return (
     <SlideOver isOpen={isOpen} onClose={onClose} title="Filter Riwayat">
       <div className="space-y-6">
+        <div className="flex flex-col gap-3">
+          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+            Gudang / Outlet:
+          </label>
+          <select
+            value={gudangId}
+            onChange={(e) => {
+              onFilterChange({ gudangId: e.target.value });
+            }}
+            className="focus:border-brand-500 focus:ring-brand-500 w-full rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm outline-none focus:ring-1 dark:border-neutral-700 dark:bg-neutral-900"
+          >
+            <option value="">Semua Gudang</option>
+            {warehouses.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.nama} ({w.kode_gudang})
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="flex flex-col gap-3">
           <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
             Status:
@@ -60,7 +84,7 @@ export function PrintFilterSidebar({
             variant="secondary"
             className="w-1/2"
             onClick={() => {
-              onFilterChange({ startDate: '', endDate: '', status: '' });
+              onFilterChange({ startDate: '', endDate: '', status: '', gudangId: '' });
             }}
           >
             Reset Filter

@@ -8,6 +8,8 @@ import SelectInput from '@/components/ui/SelectInput';
 import Button from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/utils';
 import { fetchApi } from '@/lib/fetchApi';
+import { gudangApi } from '@/lib/api/warehouse';
+import { useAuthStore } from '@/lib/auth';
 import { toast } from 'sonner';
 import { InventoryItem } from '@/types/inventory';
 
@@ -24,33 +26,55 @@ export default function InventoryPrintModal({
   item,
   nested,
 }: InventoryPrintModalProps) {
+  const { profile } = useAuthStore();
   const [templates, setTemplates] = useState<any[]>([]);
-  const [printForm, setPrintForm] = useState({ template_id: '', qty: 1 });
+  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [printForm, setPrintForm] = useState({ template_id: '', gudang_id: '', qty: 1 });
   const [isPrinting, setIsPrinting] = useState(false);
 
   useEffect(() => {
     if (isOpen && item) {
-      setPrintForm({ template_id: '', qty: 1 });
-      const loadTemplates = async () => {
+      setPrintForm({ template_id: '', gudang_id: '', qty: 1 });
+
+      const loadInitialData = async () => {
         try {
-          const res = await fetchApi('/api/templates');
-          const data = await res.json();
-          if (data.templates) {
-            setTemplates(data.templates);
-            if (data.templates.length > 0) {
-              setPrintForm((prev) => ({ ...prev, template_id: data.templates[0].id }));
-            }
+          // 1. Fetch templates
+          const resTemplates = await fetchApi('/api/templates');
+          const dataTemplates = await resTemplates.json();
+          let initialTemplateId = '';
+          if (dataTemplates.templates && dataTemplates.templates.length > 0) {
+            setTemplates(dataTemplates.templates);
+            initialTemplateId = dataTemplates.templates[0].id;
           }
+
+          // 2. Fetch active warehouses
+          const { data: gudangList } = await gudangApi.getAll({ activeOnly: true });
+          let initialGudangId = '';
+          if (gudangList && gudangList.length > 0) {
+            setWarehouses(gudangList);
+            const userGudang = profile?.default_gudang_id
+              ? gudangList.find((g) => g.id === profile.default_gudang_id)
+              : null;
+            const defaultGudang = gudangList.find((g) => g.is_default);
+            initialGudangId = (userGudang || defaultGudang || gudangList[0]).id;
+          }
+
+          setPrintForm({
+            template_id: initialTemplateId,
+            gudang_id: initialGudangId,
+            qty: 1,
+          });
         } catch (err) {
-          console.error('Error fetching templates', err);
+          console.error('Error fetching print modal data', err);
         }
       };
-      loadTemplates();
+
+      loadInitialData();
     }
-  }, [isOpen, item]);
+  }, [isOpen, item, profile]);
 
   const handlePrintSubmit = async () => {
-    if (!item || !printForm.template_id) return;
+    if (!item || !printForm.template_id || !printForm.gudang_id) return;
     setIsPrinting(true);
     try {
       // Harga akhir setelah diskon
@@ -68,6 +92,7 @@ export default function InventoryPrintModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           template_id: printForm.template_id,
+          gudang_id: printForm.gudang_id,
           payload_json,
         }),
       });
@@ -104,9 +129,25 @@ export default function InventoryPrintModal({
         </p>
 
         <SelectInput
+          label="Gudang Tujuan"
+          value={printForm.gudang_id}
+          onChange={(val) => setPrintForm((prev) => ({ ...prev, gudang_id: val }))}
+          clearable={false}
+          inputSize="sm"
+          options={warehouses.map((w) => ({
+            value: w.id,
+            label: `${w.nama} (${w.kode_gudang})${w.is_default ? ' - Utama' : ''}`,
+          }))}
+          placeholder="Pilih gudang tujuan"
+          required
+        />
+
+        <SelectInput
           label="Template Label"
           value={printForm.template_id}
           onChange={(val) => setPrintForm((prev) => ({ ...prev, template_id: val }))}
+          clearable={false}
+          inputSize="sm"
           options={templates.map((t) => ({ value: t.id, label: t.name }))}
           placeholder="Pilih template"
         />
@@ -140,7 +181,7 @@ export default function InventoryPrintModal({
           <Button
             variant="primary"
             onClick={handlePrintSubmit}
-            disabled={isPrinting || !printForm.template_id}
+            disabled={isPrinting || !printForm.template_id || !printForm.gudang_id}
             className="flex-1"
             leftIcon={<IconPrinter size={18} />}
           >

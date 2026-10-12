@@ -67,9 +67,16 @@ export function PrintHistoryMobileList({ jobs, loading, onOpenDetail, onPromptRe
           className="relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-neutral-100 bg-white/50 p-3 shadow-sm backdrop-blur-md dark:border-neutral-800/50 dark:bg-neutral-950/50"
         >
           <div className="flex items-start justify-between">
-            <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
-              {formatDateTimeWIB(job.created_at)}
-            </span>
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+                {formatDateTimeWIB(job.created_at)}
+              </span>
+              {job.gudang && (
+                <span className="mt-0.5 text-xs font-medium text-brand-600 dark:text-brand-400">
+                  📍 {job.gudang.nama}
+                </span>
+              )}
+            </div>
             {renderStatusBadge(job.status)}
           </div>
 
@@ -91,8 +98,16 @@ export function PrintHistoryMobileList({ jobs, loading, onOpenDetail, onPromptRe
                   <IconCopy size={12} />
                 </button>
               </div>
+              {job.device_name && (
+                <div>Device: {job.device_name}</div>
+              )}
               {job.printed_at && (
                 <div>Selesai: {formatDateTimeWIB(job.printed_at).split(' ')[1]}</div>
+              )}
+              {job.status === 'Failed' && job.error_message && (
+                <div className="font-sans text-[10px] text-red-500 max-w-[180px] truncate" title={job.error_message}>
+                  {job.error_message}
+                </div>
               )}
             </div>
             <Button

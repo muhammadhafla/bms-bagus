@@ -14,11 +14,19 @@ export async function GET(request: Request) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const status = searchParams.get('status');
+    const gudangId = searchParams.get('gudang_id');
 
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    let query = supabase.from('print_jobs').select(`*, label_templates (name)`, { count: 'exact' });
+    let query = supabase.from('print_jobs').select(
+      `
+      *,
+      label_templates (name),
+      gudang (id, nama, kode_gudang)
+    `,
+      { count: 'exact' },
+    );
 
     if (startDate) {
       query = query.gte('created_at', `${startDate}T00:00:00.000Z`);
@@ -30,6 +38,10 @@ export async function GET(request: Request) {
 
     if (status) {
       query = query.eq('status', status);
+    }
+
+    if (gudangId) {
+      query = query.eq('gudang_id', gudangId);
     }
 
     query = query.order('created_at', { ascending: false }).range(from, to);

@@ -1491,6 +1491,9 @@ export type Database = {
       print_jobs: {
         Row: {
           created_at: string | null
+          device_name: string | null
+          error_message: string | null
+          gudang_id: string
           id: string
           payload_json: Json
           printed_at: string | null
@@ -1499,6 +1502,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          device_name?: string | null
+          error_message?: string | null
+          gudang_id: string
           id?: string
           payload_json: Json
           printed_at?: string | null
@@ -1507,6 +1513,9 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          device_name?: string | null
+          error_message?: string | null
+          gudang_id?: string
           id?: string
           payload_json?: Json
           printed_at?: string | null
@@ -1514,6 +1523,13 @@ export type Database = {
           template_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "print_jobs_gudang_id_fkey"
+            columns: ["gudang_id"]
+            isOneToOne: false
+            referencedRelation: "gudang"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "print_jobs_template_id_fkey"
             columns: ["template_id"]

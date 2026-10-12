@@ -20,6 +20,7 @@ export function PrintHistoryTable({ jobs, loading, onOpenDetail, onPromptRetry, 
         <thead className="border-b border-neutral-200/50 bg-white/50 backdrop-blur-md dark:border-neutral-800/50 dark:bg-neutral-950/50">
           <tr>
             <th className="p-4 font-semibold text-neutral-600 dark:text-neutral-300">ID Job</th>
+            <th className="p-4 font-semibold text-neutral-600 dark:text-neutral-300">Gudang</th>
             <th className="p-4 font-semibold text-neutral-600 dark:text-neutral-300">Item</th>
             <th className="p-4 font-semibold text-neutral-600 dark:text-neutral-300">Status</th>
             <th className="p-4 font-semibold text-neutral-600 dark:text-neutral-300">Waktu Buat</th>
@@ -32,6 +33,7 @@ export function PrintHistoryTable({ jobs, loading, onOpenDetail, onPromptRetry, 
             [...Array(5)].map((_, i) => (
               <tr key={i} className="border-b border-neutral-100 dark:border-neutral-800/50">
                 <td className="p-4"><div className="h-4 w-20 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800" /></td>
+                <td className="p-4"><div className="h-4 w-28 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800" /></td>
                 <td className="p-4">
                   <div className="space-y-2">
                     <div className="h-4 w-40 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800" />
@@ -46,7 +48,7 @@ export function PrintHistoryTable({ jobs, loading, onOpenDetail, onPromptRetry, 
             ))
           ) : jobs.length === 0 ? (
             <tr>
-              <td colSpan={6} className="p-8 text-center">
+              <td colSpan={7} className="p-8 text-center">
                 <div className="flex flex-col items-center justify-center px-4 py-16 text-neutral-500 dark:text-neutral-400">
                   <IconPrinter className="mb-4 h-16 w-16 text-neutral-300 dark:text-neutral-700" />
                   <h3 className="mb-2 text-lg font-semibold text-neutral-800 dark:text-neutral-200">
@@ -83,8 +85,32 @@ export function PrintHistoryTable({ jobs, loading, onOpenDetail, onPromptRetry, 
                     </button>
                   </div>
                 </td>
+                <td className="p-4">
+                  {job.gudang ? (
+                    <div className="flex flex-col">
+                      <span className="font-medium text-neutral-900 dark:text-neutral-100">{job.gudang.nama}</span>
+                      <span className="text-xs text-neutral-500 font-mono">({job.gudang.kode_gudang})</span>
+                    </div>
+                  ) : (
+                    <span className="text-neutral-400 text-xs italic">-</span>
+                  )}
+                </td>
                 <td className="p-4">{renderItemInfo(job, true, onOpenDetail)}</td>
-                <td className="p-4">{renderStatusBadge(job.status)}</td>
+                <td className="p-4">
+                  <div className="flex flex-col items-start gap-1">
+                    {renderStatusBadge(job.status)}
+                    {job.device_name && (
+                      <span className="text-[10px] text-neutral-400 font-mono">
+                        🖥️ {job.device_name}
+                      </span>
+                    )}
+                    {job.status === 'Failed' && job.error_message && (
+                      <span className="text-[10px] text-red-500 line-clamp-1" title={job.error_message}>
+                        {job.error_message}
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="p-4 text-neutral-600 dark:text-neutral-400">
                   {formatDateTimeWIB(job.created_at)}
                 </td>

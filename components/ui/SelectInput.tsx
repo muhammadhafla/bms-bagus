@@ -63,6 +63,7 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
       emptyMessage = 'Tidak ada opsi yang sesuai',
       searchable,
       clearable,
+      inputSize = 'md',
       name,
       id,
       required,
@@ -216,8 +217,9 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
       }
     };
 
-    // Determine if clear button is allowed
-    const isClearable = (clearable ?? !required) && !!value && !disabled;
+    // Determine if clear button is allowed (only when explicitly set to true)
+    const isClearable = Boolean(clearable) && !!value && !disabled;
+    const isCompact = inputSize === 'sm';
 
     // Has display content
     const hasValue = !!value && !!selectedOption;
@@ -251,9 +253,15 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
             aria-describedby={
               error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined
             }
-            className={`relative flex w-full items-center justify-between rounded-xl border-2 text-left transition-all outline-none ${
-              label ? 'pt-6 pb-2 min-h-[56px]' : 'py-3 min-h-[46px]'
-            } pl-4 pr-10 cursor-pointer ${
+            className={`relative flex w-full items-center justify-between rounded-xl border text-left transition-all outline-none ${
+              label
+                ? isCompact
+                  ? 'pt-3.5 pb-1 min-h-[40px]'
+                  : 'pt-6 pb-2 min-h-[56px]'
+                : isCompact
+                ? 'py-1.5 min-h-[38px]'
+                : 'py-3 min-h-[46px]'
+            } ${isCompact ? 'pl-3 pr-8' : 'pl-4 pr-10'} cursor-pointer ${
               error
                 ? 'border-accent-rose-400 focus:border-accent-rose-500 bg-accent-rose-50/30 shadow-[0_0_0_1px_rgba(244,63,94,0.1)]'
                 : isOpen
@@ -272,7 +280,11 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
                       {selectedOption.icon}
                     </span>
                   )}
-                  <span className="truncate text-sm sm:text-base font-medium text-neutral-900 dark:text-neutral-100">
+                  <span
+                    className={`truncate ${
+                      isCompact ? 'text-xs sm:text-sm font-semibold' : 'text-sm sm:text-base font-medium'
+                    } text-neutral-900 dark:text-neutral-100`}
+                  >
                     {selectedOption?.label}
                   </span>
                   {selectedOption?.badge && (
@@ -283,7 +295,7 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
                 </>
               ) : (
                 <span
-                  className={`truncate text-sm sm:text-base ${
+                  className={`truncate ${isCompact ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'} ${
                     showFloatingLabel && !isOpen
                       ? 'opacity-0'
                       : 'text-neutral-400 dark:text-neutral-500'
@@ -295,7 +307,11 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
             </div>
 
             {/* Right Actions: Clear Button & Chevron */}
-            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+            <div
+              className={`absolute ${
+                isCompact ? 'right-2' : 'right-3.5'
+              } top-1/2 -translate-y-1/2 flex items-center gap-1.5`}
+            >
               {isClearable && (
                 <span
                   role="button"
@@ -315,7 +331,9 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
                 </span>
               )}
               <IconChevronDown
-                className={`h-5 w-5 text-neutral-400 transition-transform duration-200 ${
+                className={`${
+                  isCompact ? 'h-4 w-4' : 'h-5 w-5'
+                } text-neutral-400 transition-transform duration-200 ${
                   isOpen ? 'rotate-180 text-brand-500 dark:text-brand-400' : ''
                 }`}
               />
@@ -327,9 +345,15 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
             <label
               id={`${inputId}-label`}
               onClick={() => triggerRef.current?.focus()}
-              className={`pointer-events-none absolute left-4 max-w-[calc(100%-4rem)] truncate transition-all tracking-wide uppercase ${
+              className={`pointer-events-none absolute ${
+                isCompact ? 'left-3 max-w-[calc(100%-2rem)]' : 'left-4 max-w-[calc(100%-4rem)]'
+              } truncate transition-all tracking-wide uppercase ${
                 hasValue || isOpen
-                  ? 'top-2 -translate-y-0 text-[11px] font-semibold'
+                  ? isCompact
+                    ? 'top-1 -translate-y-0 text-[9px] font-bold'
+                    : 'top-2 -translate-y-0 text-[11px] font-semibold'
+                  : isCompact
+                  ? 'top-1/2 -translate-y-1/2 text-xs font-normal'
                   : 'top-1/2 -translate-y-1/2 text-sm sm:text-base font-normal'
               } ${
                 error

@@ -21,7 +21,8 @@ import {
   Spinner,
 } from '@/components/ui';
 import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { gudangApi } from '@/lib/api/warehouse';
 import dynamic from 'next/dynamic';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
@@ -80,21 +81,29 @@ function TransactionsHistoryContent() {
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  const updateFilters = (newFilters: { search?: string; startDate?: string; endDate?: string; sortBy?: string; sortDir?: string }) => {
+  const updateFilters = (newFilters: { search?: string; startDate?: string; endDate?: string; sortBy?: string; sortDir?: string; gudangId?: string }) => {
     const params = new URLSearchParams(searchParams.toString());
     if (newFilters.search !== undefined) newFilters.search ? params.set('search', newFilters.search) : params.delete('search');
     if (newFilters.startDate !== undefined) newFilters.startDate ? params.set('startDate', newFilters.startDate) : params.delete('startDate');
     if (newFilters.endDate !== undefined) newFilters.endDate ? params.set('endDate', newFilters.endDate) : params.delete('endDate');
     if (newFilters.sortBy !== undefined) newFilters.sortBy ? params.set('sortBy', newFilters.sortBy) : params.delete('sortBy');
     if (newFilters.sortDir !== undefined) newFilters.sortDir ? params.set('sortDir', newFilters.sortDir) : params.delete('sortDir');
+    if (newFilters.gudangId !== undefined) newFilters.gudangId ? params.set('gudangId', newFilters.gudangId) : params.delete('gudangId');
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
+
+  const { data: gudangRes } = useQuery({
+    queryKey: ['warehouse-list'],
+    queryFn: () => gudangApi.getAll({ activeOnly: true }),
+  });
+  const gudangList = useMemo(() => gudangRes?.data || [], [gudangRes?.data]);
 
   const search = searchParams.get('search') || '';
   const startDate = searchParams.get('startDate') || '';
   const endDate = searchParams.get('endDate') || '';
   const sortBy = searchParams.get('sortBy') || 'created_at';
   const sortDir = (searchParams.get('sortDir') as 'asc' | 'desc') || 'desc';
+  const gudangId = searchParams.get('gudangId') || '';
 
   // Temporary state for the filter SlideOver
   const [tempSearch, setTempSearch] = useState('');
@@ -102,6 +111,7 @@ function TransactionsHistoryContent() {
   const [tempEndDate, setTempEndDate] = useState('');
   const [tempSortBy, setTempSortBy] = useState('created_at');
   const [tempSortDir, setTempSortDir] = useState<'asc' | 'desc'>('desc');
+  const [tempGudangId, setTempGudangId] = useState('');
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const isAdminUser = useIsAdmin();
@@ -131,6 +141,7 @@ function TransactionsHistoryContent() {
     setTempEndDate(endDate);
     setTempSortBy(sortBy);
     setTempSortDir(sortDir);
+    setTempGudangId(gudangId);
     setIsFilterOpen(true);
   };
 
@@ -141,12 +152,13 @@ function TransactionsHistoryContent() {
       endDate: tempEndDate,
       sortBy: tempSortBy,
       sortDir: tempSortDir,
+      gudangId: tempGudangId,
     });
     setIsFilterOpen(false);
   };
 
   const handleResetFilter = () => {
-    updateFilters({ search: '', startDate: '', endDate: '', sortBy: 'created_at', sortDir: 'desc' });
+    updateFilters({ search: '', startDate: '', endDate: '', sortBy: 'created_at', sortDir: 'desc', gudangId: '' });
     setIsFilterOpen(false);
   };
 
@@ -160,6 +172,14 @@ function TransactionsHistoryContent() {
         id: 'date',
         label: `${startDate} - ${endDate}`,
         onRemove: () => updateFilters({ startDate: '', endDate: '' }),
+      });
+    }
+    if (gudangId) {
+      const selectedGudang = gudangList.find((g) => g.id === gudangId);
+      badges.push({
+        id: 'gudang',
+        label: `Gudang: ${selectedGudang?.nama || 'Pilihan'}`,
+        onRemove: () => updateFilters({ gudangId: '' }),
       });
     }
     return badges;
@@ -277,6 +297,22 @@ function TransactionsHistoryContent() {
 
               <div>
                 <SelectInput
+                  label="Pilih Gudang / Cabang"
+                  value={tempGudangId}
+                  onChange={setTempGudangId}
+                  clearable={false}
+                  options={[
+                    { label: 'Semua Gudang / Toko', value: '' },
+                    ...gudangList.map((g) => ({
+                      label: `${g.nama} (${g.kode_gudang})`,
+                      value: g.id,
+                    })),
+                  ]}
+                />
+              </div>
+
+              <div>
+                <SelectInput
                   label="Urutkan Berdasarkan"
                   value={`${tempSortBy}:${tempSortDir}`}
                   onChange={(val) => {
@@ -313,6 +349,7 @@ function TransactionsHistoryContent() {
                 endDate={endDate}
                 sortBy={sortBy}
                 sortDir={sortDir}
+                gudangId={gudangId}
               />
             ) : historyType === 'pembelian' ? (
               <RiwayatPembelianTab
@@ -321,6 +358,7 @@ function TransactionsHistoryContent() {
                 endDate={endDate}
                 sortBy={sortBy}
                 sortDir={sortDir}
+                gudangId={gudangId}
               />
             ) : historyType === 'retur_penjualan' ? (
               <RiwayatReturPenjualanTab

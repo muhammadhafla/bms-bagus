@@ -23,22 +23,24 @@ interface ProfitReportTabProps {
   startDate: string;
   endDate: string;
   categoryId: string;
+  gudangId?: string;
 }
 
-export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReportTabProps) {
+export function ProfitReportTab({ startDate, endDate, categoryId, gudangId }: ProfitReportTabProps) {
   const [page, setPage] = useState(1);
   const [activeTab, setActiveTab] = useState<'sales' | 'profit'>('sales');
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const ITEMS_PER_PAGE = 50;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['report', 'profit', startDate, endDate, categoryId, page],
+    queryKey: ['report', 'profit', startDate, endDate, categoryId, page, gudangId],
     queryFn: () =>
       reportApi.getProfitReport(
         startDate || undefined,
         endDate || undefined,
         categoryId || undefined,
         { page, limit: ITEMS_PER_PAGE },
+        gudangId || undefined,
       ),
     staleTime: 1000 * 60 * 5,
   });
@@ -54,6 +56,7 @@ export function ProfitReportTab({ startDate, endDate, categoryId }: ProfitReport
         startDate || undefined,
         endDate || undefined,
         categoryId || undefined,
+        gudangId || undefined,
       );
       if (result.error || !result.data) {
         toast.error('Gagal mengekspor data');

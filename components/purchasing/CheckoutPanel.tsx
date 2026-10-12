@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { formatCurrency } from '@/lib/utils';
-import { IconRefresh, IconDeviceFloppy, IconShoppingCart, IconArrowRight } from '@tabler/icons-react';
+import { IconRefresh, IconDeviceFloppy, IconShoppingCart, IconArrowRight, IconBuildingWarehouse } from '@tabler/icons-react';
 import { Button, Modal, TextInput } from '@/components/ui';
 import DateInput from '@/components/ui/DateInput';
 import SelectInput from '@/components/ui/SelectInput';
@@ -166,6 +166,11 @@ export function CheckoutPanel({
         title="Selesaikan Pembelian"
       >
         <div className="flex flex-col gap-5">
+          <div className="flex items-center gap-2.5 rounded-xl border border-brand-200/60 bg-brand-50/50 p-3 text-xs text-brand-900 dark:border-brand-900/40 dark:bg-brand-950/40 dark:text-brand-300">
+            <IconBuildingWarehouse size={18} className="shrink-0 text-brand-600 dark:text-brand-400" />
+            <span>Penerimaan masuk ke <strong>Gudang Utama & Pusat</strong> (Pengadaan Terpusat Satu Pintu).</span>
+          </div>
+
           <div className="flex flex-col gap-4">
             <DateInput label="Tanggal" value={tanggal} onChange={setTanggal} inputSize="md" />
 

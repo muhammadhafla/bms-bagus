@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { analyticsApi, kategoriApi } from '@/lib/api';
+import { gudangApi } from '@/lib/api/warehouse';
+import type { Gudang } from '@/types/warehouse';
 import { subDays } from 'date-fns';
 import {
   IconDashboard,
@@ -208,8 +210,15 @@ function AnalyticsContent() {
   // Report Filter State
   const [categoryId, setCategoryId] = useState('');
   const [categoriesList, setCategoriesList] = useState<{ id: string; nama: string }[]>([]);
+  const [selectedGudangId, setSelectedGudangId] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [topItemsSort, setTopItemsSort] = useState<'qty' | 'profit'>('qty');
+
+  const { data: gudangRes } = useQuery({
+    queryKey: ['warehouse-list'],
+    queryFn: () => gudangApi.getAll({ activeOnly: true }),
+  });
+  const gudangList: Gudang[] = useMemo(() => gudangRes?.data || [], [gudangRes?.data]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -233,6 +242,16 @@ function AnalyticsContent() {
 
   const getActiveFilters = () => {
     const badges = [];
+    if (['sales', 'profit', 'top_items'].includes(activeTab) && selectedGudangId) {
+      const g = gudangList.find((c: Gudang) => c.id === selectedGudangId);
+      if (g) {
+        badges.push({
+          id: 'gudang',
+          label: `Gudang: ${g.nama}`,
+          onRemove: () => setSelectedGudangId(''),
+        });
+      }
+    }
     if (['sales', 'profit', 'top_items'].includes(activeTab) && categoryId) {
       const cat = categoriesList.find((c) => c.id === categoryId);
       if (cat) {
@@ -338,6 +357,7 @@ function AnalyticsContent() {
                   <button
                     onClick={() => {
                       setCategoryId('');
+                      setSelectedGudangId('');
                       setTopItemsSort('qty');
                     }}
                     className="text-brand-600 dark:text-brand-400 px-2 text-xs font-medium hover:underline"
@@ -357,6 +377,27 @@ function AnalyticsContent() {
           title="Filter Tambahan"
         >
           <div className="space-y-6">
+            {['sales', 'profit', 'top_items'].includes(activeTab) && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  Gudang / Cabang:
+                </label>
+                <SelectInput
+                  value={selectedGudangId}
+                  onChange={setSelectedGudangId}
+                  options={[
+                    { value: '', label: 'Semua Gudang / Toko' },
+                    ...gudangList.map((g: Gudang) => ({
+                      value: g.id,
+                      label: `${g.nama} (${g.kode_gudang})`,
+                    })),
+                  ]}
+                  placeholder="Semua Gudang / Toko"
+                  className="w-full"
+                />
+              </div>
+            )}
+
             {['sales', 'profit', 'top_items'].includes(activeTab) && (
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
@@ -405,6 +446,7 @@ function AnalyticsContent() {
                 className="w-1/2"
                 onClick={() => {
                   setCategoryId('');
+                  setSelectedGudangId('');
                   setTopItemsSort('qty');
                 }}
               >
@@ -437,10 +479,20 @@ function AnalyticsContent() {
 
           {activeTab === 'stock' && <StockReportTab startDate={startDate} endDate={endDate} />}
           {activeTab === 'sales' && (
-            <SalesReportTab startDate={startDate} endDate={endDate} categoryId={categoryId} />
+            <SalesReportTab
+              startDate={startDate}
+              endDate={endDate}
+              categoryId={categoryId}
+              gudangId={selectedGudangId}
+            />
           )}
           {activeTab === 'profit' && (
-            <ProfitReportTab startDate={startDate} endDate={endDate} categoryId={categoryId} />
+            <ProfitReportTab
+              startDate={startDate}
+              endDate={endDate}
+              categoryId={categoryId}
+              gudangId={selectedGudangId}
+            />
           )}
           {activeTab === 'top_items' && (
             <TopItemsReportTab

@@ -24,6 +24,12 @@ export interface Pembelian {
   id: string;
   idempotency_key: string;
   supplier_id: string | null;
+  gudang_id?: string | null;
+  gudang?: {
+    id: string;
+    nama: string;
+    kode_gudang: string;
+  } | null;
   tanggal: string;
   items: PembelianItem[];
   total: number;
@@ -62,6 +68,7 @@ export const purchasesApi = {
     endDate?: string;
     sortBy?: string;
     sortDir?: 'asc' | 'desc';
+    gudangId?: string;
   }) {
     try {
       const sortBy = options?.sortBy || 'created_at';
@@ -69,7 +76,7 @@ export const purchasesApi = {
 
       let query = supabase
         .from('pembelian')
-        .select('*', { count: 'exact' })
+        .select('*, gudang:gudang_id(id, nama, kode_gudang)', { count: 'exact' })
         .order(sortBy, { ascending: isAscending });
 
       const limit = options?.limit || 10;
@@ -89,6 +96,9 @@ export const purchasesApi = {
       if (options?.endDate) {
         query = query.lte('tanggal', options.endDate);
       }
+      if (options?.gudangId) {
+        query = query.eq('gudang_id', options.gudangId);
+      }
 
       const result = await safeQuery<{ data: any[]; count: number | null }>(async () => {
         const res = await query;
@@ -106,6 +116,8 @@ export const purchasesApi = {
         id: item.id,
         idempotency_key: item.idempotency_key,
         supplier_id: item.supplier_id,
+        gudang_id: item.gudang_id,
+        gudang: item.gudang || null,
         tanggal: item.tanggal,
         total: item.total_sistem,
         total_supplier: item.total_supplier,
@@ -224,6 +236,7 @@ export const purchaseApi = {
     note?: string;
     nomor_nota?: string;
     idempotency_key?: string;
+    gudang_id?: string | null;
   }) {
     try {
       const {
@@ -277,6 +290,7 @@ export const purchaseApi = {
         p_user: userId,
         p_idempotency_key: data.idempotency_key,
         p_nomor_nota: data.nomor_nota || null,
+        p_gudang_id: data.gudang_id || null,
       });
 
       if (result.error) {

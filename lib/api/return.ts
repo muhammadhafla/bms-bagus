@@ -42,6 +42,7 @@ export interface BatchReturnInput {
   tanggal: string;
   note?: string;
   idempotency_key?: string;
+  gudang_id?: string | null;
   items: {
     pembelian_item_id: string;
     inventory_id: string;
@@ -203,6 +204,7 @@ export const returnApi = {
           p_items: data.items,
           p_idempotency_key: idempotencyKey,
           p_created_by: user.id,
+          p_gudang_id: data.gudang_id || null,
         });
         return { data: result.data, error: result.error as Error | null };
       },

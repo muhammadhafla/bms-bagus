@@ -29,6 +29,12 @@ interface PembelianRecord {
   created_at: string;
   created_by_nama: string | null;
   note: string | null;
+  gudang_id?: string | null;
+  gudang?: {
+    id?: string;
+    nama: string;
+    kode_gudang: string;
+  } | null;
 }
 
 interface PembelianDetail extends PembelianRecord {
@@ -41,6 +47,7 @@ interface RiwayatPembelianTabProps {
   endDate: string;
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
+  gudangId?: string;
 }
 
 export function RiwayatPembelianTab({
@@ -49,6 +56,7 @@ export function RiwayatPembelianTab({
   endDate,
   sortBy,
   sortDir,
+  gudangId,
 }: RiwayatPembelianTabProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [slideOverOpen, setSlideOverOpen] = useState(false);
@@ -143,12 +151,15 @@ export function RiwayatPembelianTab({
       <div className="mb-3 flex items-start justify-between">
         <div>
           <p className="mb-1 text-xs text-neutral-500">{formatDateTime(record.tanggal)}</p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <p className="font-mono font-medium text-neutral-900 dark:text-white">
               {record.nomor_nota || '-'}
             </p>
             <span className="bg-accent-teal-100 text-accent-teal-700 dark:bg-accent-teal-900/30 dark:text-accent-teal-400 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold">
               Selesai
+            </span>
+            <span className="inline-flex items-center rounded border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+              {record.gudang?.nama || 'Gudang Pusat'}
             </span>
           </div>
         </div>
@@ -182,6 +193,9 @@ export function RiwayatPembelianTab({
         No. Nota
       </th>
       <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+        Gudang Masuk
+      </th>
+      <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
         Tanggal & Waktu
       </th>
       <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
@@ -207,6 +221,11 @@ export function RiwayatPembelianTab({
       </td>
       <td className="px-5 py-4 font-mono text-sm font-medium text-neutral-900 dark:text-neutral-100">
         {record.nomor_nota || '-'}
+      </td>
+      <td className="px-5 py-4 text-sm">
+        <span className="inline-flex items-center rounded-lg bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+          {record.gudang?.nama || 'Gudang Pusat'}
+        </span>
       </td>
       <td className="px-5 py-4 text-sm text-neutral-600 dark:text-neutral-400">
         {formatDateTime(record.tanggal)}
@@ -238,6 +257,7 @@ export function RiwayatPembelianTab({
         endDate={endDate}
         sortBy={sortBy}
         sortDir={sortDir}
+        gudangId={gudangId}
         renderMobileCard={renderMobileCard}
         renderTableHeader={renderTableHeader}
         renderTableRow={renderTableRow}
@@ -294,6 +314,14 @@ export function RiwayatPembelianTab({
                   </p>
                   <p className="font-medium text-neutral-900 dark:text-white">
                     {detail.created_by_nama || '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-1 text-xs font-semibold tracking-wider text-neutral-500 uppercase dark:text-neutral-400">
+                    Gudang Masuk
+                  </p>
+                  <p className="font-medium text-neutral-900 dark:text-white">
+                    {detail.gudang?.nama || 'Gudang Pusat'}
                   </p>
                 </div>
                 <div className="col-span-2 mt-2 border-t border-neutral-200 pt-3 sm:col-span-4 dark:border-neutral-800">

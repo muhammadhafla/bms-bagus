@@ -18,6 +18,12 @@ interface PenjualanRecord {
   qris_amount?: number | null;
   kembalian?: number | null;
   created_at: string;
+  gudang_id?: string | null;
+  gudang?: {
+    id?: string;
+    nama: string;
+    kode_gudang: string;
+  } | null;
 }
 
 interface RiwayatPenjualanTabProps {
@@ -26,6 +32,7 @@ interface RiwayatPenjualanTabProps {
   endDate: string;
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
+  gudangId?: string;
 }
 
 function getPaymentMethodBadge(method?: string | null) {
@@ -64,6 +71,7 @@ export function RiwayatPenjualanTab({
   endDate,
   sortBy,
   sortDir,
+  gudangId,
 }: RiwayatPenjualanTabProps) {
   const isAdminUser = useIsAdmin();
 
@@ -105,12 +113,15 @@ export function RiwayatPenjualanTab({
           <p className="mb-1 text-xs text-neutral-500">
             {formatDateTime(record.created_at || record.tanggal)}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <p className="font-mono font-medium text-neutral-900 dark:text-white">
               {record.id.slice(0, 8)}...
             </p>
             <span className="bg-accent-teal-100 text-accent-teal-700 dark:bg-accent-teal-900/30 dark:text-accent-teal-400 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold">
               Selesai
+            </span>
+            <span className="inline-flex items-center rounded border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+              {record.gudang?.nama || 'Gudang Pusat'}
             </span>
           </div>
         </div>
@@ -163,6 +174,9 @@ export function RiwayatPenjualanTab({
         ID Transaksi
       </th>
       <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+        Lokasi / Toko
+      </th>
+      <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
         Tanggal & Waktu
       </th>
       <th className="px-5 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">
@@ -191,6 +205,11 @@ export function RiwayatPenjualanTab({
       </td>
       <td className="px-5 py-4 font-mono text-sm font-medium text-neutral-900 dark:text-neutral-100">
         {record.id.slice(0, 8)}...
+      </td>
+      <td className="px-5 py-4 text-sm">
+        <span className="inline-flex items-center rounded-lg bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+          {record.gudang?.nama || 'Gudang Pusat'}
+        </span>
       </td>
       <td className="px-5 py-4 text-sm text-neutral-600 dark:text-neutral-400">
         {formatDateTime(record.created_at || record.tanggal)}
@@ -236,6 +255,7 @@ export function RiwayatPenjualanTab({
         endDate={endDate}
         sortBy={sortBy}
         sortDir={sortDir}
+        gudangId={gudangId}
         renderMobileCard={renderMobileCard}
         renderTableHeader={renderTableHeader}
         renderTableRow={renderTableRow}

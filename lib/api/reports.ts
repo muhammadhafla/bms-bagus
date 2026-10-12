@@ -266,6 +266,7 @@ export const reportApi = {
     endDate?: string,
     categoryId?: string,
     pagination?: PaginationOptions,
+    gudangId?: string,
   ) {
     const { page, limit } = calculatePagination(pagination?.page, pagination?.limit);
 
@@ -277,6 +278,7 @@ export const reportApi = {
         p_category_id: categoryId || null,
         p_page: page,
         p_limit: limit,
+        p_gudang_id: gudangId || null,
       });
       return { data: res.data, error: res.error as Error | null };
     });
@@ -317,6 +319,7 @@ export const reportApi = {
     endDate?: string,
     categoryId?: string,
     pagination?: PaginationOptions,
+    gudangId?: string,
   ) {
     const { page, limit } = calculatePagination(pagination?.page, pagination?.limit);
 
@@ -328,6 +331,7 @@ export const reportApi = {
         p_category_id: categoryId || null,
         p_page: page,
         p_limit: limit,
+        p_gudang_id: gudangId || null,
       });
       return { data: res.data, error: res.error as Error | null };
     });
@@ -440,7 +444,12 @@ export const reportApi = {
     return { data: mapped, error: null };
   },
 
-  async exportSalesReport(startDate?: string, endDate?: string, categoryId?: string) {
+  async exportSalesReport(startDate?: string, endDate?: string, categoryId?: string, gudangId?: string) {
+    if (gudangId) {
+      const res = await this.getSalesReport(startDate, endDate, categoryId, { page: 1, limit: 10000 }, gudangId);
+      return { data: res.data || [], error: res.error };
+    }
+
     const result = await safeQuery<any[]>(async () => {
       const res = await supabase.rpc('export_sales_report', {
         p_start_date: startDate || null,
@@ -464,7 +473,12 @@ export const reportApi = {
     return { data: summary, error: null };
   },
 
-  async exportProfitReport(startDate?: string, endDate?: string, categoryId?: string) {
+  async exportProfitReport(startDate?: string, endDate?: string, categoryId?: string, gudangId?: string) {
+    if (gudangId) {
+      const res = await this.getProfitReport(startDate, endDate, categoryId, { page: 1, limit: 10000 }, gudangId);
+      return { data: res.data || [], error: res.error };
+    }
+
     const result = await safeQuery<any[]>(async () => {
       const res = await supabase.rpc('export_profit_report', {
         p_start_date: startDate || null,

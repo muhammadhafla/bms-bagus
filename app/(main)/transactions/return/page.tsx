@@ -24,11 +24,18 @@ import { downloadOrShareFile } from '@/lib/utils/file-share';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSuppliers } from '@/lib/hooks/useSuppliers';
+import { gudangApi } from '@/lib/api/warehouse';
+import { Gudang } from '@/types/warehouse';
+import { useAuthStore } from '@/lib/auth';
+import { IconBuildingWarehouse } from '@tabler/icons-react';
 
 export default function ReturnPage() {
   const queryClient = useQueryClient();
+  const profile = useAuthStore((state) => state.profile);
   const [selectedSupplier, setSelectedSupplier] = useState<import('@/types').Supplier | null>(null);
   const { data: suppliers = [] } = useSuppliers();
+  const [warehouses, setWarehouses] = useState<Gudang[]>([]);
+  const [selectedGudangId, setSelectedGudangId] = useState<string>('');
   const [items, setItems] = useState<AvailableReturnItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -37,6 +44,23 @@ export default function ReturnPage() {
   const [note, setNote] = useState('');
   const [lastReturnId, setLastReturnId] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+
+  useEffect(() => {
+    async function loadWarehouses() {
+      const res = await gudangApi.getAll({ activeOnly: true });
+      if (res.data) {
+        setWarehouses(res.data);
+        const userDef = profile?.default_gudang_id
+          ? res.data.find((g) => g.id === profile.default_gudang_id)
+          : null;
+        const defaultG = userDef || res.data.find((g) => g.is_default) || res.data[0];
+        if (defaultG) {
+          setSelectedGudangId(defaultG.id);
+        }
+      }
+    }
+    loadWarehouses();
+  }, [profile?.default_gudang_id]);
   
   // Pos / Scan State
   const [scanQuery, setScanQuery] = useState('');
@@ -248,6 +272,7 @@ export default function ReturnPage() {
         supplier_nama: selectedSupplier.nama,
         tanggal: previewData.tanggal,
         note: note,
+        gudang_id: selectedGudangId || undefined,
         items: previewData.items.map((item: any) => ({
           pembelian_item_id: item.pembelian_item_id,
           inventory_id: item.inventory_id,
@@ -274,7 +299,7 @@ export default function ReturnPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [selectedSupplier, previewData, totalReturn, note, handleReset, queryClient]);
+  }, [selectedSupplier, previewData, totalReturn, note, selectedGudangId, handleReset, queryClient]);
 
   const handleExportPdf = useCallback(async () => {
     if (!lastReturnId) return;
@@ -391,23 +416,45 @@ export default function ReturnPage() {
             )}
           </div>
 
-          {!selectedSupplier && suppliers.length > 0 && (
-             <div className="flex items-center gap-2 mt-4 text-sm text-neutral-500">
-                <span>Atau pilih manual: </span>
-                <div className="w-64">
-                   <SelectInput
-                      value={""}
-                      onChange={(val) => {
-                        const supplier = suppliers.find((s) => s.id === val);
-                        if (supplier) handleSelectSupplier(supplier as any);
-                      }}
-                      options={suppliers.map((s) => ({ value: s.id, label: s.nama }))}
-                      placeholder="Pilih Supplier..."
-                      inputSize="md"
-                    />
+          {/* Gudang & Supplier Selector Bar */}
+          <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-neutral-600 dark:text-neutral-400">
+            {warehouses.length > 0 && (
+              <div className="flex items-center gap-2">
+                <IconBuildingWarehouse className="h-4 w-4 text-brand-500" />
+                <span className="font-medium text-xs sm:text-sm">Gudang Asal Fisik:</span>
+                <div className="w-56 sm:w-64">
+                  <SelectInput
+                    value={selectedGudangId}
+                    onChange={(val) => setSelectedGudangId(val)}
+                    options={warehouses.map((g) => ({
+                      value: g.id,
+                      label: `${g.nama} (${g.kode_gudang})${g.is_default ? ' [Pusat]' : ''}`,
+                    }))}
+                    placeholder="Pilih Gudang..."
+                    inputSize="md"
+                  />
                 </div>
-             </div>
-          )}
+              </div>
+            )}
+
+            {!selectedSupplier && suppliers.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm">Pilih supplier: </span>
+                <div className="w-56 sm:w-64">
+                  <SelectInput
+                    value=""
+                    onChange={(val) => {
+                      const supplier = suppliers.find((s) => s.id === val);
+                      if (supplier) handleSelectSupplier(supplier as any);
+                    }}
+                    options={suppliers.map((s) => ({ value: s.id, label: s.nama }))}
+                    placeholder="Pilih Supplier..."
+                    inputSize="md"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Content Section (Keranjang Retur) */}

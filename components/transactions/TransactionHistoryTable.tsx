@@ -14,6 +14,7 @@ export interface PaginationOptions {
   endDate?: string;
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
+  gudangId?: string;
 }
 
 interface TransactionHistoryTableProps<T> {
@@ -24,6 +25,7 @@ interface TransactionHistoryTableProps<T> {
   search: string;
   startDate: string;
   endDate: string;
+  gudangId?: string;
   emptyMessage?: string;
   renderMobileCard: (record: T, index: number) => ReactNode;
   renderTableHeader: () => ReactNode;
@@ -39,6 +41,7 @@ export function TransactionHistoryTable<T extends { id: string }>({
   search,
   startDate,
   endDate,
+  gudangId,
   emptyMessage = 'Tidak ada data',
   renderMobileCard,
   renderTableHeader,
@@ -54,12 +57,12 @@ export function TransactionHistoryTable<T extends { id: string }>({
   // Reset page to 1 when filters change
   useEffect(() => {
     setPage(1);
-  }, [search, startDate, endDate]);
+  }, [search, startDate, endDate, gudangId]);
 
   const offset = (page - 1) * limit;
 
   const { data: queryResult, isLoading } = useQuery({
-    queryKey: [...queryKeyPrefix, { limit, offset, search, startDate, endDate, sortBy, sortDir }],
+    queryKey: [...queryKeyPrefix, { limit, offset, search, startDate, endDate, sortBy, sortDir, gudangId }],
     queryFn: async () => {
       const result = await fetchFn({
         limit,
@@ -69,6 +72,7 @@ export function TransactionHistoryTable<T extends { id: string }>({
         endDate: endDate || undefined,
         sortBy,
         sortDir,
+        gudangId: gudangId || undefined,
       });
       if (result.error) {
         throw new Error(result.error.message || 'Terjadi kesalahan saat memuat data');

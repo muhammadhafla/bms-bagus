@@ -33,7 +33,12 @@ export interface Penjualan {
   status?: string;
   paid_at?: string | null;
   created_by?: string | null;
-  created_at: string;
+  gudang_id?: string | null;
+  gudang?: {
+    id: string;
+    nama: string;
+    kode_gudang: string;
+  } | null;
   profiles?: {
     nama?: string | null;
     username?: string | null;
@@ -53,6 +58,7 @@ export const penjualanApi = {
     endDate?: string;
     sortBy?: string;
     sortDir?: 'asc' | 'desc';
+    gudangId?: string;
   }) {
     try {
       const sortBy = options?.sortBy || 'created_at';
@@ -60,7 +66,10 @@ export const penjualanApi = {
 
       let query = supabase
         .from('penjualan')
-        .select('*', { count: 'exact' })
+        .select(
+          '*, profiles:created_by(nama, username), members:member_id(name, whatsapp_number), gudang:gudang_id(id, nama, kode_gudang)',
+          { count: 'exact' },
+        )
         .order(sortBy, { ascending: isAscending });
 
       const limit = options?.limit || 10;
@@ -75,6 +84,9 @@ export const penjualanApi = {
       }
       if (options?.endDate) {
         query = query.lte('tanggal', options.endDate);
+      }
+      if (options?.gudangId) {
+        query = query.eq('gudang_id', options.gudangId);
       }
 
       const result = await safeQuery<{ data: any[]; count: number | null }>(async () => {
@@ -96,7 +108,12 @@ export const penjualanApi = {
     }
   },
 
-  async getCount(options?: { search?: string; startDate?: string; endDate?: string }) {
+  async getCount(options?: {
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+    gudangId?: string;
+  }) {
     try {
       let query = supabase.from('penjualan').select('*', { count: 'exact', head: true });
 
@@ -108,6 +125,9 @@ export const penjualanApi = {
       }
       if (options?.endDate) {
         query = query.lte('tanggal', options.endDate);
+      }
+      if (options?.gudangId) {
+        query = query.eq('gudang_id', options.gudangId);
       }
 
       // head: true → data selalu null, count ada di response.count

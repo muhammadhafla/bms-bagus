@@ -23,9 +23,10 @@ interface SalesReportTabProps {
   startDate: string;
   endDate: string;
   categoryId: string;
+  gudangId?: string;
 }
 
-export function SalesReportTab({ startDate, endDate, categoryId }: SalesReportTabProps) {
+export function SalesReportTab({ startDate, endDate, categoryId, gudangId }: SalesReportTabProps) {
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
@@ -45,13 +46,14 @@ export function SalesReportTab({ startDate, endDate, categoryId }: SalesReportTa
   };
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['report', 'sales', startDate, endDate, categoryId, page],
+    queryKey: ['report', 'sales', startDate, endDate, categoryId, page, gudangId],
     queryFn: () =>
       reportApi.getSalesReport(
         startDate || undefined,
         endDate || undefined,
         categoryId || undefined,
         { page, limit: ITEMS_PER_PAGE },
+        gudangId || undefined,
       ),
     staleTime: 1000 * 60 * 5,
   });
@@ -66,6 +68,7 @@ export function SalesReportTab({ startDate, endDate, categoryId }: SalesReportTa
         startDate || undefined,
         endDate || undefined,
         categoryId || undefined,
+        gudangId || undefined,
       );
       if (result.error || !result.data) {
         toast.error('Gagal mengekspor data');

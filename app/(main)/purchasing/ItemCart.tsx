@@ -361,7 +361,7 @@ export const ItemCart = React.memo(function ItemCart({
 
               <div className="mb-3 grid grid-cols-[80px_1fr_1fr] gap-3">
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                  <label className="mb-1.5 block text-xs font-medium whitespace-nowrap text-neutral-500 dark:text-neutral-400">
                     Qty
                   </label>
                   {selectedIndex === index && editMode === 'qty' ? (
@@ -397,33 +397,9 @@ export const ItemCart = React.memo(function ItemCart({
                   )}
                 </div>
                 <div>
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <label className="block text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                      Harga Beli
-                    </label>
-                    {isNaik && (
-                      <button
-                        type="button"
-                        onClick={() => setHistoryItem({ id: item.id, name: item.nama_barang })}
-                        className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold bg-rose-50 text-rose-600 transition-colors hover:bg-rose-100 dark:bg-rose-950/50 dark:text-rose-400"
-                        title="Klik untuk lihat riwayat"
-                      >
-                        <IconTrendingUp size={11} stroke={2.5} />
-                        <span>+{percentBeli.toFixed(0)}%</span>
-                      </button>
-                    )}
-                    {isTurun && (
-                      <button
-                        type="button"
-                        onClick={() => setHistoryItem({ id: item.id, name: item.nama_barang })}
-                        className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-600 transition-colors hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-400"
-                        title="Klik untuk lihat riwayat"
-                      >
-                        <IconTrendingDown size={11} stroke={2.5} />
-                        <span>-{percentBeli.toFixed(0)}%</span>
-                      </button>
-                    )}
-                  </div>
+                  <label className="mb-1.5 block text-xs font-medium whitespace-nowrap text-neutral-500 dark:text-neutral-400">
+                    Harga Beli
+                  </label>
                   {selectedIndex === index && editMode === 'harga' ? (
                     <div
                       onKeyDownCapture={(e) => {
@@ -456,17 +432,9 @@ export const ItemCart = React.memo(function ItemCart({
                   )}
                 </div>
                 <div>
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <label className="block text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                      Harga Jual
-                    </label>
-                    {isRugi && (
-                      <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400">
-                        <IconAlertTriangle size={11} />
-                        <span>Rugi!</span>
-                      </span>
-                    )}
-                  </div>
+                  <label className="mb-1.5 block text-xs font-medium whitespace-nowrap text-neutral-500 dark:text-neutral-400">
+                    Harga Jual
+                  </label>
                   {selectedIndex === index && editMode === 'harga_jual' ? (
                     <div
                       onKeyDownCapture={(e) => {
@@ -500,8 +468,40 @@ export const ItemCart = React.memo(function ItemCart({
                 </div>
               </div>
 
-              <div className="flex items-end justify-end border-t border-neutral-100 pt-3 dark:border-neutral-800/50">
-                <div className="text-right">
+              {/* Footer Section: Badges di sebelah kiri & Subtotal di sebelah kanan */}
+              <div className="flex items-center justify-between border-t border-neutral-100 pt-3 dark:border-neutral-800/50">
+                <div className="flex flex-wrap items-center gap-1.5 pr-2">
+                  {isNaik && (
+                    <button
+                      type="button"
+                      onClick={() => setHistoryItem({ id: item.id, name: item.nama_barang })}
+                      className="inline-flex items-center gap-1 rounded-lg border border-rose-200/80 bg-rose-50/90 px-2.5 py-1 text-xs font-bold text-rose-700 shadow-sm transition-colors hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/60 dark:text-rose-300"
+                      title="Klik untuk lihat riwayat harga"
+                    >
+                      <IconTrendingUp size={13} stroke={2.5} />
+                      <span>Beli Naik +{percentBeli.toFixed(0)}%</span>
+                    </button>
+                  )}
+                  {isTurun && (
+                    <button
+                      type="button"
+                      onClick={() => setHistoryItem({ id: item.id, name: item.nama_barang })}
+                      className="inline-flex items-center gap-1 rounded-lg border border-emerald-200/80 bg-emerald-50/90 px-2.5 py-1 text-xs font-bold text-emerald-700 shadow-sm transition-colors hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/60 dark:text-emerald-300"
+                      title="Klik untuk lihat riwayat harga"
+                    >
+                      <IconTrendingDown size={13} stroke={2.5} />
+                      <span>Beli Turun -{percentBeli.toFixed(0)}%</span>
+                    </button>
+                  )}
+                  {isRugi && (
+                    <span className="inline-flex items-center gap-1 rounded-lg border border-amber-200/80 bg-amber-50/90 px-2.5 py-1 text-xs font-bold text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/60 dark:text-amber-300">
+                      <IconAlertTriangle size={13} />
+                      <span>Jual Rugi</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="shrink-0 text-right">
                   <div className="mb-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
                     Subtotal
                   </div>

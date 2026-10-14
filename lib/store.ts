@@ -51,6 +51,8 @@ export const usePembelianStore = create<PembelianStore>()(
             nama_barang: item.nama_barang,
             qty: item.qty,
             harga_beli: item.harga_beli,
+            harga_beli_terakhir:
+              item.harga_beli_terakhir ?? item.inventory?.harga_beli_terakhir ?? item.harga_beli ?? 0,
             harga_jual: item.harga_jual,
             diskon: item.diskon || 0,
             harga_final: item.harga_final ?? item.harga_beli ?? 0,
@@ -90,6 +92,7 @@ export const usePembelianStore = create<PembelianStore>()(
             (item as any).harga_final ?? Math.max(0, (item.harga_beli || 0) - (item.diskon || 0));
           const newItem: CartItem = {
             ...item,
+            harga_beli_terakhir: item.harga_beli_terakhir ?? item.harga_beli ?? 0,
             qty: initialQty,
             harga_final,
             subtotal: harga_final * initialQty,

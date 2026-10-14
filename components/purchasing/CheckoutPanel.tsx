@@ -2,7 +2,15 @@
 
 import React from 'react';
 import { formatCurrency } from '@/lib/utils';
-import { IconRefresh, IconDeviceFloppy, IconShoppingCart, IconArrowRight, IconBuildingWarehouse } from '@tabler/icons-react';
+import {
+  IconRefresh,
+  IconDeviceFloppy,
+  IconShoppingCart,
+  IconArrowRight,
+  IconBuildingWarehouse,
+  IconTrendingUp,
+  IconTrendingDown,
+} from '@tabler/icons-react';
 import { Button, Modal, TextInput } from '@/components/ui';
 import DateInput from '@/components/ui/DateInput';
 import SelectInput from '@/components/ui/SelectInput';
@@ -18,6 +26,8 @@ interface CheckoutPanelProps {
   handleSimpan: () => void;
   submitting: boolean;
   itemsCount: number;
+  itemsNaikCount?: number;
+  itemsTurunCount?: number;
   editId: string | null;
   isBottomSheetOpen: boolean;
   setIsBottomSheetOpen: (open: boolean) => void;
@@ -41,6 +51,8 @@ export function CheckoutPanel({
   handleSimpan,
   submitting,
   itemsCount,
+  itemsNaikCount = 0,
+  itemsTurunCount = 0,
   editId,
   isBottomSheetOpen,
   setIsBottomSheetOpen,
@@ -60,35 +72,55 @@ export function CheckoutPanel({
       <div className="relative bottom-0 hidden flex-shrink-0 xl:block">
         <div className="shadow-elevated rounded-3xl border border-white/40 bg-white/80 p-4 backdrop-blur-xl lg:p-5 dark:border-white/10 dark:bg-neutral-900/80">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="grid grid-cols-3 gap-2 sm:gap-4">
-              <div className="rounded-xl border border-white/40 bg-white/50 px-3 py-2.5 text-center shadow-sm backdrop-blur-md lg:rounded-2xl lg:px-5 lg:py-4 lg:text-left dark:border-white/10 dark:bg-neutral-950/50">
-                <p className="text-[10px] font-medium whitespace-nowrap text-neutral-500 sm:text-xs lg:text-sm dark:text-neutral-400">
-                  Total Sistem
-                </p>
-                <p className="mt-0.5 text-sm font-black text-neutral-900 sm:text-xl lg:text-2xl dark:text-white">
-                  {formatCurrency(totalSistem)}
-                </p>
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <div className="rounded-xl border border-white/40 bg-white/50 px-3 py-2.5 text-center shadow-sm backdrop-blur-md lg:rounded-2xl lg:px-5 lg:py-4 lg:text-left dark:border-white/10 dark:bg-neutral-950/50">
+                  <p className="text-[10px] font-medium whitespace-nowrap text-neutral-500 sm:text-xs lg:text-sm dark:text-neutral-400">
+                    Total Sistem
+                  </p>
+                  <p className="mt-0.5 text-sm font-black text-neutral-900 sm:text-xl lg:text-2xl dark:text-white">
+                    {formatCurrency(totalSistem)}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/40 bg-white/50 px-3 py-2.5 text-center shadow-sm backdrop-blur-md lg:rounded-2xl lg:px-5 lg:py-4 lg:text-left dark:border-white/10 dark:bg-neutral-950/50">
+                  <p className="text-[10px] font-medium whitespace-nowrap text-neutral-500 sm:text-xs lg:text-sm dark:text-neutral-400">
+                    Total Tagihan
+                  </p>
+                  <p className="mt-0.5 text-sm font-black text-neutral-900 sm:text-xl lg:text-2xl dark:text-white">
+                    {formatCurrency(totalSupplier)}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/40 bg-white/50 px-3 py-2.5 text-center shadow-sm backdrop-blur-md lg:rounded-2xl lg:px-5 lg:py-4 lg:text-left dark:border-white/10 dark:bg-neutral-950/50">
+                  <p className="text-[10px] font-medium whitespace-nowrap text-neutral-500 sm:text-xs lg:text-sm dark:text-neutral-400">
+                    Selisih
+                  </p>
+                  <p
+                    className={`mt-0.5 text-sm font-black sm:text-xl lg:text-2xl ${
+                      isValid ? 'text-brand-600 dark:text-brand-400' : 'text-red-600 dark:text-red-400'
+                    }`}
+                  >
+                    {formatCurrency(selisih)}
+                  </p>
+                </div>
               </div>
-              <div className="rounded-xl border border-white/40 bg-white/50 px-3 py-2.5 text-center shadow-sm backdrop-blur-md lg:rounded-2xl lg:px-5 lg:py-4 lg:text-left dark:border-white/10 dark:bg-neutral-950/50">
-                <p className="text-[10px] font-medium whitespace-nowrap text-neutral-500 sm:text-xs lg:text-sm dark:text-neutral-400">
-                  Total Tagihan
-                </p>
-                <p className="mt-0.5 text-sm font-black text-neutral-900 sm:text-xl lg:text-2xl dark:text-white">
-                  {formatCurrency(totalSupplier)}
-                </p>
-              </div>
-              <div className="rounded-xl border border-white/40 bg-white/50 px-3 py-2.5 text-center shadow-sm backdrop-blur-md lg:rounded-2xl lg:px-5 lg:py-4 lg:text-left dark:border-white/10 dark:bg-neutral-950/50">
-                <p className="text-[10px] font-medium whitespace-nowrap text-neutral-500 sm:text-xs lg:text-sm dark:text-neutral-400">
-                  Selisih
-                </p>
-                <p
-                  className={`mt-0.5 text-sm font-black sm:text-xl lg:text-2xl ${
-                    isValid ? 'text-brand-600 dark:text-brand-400' : 'text-red-600 dark:text-red-400'
-                  }`}
-                >
-                  {formatCurrency(selisih)}
-                </p>
-              </div>
+
+              {/* Price Change Summary Chips */}
+              {(itemsNaikCount > 0 || itemsTurunCount > 0) && (
+                <div className="flex flex-col gap-1.5 border-l border-neutral-200/60 pl-3 dark:border-neutral-800/60">
+                  {itemsNaikCount > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-rose-200/80 bg-rose-50/80 px-2.5 py-1 text-xs font-bold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/50 dark:text-rose-300">
+                      <IconTrendingUp size={13} stroke={2.5} />
+                      {itemsNaikCount} barang naik
+                    </span>
+                  )}
+                  {itemsTurunCount > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-300">
+                      <IconTrendingDown size={13} stroke={2.5} />
+                      {itemsTurunCount} barang turun
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-end gap-3">
@@ -221,6 +253,23 @@ export function CheckoutPanel({
                 {formatCurrency(selisih)}
               </span>
             </div>
+
+            {(itemsNaikCount > 0 || itemsTurunCount > 0) && (
+              <div className="flex flex-wrap items-center gap-2">
+                {itemsNaikCount > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-lg border border-rose-200/80 bg-rose-50/80 px-2.5 py-1.5 text-xs font-bold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/50 dark:text-rose-300">
+                    <IconTrendingUp size={13} stroke={2.5} />
+                    {itemsNaikCount} barang naik
+                  </span>
+                )}
+                {itemsTurunCount > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1.5 text-xs font-bold text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-300">
+                    <IconTrendingDown size={13} stroke={2.5} />
+                    {itemsTurunCount} barang turun
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3 pt-2">

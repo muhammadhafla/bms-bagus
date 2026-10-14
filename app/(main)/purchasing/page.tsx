@@ -37,6 +37,8 @@ import {
   IconArrowRight,
   IconScan,
   IconArrowLeft,
+  IconTrendingUp,
+  IconAlertTriangle,
 } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
 import DateInput from '@/components/ui/DateInput';
@@ -141,12 +143,25 @@ function PembelianPageContent() {
     (import('@/types/inventory').InventoryItem & { barcode?: string }) | null
   >(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showSaveConfirmDialog, setShowSaveConfirmDialog] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [supplier, setSupplier] = useState('');
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
   const { data: supplierList = [] } = useSuppliers();
+
+  const itemsNaikCount = useMemo(() => {
+    return items.filter(
+      (it) => (it.harga_beli_terakhir || 0) > 0 && (it.harga_beli || 0) > (it.harga_beli_terakhir || 0),
+    ).length;
+  }, [items]);
+
+  const itemsTurunCount = useMemo(() => {
+    return items.filter(
+      (it) => (it.harga_beli_terakhir || 0) > 0 && (it.harga_beli || 0) < (it.harga_beli_terakhir || 0),
+    ).length;
+  }, [items]);
 
   // Focus management
   const searchRef = useRef<import('@/components/inventory/SharedBarcodeSearch').SharedBarcodeSearchRef>(null);
@@ -173,7 +188,7 @@ function PembelianPageContent() {
     focusInput,
   });
 
-  const handleSimpan = async () => {
+  const executeSimpan = async () => {
     if (items.length === 0) {
       toast.error('Keranjang belanja kosong');
       return;
@@ -267,11 +282,26 @@ function PembelianPageContent() {
     }
   };
 
+  const handleRequestSimpan = useCallback(() => {
+    if (items.length === 0) {
+      toast.error('Keranjang belanja kosong');
+      return;
+    }
+    setShowSaveConfirmDialog(true);
+  }, [items.length]);
+
+  const handleConfirmSimpan = async () => {
+    setShowSaveConfirmDialog(false);
+    setIsBottomSheetOpen(false);
+    await executeSimpan();
+  };
+
   const isAnyModalOpen =
     showNewItemDialog ||
     showImportWizard ||
     showSuccessDialog ||
     showResetConfirm ||
+    showSaveConfirmDialog ||
     Boolean(confirmDiscontinuedItem);
 
   usePembelianShortcuts({
@@ -282,7 +312,7 @@ function PembelianPageContent() {
     removeItem,
     selectedIndex,
     setShowResetConfirm,
-    handleSimpan,
+    handleSimpan: handleRequestSimpan,
     submitting,
     enabled: !isAnyModalOpen,
   });
@@ -295,6 +325,7 @@ function PembelianPageContent() {
         nama_barang: item.nama_barang,
         harga_jual: item.harga_jual,
         harga_beli: item.harga_beli_terakhir || 0,
+        harga_beli_terakhir: item.harga_beli_terakhir || 0,
         diskon: item.diskon || 0,
         stok: item.stok,
         minimum_stock: item.minimum_stock,
@@ -529,9 +560,11 @@ function PembelianPageContent() {
               selisih={selisih}
               isValid={isValid}
               setShowResetConfirm={setShowResetConfirm}
-              handleSimpan={handleSimpan}
+              handleSimpan={handleRequestSimpan}
               submitting={submitting}
               itemsCount={items.length}
+              itemsNaikCount={itemsNaikCount}
+              itemsTurunCount={itemsTurunCount}
               editId={editId}
               isBottomSheetOpen={isBottomSheetOpen}
               setIsBottomSheetOpen={setIsBottomSheetOpen}
@@ -577,6 +610,7 @@ function PembelianPageContent() {
                     ...item,
                     barcode: item.kode_barcode || item.barcode,
                     harga_beli: harga_beli || item.harga_beli_terakhir || 0,
+                    harga_beli_terakhir: item.harga_beli_terakhir || 0,
                     diskon: item.diskon || 0,
                   },
                   qty,
@@ -588,10 +622,108 @@ function PembelianPageContent() {
             }}
           />
 
+          {/* Modal Konfirmasi Simpan Pembelian (F9 / Klik Simpan) */}
+          <Modal
+            isOpen={showSaveConfirmDialog}
+            onClose={() => setShowSaveConfirmDialog(false)}
+            title={editId ? 'Konfirmasi Simpan Revisi' : 'Konfirmasi Simpan Pembelian'}
+            size="md"
+            isBottomSheetOnMobile
+            nested
+          >
+            <div className="space-y-4 p-5">
+              <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                Pastikan ringkasan transaksi pembelian berikut sudah sesuai sebelum disimpan ke sistem:
+              </p>
+
+              <div className="space-y-2.5 rounded-2xl border border-neutral-200/80 bg-neutral-50/70 p-4 dark:border-neutral-800/80 dark:bg-neutral-900/50">
+                <div className="flex justify-between text-sm">
+                  <span className="text-neutral-500 dark:text-neutral-400">Supplier</span>
+                  <span className="font-semibold text-neutral-900 dark:text-white">
+                    {supplier || 'Tanpa Supplier (Umum)'}
+                  </span>
+                </div>
+                {nomorNota && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-neutral-500 dark:text-neutral-400">Nomor Nota</span>
+                    <span className="font-mono font-medium text-neutral-900 dark:text-white">
+                      {nomorNota}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm">
+                  <span className="text-neutral-500 dark:text-neutral-400">Tanggal</span>
+                  <span className="font-medium text-neutral-900 dark:text-white">{tanggal}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-neutral-500 dark:text-neutral-400">Jumlah Macam Barang</span>
+                  <span className="font-semibold text-neutral-900 dark:text-white">
+                    {items.length} macam
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-neutral-500 dark:text-neutral-400">Total Qty Fisik</span>
+                  <span className="font-semibold text-neutral-900 dark:text-white">
+                    {items.reduce((acc, it) => acc + (it.qty || 0), 0)} unit
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between border-t border-neutral-200 pt-2 dark:border-neutral-700/60">
+                  <span className="text-sm font-bold text-neutral-700 dark:text-neutral-200">
+                    Total Transaksi
+                  </span>
+                  <span className="text-brand-600 dark:text-brand-400 text-lg font-black">
+                    {formatCurrency(totalSistem)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Alert jika ada barang yang harganya naik */}
+              {itemsNaikCount > 0 && (
+                <div className="flex items-start gap-2.5 rounded-xl border border-rose-200/80 bg-rose-50/70 p-3 text-xs text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
+                  <IconTrendingUp className="mt-0.5 shrink-0 text-rose-600 dark:text-rose-400" size={16} stroke={2.5} />
+                  <div>
+                    <span className="font-bold">Perhatian Kenaikan Harga: </span>
+                    Terdapat <span className="font-black underline">{itemsNaikCount} barang</span> yang harga belinya naik dibanding harga beli terakhir di sistem.
+                  </div>
+                </div>
+              )}
+
+              {/* Alert jika ada selisih nota supplier */}
+              {selisih !== 0 && (
+                <div className="flex items-start gap-2.5 rounded-xl border border-amber-200/80 bg-amber-50/70 p-3 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300">
+                  <IconAlertTriangle className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" size={16} />
+                  <div>
+                    <span className="font-bold">Perbedaan Total Nota: </span>
+                    Terdapat selisih {formatCurrency(Math.abs(selisih))} antara Total Tagihan Supplier ({formatCurrency(totalSupplier)}) dan Total Sistem ({formatCurrency(totalSistem)}).
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowSaveConfirmDialog(false)}
+                  disabled={submitting}
+                >
+                  Periksa Kembali
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handleConfirmSimpan}
+                  disabled={submitting}
+                  leftIcon={submitting ? undefined : <IconCheck size={18} />}
+                >
+                  {submitting ? 'Menyimpan...' : 'Ya, Simpan Transaksi'}
+                </Button>
+              </div>
+            </div>
+          </Modal>
+
           <Modal
             isOpen={showSuccessDialog}
             onClose={() => setShowSuccessDialog(false)}
             title="Pembelian Berhasil"
+            isBottomSheetOnMobile
           >
             <div className="p-6">
               <p className="mb-6 text-neutral-600 dark:text-neutral-400">

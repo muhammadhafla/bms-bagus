@@ -31,4 +31,5 @@ public/fallback-*.js.map
 
 # AI Agents & temporary logs
 .agents/
+graphify-out/
 tmp_safequery_scan.txt

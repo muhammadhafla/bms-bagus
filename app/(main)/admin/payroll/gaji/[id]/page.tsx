@@ -8,7 +8,7 @@ import { kasApi, ActiveShiftItem } from '@/lib/api/kas';
 import { gudangApi } from '@/lib/api/warehouse';
 
 import { Card, Button, Modal, TextInput, TextareaInput, SelectInput, ModernPagination, MonthPicker, DataTable, type Column, Badge } from '@/components/ui';
-import { IconArrowLeft, IconWallet, IconCheck, IconX, IconArrowUpRight, IconArrowDownLeft, IconClock, IconPrinter, IconFileText, IconCalendarEvent, IconChevronLeft, IconChevronRight, IconReceipt, IconHistory } from '@tabler/icons-react';
+import { IconArrowLeft, IconWallet, IconCheck, IconX, IconArrowUpRight, IconArrowDownLeft, IconClock, IconPrinter, IconFileText, IconCalendarEvent, IconChevronLeft, IconChevronRight, IconReceipt, IconHistory, IconPlus } from '@tabler/icons-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths, isSameDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -422,7 +422,8 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
           </Button>
           <Button 
             variant="secondary"
-            className="w-full md:w-auto text-sm border-none bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+            leftIcon={<IconPlus size={16} />}
+            className="w-full md:w-auto text-sm shadow-sm border border-neutral-300 dark:border-neutral-700 bg-white hover:bg-neutral-50 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200"
             onClick={() => setIsBonusOpen(true)}
           >
             Tambah Mutasi Manual

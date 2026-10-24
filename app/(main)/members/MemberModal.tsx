@@ -31,7 +31,7 @@ export default function MemberModal({ isOpen, onClose, onSuccess, initialData }:
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  const [formData, setFormData] = useState<Member>({
+  const [formData, setFormData] = useState<Omit<Member, 'points'> & { points: number | string }>({
     whatsapp_number: '',
     name: '',
     points: 0,
@@ -113,7 +113,7 @@ export default function MemberModal({ isOpen, onClose, onSuccess, initialData }:
           .update({
             whatsapp_number: formData.whatsapp_number,
             name: formData.name,
-            points: formData.points,
+            points: Number(formData.points) || 0,
             tier_id: formData.tier_id,
             prefer_digital_receipt: formData.prefer_digital_receipt,
             updated_at: new Date().toISOString(),
@@ -125,7 +125,7 @@ export default function MemberModal({ isOpen, onClose, onSuccess, initialData }:
         const { error } = await supabase.from('members').insert({
           whatsapp_number: formData.whatsapp_number,
           name: formData.name,
-          points: formData.points, // Biasanya 0 saat daftar, tapi admin bisa set
+          points: Number(formData.points) || 0, // Biasanya 0 saat daftar, tapi admin bisa set
           tier_id: formData.tier_id,
           prefer_digital_receipt: formData.prefer_digital_receipt,
         });
@@ -184,9 +184,23 @@ export default function MemberModal({ isOpen, onClose, onSuccess, initialData }:
           <TextInput
             label="Saldo Poin"
             type="number"
+            min="0"
             required
-            value={formData.points}
-            onChange={(e) => setFormData({ ...formData, points: parseFloat(e.target.value) || 0 })}
+            value={formData.points ?? ''}
+            placeholder="0"
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => {
+              const val = e.target.value;
+              setFormData({
+                ...formData,
+                points: val === '' ? '' : parseFloat(val) || 0,
+              });
+            }}
+            onBlur={() => {
+              if (formData.points === '' || formData.points === null) {
+                setFormData((prev) => ({ ...prev, points: 0 }));
+              }
+            }}
           />
         </div>
 

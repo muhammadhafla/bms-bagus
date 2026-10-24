@@ -166,9 +166,38 @@ export const TransferItemCart = React.memo(function TransferItemCart({
                         type="number"
                         min={1}
                         max={item.stok_tersedia}
-                        value={editValue}
-                        onChange={(e) => setEditValue(parseInt(e.target.value) || 1)}
-                        onBlur={handleEditSubmit}
+                        value={editValue ?? ''}
+                        onFocus={(e) => e.target.select()}
+                        onKeyDown={(e) => {
+                          if (['e', 'E', '+', '-'].includes(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '') {
+                            setEditValue('');
+                            return;
+                          }
+                          const parsed = parseInt(val, 10);
+                          const num = isNaN(parsed)
+                            ? 1
+                            : Math.max(1, Math.min(item.stok_tersedia, parsed));
+                          setEditValue(num);
+                          if (e.target.value !== String(num)) {
+                            e.target.value = String(num);
+                          }
+                        }}
+                        onBlur={() => {
+                          if (
+                            editValue === '' ||
+                            editValue === null ||
+                            editValue === undefined
+                          ) {
+                            setEditValue(item.qty_kirim);
+                          }
+                          handleEditSubmit();
+                        }}
                         className="w-full rounded-lg border border-brand-500 bg-white px-2.5 py-1 text-center font-bold text-neutral-900 shadow-sm outline-none dark:border-brand-400 dark:bg-neutral-900 dark:text-white"
                         autoFocus
                       />
@@ -284,8 +313,34 @@ export const TransferItemCart = React.memo(function TransferItemCart({
                       type="number"
                       min={1}
                       max={item.stok_tersedia}
-                      value={item.qty_kirim}
-                      onChange={(e) => updateQty(item.inventory_id, parseInt(e.target.value) || 1)}
+                      value={item.qty_kirim === 0 ? '' : item.qty_kirim}
+                      onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => {
+                        if (['e', 'E', '+', '-'].includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '') {
+                          updateQty(item.inventory_id, 0);
+                          return;
+                        }
+                        const parsed = parseInt(val, 10);
+                        const num = isNaN(parsed)
+                          ? 1
+                          : Math.max(1, Math.min(item.stok_tersedia, parsed));
+                        updateQty(item.inventory_id, num);
+                        if (e.target.value !== String(num)) {
+                          e.target.value = String(num);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        if (!item.qty_kirim || item.qty_kirim < 1) {
+                          updateQty(item.inventory_id, 1);
+                          e.target.value = '1';
+                        }
+                      }}
                       className="w-16 rounded-lg border border-neutral-300 bg-white px-2 py-1 text-center text-xs font-bold text-neutral-900 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
                     />
                     <span className="text-xs text-neutral-500">{item.unit}</span>

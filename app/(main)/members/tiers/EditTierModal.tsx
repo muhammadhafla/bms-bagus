@@ -27,7 +27,11 @@ export default function EditTierModal({
   initialMinPoints,
 }: EditTierModalProps) {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    discount_percentage: number | string;
+    point_multiplier: number | string;
+    min_points_required: number | string;
+  }>({
     discount_percentage: initialDiscount,
     point_multiplier: initialMultiplier,
     min_points_required: initialMinPoints,
@@ -51,9 +55,9 @@ export default function EditTierModal({
       const { error } = await supabase
         .from('member_tiers')
         .update({
-          discount_percentage: formData.discount_percentage,
-          point_multiplier: formData.point_multiplier,
-          min_points_required: formData.min_points_required,
+          discount_percentage: Number(formData.discount_percentage) || 0,
+          point_multiplier: Number(formData.point_multiplier) || 0,
+          min_points_required: Number(formData.min_points_required) || 0,
           updated_at: new Date().toISOString(),
         })
         .eq('id', tierId);
@@ -87,33 +91,69 @@ export default function EditTierModal({
           label="Persentase Diskon (%)"
           type="number"
           step="0.01"
+          min="0"
           required
           value={formData.discount_percentage}
-          onChange={(e) =>
-            setFormData({ ...formData, discount_percentage: parseFloat(e.target.value) || 0 })
-          }
+          placeholder="0"
+          onFocus={(e) => e.target.select()}
+          onChange={(e) => {
+            const val = e.target.value;
+            setFormData({
+              ...formData,
+              discount_percentage: val === '' ? '' : parseFloat(val) || 0,
+            });
+          }}
+          onBlur={() => {
+            if (formData.discount_percentage === '' || formData.discount_percentage === null) {
+              setFormData((prev) => ({ ...prev, discount_percentage: 0 }));
+            }
+          }}
         />
 
         <TextInput
           label="Pengali Poin (Multiplier)"
           type="number"
           step="0.01"
+          min="0"
           required
           value={formData.point_multiplier}
-          onChange={(e) =>
-            setFormData({ ...formData, point_multiplier: parseFloat(e.target.value) || 0 })
-          }
+          placeholder="1"
+          onFocus={(e) => e.target.select()}
+          onChange={(e) => {
+            const val = e.target.value;
+            setFormData({
+              ...formData,
+              point_multiplier: val === '' ? '' : parseFloat(val) || 0,
+            });
+          }}
+          onBlur={() => {
+            if (formData.point_multiplier === '' || formData.point_multiplier === null) {
+              setFormData((prev) => ({ ...prev, point_multiplier: 0 }));
+            }
+          }}
           helperText="Misal: 1.5 untuk 1,5x lipat poin."
         />
 
         <TextInput
           label="Minimal Poin (Syarat Upgrade)"
           type="number"
+          min="0"
           required
           value={formData.min_points_required}
-          onChange={(e) =>
-            setFormData({ ...formData, min_points_required: parseInt(e.target.value) || 0 })
-          }
+          placeholder="0"
+          onFocus={(e) => e.target.select()}
+          onChange={(e) => {
+            const val = e.target.value;
+            setFormData({
+              ...formData,
+              min_points_required: val === '' ? '' : parseInt(val, 10) || 0,
+            });
+          }}
+          onBlur={() => {
+            if (formData.min_points_required === '' || formData.min_points_required === null) {
+              setFormData((prev) => ({ ...prev, min_points_required: 0 }));
+            }
+          }}
         />
 
         <div className="flex gap-3 pt-4">

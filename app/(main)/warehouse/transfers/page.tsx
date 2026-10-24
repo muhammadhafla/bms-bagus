@@ -115,7 +115,9 @@ function WarehouseTransfersContent() {
 
   // Modal: Detail / Receive Transfer
   const [selectedTransfer, setSelectedTransfer] = useState<TransferStok | null>(null);
-  const [receiveItems, setReceiveItems] = useState<Array<{ inventory_id: string; qty_terima: number; catatan: string }>>([]);
+  const [receiveItems, setReceiveItems] = useState<
+    Array<{ inventory_id: string; qty_terima: number | string; catatan: string }>
+  >([]);
 
   // Confirm dialog for cancellation
   const [cancelTransferId, setCancelTransferId] = useState<string | null>(null);
@@ -427,7 +429,11 @@ function WarehouseTransfersContent() {
   const terimaMutation = useMutation({
     mutationFn: async () => {
       if (!selectedTransfer) return;
-      const res = await transferStokApi.terima(selectedTransfer.id, receiveItems, user?.id || '');
+      const cleanItems = receiveItems.map((item) => ({
+        ...item,
+        qty_terima: Number(item.qty_terima) || 0,
+      }));
+      const res = await transferStokApi.terima(selectedTransfer.id, cleanItems, user?.id || '');
       if (res.error) throw res.error;
       return res.data;
     },
@@ -484,7 +490,7 @@ function WarehouseTransfersContent() {
     // Cek apakah ada barang yang selisih (qty terima < qty kirim) namun catatan kosong
     const itemsWithMissingNote = (selectedTransfer.items || []).filter((it) => {
       const rec = receiveItems.find((r) => r.inventory_id === it.inventory_id);
-      const qtyTerima = rec?.qty_terima ?? it.qty_kirim;
+      const qtyTerima = rec?.qty_terima === '' ? 0 : Number(rec?.qty_terima ?? it.qty_kirim);
       const catatan = rec?.catatan?.trim() || '';
       return qtyTerima < it.qty_kirim && !catatan;
     });

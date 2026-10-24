@@ -27,7 +27,7 @@ export default function EditStockBinModal({
   onSuccess,
 }: EditStockBinModalProps) {
   const [rakLokasi, setRakLokasi] = useState('');
-  const [minStok, setMinStok] = useState<number>(0);
+  const [minStok, setMinStok] = useState<number | string>(0);
   const [maxStok, setMaxStok] = useState<string>('');
 
   useEffect(() => {
@@ -106,9 +106,34 @@ export default function EditStockBinModal({
             <TextInput
               id="input-min-stok"
               type="number"
-              value={String(minStok)}
-              onChange={(e) => setMinStok(Number(e.target.value))}
+              min={0}
+              value={minStok === '' ? '' : minStok}
               placeholder="0"
+              onFocus={(e) => e.target.select()}
+              onKeyDown={(e) => {
+                if (['e', 'E', '+', '-'].includes(e.key)) {
+                  e.preventDefault();
+                }
+              }}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === '') {
+                  setMinStok('');
+                  return;
+                }
+                const parsed = parseInt(val, 10);
+                const num = isNaN(parsed) ? 0 : Math.max(0, parsed);
+                setMinStok(num);
+                if (e.target.value !== String(num)) {
+                  e.target.value = String(num);
+                }
+              }}
+              onBlur={(e) => {
+                if (minStok === '' || minStok === null || minStok === undefined) {
+                  setMinStok(0);
+                  e.target.value = '0';
+                }
+              }}
               disabled={!canEditThresholds}
             />
           </div>
@@ -119,9 +144,28 @@ export default function EditStockBinModal({
             <TextInput
               id="input-max-stok"
               type="number"
+              min={0}
               value={maxStok}
-              onChange={(e) => setMaxStok(e.target.value)}
               placeholder="Opsional"
+              onFocus={(e) => e.target.select()}
+              onKeyDown={(e) => {
+                if (['e', 'E', '+', '-'].includes(e.key)) {
+                  e.preventDefault();
+                }
+              }}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === '') {
+                  setMaxStok('');
+                  return;
+                }
+                const parsed = parseInt(val, 10);
+                const num = isNaN(parsed) ? 0 : Math.max(0, parsed);
+                setMaxStok(String(num));
+                if (e.target.value !== String(num)) {
+                  e.target.value = String(num);
+                }
+              }}
               disabled={!canEditThresholds}
             />
           </div>

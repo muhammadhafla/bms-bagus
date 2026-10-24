@@ -39,7 +39,7 @@ interface OutboundCartItem {
   kode_barcode: string;
   stok_tersedia: number;
   harga_beli_terakhir: number;
-  qty: number;
+  qty: number | string;
   alasan: string;
 }
 
@@ -167,9 +167,9 @@ function WarehouseOutboundContent() {
     setCartItems((prev) => prev.filter((it) => it.inventory_id !== inventoryId));
   };
 
-  const handleUpdateQty = (inventoryId: string, qty: number) => {
+  const handleUpdateQty = (inventoryId: string, qty: number | string) => {
     setCartItems((prev) =>
-      prev.map((it) => (it.inventory_id === inventoryId ? { ...it, qty: Math.max(1, qty) } : it)),
+      prev.map((it) => (it.inventory_id === inventoryId ? { ...it, qty } : it)),
     );
   };
 
@@ -180,9 +180,10 @@ function WarehouseOutboundContent() {
       if (cartItems.length === 0) throw new Error('Daftar barang keluar tidak boleh kosong');
 
       for (const item of cartItems) {
-        if (item.qty > item.stok_tersedia) {
+        const itemQty = Math.max(1, Number(item.qty) || 1);
+        if (itemQty > item.stok_tersedia) {
           throw new Error(
-            `Stok untuk ${item.nama_barang} tidak mencukupi (Tersedia: ${item.stok_tersedia}, Dikeluarkan: ${item.qty})`,
+            `Stok untuk ${item.nama_barang} tidak mencukupi (Tersedia: ${item.stok_tersedia}, Dikeluarkan: ${itemQty})`,
           );
         }
       }
@@ -195,7 +196,7 @@ function WarehouseOutboundContent() {
           autoApprove: isSupervisorOrAdmin,
           items: cartItems.map((it) => ({
             inventory_id: it.inventory_id,
-            qty: it.qty,
+            qty: Math.max(1, Number(it.qty) || 1),
             harga_pokok: it.harga_beli_terakhir,
             alasan: it.alasan || null,
           })),
@@ -626,10 +627,46 @@ function WarehouseOutboundContent() {
                             type="number"
                             min="1"
                             max={item.stok_tersedia}
-                            value={item.qty}
-                            onChange={(e) =>
-                              handleUpdateQty(item.inventory_id, parseInt(e.target.value) || 1)
-                            }
+                            value={item.qty ?? ''}
+                            onFocus={(e) => e.target.select()}
+                            onKeyDown={(e) => {
+                              if (['e', 'E', '+', '-'].includes(e.key)) {
+                                e.preventDefault();
+                              }
+                            }}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '') {
+                                handleUpdateQty(item.inventory_id, '');
+                                return;
+                              }
+                              const parsed = parseInt(val, 10);
+                              const num = isNaN(parsed)
+                                ? 1
+                                : Math.max(1, Math.min(item.stok_tersedia, parsed));
+                              handleUpdateQty(item.inventory_id, num);
+                              if (e.target.value !== String(num)) {
+                                e.target.value = String(num);
+                              }
+                            }}
+                            onBlur={(e) => {
+                              if (
+                                item.qty === '' ||
+                                item.qty === null ||
+                                item.qty === undefined ||
+                                Number(item.qty) < 1
+                              ) {
+                                handleUpdateQty(item.inventory_id, 1);
+                                e.target.value = '1';
+                              } else {
+                                const num = Math.max(
+                                  1,
+                                  Math.min(item.stok_tersedia, Number(item.qty) || 1),
+                                );
+                                handleUpdateQty(item.inventory_id, num);
+                                e.target.value = String(num);
+                              }
+                            }}
                             className="w-16 rounded border border-neutral-300 bg-white px-2 py-1 text-center font-bold text-neutral-900 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
                           />
                           <Button

@@ -16,7 +16,7 @@ import { TransferStok } from '@/types/warehouse';
 
 export interface ReceiveItemState {
   inventory_id: string;
-  qty_terima: number;
+  qty_terima: number | string;
   catatan: string;
 }
 
@@ -225,7 +225,9 @@ export default function TransferDetailModal({
                   (ri) => ri.inventory_id === item.inventory_id,
                 );
                 const currentQtyTerima = receiveState?.qty_terima ?? item.qty_kirim;
-                const hasSelisih = currentQtyTerima < item.qty_kirim;
+                const numQtyTerima =
+                  currentQtyTerima === '' ? 0 : Number(currentQtyTerima);
+                const hasSelisih = numQtyTerima < item.qty_kirim;
 
                 return (
                   <tr
@@ -250,11 +252,29 @@ export default function TransferDetailModal({
                             type="number"
                             min="0"
                             max={item.qty_kirim}
-                            value={currentQtyTerima}
+                            value={currentQtyTerima ?? ''}
+                            onFocus={(e) => e.target.select()}
+                            onKeyDown={(e) => {
+                              if (['e', 'E', '+', '-'].includes(e.key)) {
+                                e.preventDefault();
+                              }
+                            }}
                             aria-label={`Jumlah terima ${item.inventory?.nama_barang || ''}`}
                             onChange={(e) => {
-                              const parsed = parseInt(e.target.value) || 0;
-                              const clamped = Math.min(item.qty_kirim, Math.max(0, parsed));
+                              const val = e.target.value;
+                              if (val === '') {
+                                setReceiveItems((prev) =>
+                                  prev.map((ri) =>
+                                    ri.inventory_id === item.inventory_id
+                                      ? { ...ri, qty_terima: '' }
+                                      : ri,
+                                  ),
+                                );
+                                return;
+                              }
+                              const parsed = parseInt(val, 10);
+                              const num = isNaN(parsed) ? 0 : Math.max(0, parsed);
+                              const clamped = Math.min(item.qty_kirim, num);
                               setReceiveItems((prev) =>
                                 prev.map((ri) =>
                                   ri.inventory_id === item.inventory_id
@@ -262,6 +282,38 @@ export default function TransferDetailModal({
                                     : ri,
                                 ),
                               );
+                              if (e.target.value !== String(clamped)) {
+                                e.target.value = String(clamped);
+                              }
+                            }}
+                            onBlur={(e) => {
+                              if (
+                                currentQtyTerima === '' ||
+                                currentQtyTerima === null ||
+                                currentQtyTerima === undefined
+                              ) {
+                                setReceiveItems((prev) =>
+                                  prev.map((ri) =>
+                                    ri.inventory_id === item.inventory_id
+                                      ? { ...ri, qty_terima: 0 }
+                                      : ri,
+                                  ),
+                                );
+                                e.target.value = '0';
+                              } else {
+                                const num = Math.min(
+                                  item.qty_kirim,
+                                  Math.max(0, Number(currentQtyTerima) || 0),
+                                );
+                                setReceiveItems((prev) =>
+                                  prev.map((ri) =>
+                                    ri.inventory_id === item.inventory_id
+                                      ? { ...ri, qty_terima: num }
+                                      : ri,
+                                  ),
+                                );
+                                e.target.value = String(num);
+                              }
                             }}
                             className={`w-20 rounded-lg border px-2 py-1.5 text-center font-bold text-neutral-900 transition-all dark:bg-neutral-800 dark:text-white ${
                               hasSelisih
@@ -271,7 +323,7 @@ export default function TransferDetailModal({
                           />
                           {hasSelisih && (
                             <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-                              <IconAlertTriangle size={11} /> Selisih -{item.qty_kirim - currentQtyTerima}
+                              <IconAlertTriangle size={11} /> Selisih -{item.qty_kirim - numQtyTerima}
                             </span>
                           )}
                         </div>
@@ -336,7 +388,9 @@ export default function TransferDetailModal({
               (ri) => ri.inventory_id === item.inventory_id,
             );
             const currentQtyTerima = receiveState?.qty_terima ?? item.qty_kirim;
-            const hasSelisih = currentQtyTerima < item.qty_kirim;
+            const numQtyTerima =
+              currentQtyTerima === '' ? 0 : Number(currentQtyTerima);
+            const hasSelisih = numQtyTerima < item.qty_kirim;
 
             return (
               <div
@@ -358,7 +412,7 @@ export default function TransferDetailModal({
                   </div>
                   {hasSelisih && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
-                      <IconAlertTriangle size={11} /> -{item.qty_kirim - currentQtyTerima} pcs
+                      <IconAlertTriangle size={11} /> -{item.qty_kirim - numQtyTerima} pcs
                     </span>
                   )}
                 </div>
@@ -373,7 +427,7 @@ export default function TransferDetailModal({
                   <div className="flex flex-col justify-center rounded-xl bg-neutral-50 dark:bg-neutral-800/60 p-2.5 border border-neutral-100 dark:border-neutral-800">
                     <div className="flex items-center justify-between">
                       <span className="block text-[11px] text-neutral-500 font-medium">Qty Terima</span>
-                      {isEditable && currentQtyTerima < item.qty_kirim && (
+                      {isEditable && hasSelisih && (
                         <button
                           type="button"
                           onClick={() => {
@@ -396,11 +450,29 @@ export default function TransferDetailModal({
                         type="number"
                         min="0"
                         max={item.qty_kirim}
-                        value={currentQtyTerima}
+                        value={currentQtyTerima ?? ''}
+                        onFocus={(e) => e.target.select()}
+                        onKeyDown={(e) => {
+                          if (['e', 'E', '+', '-'].includes(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
                         aria-label={`Jumlah terima ${item.inventory?.nama_barang || ''}`}
                         onChange={(e) => {
-                          const parsed = parseInt(e.target.value) || 0;
-                          const clamped = Math.min(item.qty_kirim, Math.max(0, parsed));
+                          const val = e.target.value;
+                          if (val === '') {
+                            setReceiveItems((prev) =>
+                              prev.map((ri) =>
+                                ri.inventory_id === item.inventory_id
+                                  ? { ...ri, qty_terima: '' }
+                                  : ri,
+                              ),
+                            );
+                            return;
+                          }
+                          const parsed = parseInt(val, 10);
+                          const num = isNaN(parsed) ? 0 : Math.max(0, parsed);
+                          const clamped = Math.min(item.qty_kirim, num);
                           setReceiveItems((prev) =>
                             prev.map((ri) =>
                               ri.inventory_id === item.inventory_id
@@ -408,6 +480,38 @@ export default function TransferDetailModal({
                                 : ri,
                             ),
                           );
+                          if (e.target.value !== String(clamped)) {
+                            e.target.value = String(clamped);
+                          }
+                        }}
+                        onBlur={(e) => {
+                          if (
+                            currentQtyTerima === '' ||
+                            currentQtyTerima === null ||
+                            currentQtyTerima === undefined
+                          ) {
+                            setReceiveItems((prev) =>
+                              prev.map((ri) =>
+                                ri.inventory_id === item.inventory_id
+                                  ? { ...ri, qty_terima: 0 }
+                                  : ri,
+                              ),
+                            );
+                            e.target.value = '0';
+                          } else {
+                            const num = Math.min(
+                              item.qty_kirim,
+                              Math.max(0, Number(currentQtyTerima) || 0),
+                            );
+                            setReceiveItems((prev) =>
+                              prev.map((ri) =>
+                                ri.inventory_id === item.inventory_id
+                                  ? { ...ri, qty_terima: num }
+                                  : ri,
+                              ),
+                            );
+                            e.target.value = String(num);
+                          }
                         }}
                         className={`w-full mt-1 rounded-lg border py-1 px-2 text-center text-sm font-bold text-neutral-900 transition-all dark:text-white ${
                           hasSelisih
@@ -464,12 +568,12 @@ export default function TransferDetailModal({
         {(() => {
           const itemsWithSelisih = (selectedTransfer.items || []).filter((it) => {
             const rec = receiveItems.find((r) => r.inventory_id === it.inventory_id);
-            const currentQty = rec?.qty_terima ?? it.qty_kirim;
+            const currentQty = rec?.qty_terima === '' ? 0 : Number(rec?.qty_terima ?? it.qty_kirim);
             return currentQty < it.qty_kirim;
           });
           const totalSelisihQty = (selectedTransfer.items || []).reduce((acc, it) => {
             const rec = receiveItems.find((r) => r.inventory_id === it.inventory_id);
-            const currentQty = rec?.qty_terima ?? it.qty_kirim;
+            const currentQty = rec?.qty_terima === '' ? 0 : Number(rec?.qty_terima ?? it.qty_kirim);
             return acc + (it.qty_kirim - currentQty);
           }, 0);
 

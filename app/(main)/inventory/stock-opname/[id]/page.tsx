@@ -57,14 +57,18 @@ const reasonOptions = [
   { value: 'lainnya', label: 'Lainnya' },
 ];
 
+type UIStockOpnameItem = Omit<StockOpnameItem, 'physical_stock'> & {
+  physical_stock: number | string;
+};
+
 export default function StockOpnameDetailPage() {
   const params = useParams();
   const router = useRouter();
   const opnameId = params.id as string;
 
   const [opname, setOpname] = useState<StockOpname | null>(null);
-  const [items, setItems] = useState<StockOpnameItem[]>([]);
-  const [originalItems, setOriginalItems] = useState<StockOpnameItem[]>([]);
+  const [items, setItems] = useState<UIStockOpnameItem[]>([]);
+  const [originalItems, setOriginalItems] = useState<UIStockOpnameItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -119,10 +123,12 @@ export default function StockOpnameDetailPage() {
       const newItems = prev.map((item) => {
         if (item.id !== itemId) return item;
 
-        const updated = { ...item, [field]: value } as StockOpnameItem;
+        const updated = { ...item, [field]: value } as UIStockOpnameItem;
 
         if (field === 'physical_stock') {
-          updated.difference = (value as number) - item.system_stock;
+          const numVal =
+            value === '' || value === null || value === undefined ? 0 : Number(value);
+          updated.difference = (isNaN(numVal) ? 0 : numVal) - item.system_stock;
         }
 
         return updated;
@@ -150,8 +156,13 @@ export default function StockOpnameDetailPage() {
     try {
       let current = 0;
       for (const item of changedItems) {
+        const cleanPhysicalStock =
+          item.physical_stock === '' || isNaN(Number(item.physical_stock))
+            ? 0
+            : Number(item.physical_stock);
+
         await stockOpnameApi.updateItem(item.id, {
-          physical_stock: item.physical_stock,
+          physical_stock: cleanPhysicalStock,
           system_stock: item.system_stock,
           reason: item.reason || undefined,
           note: item.note || undefined,
@@ -160,7 +171,16 @@ export default function StockOpnameDetailPage() {
         setSaveProgress({ current, total: changedItems.length });
       }
 
-      setOriginalItems(JSON.parse(JSON.stringify(items)));
+      const normalizedItems = items.map((item) => ({
+        ...item,
+        physical_stock:
+          item.physical_stock === '' || isNaN(Number(item.physical_stock))
+            ? 0
+            : Number(item.physical_stock),
+      }));
+
+      setItems(normalizedItems);
+      setOriginalItems(JSON.parse(JSON.stringify(normalizedItems)));
       setHasChanges(false);
       addToast({ type: 'success', message: 'Perubahan berhasil disimpan' });
       setSaving(false);
@@ -647,7 +667,7 @@ export default function StockOpnameDetailPage() {
                                 updateItem(
                                   item.id,
                                   'physical_stock',
-                                  Math.max(0, item.physical_stock - 1),
+                                  Math.max(0, (Number(item.physical_stock) || 0) - 1),
                                 )
                               }
                               className="border-brand-200 dark:border-brand-800 text-brand-600 dark:text-brand-400 active:bg-brand-100 dark:active:bg-brand-900/40 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border bg-white shadow-sm dark:bg-neutral-800"
@@ -658,17 +678,52 @@ export default function StockOpnameDetailPage() {
                           <input
                             id={`input-phys-qty-${item.id}`}
                             type="number"
-                            value={item.physical_stock}
-                            onChange={(e) =>
-                              updateItem(item.id, 'physical_stock', parseInt(e.target.value) || 0)
-                            }
+                            min={0}
+                            value={item.physical_stock ?? ''}
+                            onFocus={(e) => e.target.select()}
+                            onKeyDown={(e) => {
+                              if (['e', 'E', '+', '-'].includes(e.key)) {
+                                e.preventDefault();
+                              }
+                            }}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '') {
+                                updateItem(item.id, 'physical_stock', '');
+                                return;
+                              }
+                              const parsed = parseInt(val, 10);
+                              const num = isNaN(parsed) ? 0 : Math.max(0, parsed);
+                              updateItem(item.id, 'physical_stock', num);
+                              if (e.target.value !== String(num)) {
+                                e.target.value = String(num);
+                              }
+                            }}
+                            onBlur={(e) => {
+                              if (
+                                item.physical_stock === '' ||
+                                item.physical_stock === null ||
+                                item.physical_stock === undefined
+                              ) {
+                                updateItem(item.id, 'physical_stock', 0);
+                                e.target.value = '0';
+                              } else {
+                                const num = Math.max(0, Number(item.physical_stock) || 0);
+                                updateItem(item.id, 'physical_stock', num);
+                                e.target.value = String(num);
+                              }
+                            }}
                             disabled={!isEditable}
                             className="text-brand-700 dark:text-brand-300 border-brand-200 dark:border-brand-800 focus:ring-brand-500 focus:border-brand-500 w-full rounded-md border bg-white px-2 py-1 text-center font-mono text-lg font-bold shadow-inner focus:ring-2 focus:outline-none disabled:opacity-70 dark:bg-neutral-900"
                           />
                           {isEditable && (
                             <button
                               onClick={() =>
-                                updateItem(item.id, 'physical_stock', item.physical_stock + 1)
+                                updateItem(
+                                  item.id,
+                                  'physical_stock',
+                                  (Number(item.physical_stock) || 0) + 1,
+                                )
                               }
                               className="border-brand-200 dark:border-brand-800 text-brand-600 dark:text-brand-400 active:bg-brand-100 dark:active:bg-brand-900/40 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border bg-white shadow-sm dark:bg-neutral-800"
                             >
@@ -776,10 +831,41 @@ export default function StockOpnameDetailPage() {
                           <input
                             id={`input-phys-qty-desk-${item.id}`}
                             type="number"
-                            value={item.physical_stock}
-                            onChange={(e) =>
-                              updateItem(item.id, 'physical_stock', parseInt(e.target.value) || 0)
-                            }
+                            min={0}
+                            value={item.physical_stock ?? ''}
+                            onFocus={(e) => e.target.select()}
+                            onKeyDown={(e) => {
+                              if (['e', 'E', '+', '-'].includes(e.key)) {
+                                e.preventDefault();
+                              }
+                            }}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '') {
+                                updateItem(item.id, 'physical_stock', '');
+                                return;
+                              }
+                              const parsed = parseInt(val, 10);
+                              const num = isNaN(parsed) ? 0 : Math.max(0, parsed);
+                              updateItem(item.id, 'physical_stock', num);
+                              if (e.target.value !== String(num)) {
+                                e.target.value = String(num);
+                              }
+                            }}
+                            onBlur={(e) => {
+                              if (
+                                item.physical_stock === '' ||
+                                item.physical_stock === null ||
+                                item.physical_stock === undefined
+                              ) {
+                                updateItem(item.id, 'physical_stock', 0);
+                                e.target.value = '0';
+                              } else {
+                                const num = Math.max(0, Number(item.physical_stock) || 0);
+                                updateItem(item.id, 'physical_stock', num);
+                                e.target.value = String(num);
+                              }
+                            }}
                             disabled={!isEditable}
                             className="focus:ring-brand-500 focus:border-brand-500 w-full rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-right font-mono font-medium shadow-sm focus:ring-2 focus:outline-none focus:ring-inset disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800"
                           />

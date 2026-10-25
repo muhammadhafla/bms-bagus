@@ -549,7 +549,7 @@ export default function ReturnPage() {
 
   return (
     <AmbientLayout>
-      <div className="flex min-h-[calc(100vh-2rem)] flex-col pb-28 lg:min-h-0 lg:h-[calc(100vh-2rem)] lg:pb-0">
+      <div className="flex min-h-[calc(100vh-2rem)] flex-col pb-48 lg:min-h-0 lg:h-[calc(100vh-2rem)] lg:pb-0">
         
         {/* TOP HEADER */}
         <div className="animate-fade-in-up mb-4 flex-shrink-0 transition-all duration-300 lg:mb-6">
@@ -576,13 +576,15 @@ export default function ReturnPage() {
             {/* Current Supplier & Warehouse Badges */}
             <div className="flex flex-wrap items-center gap-2">
               {selectedSupplier && (
-                <div className="flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50/70 px-3.5 py-1.5 shadow-sm dark:border-brand-900/40 dark:bg-brand-950/40">
+                <div className="flex h-11 items-center gap-2 rounded-xl border border-brand-200 bg-brand-50/70 px-3.5 shadow-sm dark:border-brand-900/40 dark:bg-brand-950/40">
                   <span className="text-xs text-neutral-500">Supplier:</span>
-                  <span className="text-xs font-bold text-brand-700 dark:text-brand-300">{selectedSupplier.nama}</span>
+                  <span className="text-xs sm:text-sm font-bold text-brand-700 dark:text-brand-300">
+                    {selectedSupplier.nama}
+                  </span>
                   <button
                     type="button"
                     onClick={() => setShowResetConfirm(true)}
-                    className="ml-1 text-neutral-400 transition hover:text-danger-500"
+                    className="ml-1 rounded-md p-1 text-neutral-400 transition hover:bg-brand-100 hover:text-danger-500 dark:hover:bg-brand-900/60"
                     title="Ganti Supplier"
                   >
                     <IconX className="h-4 w-4" />
@@ -590,9 +592,9 @@ export default function ReturnPage() {
                 </div>
               )}
               {warehouses.length > 0 && (
-                <div className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white/80 px-3 py-1 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/80">
-                  <IconBuildingWarehouse className="h-4 w-4 text-brand-500" />
-                  <span className="text-xs text-neutral-500">Gudang:</span>
+                <div className="flex h-11 items-center gap-2 rounded-xl border border-neutral-200 bg-white/80 px-3 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/80">
+                  <IconBuildingWarehouse className="h-4 w-4 text-brand-500 shrink-0" />
+                  <span className="text-xs text-neutral-500 shrink-0">Gudang:</span>
                   <div className="w-40 sm:w-48">
                     <SelectInput
                       value={selectedGudangId}
@@ -1070,9 +1072,9 @@ export default function ReturnPage() {
 
         {/* BOTTOM ACTION BAR */}
         {activeCartItems.length > 0 && (
-          <div className="fixed right-0 bottom-4 left-0 z-40 px-4 lg:sticky lg:bottom-0 lg:px-0">
+          <div className="fixed right-0 bottom-[calc(4rem+env(safe-area-inset-bottom,0px)+0.5rem)] left-0 z-40 px-3 lg:sticky lg:bottom-0 lg:px-0">
             <div className="mx-auto max-w-[1920px]">
-              <div className="animate-fade-in-up rounded-3xl border border-white/40 bg-white/85 p-4 shadow-lg backdrop-blur-xl lg:rounded-t-3xl lg:rounded-b-none dark:border-neutral-800 dark:bg-neutral-900/85">
+              <div className="animate-fade-in-up rounded-2xl border border-white/60 bg-white/90 p-3 shadow-xl backdrop-blur-xl lg:rounded-t-3xl lg:rounded-b-none lg:p-4 dark:border-neutral-800 dark:bg-neutral-900/90">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4 lg:gap-6">
                     <div>

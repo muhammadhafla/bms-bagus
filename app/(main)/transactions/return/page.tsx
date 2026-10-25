@@ -428,6 +428,7 @@ export default function ReturnPage() {
       return;
     }
 
+    setError(null);
     const today = format(new Date(), 'yyyy-MM-dd');
     setPreviewData({
       tanggal: today,
@@ -1305,6 +1306,13 @@ export default function ReturnPage() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto py-4 space-y-4">
+                  {error && (
+                    <div className="flex items-center gap-2 rounded-xl border border-danger-200 bg-danger-50 p-3 text-xs font-semibold text-danger-700 dark:border-danger-900/50 dark:bg-danger-950/40 dark:text-danger-400">
+                      <IconAlertCircle className="h-4 w-4 shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-3 rounded-2xl border border-brand-100 bg-brand-50/50 p-3.5 text-xs dark:border-brand-900/30 dark:bg-brand-950/20">
                     <div>
                       <span className="text-neutral-400">Supplier Tujuan:</span>

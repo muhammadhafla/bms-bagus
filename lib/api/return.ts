@@ -393,7 +393,22 @@ export const returnApi = {
           p_created_by: user.id,
           p_gudang_id: data.gudang_id || null,
         });
-        return { data: result.data, error: result.error as Error | null };
+
+        if (result.error) {
+          return { data: null, error: result.error as Error | null };
+        }
+
+        const rawData = result.data;
+        let finalId: string | null = null;
+        if (Array.isArray(rawData) && rawData.length > 0) {
+          finalId = rawData[0]?.return_id || rawData[0]?.id || (typeof rawData[0] === 'string' ? rawData[0] : null);
+        } else if (rawData && typeof rawData === 'object') {
+          finalId = (rawData as any).return_id || (rawData as any).id || null;
+        } else if (typeof rawData === 'string') {
+          finalId = rawData;
+        }
+
+        return { data: finalId, error: null };
       },
       { isMutation: true },
     );

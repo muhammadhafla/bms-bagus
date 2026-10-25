@@ -34,6 +34,56 @@ export interface AvailableReturnItem {
   return_qty?: number;
   selected?: boolean;
   qty?: number;
+  stok_fisik?: number;
+}
+
+export interface BatchAllocationItem {
+  pembelian_item_id: string;
+  pembelian_id: string;
+  nomor_nota?: string;
+  tanggal_pembelian: string;
+  harga_beli: number;
+  diskon: number;
+  qty_original: number;
+  qty_returned: number;
+  qty_remaining: number;
+  allocated_qty: number;
+}
+
+export type AlasanRetur = 'rusak' | 'expired' | 'salah_kirim' | 'konsinyasi' | 'lainnya';
+export type MetodeKompensasi = 'potong_hutang' | 'refund_kas' | 'tukar_barang';
+
+export interface AggregatedReturnItem {
+  inventory_id: string;
+  nama_barang: string;
+  barcode?: string;
+  harga_beli_satuan: number;
+  stok_fisik: number;
+  total_qty_remaining: number;
+  max_retur_allowed: number;
+  return_qty: number;
+  alasan: AlasanRetur;
+  batches: BatchAllocationItem[];
+}
+
+/**
+ * Mengalokasikan target return qty ke batch-batch pembelian secara FIFO (nota terlama duluan).
+ */
+export function calculateAutoFifoBatches(
+  batches: BatchAllocationItem[],
+  targetQty: number
+): BatchAllocationItem[] {
+  let remainingNeeded = Math.max(0, targetQty);
+
+  // Batches diasumsikan sudah diurutkan dari tanggal pembelian terlama ke terbaru (atau sebaliknya)
+  return batches.map((batch) => {
+    if (remainingNeeded <= 0) {
+      return { ...batch, allocated_qty: 0 };
+    }
+    const alloc = Math.min(remainingNeeded, batch.qty_remaining);
+    remainingNeeded -= alloc;
+    return { ...batch, allocated_qty: alloc };
+  });
 }
 
 export interface BatchReturnInput {
@@ -173,6 +223,58 @@ export const returnApi = {
         p_supplier_id: supplierId,
       });
       return { data: result.data, error: result.error as Error | null };
+    });
+  },
+
+  async getAvailableItemsWithStock(supplierId: string, gudangId?: string) {
+    return safeQuery<AvailableReturnItem[]>(async () => {
+      const itemsResult = await supabase.rpc('get_available_return_items', {
+        p_supplier_id: supplierId,
+      });
+      if (itemsResult.error || !itemsResult.data) {
+        return { data: null, error: itemsResult.error as Error | null };
+      }
+
+      const items = itemsResult.data as AvailableReturnItem[];
+      const uniqueInvIds = Array.from(new Set(items.map((i) => i.inventory_id)));
+
+      if (uniqueInvIds.length === 0) {
+        return { data: [], error: null };
+      }
+
+      let stockMap: Record<string, number> = {};
+
+      if (gudangId) {
+        const { data: stocksData, error: stockErr } = await supabase
+          .from('inventory_stocks')
+          .select('inventory_id, stok')
+          .eq('gudang_id', gudangId)
+          .in('inventory_id', uniqueInvIds);
+
+        if (!stockErr && stocksData) {
+          stocksData.forEach((s: any) => {
+            stockMap[s.inventory_id] = s.stok || 0;
+          });
+        }
+      } else {
+        const { data: invData, error: invErr } = await supabase
+          .from('inventory')
+          .select('id, stok')
+          .in('id', uniqueInvIds);
+
+        if (!invErr && invData) {
+          invData.forEach((i: any) => {
+            stockMap[i.id] = i.stok || 0;
+          });
+        }
+      }
+
+      const itemsWithStock: AvailableReturnItem[] = items.map((item) => ({
+        ...item,
+        stok_fisik: stockMap[item.inventory_id] ?? 0,
+      }));
+
+      return { data: itemsWithStock, error: null };
     });
   },
 

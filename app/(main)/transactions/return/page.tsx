@@ -1,7 +1,17 @@
 'use client';
+
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { format } from 'date-fns';
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { returnApi, AvailableReturnItem } from '@/lib/api/return';
+import { useRouter } from 'next/navigation';
+import {
+  returnApi,
+  AvailableReturnItem,
+  AggregatedReturnItem,
+  BatchAllocationItem,
+  AlasanRetur,
+  MetodeKompensasi,
+  calculateAutoFifoBatches,
+} from '@/lib/api/return';
 import { formatCurrency } from '@/lib/utils';
 import {
   IconArrowBack,
@@ -14,10 +24,18 @@ import {
   IconPlus,
   IconRefresh,
   IconTrash,
-  IconBarcode
+  IconBarcode,
+  IconBuildingWarehouse,
+  IconChevronDown,
+  IconChevronUp,
+  IconAlertCircle,
+  IconShare,
+  IconNotes,
+  IconShoppingCart,
+  IconExternalLink,
 } from '@tabler/icons-react';
 import { PriceInput } from '@/components/ui/PriceInput';
-import { Button, AmbientLayout } from '@/components/ui';
+import { Button, AmbientLayout, Modal, Badge } from '@/components/ui';
 import { SelectInput } from '@/components/ui/SelectInput';
 import { Portal } from '@/components/ui/Portal';
 import { downloadOrShareFile } from '@/lib/utils/file-share';
@@ -27,24 +45,55 @@ import { useSuppliers } from '@/lib/hooks/useSuppliers';
 import { gudangApi } from '@/lib/api/warehouse';
 import { Gudang } from '@/types/warehouse';
 import { useAuthStore } from '@/lib/auth';
-import { IconBuildingWarehouse } from '@tabler/icons-react';
+import { SharedBarcodeSearch, SharedBarcodeSearchRef } from '@/components/inventory/SharedBarcodeSearch';
+import { InventoryItem } from '@/types/inventory';
+
+const STORAGE_KEY = 'draft_retur_pembelian_v2';
 
 export default function ReturnPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const profile = useAuthStore((state) => state.profile);
-  const [selectedSupplier, setSelectedSupplier] = useState<import('@/types').Supplier | null>(null);
+
+  // Suppliers & Warehouses
   const { data: suppliers = [] } = useSuppliers();
   const [warehouses, setWarehouses] = useState<Gudang[]>([]);
   const [selectedGudangId, setSelectedGudangId] = useState<string>('');
-  const [items, setItems] = useState<AvailableReturnItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<import('@/types').Supplier | null>(null);
+
+  // Raw & Aggregated Items
+  const [rawSupplierItems, setRawSupplierItems] = useState<AvailableReturnItem[]>([]);
+  const [aggregatedItems, setAggregatedItems] = useState<AggregatedReturnItem[]>([]);
+  const [loadingItems, setLoadingItems] = useState(false);
+
+  // Forms & Actions State
+  const [metodeKompensasi, setMetodeKompensasi] = useState<MetodeKompensasi>('potong_hutang');
+  const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [note, setNote] = useState('');
-  const [lastReturnId, setLastReturnId] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
 
+  // UI Interactive Modals
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+  const [supplierModalOpen, setSupplierModalOpen] = useState(false);
+  const [supplierOptions, setSupplierOptions] = useState<
+    { supplier_id: string; supplier_nama: string; total_qty_remaining: number }[]
+  >([]);
+  const [pendingScanItem, setPendingScanItem] = useState<InventoryItem | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [successModalData, setSuccessModalData] = useState<{
+    returnId: string;
+    total: number;
+    itemCount: number;
+    supplierNama: string;
+  } | null>(null);
+
+  // Search Ref
+  const searchRef = useRef<SharedBarcodeSearchRef>(null);
+
+  // 1. Load warehouses on mount
   useEffect(() => {
     async function loadWarehouses() {
       const res = await gudangApi.getAll({ activeOnly: true });
@@ -54,398 +103,567 @@ export default function ReturnPage() {
           ? res.data.find((g) => g.id === profile.default_gudang_id)
           : null;
         const defaultG = userDef || res.data.find((g) => g.is_default) || res.data[0];
-        if (defaultG) {
+        if (defaultG && !selectedGudangId) {
           setSelectedGudangId(defaultG.id);
         }
       }
     }
     loadWarehouses();
-  }, [profile?.default_gudang_id]);
-  
-  // Pos / Scan State
-  const [scanQuery, setScanQuery] = useState('');
-  const [isScanning, setIsScanning] = useState(false);
-  const [supplierModalOpen, setSupplierModalOpen] = useState(false);
-  const [supplierOptions, setSupplierOptions] = useState<{ supplier_id: string; supplier_nama: string; total_qty_remaining: number }[]>([]);
-  const [showDropdown, setShowDropdown] = useState(false);
-  
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  }, [profile?.default_gudang_id, selectedGudangId]);
 
-  const handleSelectSupplierAndAutoAdd = useCallback(async (supplier: import('@/types').Supplier, initialScan?: string) => {
-    setSelectedSupplier(supplier);
-    setLoading(true);
-    setError(null);
+  // 2. Fetch Supplier Items with Real Physical Stock
+  const loadSupplierItems = useCallback(
+    async (supplierId: string, gudangId: string, preservedDraft?: Record<string, { qty: number; alasan: AlasanRetur }>) => {
+      setLoadingItems(true);
+      setError(null);
 
+      try {
+        const res = await returnApi.getAvailableItemsWithStock(supplierId, gudangId);
+        if (res.error) {
+          setError(res.error.message || 'Gagal memuat barang supplier');
+          setRawSupplierItems([]);
+          setAggregatedItems([]);
+          return;
+        }
+
+        const rawList = res.data || [];
+        setRawSupplierItems(rawList);
+
+        // Group by inventory_id
+        const groups: Record<string, AvailableReturnItem[]> = {};
+        for (const item of rawList) {
+          if (!groups[item.inventory_id]) groups[item.inventory_id] = [];
+          groups[item.inventory_id].push(item);
+        }
+
+        // Create Aggregated List
+        const aggList: AggregatedReturnItem[] = Object.keys(groups).map((invId) => {
+          const batchList = [...groups[invId]];
+          // Urutkan nota secara FIFO: tanggal terlama lebih dulu
+          batchList.sort((a, b) => new Date(a.tanggal_pembelian).getTime() - new Date(b.tanggal_pembelian).getTime());
+
+          const totalRemaining = batchList.reduce((sum, b) => sum + (b.qty_remaining || 0), 0);
+          const stokFisik = batchList[0]?.stok_fisik ?? 0;
+          const maxAllowed = Math.max(0, Math.min(stokFisik, totalRemaining));
+
+          // Ambil harga beli faktur terakhir sebagai representasi
+          const latestBatch = batchList[batchList.length - 1];
+          const repPrice = latestBatch.harga_beli - (latestBatch.diskon || 0);
+
+          // Cek draft tersimpan jika ada
+          const draftVal = preservedDraft ? preservedDraft[invId] : null;
+          const initialQty = draftVal ? Math.min(draftVal.qty, maxAllowed) : 0;
+          const initialAlasan = draftVal ? draftVal.alasan : 'rusak';
+
+          const batchesWithAlloc: BatchAllocationItem[] = batchList.map((b) => ({
+            pembelian_item_id: b.pembelian_item_id,
+            pembelian_id: b.pembelian_id,
+            nomor_nota: b.nomor_nota,
+            tanggal_pembelian: b.tanggal_pembelian,
+            harga_beli: b.harga_beli,
+            diskon: b.diskon || 0,
+            qty_original: b.qty_original,
+            qty_returned: b.qty_returned,
+            qty_remaining: b.qty_remaining,
+            allocated_qty: 0,
+          }));
+
+          const allocated = calculateAutoFifoBatches(batchesWithAlloc, initialQty);
+
+          return {
+            inventory_id: invId,
+            nama_barang: batchList[0].nama_barang,
+            barcode: batchList[0].barcode,
+            harga_beli_satuan: repPrice,
+            stok_fisik: stokFisik,
+            total_qty_remaining: totalRemaining,
+            max_retur_allowed: maxAllowed,
+            return_qty: initialQty,
+            alasan: initialAlasan,
+            batches: allocated,
+          };
+        });
+
+        setAggregatedItems(aggList);
+      } catch (err: any) {
+        console.error('Error fetching return items:', err);
+        setError('Terjadi kesalahan saat memuat data barang retur.');
+      } finally {
+        setLoadingItems(false);
+      }
+    },
+    []
+  );
+
+  // 3. LocalStorage Recovery on initial load
+  useEffect(() => {
     try {
-      const result = await returnApi.getAvailableItemsBySupplier(supplier.id);
+      const rawDraft = localStorage.getItem(STORAGE_KEY);
+      if (rawDraft) {
+        const parsed = JSON.parse(rawDraft);
+        if (parsed.supplier && parsed.gudangId) {
+          setSelectedSupplier(parsed.supplier);
+          setSelectedGudangId(parsed.gudangId);
+          if (parsed.metodeKompensasi) setMetodeKompensasi(parsed.metodeKompensasi);
+          if (parsed.note) setNote(parsed.note);
 
-      if (result.error) {
-        setError('Gagal memuat item');
+          loadSupplierItems(parsed.supplier.id, parsed.gudangId, parsed.itemsMap);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse return draft from localStorage', e);
+    }
+  }, [loadSupplierItems]);
+
+  // 4. Auto-save to LocalStorage when return items change
+  useEffect(() => {
+    if (!selectedSupplier || !selectedGudangId) {
+      localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+
+    const activeItems = aggregatedItems.filter((i) => i.return_qty > 0);
+    if (activeItems.length === 0 && !note) {
+      localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+
+    const itemsMap: Record<string, { qty: number; alasan: AlasanRetur }> = {};
+    activeItems.forEach((i) => {
+      itemsMap[i.inventory_id] = { qty: i.return_qty, alasan: i.alasan };
+    });
+
+    const draft = {
+      supplier: selectedSupplier,
+      gudangId: selectedGudangId,
+      metodeKompensasi,
+      note,
+      itemsMap,
+      savedAt: new Date().toISOString(),
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+    } catch (e) {
+      console.warn('Failed to save return draft', e);
+    }
+  }, [selectedSupplier, selectedGudangId, aggregatedItems, metodeKompensasi, note]);
+
+  // 5. Handle Gudang change
+  const handleGudangChange = (newGudangId: string) => {
+    setSelectedGudangId(newGudangId);
+    if (selectedSupplier) {
+      // Preserve current return quantities when switching warehouse
+      const currentDraft: Record<string, { qty: number; alasan: AlasanRetur }> = {};
+      aggregatedItems.forEach((i) => {
+        if (i.return_qty > 0) currentDraft[i.inventory_id] = { qty: i.return_qty, alasan: i.alasan };
+      });
+      loadSupplierItems(selectedSupplier.id, newGudangId, currentDraft);
+    }
+  };
+
+  // 6. Handle Manual Select Supplier
+  const handleSelectSupplier = (supplier: import('@/types').Supplier) => {
+    setSelectedSupplier(supplier);
+    loadSupplierItems(supplier.id, selectedGudangId);
+  };
+
+  // 7. Auto-increment / Add item to cart
+  const addItemToCart = useCallback(
+    (inventoryId: string, increment: number = 1) => {
+      setAggregatedItems((prev) => {
+        const itemIndex = prev.findIndex((i) => i.inventory_id === inventoryId);
+        if (itemIndex < 0) return prev;
+
+        const current = prev[itemIndex];
+        const newQty = Math.max(0, Math.min(current.return_qty + increment, current.max_retur_allowed));
+
+        if (newQty === current.return_qty && increment > 0) {
+          setError(
+            `Maksimal retur untuk "${current.nama_barang}" adalah ${current.max_retur_allowed} pcs (Stok Fisik: ${current.stok_fisik}, Sisa Nota: ${current.total_qty_remaining}).`
+          );
+          return prev;
+        }
+
+        const allocatedBatches = calculateAutoFifoBatches(current.batches, newQty);
+        const updated = [...prev];
+        updated[itemIndex] = {
+          ...current,
+          return_qty: newQty,
+          batches: allocatedBatches,
+        };
+        setSuccess(`"${current.nama_barang}" ditambahkan ke keranjang retur (${newQty} pcs).`);
+        return updated;
+      });
+    },
+    []
+  );
+
+  // 8. Handle selection from SharedBarcodeSearch
+  const handleItemSelectedFromSearch = useCallback(
+    async (item: InventoryItem) => {
+      setError(null);
+
+      // Skenario A: Supplier sudah dipilih
+      if (selectedSupplier) {
+        const existsInSupplier = aggregatedItems.find((i) => i.inventory_id === item.id);
+        if (existsInSupplier) {
+          addItemToCart(item.id, 1);
+          searchRef.current?.clearInput();
+        } else {
+          // Barang ini tidak ada di daftar pembelian supplier aktif
+          setError(`Barang "${item.nama_barang}" tidak memiliki riwayat pembelian dari ${selectedSupplier.nama}.`);
+        }
         return;
       }
 
-      const rawItems = result.data || [];
-      let foundIndex = -1;
-      
-      const itemsWithSelection: AvailableReturnItem[] = rawItems.map((item, idx) => {
-        let isMatch = false;
-        if (initialScan) {
-           const queryLower = initialScan.toLowerCase();
-           if (item.barcode?.toLowerCase() === queryLower || item.nama_barang.toLowerCase().includes(queryLower)) {
-             isMatch = true;
-             if (foundIndex === -1) foundIndex = idx;
-           }
-        }
-        return {
-          ...item,
-          selected: isMatch,
-          return_qty: isMatch ? 1 : 0,
-        };
-      });
-
-      setItems(itemsWithSelection);
-      if (initialScan && foundIndex >= 0) {
-        setSuccess(`Supplier otomatis di-set ke ${supplier.nama} dan barang ditambahkan.`);
-      } else if (initialScan) {
-         setError(`Supplier di-set ke ${supplier.nama}, tapi barang gagal otomatis ditambah (mungkin stok retur habis).`);
-      }
-    } catch (err) {
-      console.error('Error loading items:', err);
-      setError('Terjadi kesalahan saat memuat data barang.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const handleSelectSupplier = useCallback(async (supplier: import('@/types').Supplier) => {
-    handleSelectSupplierAndAutoAdd(supplier);
-  }, [handleSelectSupplierAndAutoAdd]);
-
-  const handleScanSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!scanQuery.trim()) return;
-
-    setIsScanning(true);
-    setError(null);
-    setShowDropdown(false);
-    
-    try {
-      if (selectedSupplier) {
-        // Supplier already selected, search exactly within items memory
-        const queryLower = scanQuery.toLowerCase().trim();
-        const itemIndex = items.findIndex(
-          (i) => i.barcode?.toLowerCase() === queryLower || i.nama_barang.toLowerCase() === queryLower
-        );
-
-        if (itemIndex >= 0) {
-          const item = items[itemIndex];
-          if (item.qty_remaining > 0 && (item.return_qty || 0) < item.qty_remaining) {
-            handleReturnQtyChange(itemIndex, (item.return_qty || 0) + 1);
-            setSuccess(`Berhasil menambah ${item.nama_barang}`);
-            setScanQuery('');
-          } else {
-            setError(`Stok retur untuk ${item.nama_barang} sudah maksimal/habis.`);
-          }
-        } else {
-          setError(`Barang tidak ditemukan di supplier ini.`);
-        }
-      } else {
-        // Global scan
-        const res = await returnApi.findSuppliersByBarcode(scanQuery.trim());
+      // Skenario B: Supplier belum dipilih (Smart Scan-First)
+      try {
+        const res = await returnApi.findSuppliersByBarcode(item.barcode || item.nama_barang);
         if (res.error) throw res.error;
-        
+
         const sups = res.data || [];
         if (sups.length === 0) {
-          setError('Barang tidak ditemukan atau tidak ada sisa stok retur untuk pencarian ini.');
+          setError(`Barang "${item.nama_barang}" tidak memiliki riwayat pembelian atau sisa kuota retur telah habis.`);
         } else if (sups.length === 1) {
-          // Auto select
-          const sup = suppliers.find(s => s.id === sups[0].supplier_id);
-          if (sup) {
-            await handleSelectSupplierAndAutoAdd(sup as any, scanQuery.trim());
-            setScanQuery('');
+          // Hanya 1 supplier: Langsung auto-set
+          const matchedSup = suppliers.find((s) => s.id === sups[0].supplier_id);
+          if (matchedSup) {
+            setSelectedSupplier(matchedSup as any);
+            const draft: Record<string, { qty: number; alasan: AlasanRetur }> = {
+              [item.id]: { qty: 1, alasan: 'rusak' },
+            };
+            await loadSupplierItems(matchedSup.id, selectedGudangId, draft);
+            setSuccess(`Supplier otomatis di-set ke ${matchedSup.nama} dan barang ditambahkan.`);
+            searchRef.current?.clearInput();
           }
         } else {
-          // Multiple suppliers
+          // Multi-supplier: Munculkan modal
+          setPendingScanItem(item);
           setSupplierOptions(sups);
           setSupplierModalOpen(true);
         }
+      } catch (err: any) {
+        setError(err.message || 'Gagal mencari data supplier untuk barang ini.');
       }
-    } catch (err: any) {
-      setError(err.message || 'Gagal mencari barang');
-    } finally {
-      setIsScanning(false);
-    }
-  };
+    },
+    [selectedSupplier, aggregatedItems, suppliers, selectedGudangId, addItemToCart, loadSupplierItems]
+  );
 
-  const handleDropdownSelect = (index: number) => {
-    const item = items[index];
-    if (item.qty_remaining > 0 && (item.return_qty || 0) < item.qty_remaining) {
-      handleReturnQtyChange(index, (item.return_qty || 0) + 1);
-      setSuccess(`Berhasil menambah ${item.nama_barang}`);
-      setScanQuery('');
-      setShowDropdown(false);
-      searchInputRef.current?.focus();
-    } else {
-      setError(`Stok retur untuk ${item.nama_barang} sudah maksimal/habis.`);
-    }
-  };
+  // 9. Handle Qty change from Stepper/Input
+  const handleQtyChange = useCallback((inventoryId: string, qty: number) => {
+    setAggregatedItems((prev) => {
+      const itemIndex = prev.findIndex((i) => i.inventory_id === inventoryId);
+      if (itemIndex < 0) return prev;
 
-  const handleReturnQtyChange = useCallback((index: number, qty: number) => {
-    setItems((prev) => {
-      const newItems = [...prev];
-      const item = newItems[index];
-      const validQty = Math.max(0, Math.min(qty, item.qty_remaining));
-      newItems[index] = {
-        ...item,
+      const current = prev[itemIndex];
+      const validQty = Math.max(0, Math.min(qty, current.max_retur_allowed));
+      const allocatedBatches = calculateAutoFifoBatches(current.batches, validQty);
+
+      const updated = [...prev];
+      updated[itemIndex] = {
+        ...current,
         return_qty: validQty,
-        selected: validQty > 0,
+        batches: allocatedBatches,
       };
-      return newItems;
+      return updated;
     });
   }, []);
 
-  const handleRemoveItem = useCallback((index: number) => {
-    handleReturnQtyChange(index, 0);
-  }, [handleReturnQtyChange]);
-
-  const handleReset = useCallback(() => {
-    setSelectedSupplier(null);
-    setItems([]);
-    setError(null);
-    setSuccess(null);
-    setNote('');
-    setLastReturnId(null);
-    setScanQuery('');
+  // 10. Handle Alasan change
+  const handleAlasanChange = useCallback((inventoryId: string, alasan: AlasanRetur) => {
+    setAggregatedItems((prev) => {
+      const itemIndex = prev.findIndex((i) => i.inventory_id === inventoryId);
+      if (itemIndex < 0) return prev;
+      const updated = [...prev];
+      updated[itemIndex] = { ...updated[itemIndex], alasan };
+      return updated;
+    });
   }, []);
 
-  const selectedItems = items.filter((item) => item.selected && (item.return_qty || 0) > 0);
-  const totalReturn = selectedItems.reduce((sum, item) => sum + (item.return_qty || 0) * (item.harga_beli - (item.diskon || 0)), 0);
+  // 11. Remove item from cart
+  const handleRemoveItem = useCallback((inventoryId: string) => {
+    handleQtyChange(inventoryId, 0);
+  }, [handleQtyChange]);
 
-  const filteredDropdownItems = items
-    .map((item, idx) => ({ item, originalIndex: idx }))
-    .filter(({ item }) => 
-      scanQuery && 
-      (item.nama_barang.toLowerCase().includes(scanQuery.toLowerCase()) || 
-       item.barcode?.toLowerCase().includes(scanQuery.toLowerCase()))
-    ).slice(0, 5);
+  // 12. Reset cart
+  const handleConfirmReset = useCallback(() => {
+    setSelectedSupplier(null);
+    setRawSupplierItems([]);
+    setAggregatedItems([]);
+    setNote('');
+    setMetodeKompensasi('potong_hutang');
+    setError(null);
+    setSuccess(null);
+    setShowResetConfirm(false);
+    localStorage.removeItem(STORAGE_KEY);
+    searchRef.current?.clearInput();
+  }, []);
 
-  const handleSubmit = useCallback(async () => {
-    if (!selectedSupplier) return;
-    const returnItems = selectedItems.map((item) => ({
-      ...item,
-      qty: item.return_qty || 0,
-    }));
-    if (returnItems.length === 0) {
-      setError('Tidak ada item yang dipilih untuk dikembalikan');
+  // Filtered active cart items
+  const activeCartItems = useMemo(
+    () => aggregatedItems.filter((i) => i.return_qty > 0),
+    [aggregatedItems]
+  );
+
+  // Total Return Amount
+  const totalReturnAmount = useMemo(() => {
+    return activeCartItems.reduce((total, item) => {
+      const itemSubtotal = item.batches.reduce((sub, b) => {
+        const netPrice = b.harga_beli - (b.diskon || 0);
+        return sub + b.allocated_qty * netPrice;
+      }, 0);
+      return total + itemSubtotal;
+    }, 0);
+  }, [activeCartItems]);
+
+  const totalReturnQty = useMemo(() => {
+    return activeCartItems.reduce((sum, item) => sum + item.return_qty, 0);
+  }, [activeCartItems]);
+
+  // 13. Pre-submit Preview
+  const handlePrepareSubmit = useCallback(() => {
+    if (!selectedSupplier) {
+      setError('Pilih supplier terlebih dahulu.');
       return;
     }
+    if (activeCartItems.length === 0) {
+      setError('Keranjang retur masih kosong.');
+      return;
+    }
+
     const today = format(new Date(), 'yyyy-MM-dd');
     setPreviewData({
       tanggal: today,
-      supplier_nama: selectedSupplier.nama,
-      items: returnItems.map((item) => ({
-        pembelian_item_id: item.pembelian_item_id,
-        inventory_id: item.inventory_id,
-        nama_barang: item.nama_barang,
-        nomor_nota: item.nomor_nota || '-',
-        tanggal_pembelian: item.tanggal_pembelian || '-',
-        return_qty: item.return_qty ?? 0,
-        harga_beli: item.harga_beli,
-        diskon: item.diskon,
-        harga_final: (item.return_qty ?? 0) * (item.harga_beli - (item.diskon ?? 0)),
-      })),
-      total: totalReturn,
-      note: note,
+      supplierNama: selectedSupplier.nama,
+      supplierId: selectedSupplier.id,
+      gudangId: selectedGudangId,
+      metodeKompensasi,
+      note,
+      items: activeCartItems,
+      totalAmount: totalReturnAmount,
+      totalQty: totalReturnQty,
     });
     setShowPreview(true);
-  }, [selectedSupplier, selectedItems, totalReturn, note]);
+  }, [selectedSupplier, activeCartItems, selectedGudangId, metodeKompensasi, note, totalReturnAmount, totalReturnQty]);
 
-  const [previewData, setPreviewData] = useState<any>(null);
-
+  // 14. Confirm Submit to DB
   const handleConfirmSubmit = useCallback(async () => {
-    if (!selectedSupplier || !previewData) return;
+    if (!previewData || !selectedSupplier) return;
     setSubmitting(true);
     setError(null);
+
+    // Kumpulkan payload batch items
+    const itemsPayload: { pembelian_item_id: string; inventory_id: string; qty: number }[] = [];
+    previewData.items.forEach((item: AggregatedReturnItem) => {
+      item.batches.forEach((batch) => {
+        if (batch.allocated_qty > 0) {
+          itemsPayload.push({
+            pembelian_item_id: batch.pembelian_item_id,
+            inventory_id: item.inventory_id,
+            qty: batch.allocated_qty,
+          });
+        }
+      });
+    });
+
+    if (itemsPayload.length === 0) {
+      setError('Tidak ada rincian nota yang valid untuk disimpan.');
+      setSubmitting(false);
+      return;
+    }
+
+    // Bangun catatan terstruktur
+    const kompensasiLabel =
+      metodeKompensasi === 'potong_hutang'
+        ? 'Potong Hutang'
+        : metodeKompensasi === 'refund_kas'
+        ? 'Refund Kas/Tunai'
+        : 'Tukar Barang';
+
+    const alasanSummary = previewData.items
+      .map((i: AggregatedReturnItem) => `${i.nama_barang} (${i.alasan})`)
+      .join(', ');
+
+    const fullNote = [
+      `[Penyelesaian: ${kompensasiLabel}]`,
+      `[Alasan: ${alasanSummary}]`,
+      note ? `Catatan: ${note}` : '',
+    ]
+      .filter(Boolean)
+      .join(' | ');
+
     try {
       const result = await returnApi.submitBatchReturn({
         supplier_id: selectedSupplier.id,
         supplier_nama: selectedSupplier.nama,
         tanggal: previewData.tanggal,
-        note: note,
+        note: fullNote,
         gudang_id: selectedGudangId || undefined,
-        items: previewData.items.map((item: any) => ({
-          pembelian_item_id: item.pembelian_item_id,
-          inventory_id: item.inventory_id,
-          qty: item.return_qty,
-        })),
+        items: itemsPayload,
       });
 
       if (result.error) {
-        setError(result.error.message || 'Gagal menyimpan return');
+        setError(result.error.message || 'Gagal menyimpan transaksi retur.');
       } else {
-        setSuccess(`Retur berhasil disimpan. Total: ${formatCurrency(totalReturn)}`);
-        setLastReturnId(result.data);
-        setShowPreview(false);
-        setPreviewData(null);
+        const returnId = result.data as string;
+        // Invalidate queries
         queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
         queryClient.invalidateQueries({ queryKey: queryKeys.warehouse.stocksAll });
         queryClient.invalidateQueries({ queryKey: queryKeys.transactions.returPembelianAll });
         queryClient.invalidateQueries({ queryKey: queryKeys.transactions.pembelianAll });
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
-        setTimeout(() => handleReset(), 3000);
+
+        // Clear LocalStorage
+        localStorage.removeItem(STORAGE_KEY);
+
+        setShowPreview(false);
+        setSuccessModalData({
+          returnId,
+          total: totalReturnAmount,
+          itemCount: totalReturnQty,
+          supplierNama: selectedSupplier.nama,
+        });
+
+        // Reset page state
+        setSelectedSupplier(null);
+        setRawSupplierItems([]);
+        setAggregatedItems([]);
+        setNote('');
       }
     } catch (err: any) {
-      setError(err.message || 'Terjadi kesalahan');
+      setError(err.message || 'Terjadi kesalahan sistem saat menyimpan retur.');
     } finally {
       setSubmitting(false);
     }
-  }, [selectedSupplier, previewData, totalReturn, note, selectedGudangId, handleReset, queryClient]);
+  }, [previewData, selectedSupplier, selectedGudangId, metodeKompensasi, note, totalReturnAmount, totalReturnQty, queryClient]);
 
-  const handleExportPdf = useCallback(async () => {
-    if (!lastReturnId) return;
+  // 15. Export / Print PDF Paperless
+  const handleExportPdf = useCallback(async (returnId: string) => {
     try {
-      await downloadOrShareFile(`/api/export/inventory/return/${lastReturnId}`, `Bukti_Retur_${lastReturnId}.pdf`, 'Bukti Retur');
+      await downloadOrShareFile(
+        `/api/export/inventory/return/${returnId}`,
+        `Surat_Retur_${returnId.slice(0, 8)}.pdf`,
+        'Surat Retur Barang'
+      );
     } catch (err) {
-      setError('Gagal export PDF');
+      setError('Gagal mengunduh Surat Retur PDF');
     }
-  }, [lastReturnId]);
+  }, []);
 
   return (
     <AmbientLayout>
-      <div className="flex min-h-[calc(100vh-2rem)] flex-col pb-24 lg:h-[calc(100vh-2rem)] lg:pb-0">
+      <div className="flex min-h-[calc(100vh-2rem)] flex-col pb-28 lg:min-h-0 lg:h-[calc(100vh-2rem)] lg:pb-0">
+        
+        {/* TOP HEADER */}
         <div className="animate-fade-in-up mb-4 flex-shrink-0 transition-all duration-300 lg:mb-6">
-          <div className="mb-4 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
-            <div className="flex items-center gap-3 lg:gap-4">
-              <IconArrowBack
-                className="text-brand-500 hover:text-brand-600 h-6 w-6 shrink-0 cursor-pointer transition-colors lg:h-8 lg:w-8"
-                stroke={1.5}
-                onClick={() => window.history.back()}
-              />
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/80 text-neutral-600 shadow-sm transition hover:bg-neutral-100 hover:text-neutral-900 dark:bg-neutral-900/80 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                aria-label="Kembali"
+              >
+                <IconArrowBack className="h-5 w-5" stroke={2} />
+              </button>
               <div>
                 <h1 className="from-brand-600 to-brand-400 bg-gradient-to-r bg-clip-text text-xl font-extrabold tracking-tight text-transparent lg:text-3xl dark:from-brand-400 dark:to-brand-200">
-                  Retur Barang
+                  Retur Pembelian
                 </h1>
-                <p className="mt-0.5 hidden text-xs font-medium text-neutral-500 md:block lg:text-base dark:text-neutral-400">
-                  Pengembalian barang ke supplier (Point of Sales Mode)
+                <p className="text-xs font-medium text-neutral-500 lg:text-sm dark:text-neutral-400">
+                  Pengembalian barang rusak, cacat, atau konsinyasi ke supplier
                 </p>
               </div>
             </div>
-            
-            {selectedSupplier && (
-              <div className="flex items-center gap-2 rounded-xl bg-white/80 px-4 py-2 shadow-sm border border-neutral-200 dark:bg-neutral-900/80 dark:border-neutral-800">
-                <span className="text-xs text-neutral-500">Supplier:</span>
-                <span className="text-sm font-bold text-neutral-900 dark:text-white">{selectedSupplier.nama}</span>
-                <button onClick={handleReset} className="ml-2 text-neutral-400 hover:text-danger-500">
-                   <IconX className="h-4 w-4" />
-                </button>
-              </div>
-            )}
+
+            {/* Current Supplier & Warehouse Badges */}
+            <div className="flex flex-wrap items-center gap-2">
+              {selectedSupplier && (
+                <div className="flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50/70 px-3.5 py-1.5 shadow-sm dark:border-brand-900/40 dark:bg-brand-950/40">
+                  <span className="text-xs text-neutral-500">Supplier:</span>
+                  <span className="text-xs font-bold text-brand-700 dark:text-brand-300">{selectedSupplier.nama}</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowResetConfirm(true)}
+                    className="ml-1 text-neutral-400 transition hover:text-danger-500"
+                    title="Ganti Supplier"
+                  >
+                    <IconX className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+              {warehouses.length > 0 && (
+                <div className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white/80 px-3 py-1 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/80">
+                  <IconBuildingWarehouse className="h-4 w-4 text-brand-500" />
+                  <span className="text-xs text-neutral-500">Gudang:</span>
+                  <div className="w-40 sm:w-48">
+                    <SelectInput
+                      value={selectedGudangId}
+                      onChange={handleGudangChange}
+                      options={warehouses.map((g) => ({
+                        value: g.id,
+                        label: `${g.nama}${g.is_default ? ' [Pusat]' : ''}`,
+                      }))}
+                      inputSize="sm"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
+          {/* ALERTS */}
           {error && (
-            <div className="mb-4 flex items-center gap-2 rounded-xl border border-danger-100 bg-danger-50 p-3 text-sm text-danger-600 dark:border-danger-800/50 dark:bg-danger-900/30 dark:text-danger-300">
-              <IconX className="h-4 w-4 shrink-0" />
-              <span>{error}</span>
+            <div className="mt-3 flex items-center gap-2 rounded-xl border border-danger-200 bg-danger-50 p-3 text-xs sm:text-sm text-danger-700 dark:border-danger-800/60 dark:bg-danger-950/40 dark:text-danger-300">
+              <IconAlertCircle className="h-5 w-5 shrink-0 text-danger-500" />
+              <span className="flex-1 font-medium">{error}</span>
+              <button onClick={() => setError(null)} className="text-danger-400 hover:text-danger-600">
+                <IconX className="h-4 w-4" />
+              </button>
             </div>
           )}
           {success && (
-            <div className="mb-4 flex items-center justify-between rounded-xl border border-success-100 bg-success-50 p-3 text-sm text-success-600 shadow-sm dark:border-success-800/50 dark:bg-success-900/30 dark:text-success-300">
+            <div className="mt-3 flex items-center justify-between rounded-xl border border-success-200 bg-success-50 p-3 text-xs sm:text-sm text-success-700 shadow-sm dark:border-success-800/60 dark:bg-success-950/40 dark:text-success-300">
               <div className="flex items-center gap-2">
-                <IconCheck className="h-4 w-4 shrink-0" />
-                <span>{success}</span>
+                <IconCheck className="h-5 w-5 shrink-0 text-success-500" />
+                <span className="font-medium">{success}</span>
               </div>
-              {lastReturnId && (
-                <Button variant="secondary" size="sm" onClick={handleExportPdf} className="h-8 rounded-lg text-xs">
-                  <IconFileExport className="h-3.5 w-3.5" />
-                  Export PDF
-                </Button>
-              )}
+              <button onClick={() => setSuccess(null)} className="text-success-400 hover:text-success-600">
+                <IconX className="h-4 w-4" />
+              </button>
             </div>
           )}
 
-          {/* POS Style Global Search Input */}
-          <div className="relative z-30 mb-2">
-            <form onSubmit={handleScanSubmit} className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                <IconBarcode className="h-6 w-6 text-neutral-400" />
-              </div>
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={scanQuery}
-                onChange={(e) => {
-                  setScanQuery(e.target.value);
-                  setShowDropdown(selectedSupplier !== null && e.target.value.length > 0);
-                }}
-                onFocus={() => {
-                  if (scanQuery && selectedSupplier) setShowDropdown(true);
-                }}
-                placeholder={selectedSupplier ? "Cari nama barang atau scan barcode..." : "Scan barcode untuk auto-detect supplier, atau pilih supplier..."}
-                className="w-full rounded-2xl border-2 border-brand-200 bg-white py-4 pl-12 pr-24 text-lg font-bold text-neutral-900 shadow-sm transition-all focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/20 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:border-brand-500"
-                autoFocus
+          {/* SEARCH BAR & SCANNER (SHARED BARCODE SEARCH) */}
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex-1">
+              <SharedBarcodeSearch
+                ref={searchRef}
+                onItemSelected={handleItemSelectedFromSearch}
+                placeholder={
+                  selectedSupplier
+                    ? `Cari nama atau scan barcode barang dari ${selectedSupplier.nama}...`
+                    : 'Scan barcode atau ketik nama barang (Auto-detect supplier)...'
+                }
+                icon="scan"
+                filterPredicate={
+                  selectedSupplier
+                    ? (item) => aggregatedItems.some((agg) => agg.inventory_id === item.id)
+                    : undefined
+                }
               />
-              <div className="absolute inset-y-0 right-2 flex items-center">
-                {isScanning ? (
-                  <div className="mr-4 h-6 w-6 animate-spin rounded-full border-4 border-brand-200 border-t-brand-500"></div>
-                ) : (
-                  <Button type="submit" variant="primary" className="h-10 rounded-xl px-4 font-bold text-sm">
-                    Enter
-                  </Button>
-                )}
-              </div>
-            </form>
-            
-            {/* Dropdown for manual search when supplier is selected */}
-            {showDropdown && filteredDropdownItems.length > 0 && (
-               <div className="absolute left-0 right-0 mt-2 rounded-xl border border-neutral-200 bg-white shadow-xl dark:border-neutral-800 dark:bg-neutral-900 overflow-hidden z-50">
-                 {filteredDropdownItems.map(({ item, originalIndex }) => (
-                    <button 
-                      key={originalIndex}
-                      type="button"
-                      onClick={() => handleDropdownSelect(originalIndex)}
-                      className="w-full text-left px-4 py-3 hover:bg-brand-50 dark:hover:bg-neutral-800 border-b border-neutral-100 dark:border-neutral-800 last:border-0 flex justify-between items-center"
-                    >
-                       <div>
-                         <p className="font-bold text-sm text-neutral-900 dark:text-white">{item.nama_barang}</p>
-                         <p className="text-xs text-neutral-500">Sisa Retur: {item.qty_remaining} | Harga: {formatCurrency(item.harga_beli - (item.diskon||0))}</p>
-                       </div>
-                       <IconPlus className="h-5 w-5 text-brand-500" />
-                    </button>
-                 ))}
-               </div>
-            )}
-          </div>
+            </div>
 
-          {/* Gudang & Supplier Selector Bar */}
-          <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-neutral-600 dark:text-neutral-400">
-            {warehouses.length > 0 && (
-              <div className="flex items-center gap-2">
-                <IconBuildingWarehouse className="h-4 w-4 text-brand-500" />
-                <span className="font-medium text-xs sm:text-sm">Gudang Asal Fisik:</span>
-                <div className="w-56 sm:w-64">
-                  <SelectInput
-                    value={selectedGudangId}
-                    onChange={(val) => setSelectedGudangId(val)}
-                    options={warehouses.map((g) => ({
-                      value: g.id,
-                      label: `${g.nama} (${g.kode_gudang})${g.is_default ? ' [Pusat]' : ''}`,
-                    }))}
-                    placeholder="Pilih Gudang..."
-                    inputSize="md"
-                  />
-                </div>
-              </div>
-            )}
-
+            {/* Supplier Picker if not yet selected */}
             {!selectedSupplier && suppliers.length > 0 && (
               <div className="flex items-center gap-2">
-                <span className="text-xs sm:text-sm">Pilih supplier: </span>
-                <div className="w-56 sm:w-64">
+                <span className="text-xs font-medium text-neutral-500 whitespace-nowrap">Atau pilih manual:</span>
+                <div className="w-56">
                   <SelectInput
                     value=""
                     onChange={(val) => {
-                      const supplier = suppliers.find((s) => s.id === val);
-                      if (supplier) handleSelectSupplier(supplier as any);
+                      const sup = suppliers.find((s) => s.id === val);
+                      if (sup) handleSelectSupplier(sup as any);
                     }}
                     options={suppliers.map((s) => ({ value: s.id, label: s.nama }))}
                     placeholder="Pilih Supplier..."
@@ -457,210 +675,453 @@ export default function ReturnPage() {
           </div>
         </div>
 
-        {/* Content Section (Keranjang Retur) */}
-        {selectedSupplier && (
-          <div className="shadow-elevated animate-fade-in-up mb-24 flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-white/40 bg-white/70 backdrop-blur-xl transition-all delay-100 lg:mb-6 dark:border-white/10 dark:bg-neutral-900/60">
-            <div className="flex-1 overflow-auto p-4 lg:p-6">
-              
-              <h2 className="mb-4 text-lg font-bold text-neutral-800 dark:text-white flex items-center gap-2">
-                Keranjang Retur <span className="bg-brand-100 text-brand-600 text-xs px-2 py-1 rounded-full">{selectedItems.length} Item</span>
-              </h2>
+        {/* MAIN CART SECTION */}
+        <div className="shadow-elevated animate-fade-in-up flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-white/40 bg-white/70 backdrop-blur-xl dark:border-white/10 dark:bg-neutral-900/60">
+          <div className="flex-1 overflow-auto p-4 lg:p-6">
+            
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-neutral-800 lg:text-lg dark:text-white">
+                  Keranjang Retur
+                </h2>
+                <Badge variant={activeCartItems.length > 0 ? 'info' : 'default'}>
+                  {activeCartItems.length} Produk ({totalReturnQty} Pcs)
+                </Badge>
+              </div>
 
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-500"></div>
-                </div>
-              ) : selectedItems.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-neutral-300 bg-white/50 py-16 text-center text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900/30">
-                  <IconSearch className="mx-auto h-12 w-12 text-neutral-300 dark:text-neutral-600 mb-3" />
-                  <p className="text-base font-bold text-neutral-700 dark:text-neutral-300">
-                    Keranjang Kosong
-                  </p>
-                  <p className="mt-1 text-sm opacity-75">
-                    Silakan scan barcode atau cari barang di atas.
-                  </p>
-                </div>
-              ) : (
-                <div className="rounded-2xl lg:overflow-hidden lg:border lg:border-neutral-200/60 lg:bg-white/40 dark:lg:border-neutral-800/60 dark:lg:bg-neutral-950/40">
-                  {/* Desktop Table View */}
-                  <div className="hidden overflow-x-auto lg:block">
-                    <table className="w-full">
-                      <thead className="sticky top-0 z-10 border-b border-neutral-200 bg-white/80 shadow-sm backdrop-blur-md dark:border-neutral-800 dark:bg-neutral-950/80">
-                        <tr>
-                          <th className="px-5 py-4 text-left text-xs font-bold tracking-wider text-neutral-500 uppercase dark:text-neutral-400">Barang & Info</th>
-                          <th className="px-5 py-4 text-right text-xs font-bold tracking-wider text-neutral-500 uppercase dark:text-neutral-400">Harga Satuan</th>
-                          <th className="px-5 py-4 text-right text-xs font-bold tracking-wider text-neutral-500 uppercase dark:text-neutral-400">Sisa Qty</th>
-                          <th className="w-40 px-5 py-4 text-center text-xs font-bold tracking-wider text-neutral-500 uppercase dark:text-neutral-400">Retur Qty</th>
-                          <th className="px-5 py-4 text-right text-xs font-bold tracking-wider text-neutral-500 uppercase dark:text-neutral-400">Subtotal</th>
-                          <th className="w-16 px-5 py-4 text-center"></th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/60">
-                        {items.map((item, index) => {
-                          if (!item.selected || (item.return_qty || 0) === 0) return null;
-                          const harga = item.harga_beli - (item.diskon || 0);
-                          const returnSubtotal = (item.return_qty || 0) * harga;
+              {activeCartItems.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowResetConfirm(true)}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-danger-600 transition hover:text-danger-700 dark:text-danger-400"
+                >
+                  <IconTrash className="h-4 w-4" />
+                  Kosongkan
+                </button>
+              )}
+            </div>
 
-                          return (
-                            <tr key={item.pembelian_item_id} className="group transition-all duration-200 hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
+            {loadingItems ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-500"></div>
+                <p className="mt-3 text-xs font-medium text-neutral-500">Memuat stok & riwayat pembelian...</p>
+              </div>
+            ) : !selectedSupplier && activeCartItems.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-neutral-300 bg-white/50 py-16 text-center text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900/30">
+                <IconBarcode className="mx-auto mb-3 h-12 w-12 text-neutral-400 dark:text-neutral-600" />
+                <p className="text-base font-bold text-neutral-800 dark:text-neutral-200">
+                  Belum Ada Barang di Keranjang
+                </p>
+                <p className="mt-1 text-xs text-neutral-500 lg:text-sm">
+                  Scan barcode barang rusak di atas untuk auto-detect supplier, atau pilih supplier tujuan terlebih dahulu.
+                </p>
+              </div>
+            ) : activeCartItems.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-neutral-300 bg-white/50 py-16 text-center text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900/30">
+                <IconShoppingCart className="mx-auto mb-3 h-12 w-12 text-neutral-400 dark:text-neutral-600" />
+                <p className="text-base font-bold text-neutral-800 dark:text-neutral-200">
+                  Keranjang Kosong
+                </p>
+                <p className="mt-1 text-xs text-neutral-500 lg:text-sm">
+                  Ketik nama barang atau scan barcode untuk menambahkan barang milik {selectedSupplier?.nama}.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* DESKTOP TABLE */}
+                <div className="hidden rounded-2xl border border-neutral-200/70 bg-white/40 lg:block dark:border-neutral-800/70 dark:bg-neutral-950/40 overflow-hidden">
+                  <table className="w-full text-left">
+                    <thead className="border-b border-neutral-200 bg-neutral-50/80 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900/80 dark:text-neutral-400">
+                      <tr>
+                        <th className="px-5 py-3.5">Produk & Barcode</th>
+                        <th className="px-4 py-3.5 text-center">Stok Fisik / Sisa Beli</th>
+                        <th className="px-4 py-3.5 text-right">Harga Satuan</th>
+                        <th className="px-4 py-3.5">Alasan Retur</th>
+                        <th className="w-36 px-4 py-3.5 text-center">Qty Retur</th>
+                        <th className="px-5 py-3.5 text-right">Subtotal</th>
+                        <th className="w-16 px-4 py-3.5 text-center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/60">
+                      {activeCartItems.map((item) => {
+                        const isExpanded = !!expandedRows[item.inventory_id];
+                        const itemSubtotal = item.batches.reduce((sub, b) => {
+                          const netPrice = b.harga_beli - (b.diskon || 0);
+                          return sub + b.allocated_qty * netPrice;
+                        }, 0);
+
+                        return (
+                          <React.Fragment key={item.inventory_id}>
+                            <tr className="group transition-colors hover:bg-neutral-50/70 dark:hover:bg-neutral-900/40">
                               <td className="px-5 py-4">
-                                <p className="group-hover:text-brand-600 dark:group-hover:text-brand-400 text-sm font-bold text-neutral-900 transition-colors dark:text-neutral-100">
+                                <p className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
                                   {item.nama_barang}
                                 </p>
                                 <div className="mt-1 flex items-center gap-2">
-                                  <span className="rounded border border-neutral-200 bg-neutral-100 px-2 py-0.5 font-mono text-[10px] text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400">
-                                    {item.nomor_nota || item.pembelian_id.slice(0, 8)}
-                                  </span>
-                                  <span className="text-xs text-neutral-500">{item.tanggal_pembelian}</span>
+                                  {item.barcode && (
+                                    <span className="font-mono text-[11px] text-neutral-500">
+                                      {item.barcode}
+                                    </span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setExpandedRows((prev) => ({
+                                        ...prev,
+                                        [item.inventory_id]: !prev[item.inventory_id],
+                                      }))
+                                    }
+                                    className="flex items-center gap-1 text-[11px] font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                                  >
+                                    <span>
+                                      {item.batches.filter((b) => b.allocated_qty > 0).length} Nota Terkait
+                                    </span>
+                                    {isExpanded ? (
+                                      <IconChevronUp className="h-3.5 w-3.5" />
+                                    ) : (
+                                      <IconChevronDown className="h-3.5 w-3.5" />
+                                    )}
+                                  </button>
                                 </div>
                               </td>
-                              <td className="px-5 py-4 text-right text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                                {formatCurrency(harga)}
+
+                              <td className="px-4 py-4 text-center">
+                                <div className="inline-flex flex-col items-center">
+                                  <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200">
+                                    {item.stok_fisik} pcs
+                                  </span>
+                                  <span className="text-[10px] text-neutral-400">
+                                    (Faktur: {item.total_qty_remaining})
+                                  </span>
+                                </div>
                               </td>
-                              <td className="px-5 py-4 text-right">
-                                <span className="inline-flex items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 px-2.5 py-1 text-xs font-bold text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
-                                  {item.qty_remaining}
-                                </span>
+
+                              <td className="px-4 py-4 text-right text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                                {formatCurrency(item.harga_beli_satuan)}
                               </td>
-                              <td className="px-5 py-4">
+
+                              <td className="px-4 py-4">
+                                <div className="w-36">
+                                  <SelectInput
+                                    value={item.alasan}
+                                    onChange={(val) => handleAlasanChange(item.inventory_id, val as AlasanRetur)}
+                                    options={[
+                                      { value: 'rusak', label: 'Rusak / Cacat' },
+                                      { value: 'expired', label: 'Expired' },
+                                      { value: 'salah_kirim', label: 'Salah Kirim' },
+                                      { value: 'konsinyasi', label: 'Tidak Laku' },
+                                      { value: 'lainnya', label: 'Lainnya' },
+                                    ]}
+                                    inputSize="sm"
+                                  />
+                                </div>
+                              </td>
+
+                              <td className="px-4 py-4">
                                 <div className="flex justify-center">
-                                  <div className="flex items-center rounded-lg border border-brand-200 bg-white shadow-sm p-1 transition-colors dark:border-brand-800 dark:bg-neutral-950">
-                                    <button onClick={() => handleReturnQtyChange(index, (item.return_qty || 0) - 1)} className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/30">
-                                      <IconMinus className="h-4 w-4" />
+                                  <div className="flex items-center rounded-xl border border-brand-200 bg-white p-1 shadow-sm dark:border-brand-900/60 dark:bg-neutral-900">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleQtyChange(item.inventory_id, item.return_qty - 1)}
+                                      className="flex h-7 w-7 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-neutral-100 hover:text-brand-600 dark:hover:bg-neutral-800"
+                                      aria-label="Kurangi Qty"
+                                    >
+                                      <IconMinus className="h-3.5 w-3.5" />
                                     </button>
                                     <PriceInput
-                                      value={item.return_qty || 0}
-                                      onChange={(val) => handleReturnQtyChange(index, val)}
+                                      value={item.return_qty}
+                                      onChange={(val) => handleQtyChange(item.inventory_id, val)}
                                       className="mx-1 w-12 border-none bg-transparent p-0 text-center text-sm font-bold focus:ring-0"
                                       min={0}
-                                      max={item.qty_remaining}
+                                      max={item.max_retur_allowed}
                                       prefix=""
                                     />
-                                    <button onClick={() => handleReturnQtyChange(index, (item.return_qty || 0) + 1)} disabled={(item.return_qty || 0) >= item.qty_remaining} className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-brand-50 hover:text-brand-600 disabled:opacity-30 dark:hover:bg-brand-900/30">
-                                      <IconPlus className="h-4 w-4" />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleQtyChange(item.inventory_id, item.return_qty + 1)}
+                                      disabled={item.return_qty >= item.max_retur_allowed}
+                                      className="flex h-7 w-7 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-neutral-100 hover:text-brand-600 disabled:opacity-30 dark:hover:bg-neutral-800"
+                                      aria-label="Tambah Qty"
+                                    >
+                                      <IconPlus className="h-3.5 w-3.5" />
                                     </button>
                                   </div>
                                 </div>
                               </td>
+
                               <td className="px-5 py-4 text-right text-sm font-bold text-brand-600 dark:text-brand-400">
-                                {formatCurrency(returnSubtotal)}
+                                {formatCurrency(itemSubtotal)}
                               </td>
-                              <td className="px-5 py-4 text-center">
-                                <button onClick={() => handleRemoveItem(index)} className="p-2 text-neutral-400 hover:text-danger-500 hover:bg-danger-50 rounded-lg transition-colors">
-                                  <IconTrash className="h-5 w-5" />
+
+                              <td className="px-4 py-4 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveItem(item.inventory_id)}
+                                  className="rounded-lg p-2 text-neutral-400 transition hover:bg-danger-50 hover:text-danger-600 dark:hover:bg-danger-950/40"
+                                  title="Hapus barang"
+                                >
+                                  <IconTrash className="h-4 w-4" />
                                 </button>
                               </td>
                             </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
 
-                  {/* Mobile Compact List View */}
-                  <div className="block space-y-3 pb-4 lg:hidden">
-                    {items.map((item, index) => {
-                      if (!item.selected || (item.return_qty || 0) === 0) return null;
-                      const harga = item.harga_beli - (item.diskon || 0);
-                      const returnSubtotal = (item.return_qty || 0) * harga;
+                            {/* COLLAPSIBLE ACCORDION: DETAIL ALOKASI NOTA */}
+                            {isExpanded && (
+                              <tr className="bg-brand-50/30 dark:bg-brand-950/20">
+                                <td colSpan={7} className="px-6 py-3 border-y border-neutral-100 dark:border-neutral-800/50">
+                                  <div className="text-xs">
+                                    <p className="font-bold text-neutral-700 dark:text-neutral-300 mb-2">
+                                      Rincian Pemotongan Nota (Auto-FIFO):
+                                    </p>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                      {item.batches.map((b) => (
+                                        <div
+                                          key={b.pembelian_item_id}
+                                          className={`rounded-lg border p-2.5 text-xs ${
+                                            b.allocated_qty > 0
+                                              ? 'border-brand-300 bg-white font-medium text-neutral-900 shadow-sm dark:border-brand-800 dark:bg-neutral-900 dark:text-neutral-100'
+                                              : 'border-neutral-200 bg-neutral-50 text-neutral-400 dark:border-neutral-800 dark:bg-neutral-900/40'
+                                          }`}
+                                        >
+                                          <div className="flex justify-between items-center mb-1">
+                                            <span className="font-mono text-[11px] font-bold">
+                                              {b.nomor_nota || b.pembelian_id.slice(0, 8)}
+                                            </span>
+                                            <span className="text-[10px] text-neutral-500">
+                                              {b.tanggal_pembelian}
+                                            </span>
+                                          </div>
+                                          <div className="flex justify-between items-center text-[11px]">
+                                            <span>
+                                              Alokasi: <strong className="text-brand-600 dark:text-brand-400">{b.allocated_qty}</strong> / {b.qty_remaining} pcs
+                                            </span>
+                                            <span>{formatCurrency(b.harga_beli - b.diskon)}</span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
 
-                      return (
-                        <div key={item.pembelian_item_id} className="relative rounded-2xl border border-brand-200 bg-white/90 p-3 shadow-sm ring-1 ring-brand-100 transition-all duration-200 dark:border-neutral-700 dark:bg-neutral-900/90 dark:ring-neutral-800">
-                          <div className="flex justify-between items-start">
-                            <div className="min-w-0 flex-1 pr-2">
-                              <h3 className="mb-0.5 text-sm font-bold leading-tight text-neutral-900 dark:text-neutral-100">{item.nama_barang}</h3>
-                              <div className="mb-2 flex flex-wrap items-center gap-2">
-                                <span className="rounded border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 font-mono text-[10px] text-neutral-500 dark:border-neutral-700 dark:bg-neutral-800">{item.nomor_nota || item.pembelian_id.slice(0, 8)}</span>
-                                <span className="text-[10px] text-neutral-500">{item.tanggal_pembelian}</span>
-                              </div>
+                {/* MOBILE CARD VIEW */}
+                <div className="space-y-3 lg:hidden">
+                  {activeCartItems.map((item) => {
+                    const itemSubtotal = item.batches.reduce((sub, b) => {
+                      const netPrice = b.harga_beli - (b.diskon || 0);
+                      return sub + b.allocated_qty * netPrice;
+                    }, 0);
+
+                    return (
+                      <div
+                        key={item.inventory_id}
+                        className="rounded-2xl border border-neutral-200 bg-white/90 p-3.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                              {item.nama_barang}
+                            </h3>
+                            <div className="mt-1 flex items-center gap-2 text-xs text-neutral-500">
+                              <span>Stok Fisik: <strong>{item.stok_fisik}</strong></span>
+                              <span>•</span>
+                              <span>Faktur: <strong>{item.total_qty_remaining}</strong></span>
                             </div>
-                            <button onClick={() => handleRemoveItem(index)} className="p-1.5 text-neutral-400 hover:text-danger-500 bg-neutral-50 rounded-lg dark:bg-neutral-800">
-                               <IconTrash className="h-4 w-4" />
-                            </button>
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(item.inventory_id)}
+                            className="p-1 text-neutral-400 hover:text-danger-500"
+                          >
+                            <IconTrash className="h-4 w-4" />
+                          </button>
+                        </div>
 
-                          <div className="mt-2 flex items-end justify-between">
-                             <div>
-                                <p className="mb-0.5 text-[10px] font-medium text-neutral-500">SISA QTY: {item.qty_remaining}</p>
-                                <p className="text-xs font-bold text-neutral-700 dark:text-neutral-300">{formatCurrency(harga)}</p>
-                             </div>
-                             <div className="text-right">
-                                <p className="mb-0.5 text-[10px] font-medium text-neutral-400">SUBTOTAL</p>
-                                <p className="text-sm font-bold text-brand-600 dark:text-brand-400">{formatCurrency(returnSubtotal)}</p>
-                             </div>
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] font-semibold text-neutral-500">Alasan</label>
+                            <SelectInput
+                              value={item.alasan}
+                              onChange={(val) => handleAlasanChange(item.inventory_id, val as AlasanRetur)}
+                              options={[
+                                { value: 'rusak', label: 'Rusak / Cacat' },
+                                { value: 'expired', label: 'Expired' },
+                                { value: 'salah_kirim', label: 'Salah Kirim' },
+                                { value: 'konsinyasi', label: 'Tidak Laku' },
+                                { value: 'lainnya', label: 'Lainnya' },
+                              ]}
+                              inputSize="sm"
+                            />
                           </div>
-
-                          <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3 dark:border-neutral-800">
-                            <span className="text-xs font-bold text-neutral-500">Retur Qty</span>
-                            <div className="flex h-9 items-center rounded-lg border border-brand-200 bg-white shadow-sm dark:border-brand-800 dark:bg-neutral-950">
-                              <button onClick={() => handleReturnQtyChange(index, (item.return_qty || 0) - 1)} className="flex h-9 w-10 items-center justify-center text-neutral-500 active:bg-brand-50">
-                                <IconMinus className="h-4 w-4" />
+                          <div>
+                            <label className="text-[10px] font-semibold text-neutral-500">Qty Retur</label>
+                            <div className="flex h-9 items-center justify-between rounded-xl border border-brand-200 bg-white p-1 dark:border-brand-800 dark:bg-neutral-950">
+                              <button
+                                type="button"
+                                onClick={() => handleQtyChange(item.inventory_id, item.return_qty - 1)}
+                                className="flex h-7 w-7 items-center justify-center text-neutral-500"
+                              >
+                                <IconMinus className="h-3.5 w-3.5" />
                               </button>
                               <PriceInput
-                                value={item.return_qty || 0}
-                                onChange={(val) => handleReturnQtyChange(index, val)}
-                                className="h-full w-12 border-none bg-transparent p-0 text-center text-sm font-bold focus:ring-0"
+                                value={item.return_qty}
+                                onChange={(val) => handleQtyChange(item.inventory_id, val)}
+                                className="w-10 border-none bg-transparent p-0 text-center text-xs font-bold focus:ring-0"
                                 min={0}
-                                max={item.qty_remaining}
+                                max={item.max_retur_allowed}
                                 prefix=""
                               />
-                              <button onClick={() => handleReturnQtyChange(index, (item.return_qty || 0) + 1)} disabled={(item.return_qty || 0) >= item.qty_remaining} className="flex h-9 w-10 items-center justify-center text-neutral-500 active:bg-brand-50 disabled:opacity-30">
-                                <IconPlus className="h-4 w-4" />
+                              <button
+                                type="button"
+                                onClick={() => handleQtyChange(item.inventory_id, item.return_qty + 1)}
+                                disabled={item.return_qty >= item.max_retur_allowed}
+                                className="flex h-7 w-7 items-center justify-center text-neutral-500 disabled:opacity-30"
+                              >
+                                <IconPlus className="h-3.5 w-3.5" />
                               </button>
                             </div>
                           </div>
                         </div>
-                      );
-                    })}
+
+                        <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-2 dark:border-neutral-800">
+                          <span className="text-xs text-neutral-400">Subtotal:</span>
+                          <span className="text-sm font-bold text-brand-600 dark:text-brand-400">
+                            {formatCurrency(itemSubtotal)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* BOTTOM SETTLEMENT & NOTE OPTIONS */}
+                <div className="mt-6 rounded-2xl border border-neutral-200/80 bg-neutral-50/50 p-4 dark:border-neutral-800 dark:bg-neutral-950/30">
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                        Metode Kompensasi Retur:
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <label className={`flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 text-xs transition ${
+                          metodeKompensasi === 'potong_hutang'
+                            ? 'border-brand-500 bg-brand-50/70 font-bold text-brand-700 dark:border-brand-500 dark:bg-brand-950/40 dark:text-brand-300'
+                            : 'border-neutral-200 bg-white text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400'
+                        }`}>
+                          <input
+                            type="radio"
+                            name="kompensasi"
+                            value="potong_hutang"
+                            checked={metodeKompensasi === 'potong_hutang'}
+                            onChange={() => setMetodeKompensasi('potong_hutang')}
+                            className="text-brand-500 focus:ring-brand-400"
+                          />
+                          <span>Potong Hutang</span>
+                        </label>
+
+                        <label className={`flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 text-xs transition ${
+                          metodeKompensasi === 'refund_kas'
+                            ? 'border-brand-500 bg-brand-50/70 font-bold text-brand-700 dark:border-brand-500 dark:bg-brand-950/40 dark:text-brand-300'
+                            : 'border-neutral-200 bg-white text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400'
+                        }`}>
+                          <input
+                            type="radio"
+                            name="kompensasi"
+                            value="refund_kas"
+                            checked={metodeKompensasi === 'refund_kas'}
+                            onChange={() => setMetodeKompensasi('refund_kas')}
+                            className="text-brand-500 focus:ring-brand-400"
+                          />
+                          <span>Refund Kas/Tunai</span>
+                        </label>
+
+                        <label className={`flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 text-xs transition ${
+                          metodeKompensasi === 'tukar_barang'
+                            ? 'border-brand-500 bg-brand-50/70 font-bold text-brand-700 dark:border-brand-500 dark:bg-brand-950/40 dark:text-brand-300'
+                            : 'border-neutral-200 bg-white text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400'
+                        }`}>
+                          <input
+                            type="radio"
+                            name="kompensasi"
+                            value="tukar_barang"
+                            checked={metodeKompensasi === 'tukar_barang'}
+                            onChange={() => setMetodeKompensasi('tukar_barang')}
+                            className="text-brand-500 focus:ring-brand-400"
+                          />
+                          <span>Tukar Barang Baru</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                        Catatan Surat Jalan / Ekspedisi (Opsional):
+                      </label>
+                      <input
+                        type="text"
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        placeholder="Contoh: Dititipkan supir Bpk. Joko, box ke-2..."
+                        className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs transition focus:border-brand-500 focus:outline-none dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
+                      />
+                    </div>
                   </div>
                 </div>
-              )}
-              
-              {selectedItems.length > 0 && (
-                <div className="mt-5 lg:mt-6">
-                  <label className="mb-2 block text-xs font-semibold text-neutral-700 lg:text-sm dark:text-neutral-300">
-                    Catatan Retur (Opsional)
-                  </label>
-                  <textarea
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Tambahkan alasan retur..."
-                    className="focus:ring-brand-400 w-full resize-none rounded-xl border border-neutral-200 bg-white/80 px-4 py-3 text-sm transition-all placeholder:text-neutral-400 focus:border-transparent focus:ring-2 focus:outline-none focus:ring-inset dark:border-neutral-800 dark:bg-neutral-950/80"
-                    rows={2}
-                  />
-                </div>
-              )}
-
-            </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
-        {/* Floating Action Bar (Footer) */}
-        {selectedSupplier && selectedItems.length > 0 && (
-          <div className="pointer-events-none fixed right-0 bottom-4 left-0 z-40 px-4 lg:sticky lg:bottom-0 lg:px-0">
-            <div className="pointer-events-auto mx-auto max-w-[1920px]">
-              <div className="animate-fade-in-up rounded-3xl border border-white/40 bg-white/80 p-4 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl lg:rounded-t-3xl lg:rounded-b-none lg:p-5 dark:border-neutral-800 dark:bg-neutral-900/80 dark:shadow-[0_-8px_30px_rgba(0,0,0,0.3)]">
+        {/* BOTTOM ACTION BAR */}
+        {activeCartItems.length > 0 && (
+          <div className="fixed right-0 bottom-4 left-0 z-40 px-4 lg:sticky lg:bottom-0 lg:px-0">
+            <div className="mx-auto max-w-[1920px]">
+              <div className="animate-fade-in-up rounded-3xl border border-white/40 bg-white/85 p-4 shadow-lg backdrop-blur-xl lg:rounded-t-3xl lg:rounded-b-none dark:border-neutral-800 dark:bg-neutral-900/85">
                 <div className="flex items-center justify-between gap-4">
-                  <div className="flex min-w-0 flex-1 items-center gap-3 lg:gap-6">
-                    <div className="hidden flex-col lg:flex">
-                      <span className="text-xs font-medium text-neutral-500">Item Terpilih</span>
-                      <span className="text-lg font-bold text-neutral-900 dark:text-white">{selectedItems.length}</span>
+                  <div className="flex items-center gap-4 lg:gap-6">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 lg:text-xs">
+                        Item Terpilih
+                      </span>
+                      <p className="text-sm font-extrabold text-neutral-900 lg:text-lg dark:text-white">
+                        {activeCartItems.length} Produk ({totalReturnQty} pcs)
+                      </p>
                     </div>
-                    <div className="hidden h-10 w-px bg-neutral-200 lg:block dark:bg-neutral-800"></div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-medium tracking-wider text-neutral-500 uppercase lg:text-xs">Total Retur</span>
-                      <span className="from-brand-600 to-brand-400 bg-gradient-to-r bg-clip-text text-base font-extrabold text-transparent lg:text-2xl dark:from-brand-400 dark:to-brand-200">{formatCurrency(totalReturn)}</span>
+                    <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-800"></div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 lg:text-xs">
+                        Total Pengembalian
+                      </span>
+                      <p className="from-brand-600 to-brand-400 bg-gradient-to-r bg-clip-text text-base font-extrabold text-transparent lg:text-2xl dark:from-brand-400 dark:to-brand-200">
+                        {formatCurrency(totalReturnAmount)}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex shrink-0 gap-2">
-                    <Button variant="secondary" onClick={handleReset} disabled={submitting} className="flex h-12 items-center justify-center rounded-2xl border-transparent bg-neutral-100 px-4 text-neutral-600 hover:bg-neutral-200 lg:h-14 lg:rounded-xl lg:px-6 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700">
-                      <IconRefresh className="h-5 w-5 lg:mr-2" />
-                      <span className="hidden text-sm font-bold lg:inline lg:text-base">Reset</span>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowResetConfirm(true)}
+                      disabled={submitting}
+                      className="rounded-xl px-4 py-2 text-xs font-bold lg:text-sm"
+                    >
+                      <IconRefresh className="h-4 w-4 lg:mr-1.5" />
+                      <span className="hidden sm:inline">Reset</span>
                     </Button>
-                    <Button variant="primary" onClick={handleSubmit} disabled={submitting || totalReturn === 0} className="shadow-brand-500/20 group relative flex h-12 items-center justify-center overflow-hidden rounded-2xl px-4 shadow-lg lg:h-14 lg:rounded-xl lg:px-8">
-                      <span className="absolute inset-0 h-full w-full -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite]"></span>
-                      <IconDeviceFloppy className="h-5 w-5 lg:mr-2" />
-                      <span className="hidden text-sm font-bold lg:inline lg:text-base">{submitting ? 'Menyimpan...' : 'Simpan Retur'}</span>
+                    <Button
+                      variant="primary"
+                      onClick={handlePrepareSubmit}
+                      disabled={submitting || totalReturnAmount === 0}
+                      className="shadow-brand-500/20 rounded-xl px-5 py-2.5 text-xs font-bold shadow-lg lg:text-sm"
+                    >
+                      <IconDeviceFloppy className="h-4 w-4 lg:mr-1.5" />
+                      <span>{submitting ? 'Menyimpan...' : 'Simpan Retur'}</span>
                     </Button>
                   </div>
                 </div>
@@ -669,108 +1130,264 @@ export default function ReturnPage() {
           </div>
         )}
 
-        {/* Modal Pilih Supplier Multi */}
-        {supplierModalOpen && (
+        {/* MODAL MULTI-SUPPLIER PICKER */}
+        {supplierModalOpen && pendingScanItem && (
           <Portal>
             <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
               <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl dark:bg-neutral-900">
-                <h3 className="mb-2 text-lg font-bold text-neutral-900 dark:text-white">Pilih Supplier</h3>
-                <p className="mb-6 text-sm text-neutral-500">Barang ini dibeli dari beberapa supplier berbeda. Retur ke mana?</p>
-                <div className="space-y-3">
+                <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                  Pilih Supplier Sumber Barang
+                </h3>
+                <p className="mt-1 text-xs text-neutral-500">
+                  Barang <strong>"{pendingScanItem.nama_barang}"</strong> pernah dibeli dari beberapa supplier berbeda. Retur ke mana?
+                </p>
+
+                <div className="mt-4 space-y-2.5 max-h-72 overflow-y-auto">
                   {supplierOptions.map((sup) => (
                     <button
                       key={sup.supplier_id}
+                      type="button"
                       onClick={async () => {
                         setSupplierModalOpen(false);
-                        const s = suppliers.find(x => x.id === sup.supplier_id);
-                        if (s) {
-                          await handleSelectSupplierAndAutoAdd(s as any, scanQuery.trim());
-                          setScanQuery('');
+                        const matchedSup = suppliers.find((s) => s.id === sup.supplier_id);
+                        if (matchedSup) {
+                          setSelectedSupplier(matchedSup as any);
+                          const draft: Record<string, { qty: number; alasan: AlasanRetur }> = {
+                            [pendingScanItem.id]: { qty: 1, alasan: 'rusak' },
+                          };
+                          await loadSupplierItems(matchedSup.id, selectedGudangId, draft);
+                          setSuccess(`Supplier diset ke ${matchedSup.nama} dan barang ditambahkan.`);
+                          setPendingScanItem(null);
+                          searchRef.current?.clearInput();
                         }
                       }}
-                      className="flex w-full items-center justify-between rounded-xl border border-neutral-200 p-4 text-left transition-colors hover:border-brand-500 hover:bg-brand-50 dark:border-neutral-800 dark:hover:bg-neutral-800"
+                      className="flex w-full items-center justify-between rounded-xl border border-neutral-200 p-3.5 text-left transition hover:border-brand-500 hover:bg-brand-50/50 dark:border-neutral-800 dark:hover:bg-neutral-800"
                     >
                       <div>
-                         <p className="font-bold text-neutral-900 dark:text-white">{sup.supplier_nama}</p>
-                         <p className="text-xs text-neutral-500">Sisa Stok Retur: {sup.total_qty_remaining}</p>
+                        <p className="text-sm font-bold text-neutral-900 dark:text-white">
+                          {sup.supplier_nama}
+                        </p>
+                        <p className="text-xs text-neutral-500">
+                          Sisa Kuota Retur Faktur: <strong>{sup.total_qty_remaining} pcs</strong>
+                        </p>
                       </div>
-                      <IconPlus className="h-5 w-5 text-neutral-400" />
+                      <IconPlus className="h-5 w-5 text-brand-500" />
                     </button>
                   ))}
                 </div>
-                <Button variant="secondary" className="mt-6 w-full" onClick={() => setSupplierModalOpen(false)}>
-                  Batal
-                </Button>
+
+                <div className="mt-5">
+                  <Button
+                    variant="secondary"
+                    className="w-full text-xs font-semibold"
+                    onClick={() => {
+                      setSupplierModalOpen(false);
+                      setPendingScanItem(null);
+                    }}
+                  >
+                    Batal
+                  </Button>
+                </div>
               </div>
             </div>
           </Portal>
         )}
 
-        {/* Preview Modal omitted for brevity, keeping original rendering style */}
+        {/* MODAL RESET CONFIRMATION */}
+        {showResetConfirm && (
+          <Portal>
+            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+              <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl dark:bg-neutral-900">
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-danger-50 text-danger-600 dark:bg-danger-950/40">
+                  <IconAlertCircle className="h-6 w-6" />
+                </div>
+                <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                  Kosongkan Keranjang Retur?
+                </h3>
+                <p className="mt-1 text-xs text-neutral-500">
+                  Seluruh barang retur yang telah discan dan draft yang tersimpan akan dihapus.
+                </p>
+                <div className="mt-5 flex gap-2">
+                  <Button
+                    variant="secondary"
+                    className="flex-1 text-xs font-semibold"
+                    onClick={() => setShowResetConfirm(false)}
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    variant="danger"
+                    className="flex-1 text-xs font-bold"
+                    onClick={handleConfirmReset}
+                  >
+                    Ya, Kosongkan
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Portal>
+        )}
+
+        {/* MODAL PREVIEW & KONFIRMASI RETUR */}
         {showPreview && previewData && (
           <Portal>
-             <div className="animate-fade-in fixed inset-0 z-[100] flex items-end justify-center p-0 lg:items-center lg:p-4">
-              <div
-                className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-                onClick={() => setShowPreview(false)}
-              />
-              <div className="animate-slide-up lg:animate-zoom-in relative flex max-h-[90vh] w-full max-w-3xl transform flex-col rounded-t-3xl border border-white/20 bg-white shadow-2xl transition-transform lg:max-h-[85vh] lg:rounded-3xl dark:border-neutral-800 dark:bg-neutral-900">
-                <div className="flex flex-shrink-0 items-center justify-between rounded-t-3xl border-b border-neutral-100 bg-neutral-50/50 p-5 lg:p-6 dark:border-neutral-800 dark:bg-neutral-900/50">
+            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+              <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl dark:bg-neutral-900 flex flex-col max-h-[90vh]">
+                <div className="flex items-center justify-between border-b border-neutral-100 pb-4 dark:border-neutral-800">
                   <div>
-                    <h2 className="text-lg font-bold text-neutral-900 lg:text-xl dark:text-white">
-                      Konfirmasi Retur
+                    <h2 className="text-lg font-bold text-neutral-900 dark:text-white">
+                      Konfirmasi Retur Pembelian
                     </h2>
-                    <p className="mt-0.5 text-xs text-neutral-500 lg:text-sm">
-                      Periksa kembali detail retur sebelum menyimpan
+                    <p className="text-xs text-neutral-500">
+                      Periksa kembali barang yang akan dikembalikan ke supplier
                     </p>
                   </div>
-                  <button onClick={() => setShowPreview(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-200/50 text-neutral-600 transition-colors hover:bg-neutral-300 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700">
+                  <button
+                    onClick={() => setShowPreview(false)}
+                    className="rounded-lg p-1.5 text-neutral-400 hover:text-neutral-600"
+                  >
                     <IconX className="h-5 w-5" />
                   </button>
                 </div>
-                <div className="custom-scrollbar flex-1 overflow-auto p-5 lg:p-6">
-                  <div className="bg-brand-50/50 border-brand-100 mb-6 grid grid-cols-2 gap-4 rounded-2xl border p-4 dark:bg-brand-900/10 dark:border-brand-900/30">
+
+                <div className="flex-1 overflow-y-auto py-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-3 rounded-2xl border border-brand-100 bg-brand-50/50 p-3.5 text-xs dark:border-brand-900/30 dark:bg-brand-950/20">
                     <div>
-                      <p className="mb-1 text-[10px] font-semibold uppercase text-neutral-500 lg:text-xs">Supplier</p>
-                      <p className="text-sm font-bold text-neutral-900 lg:text-base dark:text-white">{previewData.supplier_nama}</p>
+                      <span className="text-neutral-400">Supplier Tujuan:</span>
+                      <p className="font-bold text-neutral-900 dark:text-white">{previewData.supplierNama}</p>
                     </div>
                     <div>
-                      <p className="mb-1 text-[10px] font-semibold uppercase text-neutral-500 lg:text-xs">Tanggal</p>
-                      <p className="text-sm font-bold text-neutral-900 lg:text-base dark:text-white">{previewData.tanggal}</p>
+                      <span className="text-neutral-400">Penyelesaian:</span>
+                      <p className="font-bold text-brand-600 dark:text-brand-400">
+                        {previewData.metodeKompensasi === 'potong_hutang'
+                          ? 'Potong Hutang'
+                          : previewData.metodeKompensasi === 'refund_kas'
+                          ? 'Refund Kas/Tunai'
+                          : 'Tukar Barang Baru'}
+                      </p>
                     </div>
                   </div>
-                  <h3 className="mb-3 px-1 text-sm font-bold text-neutral-800 dark:text-neutral-200">Daftar Barang ({previewData.items.length})</h3>
-                  <div className="space-y-3">
-                    {previewData.items.map((item: any, idx: number) => (
-                      <div key={idx} className="flex flex-col justify-between gap-3 rounded-xl border border-neutral-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center lg:p-4 dark:border-neutral-800 dark:bg-neutral-900">
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-bold text-neutral-900 dark:text-white">{item.nama_barang}</p>
-                          <div className="mt-1 flex items-center gap-2">
-                            <span className="rounded border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 font-mono text-[10px] text-neutral-500 dark:border-neutral-700 dark:bg-neutral-800">{item.nomor_nota}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between gap-6 border-t border-neutral-100 pt-3 sm:w-1/3 sm:justify-end sm:border-t-0 sm:pt-0 dark:border-neutral-800">
-                          <div className="text-center">
-                            <span className="inline-flex items-center justify-center rounded-md bg-neutral-100 px-2.5 py-1 text-xs font-bold text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">{item.return_qty}x</span>
+
+                  <div>
+                    <h4 className="text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-2">
+                      Daftar Barang ({previewData.items.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {previewData.items.map((item: AggregatedReturnItem) => (
+                        <div
+                          key={item.inventory_id}
+                          className="flex items-center justify-between rounded-xl border border-neutral-200 p-3 text-xs dark:border-neutral-800"
+                        >
+                          <div>
+                            <p className="font-bold text-neutral-900 dark:text-white">{item.nama_barang}</p>
+                            <span className="text-[11px] text-neutral-400">Alasan: {item.alasan}</span>
                           </div>
                           <div className="text-right">
-                            <span className="text-sm font-bold text-brand-600 dark:text-brand-400">{formatCurrency(item.harga_final)}</span>
+                            <span className="font-bold text-neutral-900 dark:text-white">
+                              {item.return_qty} pcs
+                            </span>
+                            <p className="font-semibold text-brand-600 dark:text-brand-400">
+                              {formatCurrency(
+                                item.batches.reduce((sub, b) => sub + b.allocated_qty * (b.harga_beli - b.diskon), 0)
+                              )}
+                            </p>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center border-t border-neutral-100 pt-3 dark:border-neutral-800">
+                    <span className="text-xs font-semibold text-neutral-500">Total Nilai Retur:</span>
+                    <span className="text-lg font-extrabold text-neutral-900 dark:text-white">
+                      {formatCurrency(previewData.totalAmount)}
+                    </span>
                   </div>
                 </div>
-                <div className="flex-shrink-0 rounded-b-3xl border-t border-neutral-100 bg-neutral-50/80 p-5 backdrop-blur-md lg:p-6 dark:border-neutral-800 dark:bg-neutral-950/80">
-                  <div className="mb-5 flex items-center justify-between px-1 lg:mb-6">
-                    <span className="text-sm font-semibold text-neutral-600 lg:text-base dark:text-neutral-400">Total Pengembalian</span>
-                    <span className="text-xl font-extrabold tracking-tight text-neutral-900 lg:text-3xl dark:text-white">{formatCurrency(previewData.total)}</span>
+
+                <div className="flex gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+                  <Button
+                    variant="secondary"
+                    className="flex-1 text-xs font-semibold"
+                    onClick={() => setShowPreview(false)}
+                    disabled={submitting}
+                  >
+                    Periksa Kembali
+                  </Button>
+                  <Button
+                    variant="primary"
+                    className="flex-1 text-xs font-bold"
+                    onClick={handleConfirmSubmit}
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Menyimpan...' : 'Konfirmasi & Simpan'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Portal>
+        )}
+
+        {/* MODAL SUKSES TRANSAKSI RETUR */}
+        {successModalData && (
+          <Portal>
+            <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+              <div className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl dark:bg-neutral-900">
+                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-success-50 text-success-600 dark:bg-success-950/40">
+                  <IconCheck className="h-8 w-8" />
+                </div>
+                <h3 className="text-lg font-extrabold text-neutral-900 dark:text-white">
+                  Retur Berhasil Disimpan!
+                </h3>
+                <p className="mt-1 text-xs text-neutral-500">
+                  Dokumen retur ke <strong>{successModalData.supplierNama}</strong> telah berhasil dicatat.
+                </p>
+
+                <div className="my-4 rounded-2xl border border-neutral-200 bg-neutral-50/70 p-3.5 text-left text-xs dark:border-neutral-800 dark:bg-neutral-950/40">
+                  <div className="flex justify-between mb-1.5">
+                    <span className="text-neutral-400">No. Bukti Retur:</span>
+                    <span className="font-mono font-bold text-neutral-800 dark:text-neutral-200">
+                      {successModalData.returnId.slice(0, 8).toUpperCase()}
+                    </span>
                   </div>
-                  <div className="flex gap-3">
-                    <Button variant="secondary" onClick={() => setShowPreview(false)} className="h-12 flex-1 rounded-xl text-sm font-semibold lg:h-14 lg:flex-none">Batal</Button>
-                    <Button onClick={handleConfirmSubmit} disabled={submitting} variant="primary" className="shadow-brand-500/25 group relative h-12 flex-1 overflow-hidden rounded-xl text-sm font-bold shadow-lg lg:h-14">
-                      <IconCheck className="mr-2 h-5 w-5" />
-                      {submitting ? 'Menyimpan...' : 'Konfirmasi & Simpan'}
+                  <div className="flex justify-between mb-1.5">
+                    <span className="text-neutral-400">Total Produk:</span>
+                    <span className="font-bold text-neutral-800 dark:text-neutral-200">
+                      {successModalData.itemCount} pcs
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-400">Total Nominal:</span>
+                    <span className="font-extrabold text-brand-600 dark:text-brand-400">
+                      {formatCurrency(successModalData.total)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Button
+                    variant="primary"
+                    className="w-full text-xs font-bold shadow-lg"
+                    onClick={() => handleExportPdf(successModalData.returnId)}
+                  >
+                    <IconFileExport className="mr-1.5 h-4 w-4" />
+                    Cetak / Bagikan Surat Retur (PDF)
+                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      className="flex-1 text-xs font-semibold"
+                      onClick={() => setSuccessModalData(null)}
+                    >
+                      Buat Retur Baru
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="flex-1 text-xs font-semibold"
+                      onClick={() => router.push('/transactions/history?tab=retur_pembelian')}
+                    >
+                      Lihat Riwayat
+                      <IconExternalLink className="ml-1 h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
@@ -778,6 +1395,7 @@ export default function ReturnPage() {
             </div>
           </Portal>
         )}
+
       </div>
     </AmbientLayout>
   );

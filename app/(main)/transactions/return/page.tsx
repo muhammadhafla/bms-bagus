@@ -1139,7 +1139,7 @@ export default function ReturnPage() {
                   Pilih Supplier Sumber Barang
                 </h3>
                 <p className="mt-1 text-xs text-neutral-500">
-                  Barang <strong>"{pendingScanItem.nama_barang}"</strong> pernah dibeli dari beberapa supplier berbeda. Retur ke mana?
+                  Barang <strong>&quot;{pendingScanItem.nama_barang}&quot;</strong> pernah dibeli dari beberapa supplier berbeda. Retur ke mana?
                 </p>
 
                 <div className="mt-4 space-y-2.5 max-h-72 overflow-y-auto">

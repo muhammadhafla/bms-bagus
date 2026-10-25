@@ -728,7 +728,7 @@ export default function ReturnPage() {
             ) : (
               <div className="space-y-4">
                 {/* DESKTOP TABLE */}
-                <div className="hidden rounded-2xl border border-neutral-200/70 bg-white/40 lg:block dark:border-neutral-800/70 dark:bg-neutral-950/40 overflow-hidden">
+                <div className="hidden rounded-2xl border border-neutral-200/70 bg-white/40 lg:block dark:border-neutral-800/70 dark:bg-neutral-950/40">
                   <table className="w-full text-left">
                     <thead className="border-b border-neutral-200 bg-neutral-50/80 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900/80 dark:text-neutral-400">
                       <tr>

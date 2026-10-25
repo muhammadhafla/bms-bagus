@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { useQuery } from '@tanstack/react-query';
 import { returnApi } from '@/lib/api/return';
 import { Button } from '@/components/ui/Button';
-import { IconCopy } from '@tabler/icons-react';
+import { IconCopy, IconFileExport } from '@tabler/icons-react';
 import { formatCurrency, formatDateTimeWIB } from '@/lib/utils';
+import { downloadOrShareFile } from '@/lib/utils/file-share';
 
 interface ReturnTransactionModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export function ReturnTransactionModal({
   transactionType,
   isBottomSheet = true,
 }: ReturnTransactionModalProps) {
+  const [downloading, setDownloading] = useState(false);
   const { data, isLoading, error } = useQuery({
     queryKey: ['returnDetail', transactionType, transactionId],
     queryFn: async () => {
@@ -141,10 +143,32 @@ export function ReturnTransactionModal({
               </p>
             </div>
 
-            <div className="pt-6">
-              <Button onClick={onClose} variant="secondary" fullWidth>
+            <div className="flex gap-2 pt-6">
+              <Button onClick={onClose} variant="secondary" className="flex-1">
                 Tutup
               </Button>
+              {transactionType === 'pembelian_return' && data?.id && (
+                <Button
+                  onClick={async () => {
+                    setDownloading(true);
+                    try {
+                      await downloadOrShareFile(
+                        `/api/export/inventory/return/${data.id}`,
+                        `Surat_Retur_${data.id.slice(0, 8)}.pdf`,
+                        'Surat Retur Barang'
+                      );
+                    } finally {
+                      setDownloading(false);
+                    }
+                  }}
+                  variant="primary"
+                  disabled={downloading}
+                  className="flex-1 flex items-center justify-center gap-1.5 font-bold"
+                >
+                  <IconFileExport className="h-4 w-4" />
+                  {downloading ? 'Menyiapkan...' : 'Cetak Surat Retur (PDF)'}
+                </Button>
+              )}
             </div>
           </>
         ) : null}

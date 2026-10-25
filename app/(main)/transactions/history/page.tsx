@@ -72,7 +72,7 @@ function TransactionsHistoryContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const historyType = (searchParams.get('type') as HistoryType) || 'penjualan';
+  const historyType = ((searchParams.get('type') || searchParams.get('tab') || 'penjualan') as HistoryType);
   const queryClient = useQueryClient();
 
   const setHistoryType = (type: string) => {

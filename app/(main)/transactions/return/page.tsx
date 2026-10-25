@@ -1460,7 +1460,7 @@ export default function ReturnPage() {
                     <Button
                       variant="ghost"
                       className="flex-1 text-xs font-semibold"
-                      onClick={() => router.push('/transactions/history?tab=retur_pembelian')}
+                      onClick={() => router.push('/transactions/history?type=retur_pembelian')}
                     >
                       Lihat Riwayat
                       <IconExternalLink className="ml-1 h-3.5 w-3.5" />

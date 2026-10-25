@@ -42,7 +42,7 @@ export function PurchaseHistoryModal({
     enabled: !!inventoryId && isOpen,
   });
 
-  const historyData = data?.data?.data || [];
+  const historyData = useMemo(() => data?.data?.data || [], [data?.data?.data]);
   const totalPages = data?.data?.totalPages || 1;
 
   const formatDate = (dateString: string) => {

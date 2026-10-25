@@ -82,6 +82,8 @@ export default function ReturnPage() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const [successModalData, setSuccessModalData] = useState<{
     returnId: string;
     total: number;
@@ -537,14 +539,18 @@ export default function ReturnPage() {
 
   // 15. Export / Print PDF Paperless
   const handleExportPdf = useCallback(async (returnId: string) => {
+    setExportingPdf(true);
+    setPdfError(null);
     try {
       await downloadOrShareFile(
         `/api/export/inventory/return/${returnId}`,
         `Surat_Retur_${returnId.slice(0, 8)}.pdf`,
         'Surat Retur Barang'
       );
-    } catch (err) {
-      setError('Gagal mengunduh Surat Retur PDF');
+    } catch (err: any) {
+      setPdfError(err?.message || 'Gagal mengunduh Surat Retur PDF');
+    } finally {
+      setExportingPdf(false);
     }
   }, []);
 
@@ -1427,13 +1433,21 @@ export default function ReturnPage() {
                 </div>
 
                 <div className="space-y-2">
+                  {pdfError && (
+                    <div className="mb-2 flex items-center gap-2 rounded-xl border border-danger-200 bg-danger-50 p-2.5 text-xs font-semibold text-danger-700 dark:border-danger-900/50 dark:bg-danger-950/40 dark:text-danger-400 text-left">
+                      <IconAlertCircle className="h-4 w-4 shrink-0" />
+                      <span>{pdfError}</span>
+                    </div>
+                  )}
+
                   <Button
                     variant="primary"
                     className="w-full text-xs font-bold shadow-lg"
                     onClick={() => handleExportPdf(successModalData.returnId)}
+                    disabled={exportingPdf}
                   >
                     <IconFileExport className="mr-1.5 h-4 w-4" />
-                    Cetak / Bagikan Surat Retur (PDF)
+                    {exportingPdf ? 'Menyiapkan PDF...' : 'Cetak / Bagikan Surat Retur (PDF)'}
                   </Button>
                   <div className="flex gap-2">
                     <Button

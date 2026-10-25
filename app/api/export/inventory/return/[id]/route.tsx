@@ -147,7 +147,7 @@ export async function GET(request: Request, context: any) {
 
     const { data, error } = await supabase
       .from('pembelian_return')
-      .select('*, items:pembelian_return_items(*, inventory:inventory(nama_barang))')
+      .select('*, items:pembelian_return_items(*)')
       .eq('id', id)
       .single();
 
@@ -156,24 +156,58 @@ export async function GET(request: Request, context: any) {
       return new NextResponse('Data tidak ditemukan', { status: 404 });
     }
 
-    // Calculate total from items
-    const total = data.items?.reduce((sum: number, item: any) => sum + (item.harga_final * item.qty), 0) || 0;
+    // Fetch related pembelian invoice info if items exist
+    const pembelianItemIds = (data.items || [])
+      .map((it: any) => it.pembelian_item_id)
+      .filter(Boolean);
+
+    const invoiceMap: Record<string, { nomor_nota: string; tanggal: string }> = {};
+
+    if (pembelianItemIds.length > 0) {
+      const { data: pItems } = await supabase
+        .from('pembelian_items')
+        .select('id, pembelian:pembelian(nomor_nota, tanggal)')
+        .in('id', pembelianItemIds);
+
+      if (pItems) {
+        pItems.forEach((pi: any) => {
+          const pemb = Array.isArray(pi.pembelian) ? pi.pembelian[0] : pi.pembelian;
+          if (pemb) {
+            invoiceMap[pi.id] = {
+              nomor_nota: pemb.nomor_nota || '-',
+              tanggal: pemb.tanggal || '-',
+            };
+          }
+        });
+      }
+    }
+
+    // Calculate total from items (harga_final is already subtotal: qty * (harga_beli - diskon))
+    const total =
+      data.items?.reduce(
+        (sum: number, item: any) => sum + (Number(item.harga_final) || 0),
+        0
+      ) || 0;
 
     const returnData = {
       id: data.id,
       tanggal: new Date(data.tanggal).toLocaleDateString('id-ID'),
       supplier_nama: data.supplier_nama || '-',
       note: data.note,
-      items: data.items?.map((item:any) => ({
-        nama_barang: item.inventory?.nama_barang || item.nama_barang,
-        nomor_nota: item.pembelian_id || '-',
-        tanggal_pembelian: '-',
-        qty: item.qty,
-        harga_beli: item.harga_beli,
-        diskon: item.diskon,
-        harga_final: item.harga_final
-      })) || [],
-      total: total
+      items:
+        data.items?.map((item: any) => {
+          const invInfo = invoiceMap[item.pembelian_item_id];
+          return {
+            nama_barang: item.nama_barang || '-',
+            nomor_nota: invInfo?.nomor_nota || '-',
+            tanggal_pembelian: invInfo?.tanggal || '-',
+            qty: item.qty,
+            harga_beli: Number(item.harga_beli) || 0,
+            diskon: Number(item.diskon) || 0,
+            harga_final: Number(item.harga_final) || 0,
+          };
+        }) || [],
+      total: total,
     };
 
     const stream = await renderToStream(<ReturnPDF data={returnData} />);

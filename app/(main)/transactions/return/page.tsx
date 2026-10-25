@@ -290,7 +290,6 @@ export default function ReturnPage() {
           return_qty: newQty,
           batches: allocatedBatches,
         };
-        setSuccess(`"${current.nama_barang}" ditambahkan ke keranjang retur (${newQty} pcs).`);
         return updated;
       });
     },
@@ -332,7 +331,6 @@ export default function ReturnPage() {
               [item.id]: { qty: 1, alasan: 'rusak' },
             };
             await loadSupplierItems(matchedSup.id, selectedGudangId, draft);
-            setSuccess(`Supplier otomatis di-set ke ${matchedSup.nama} dan barang ditambahkan.`);
             searchRef.current?.clearInput();
           }
         } else {
@@ -621,17 +619,6 @@ export default function ReturnPage() {
               </button>
             </div>
           )}
-          {success && (
-            <div className="mt-3 flex items-center justify-between rounded-xl border border-success-200 bg-success-50 p-3 text-xs sm:text-sm text-success-700 shadow-sm dark:border-success-800/60 dark:bg-success-950/40 dark:text-success-300">
-              <div className="flex items-center gap-2">
-                <IconCheck className="h-5 w-5 shrink-0 text-success-500" />
-                <span className="font-medium">{success}</span>
-              </div>
-              <button onClick={() => setSuccess(null)} className="text-success-400 hover:text-success-600">
-                <IconX className="h-4 w-4" />
-              </button>
-            </div>
-          )}
 
           {/* SEARCH BAR & SCANNER (SHARED BARCODE SEARCH) */}
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -676,7 +663,7 @@ export default function ReturnPage() {
 
         {/* MAIN CART SECTION */}
         <div className="shadow-elevated animate-fade-in-up flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-white/40 bg-white/70 backdrop-blur-xl dark:border-white/10 dark:bg-neutral-900/60">
-          <div className="flex-1 overflow-auto p-4 lg:p-6">
+          <div className="flex-1 overflow-auto p-4 lg:p-6 pb-48">
             
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -735,7 +722,7 @@ export default function ReturnPage() {
                         <th className="px-5 py-3.5">Produk & Barcode</th>
                         <th className="px-4 py-3.5 text-center">Stok Fisik / Sisa Beli</th>
                         <th className="px-4 py-3.5 text-right">Harga Satuan</th>
-                        <th className="w-44 px-4 py-3.5">Alasan Retur</th>
+                        <th className="w-52 px-4 py-3.5">Alasan Retur</th>
                         <th className="w-28 px-3 py-3.5 text-center">Qty Retur</th>
                         <th className="px-5 py-3.5 text-right">Subtotal</th>
                         <th className="w-16 px-4 py-3.5 text-center">Aksi</th>
@@ -799,22 +786,21 @@ export default function ReturnPage() {
                                 {formatCurrency(item.harga_beli_satuan)}
                               </td>
 
-                              <td className="px-4 py-4">
-                                <div className="relative min-w-[155px]">
-                                  <select
+                              <td className="px-4 py-3">
+                                <div className="w-48">
+                                  <SelectInput
                                     value={item.alasan}
-                                    onChange={(e) => handleAlasanChange(item.inventory_id, e.target.value as AlasanRetur)}
-                                    className="w-full appearance-none rounded-xl border border-neutral-200 bg-white py-2 pl-3 pr-8 text-xs font-semibold text-neutral-800 shadow-sm transition hover:border-brand-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 cursor-pointer"
-                                  >
-                                    <option value="rusak">Rusak / Cacat</option>
-                                    <option value="expired">Expired</option>
-                                    <option value="salah_kirim">Salah Kirim</option>
-                                    <option value="konsinyasi">Tidak Laku</option>
-                                    <option value="lainnya">Lainnya</option>
-                                  </select>
-                                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-neutral-400">
-                                    <IconChevronDown className="h-4 w-4" />
-                                  </div>
+                                    onChange={(val) => handleAlasanChange(item.inventory_id, val as AlasanRetur)}
+                                    options={[
+                                      { value: 'rusak', label: 'Rusak / Cacat' },
+                                      { value: 'expired', label: 'Expired' },
+                                      { value: 'salah_kirim', label: 'Salah Kirim' },
+                                      { value: 'konsinyasi', label: 'Tidak Laku' },
+                                      { value: 'lainnya', label: 'Lainnya' },
+                                    ]}
+                                    inputSize="sm"
+                                    required
+                                  />
                                 </div>
                               </td>
 
@@ -948,21 +934,20 @@ export default function ReturnPage() {
                         <div className="mt-3 grid grid-cols-2 gap-2">
                           <div>
                             <label className="text-[10px] font-semibold text-neutral-500">Alasan</label>
-                            <div className="relative mt-0.5">
-                              <select
+                            <div className="mt-0.5">
+                              <SelectInput
                                 value={item.alasan}
-                                onChange={(e) => handleAlasanChange(item.inventory_id, e.target.value as AlasanRetur)}
-                                className="h-9 w-full appearance-none rounded-xl border border-neutral-200 bg-white py-1.5 pl-2.5 pr-7 text-xs font-semibold text-neutral-800 shadow-sm transition hover:border-brand-400 focus:border-brand-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 cursor-pointer"
-                              >
-                                <option value="rusak">Rusak / Cacat</option>
-                                <option value="expired">Expired</option>
-                                <option value="salah_kirim">Salah Kirim</option>
-                                <option value="konsinyasi">Tidak Laku</option>
-                                <option value="lainnya">Lainnya</option>
-                              </select>
-                              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-neutral-400">
-                                <IconChevronDown className="h-3.5 w-3.5" />
-                              </div>
+                                onChange={(val) => handleAlasanChange(item.inventory_id, val as AlasanRetur)}
+                                options={[
+                                  { value: 'rusak', label: 'Rusak / Cacat' },
+                                  { value: 'expired', label: 'Expired' },
+                                  { value: 'salah_kirim', label: 'Salah Kirim' },
+                                  { value: 'konsinyasi', label: 'Tidak Laku' },
+                                  { value: 'lainnya', label: 'Lainnya' },
+                                ]}
+                                inputSize="sm"
+                                required
+                              />
                             </div>
                           </div>
                           <div>

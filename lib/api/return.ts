@@ -50,6 +50,16 @@ export interface BatchAllocationItem {
   allocated_qty: number;
 }
 
+export interface SupplierReturnOption {
+  supplier_id: string;
+  supplier_nama: string;
+  total_qty_remaining: number;
+  tanggal_terakhir?: string;
+  nomor_nota?: string;
+  harga_beli?: number;
+  diskon?: number;
+}
+
 export type AlasanRetur = 'rusak' | 'expired' | 'salah_kirim' | 'konsinyasi' | 'lainnya';
 export type MetodeKompensasi = 'potong_hutang' | 'refund_kas' | 'tukar_barang';
 
@@ -278,13 +288,88 @@ export const returnApi = {
     });
   },
 
-  async findSuppliersByBarcode(barcode: string) {
-    return safeQuery<{ supplier_id: string; supplier_nama: string; total_qty_remaining: number }[]>(
+  async findSuppliersByBarcode(barcode: string, inventoryId?: string) {
+    return safeQuery<SupplierReturnOption[]>(
       async () => {
         const result = await supabase.rpc('find_suppliers_for_return_by_barcode', {
           p_barcode: barcode,
         });
-        return { data: result.data, error: result.error as Error | null };
+        if (result.error || !result.data) {
+          return { data: null, error: result.error as Error | null };
+        }
+
+        const sups = result.data as SupplierReturnOption[];
+        if (sups.length === 0) return { data: [], error: null };
+
+        // Cari riwayat pembelian item ini untuk masing-masing supplier
+        let resolvedInvId = inventoryId;
+        if (!resolvedInvId) {
+          const { data: inv } = await supabase
+            .from('inventory')
+            .select('id')
+            .eq('barcode', barcode)
+            .maybeSingle();
+          if (inv?.id) {
+            resolvedInvId = inv.id;
+          }
+        }
+
+        let purchaseQuery = supabase
+          .from('pembelian_items')
+          .select(`
+            harga_beli,
+            diskon,
+            pembelian:pembelian!inner (
+              supplier_id,
+              tanggal,
+              nomor_nota
+            )
+          `);
+
+        if (resolvedInvId) {
+          purchaseQuery = purchaseQuery.eq('inventory_id', resolvedInvId);
+        }
+
+        const { data: recentPurchases } = await purchaseQuery;
+
+        const enriched: SupplierReturnOption[] = sups.map((sup) => {
+          const matchingPurchases = ((recentPurchases || []) as any[])
+            .map((p) => {
+              const pemb = Array.isArray(p.pembelian) ? p.pembelian[0] : p.pembelian;
+              return {
+                harga_beli: p.harga_beli,
+                diskon: p.diskon,
+                supplier_id: pemb?.supplier_id,
+                tanggal: pemb?.tanggal,
+                nomor_nota: pemb?.nomor_nota,
+              };
+            })
+            .filter((p) => p.supplier_id === sup.supplier_id)
+            .sort((a, b) => {
+              const dateA = new Date(a.tanggal || 0).getTime();
+              const dateB = new Date(b.tanggal || 0).getTime();
+              return dateB - dateA;
+            });
+
+          const latest = matchingPurchases[0];
+
+          return {
+            ...sup,
+            tanggal_terakhir: latest?.tanggal || undefined,
+            nomor_nota: latest?.nomor_nota || undefined,
+            harga_beli: latest?.harga_beli ?? undefined,
+            diskon: latest?.diskon ?? 0,
+          };
+        });
+
+        // Urutkan supplier: yang paling baru transaksinya berada di urutan pertama
+        enriched.sort((a, b) => {
+          const timeA = a.tanggal_terakhir ? new Date(a.tanggal_terakhir).getTime() : 0;
+          const timeB = b.tanggal_terakhir ? new Date(b.tanggal_terakhir).getTime() : 0;
+          return timeB - timeA;
+        });
+
+        return { data: enriched, error: null };
       }
     );
   },

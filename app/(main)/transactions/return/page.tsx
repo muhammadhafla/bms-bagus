@@ -8,11 +8,12 @@ import {
   AvailableReturnItem,
   AggregatedReturnItem,
   BatchAllocationItem,
+  SupplierReturnOption,
   AlasanRetur,
   MetodeKompensasi,
   calculateAutoFifoBatches,
 } from '@/lib/api/return';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDateWIB } from '@/lib/utils';
 import {
   IconArrowBack,
   IconSearch,
@@ -76,9 +77,7 @@ export default function ReturnPage() {
   // UI Interactive Modals
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [supplierModalOpen, setSupplierModalOpen] = useState(false);
-  const [supplierOptions, setSupplierOptions] = useState<
-    { supplier_id: string; supplier_nama: string; total_qty_remaining: number }[]
-  >([]);
+  const [supplierOptions, setSupplierOptions] = useState<SupplierReturnOption[]>([]);
   const [pendingScanItem, setPendingScanItem] = useState<InventoryItem | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -318,7 +317,7 @@ export default function ReturnPage() {
 
       // Skenario B: Supplier belum dipilih (Smart Scan-First)
       try {
-        const res = await returnApi.findSuppliersByBarcode(item.barcode || item.nama_barang);
+        const res = await returnApi.findSuppliersByBarcode(item.barcode || item.nama_barang, item.id);
         if (res.error) throw res.error;
 
         const sups = res.data || [];
@@ -1134,51 +1133,113 @@ export default function ReturnPage() {
         {supplierModalOpen && pendingScanItem && (
           <Portal>
             <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-              <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl dark:bg-neutral-900">
-                <h3 className="text-base font-bold text-neutral-900 dark:text-white">
-                  Pilih Supplier Sumber Barang
-                </h3>
-                <p className="mt-1 text-xs text-neutral-500">
-                  Barang <strong>&quot;{pendingScanItem.nama_barang}&quot;</strong> pernah dibeli dari beberapa supplier berbeda. Retur ke mana?
-                </p>
+              <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl dark:bg-neutral-900">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                      Pilih Supplier Sumber Barang
+                    </h3>
+                    <p className="mt-1 text-xs text-neutral-500">
+                      Barang <strong>&quot;{pendingScanItem.nama_barang}&quot;</strong> tercatat pernah dibeli dari beberapa supplier berbeda:
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSupplierModalOpen(false);
+                      setPendingScanItem(null);
+                    }}
+                    className="p-1 text-neutral-400 hover:text-neutral-600 rounded-lg"
+                  >
+                    <IconX className="h-5 w-5" />
+                  </button>
+                </div>
 
-                <div className="mt-4 space-y-2.5 max-h-72 overflow-y-auto">
-                  {supplierOptions.map((sup) => (
-                    <button
-                      key={sup.supplier_id}
-                      type="button"
-                      onClick={async () => {
-                        setSupplierModalOpen(false);
-                        const matchedSup = suppliers.find((s) => s.id === sup.supplier_id);
-                        if (matchedSup) {
-                          setSelectedSupplier(matchedSup as any);
-                          const draft: Record<string, { qty: number; alasan: AlasanRetur }> = {
-                            [pendingScanItem.id]: { qty: 1, alasan: 'rusak' },
-                          };
-                          await loadSupplierItems(matchedSup.id, selectedGudangId, draft);
-                          setSuccess(`Supplier diset ke ${matchedSup.nama} dan barang ditambahkan.`);
-                          setPendingScanItem(null);
-                          searchRef.current?.clearInput();
-                        }
-                      }}
-                      className="flex w-full items-center justify-between rounded-xl border border-neutral-200 p-3.5 text-left transition hover:border-brand-500 hover:bg-brand-50/50 dark:border-neutral-800 dark:hover:bg-neutral-800"
-                    >
-                      <div>
-                        <p className="text-sm font-bold text-neutral-900 dark:text-white">
-                          {sup.supplier_nama}
-                        </p>
-                        <p className="text-xs text-neutral-500">
-                          Sisa Kuota Retur Faktur: <strong>{sup.total_qty_remaining} pcs</strong>
-                        </p>
+                <div className="mt-4 space-y-3 max-h-80 overflow-y-auto pr-1">
+                  {supplierOptions.map((sup, idx) => {
+                    const isLatest = idx === 0 && !!sup.tanggal_terakhir;
+                    const hargaBersih = (sup.harga_beli ?? 0) - (sup.diskon ?? 0);
+
+                    return (
+                      <div
+                        key={sup.supplier_id}
+                        className={`rounded-2xl border p-4 transition-all ${
+                          isLatest
+                            ? 'border-brand-300 bg-brand-50/40 shadow-sm dark:border-brand-800 dark:bg-brand-950/20'
+                            : 'border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-sm text-neutral-900 dark:text-white">
+                              {sup.supplier_nama}
+                            </span>
+                            {isLatest && (
+                              <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-bold text-brand-700 dark:bg-brand-900/60 dark:text-brand-300">
+                                Rekomendasi (Terakhir)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs border-t border-neutral-100 dark:border-neutral-800/60 pt-2.5 text-neutral-600 dark:text-neutral-400">
+                          <div>
+                            <span className="text-[10px] font-medium text-neutral-400 block">Beli Terakhir</span>
+                            <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+                              {sup.tanggal_terakhir ? formatDateWIB(sup.tanggal_terakhir) : '-'}
+                            </span>
+                            {sup.nomor_nota && (
+                              <span className="text-[10px] text-neutral-400 block font-mono">
+                                #{sup.nomor_nota}
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-medium text-neutral-400 block">Harga Beli</span>
+                            <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+                              {sup.harga_beli !== undefined ? formatCurrency(hargaBersih) : '-'}
+                            </span>
+                          </div>
+                          <div className="col-span-2 sm:col-span-1">
+                            <span className="text-[10px] font-medium text-neutral-400 block">Sisa Kuota Retur</span>
+                            <span className="font-bold text-brand-600 dark:text-brand-400">
+                              {sup.total_qty_remaining} pcs
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 pt-2.5 border-t border-neutral-100 dark:border-neutral-800/60 flex justify-end">
+                          <Button
+                            variant={isLatest ? 'primary' : 'secondary'}
+                            size="sm"
+                            className="text-xs font-bold rounded-xl"
+                            onClick={async () => {
+                              setSupplierModalOpen(false);
+                              const matchedSup = suppliers.find((s) => s.id === sup.supplier_id);
+                              if (matchedSup) {
+                                setSelectedSupplier(matchedSup as any);
+                                const draft: Record<string, { qty: number; alasan: AlasanRetur }> = {
+                                  [pendingScanItem.id]: { qty: 1, alasan: 'rusak' },
+                                };
+                                await loadSupplierItems(matchedSup.id, selectedGudangId, draft);
+                                setSuccess(`Supplier diset ke ${matchedSup.nama} dan barang ditambahkan.`);
+                                setPendingScanItem(null);
+                                searchRef.current?.clearInput();
+                              }
+                            }}
+                          >
+                            <IconPlus className="h-3.5 w-3.5 mr-1" />
+                            Pilih Supplier Ini
+                          </Button>
+                        </div>
                       </div>
-                      <IconPlus className="h-5 w-5 text-brand-500" />
-                    </button>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="mt-5">
                   <Button
-                    variant="secondary"
+                    variant="ghost"
                     className="w-full text-xs font-semibold"
                     onClick={() => {
                       setSupplierModalOpen(false);

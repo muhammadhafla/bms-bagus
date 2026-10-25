@@ -356,12 +356,18 @@ export const transferStokApi = {
           received_by_profile:received_by ( id, nama ),
           items:transfer_stok_items (
             id,
+            transfer_id,
+            inventory_id,
             qty_kirim,
             qty_terima,
+            catatan,
             inventory:inventory_id (
               id,
               nama_barang,
-              kode_barcode
+              kode_barcode,
+              unit,
+              harga_beli_terakhir,
+              harga_jual
             )
           )
         `,
@@ -569,12 +575,12 @@ export const transferStokApi = {
     );
   },
 
-  async kirim(transferId: string, userId: string) {
+  async kirim(transferId: string, userId?: string | null) {
     return safeQuery<{ success: boolean; status: string }>(
       async () => {
         const result = await supabase.rpc('kirim_transfer_stok', {
           p_transfer_id: transferId,
-          p_user: userId,
+          p_user: userId && userId.trim() !== '' ? userId : null,
         });
 
         return {
@@ -589,14 +595,14 @@ export const transferStokApi = {
   async terima(
     transferId: string,
     items: Array<{ inventory_id: string; qty_terima: number; catatan?: string }>,
-    userId: string,
+    userId?: string | null,
   ) {
     return safeQuery<{ success: boolean; status: string }>(
       async () => {
         const result = await supabase.rpc('terima_transfer_stok', {
           p_transfer_id: transferId,
           p_items: items,
-          p_user: userId,
+          p_user: userId && userId.trim() !== '' ? userId : null,
         });
 
         return {

@@ -165,15 +165,14 @@ function WarehouseTransfersContent() {
   const [destinationWarning, setDestinationWarning] = useState<string | null>(null);
 
   // Handle direct action from URL or Item Selection
-  const handleOpenDetail = useCallback((transfer: TransferStok) => {
+  const handleOpenDetail = useCallback(async (transfer: TransferStok) => {
+    const initialItems = (transfer.items || []).map((it) => ({
+      inventory_id: it.inventory_id || it.inventory?.id || '',
+      qty_terima: it.qty_terima || it.qty_kirim,
+      catatan: it.catatan || '',
+    }));
     setSelectedTransfer(transfer);
-    setReceiveItems(
-      (transfer.items || []).map((it) => ({
-        inventory_id: it.inventory_id,
-        qty_terima: it.qty_terima || it.qty_kirim,
-        catatan: it.catatan || '',
-      })),
-    );
+    setReceiveItems(initialItems);
 
     // Destination Warehouse Guard: Cek apakah user adalah staf dari gudang tujuan
     const targetGudangId = profile?.default_gudang_id;
@@ -188,6 +187,23 @@ function WarehouseTransfersContent() {
       );
     } else {
       setDestinationWarning(null);
+    }
+
+    // Background refresh: Pastikan data transfer lengkap dan sinkron terbaru dari database
+    try {
+      const res = await transferStokApi.getById(transfer.id);
+      if (res.data) {
+        setSelectedTransfer(res.data);
+        setReceiveItems(
+          (res.data.items || []).map((it) => ({
+            inventory_id: it.inventory_id || it.inventory?.id || '',
+            qty_terima: it.qty_terima || it.qty_kirim,
+            catatan: it.catatan || '',
+          })),
+        );
+      }
+    } catch (err) {
+      console.error('Error fetching latest transfer detail:', err);
     }
   }, [profile?.default_gudang_id, isAdmin, userAssignedWarehouse?.nama]);
 
@@ -410,7 +426,7 @@ function WarehouseTransfersContent() {
   // Mutations
   const kirimMutation = useMutation({
     mutationFn: async (transferId: string) => {
-      const res = await transferStokApi.kirim(transferId, user?.id || '');
+      const res = await transferStokApi.kirim(transferId, user?.id || null);
       if (res.error) throw res.error;
       return res.data;
     },
@@ -429,11 +445,17 @@ function WarehouseTransfersContent() {
   const terimaMutation = useMutation({
     mutationFn: async () => {
       if (!selectedTransfer) return;
-      const cleanItems = receiveItems.map((item) => ({
-        ...item,
-        qty_terima: Number(item.qty_terima) || 0,
-      }));
-      const res = await transferStokApi.terima(selectedTransfer.id, cleanItems, user?.id || '');
+      const cleanItems = (selectedTransfer.items || []).map((it) => {
+        const targetId = it.inventory_id || it.inventory?.id || it.id;
+        const rec = receiveItems.find((r) => r.inventory_id === targetId);
+        const qtyTerima = rec?.qty_terima === '' ? 0 : Number(rec?.qty_terima ?? it.qty_kirim);
+        return {
+          inventory_id: targetId,
+          qty_terima: Math.max(0, qtyTerima),
+          catatan: rec?.catatan?.trim() || '',
+        };
+      });
+      const res = await transferStokApi.terima(selectedTransfer.id, cleanItems, user?.id || null);
       if (res.error) throw res.error;
       return res.data;
     },
@@ -469,7 +491,7 @@ function WarehouseTransfersContent() {
     if (!selectedTransfer?.items) return;
     setReceiveItems(
       selectedTransfer.items.map((it) => ({
-        inventory_id: it.inventory_id,
+        inventory_id: it.inventory_id || it.inventory?.id || it.id,
         qty_terima: it.qty_kirim,
         catatan: '',
       })),
@@ -489,7 +511,8 @@ function WarehouseTransfersContent() {
 
     // Cek apakah ada barang yang selisih (qty terima < qty kirim) namun catatan kosong
     const itemsWithMissingNote = (selectedTransfer.items || []).filter((it) => {
-      const rec = receiveItems.find((r) => r.inventory_id === it.inventory_id);
+      const targetId = it.inventory_id || it.inventory?.id || it.id;
+      const rec = receiveItems.find((r) => r.inventory_id === targetId);
       const qtyTerima = rec?.qty_terima === '' ? 0 : Number(rec?.qty_terima ?? it.qty_kirim);
       const catatan = rec?.catatan?.trim() || '';
       return qtyTerima < it.qty_kirim && !catatan;

@@ -220,9 +220,10 @@ export default function TransferDetailModal({
             </thead>
             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
               {(selectedTransfer.items || []).map((item) => {
+                const itemInvId = item.inventory_id || item.inventory?.id || item.id;
                 const isEditable = selectedTransfer.status === 'IN_TRANSIT';
                 const receiveState = receiveItems.find(
-                  (ri) => ri.inventory_id === item.inventory_id,
+                  (ri) => ri.inventory_id === itemInvId,
                 );
                 const currentQtyTerima = receiveState?.qty_terima ?? item.qty_kirim;
                 const numQtyTerima =
@@ -265,7 +266,7 @@ export default function TransferDetailModal({
                               if (val === '') {
                                 setReceiveItems((prev) =>
                                   prev.map((ri) =>
-                                    ri.inventory_id === item.inventory_id
+                                    ri.inventory_id === itemInvId
                                       ? { ...ri, qty_terima: '' }
                                       : ri,
                                   ),
@@ -277,7 +278,7 @@ export default function TransferDetailModal({
                               const clamped = Math.min(item.qty_kirim, num);
                               setReceiveItems((prev) =>
                                 prev.map((ri) =>
-                                  ri.inventory_id === item.inventory_id
+                                  ri.inventory_id === itemInvId
                                     ? { ...ri, qty_terima: clamped }
                                     : ri,
                                 ),
@@ -294,7 +295,7 @@ export default function TransferDetailModal({
                               ) {
                                 setReceiveItems((prev) =>
                                   prev.map((ri) =>
-                                    ri.inventory_id === item.inventory_id
+                                    ri.inventory_id === itemInvId
                                       ? { ...ri, qty_terima: 0 }
                                       : ri,
                                   ),
@@ -307,7 +308,7 @@ export default function TransferDetailModal({
                                 );
                                 setReceiveItems((prev) =>
                                   prev.map((ri) =>
-                                    ri.inventory_id === item.inventory_id
+                                    ri.inventory_id === itemInvId
                                       ? { ...ri, qty_terima: num }
                                       : ri,
                                   ),
@@ -351,7 +352,7 @@ export default function TransferDetailModal({
                               const val = e.target.value;
                               setReceiveItems((prev) =>
                                 prev.map((ri) =>
-                                  ri.inventory_id === item.inventory_id
+                                  ri.inventory_id === itemInvId
                                     ? { ...ri, catatan: val }
                                     : ri,
                                 ),
@@ -383,9 +384,10 @@ export default function TransferDetailModal({
         {/* Items Checklist - Mobile Cards */}
         <div className="flex flex-col gap-3 sm:hidden">
           {(selectedTransfer.items || []).map((item) => {
+            const itemInvId = item.inventory_id || item.inventory?.id || item.id;
             const isEditable = selectedTransfer.status === 'IN_TRANSIT';
             const receiveState = receiveItems.find(
-              (ri) => ri.inventory_id === item.inventory_id,
+              (ri) => ri.inventory_id === itemInvId,
             );
             const currentQtyTerima = receiveState?.qty_terima ?? item.qty_kirim;
             const numQtyTerima =
@@ -433,7 +435,7 @@ export default function TransferDetailModal({
                           onClick={() => {
                             setReceiveItems((prev) =>
                               prev.map((ri) =>
-                                ri.inventory_id === item.inventory_id
+                                ri.inventory_id === itemInvId
                                   ? { ...ri, qty_terima: item.qty_kirim }
                                   : ri,
                               ),
@@ -463,7 +465,7 @@ export default function TransferDetailModal({
                           if (val === '') {
                             setReceiveItems((prev) =>
                               prev.map((ri) =>
-                                ri.inventory_id === item.inventory_id
+                                ri.inventory_id === itemInvId
                                   ? { ...ri, qty_terima: '' }
                                   : ri,
                               ),
@@ -475,7 +477,7 @@ export default function TransferDetailModal({
                           const clamped = Math.min(item.qty_kirim, num);
                           setReceiveItems((prev) =>
                             prev.map((ri) =>
-                              ri.inventory_id === item.inventory_id
+                              ri.inventory_id === itemInvId
                                 ? { ...ri, qty_terima: clamped }
                                 : ri,
                             ),
@@ -492,7 +494,7 @@ export default function TransferDetailModal({
                           ) {
                             setReceiveItems((prev) =>
                               prev.map((ri) =>
-                                ri.inventory_id === item.inventory_id
+                                ri.inventory_id === itemInvId
                                   ? { ...ri, qty_terima: 0 }
                                   : ri,
                               ),
@@ -505,7 +507,7 @@ export default function TransferDetailModal({
                             );
                             setReceiveItems((prev) =>
                               prev.map((ri) =>
-                                ri.inventory_id === item.inventory_id
+                                ri.inventory_id === itemInvId
                                   ? { ...ri, qty_terima: num }
                                   : ri,
                               ),
@@ -538,7 +540,7 @@ export default function TransferDetailModal({
                         const val = e.target.value;
                         setReceiveItems((prev) =>
                           prev.map((ri) =>
-                            ri.inventory_id === item.inventory_id
+                            ri.inventory_id === itemInvId
                               ? { ...ri, catatan: val }
                               : ri,
                           ),
@@ -567,12 +569,14 @@ export default function TransferDetailModal({
         {/* Action Buttons (Sticky di Bawah) */}
         {(() => {
           const itemsWithSelisih = (selectedTransfer.items || []).filter((it) => {
-            const rec = receiveItems.find((r) => r.inventory_id === it.inventory_id);
+            const targetId = it.inventory_id || it.inventory?.id || it.id;
+            const rec = receiveItems.find((r) => r.inventory_id === targetId);
             const currentQty = rec?.qty_terima === '' ? 0 : Number(rec?.qty_terima ?? it.qty_kirim);
             return currentQty < it.qty_kirim;
           });
           const totalSelisihQty = (selectedTransfer.items || []).reduce((acc, it) => {
-            const rec = receiveItems.find((r) => r.inventory_id === it.inventory_id);
+            const targetId = it.inventory_id || it.inventory?.id || it.id;
+            const rec = receiveItems.find((r) => r.inventory_id === targetId);
             const currentQty = rec?.qty_terima === '' ? 0 : Number(rec?.qty_terima ?? it.qty_kirim);
             return acc + (it.qty_kirim - currentQty);
           }, 0);
@@ -628,7 +632,8 @@ export default function TransferDetailModal({
                   {selectedTransfer.status === 'IN_TRANSIT' && (() => {
                     const isUserDestinationStaff =
                       isAdmin() ||
-                      (!!userGudangId && selectedTransfer.gudang_tujuan_id === userGudangId);
+                      !userGudangId ||
+                      selectedTransfer.gudang_tujuan_id === userGudangId;
 
                     return (
                       <>

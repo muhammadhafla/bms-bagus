@@ -736,7 +736,7 @@ export default function ReturnPage() {
                         <th className="px-4 py-3.5 text-center">Stok Fisik / Sisa Beli</th>
                         <th className="px-4 py-3.5 text-right">Harga Satuan</th>
                         <th className="w-44 px-4 py-3.5">Alasan Retur</th>
-                        <th className="w-36 px-4 py-3.5 text-center">Qty Retur</th>
+                        <th className="w-28 px-3 py-3.5 text-center">Qty Retur</th>
                         <th className="px-5 py-3.5 text-right">Subtotal</th>
                         <th className="w-16 px-4 py-3.5 text-center">Aksi</th>
                       </tr>
@@ -818,21 +818,21 @@ export default function ReturnPage() {
                                 </div>
                               </td>
 
-                              <td className="px-4 py-4">
+                              <td className="px-3 py-4">
                                 <div className="flex justify-center">
-                                  <div className="flex items-center rounded-xl border border-brand-200 bg-white p-1 shadow-sm dark:border-brand-900/60 dark:bg-neutral-900">
+                                  <div className="inline-flex h-8 items-center rounded-lg border border-neutral-200 bg-white p-0.5 shadow-sm transition-colors hover:border-brand-400 focus-within:border-brand-500 dark:border-neutral-700 dark:bg-neutral-900">
                                     <button
                                       type="button"
                                       onClick={() => handleQtyChange(item.inventory_id, item.return_qty - 1)}
-                                      className="flex h-7 w-7 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-neutral-100 hover:text-brand-600 dark:hover:bg-neutral-800"
+                                      className="flex h-6 w-6 items-center justify-center rounded-md text-neutral-500 transition hover:bg-neutral-100 hover:text-brand-600 active:scale-95 dark:hover:bg-neutral-800"
                                       aria-label="Kurangi Qty"
                                     >
-                                      <IconMinus className="h-3.5 w-3.5" />
+                                      <IconMinus className="h-3 w-3" stroke={2.5} />
                                     </button>
                                     <PriceInput
                                       value={item.return_qty}
                                       onChange={(val) => handleQtyChange(item.inventory_id, val)}
-                                      className="mx-1 w-12 border-none bg-transparent p-0 text-center text-sm font-bold focus:ring-0"
+                                      className="w-8 border-none bg-transparent p-0 text-center text-xs font-bold text-neutral-900 focus:ring-0 dark:text-neutral-100"
                                       min={0}
                                       max={item.max_retur_allowed}
                                       prefix=""
@@ -841,10 +841,10 @@ export default function ReturnPage() {
                                       type="button"
                                       onClick={() => handleQtyChange(item.inventory_id, item.return_qty + 1)}
                                       disabled={item.return_qty >= item.max_retur_allowed}
-                                      className="flex h-7 w-7 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-neutral-100 hover:text-brand-600 disabled:opacity-30 dark:hover:bg-neutral-800"
+                                      className="flex h-6 w-6 items-center justify-center rounded-md text-neutral-500 transition hover:bg-neutral-100 hover:text-brand-600 active:scale-95 disabled:opacity-25 dark:hover:bg-neutral-800"
                                       aria-label="Tambah Qty"
                                     >
-                                      <IconPlus className="h-3.5 w-3.5" />
+                                      <IconPlus className="h-3 w-3" stroke={2.5} />
                                     </button>
                                   </div>
                                 </div>
@@ -967,18 +967,18 @@ export default function ReturnPage() {
                           </div>
                           <div>
                             <label className="text-[10px] font-semibold text-neutral-500">Qty Retur</label>
-                            <div className="flex h-9 items-center justify-between rounded-xl border border-brand-200 bg-white p-1 dark:border-brand-800 dark:bg-neutral-950">
+                            <div className="mt-0.5 inline-flex h-9 w-full items-center justify-between rounded-xl border border-neutral-200 bg-white p-0.5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
                               <button
                                 type="button"
                                 onClick={() => handleQtyChange(item.inventory_id, item.return_qty - 1)}
-                                className="flex h-7 w-7 items-center justify-center text-neutral-500"
+                                className="flex h-7 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100"
                               >
-                                <IconMinus className="h-3.5 w-3.5" />
+                                <IconMinus className="h-3 w-3" stroke={2.5} />
                               </button>
                               <PriceInput
                                 value={item.return_qty}
                                 onChange={(val) => handleQtyChange(item.inventory_id, val)}
-                                className="w-10 border-none bg-transparent p-0 text-center text-xs font-bold focus:ring-0"
+                                className="w-8 border-none bg-transparent p-0 text-center text-xs font-bold text-neutral-900 focus:ring-0 dark:text-neutral-100"
                                 min={0}
                                 max={item.max_retur_allowed}
                                 prefix=""
@@ -987,9 +987,9 @@ export default function ReturnPage() {
                                 type="button"
                                 onClick={() => handleQtyChange(item.inventory_id, item.return_qty + 1)}
                                 disabled={item.return_qty >= item.max_retur_allowed}
-                                className="flex h-7 w-7 items-center justify-center text-neutral-500 disabled:opacity-30"
+                                className="flex h-7 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 disabled:opacity-25"
                               >
-                                <IconPlus className="h-3.5 w-3.5" />
+                                <IconPlus className="h-3 w-3" stroke={2.5} />
                               </button>
                             </div>
                           </div>

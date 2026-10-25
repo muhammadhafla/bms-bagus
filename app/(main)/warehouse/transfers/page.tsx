@@ -684,6 +684,9 @@ function WarehouseTransfersContent() {
                 placeholder="Cari transfer / kurir... (Ctrl+K)"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
                 className="focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 w-full h-10 sm:h-[46px] rounded-xl border border-neutral-200/60 bg-white pr-24 pl-9 text-sm shadow-sm transition-all focus:outline-none sm:pr-28 sm:text-base dark:border-neutral-800/60 dark:bg-neutral-900"
               />
               

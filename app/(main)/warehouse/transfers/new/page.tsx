@@ -370,6 +370,10 @@ function NewTransferContent() {
                   onChange={(e) => setKurir(e.target.value)}
                   placeholder="Contoh: Pak Budi / Pickup"
                   inputSize="md"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
                 />
               </div>
             </div>

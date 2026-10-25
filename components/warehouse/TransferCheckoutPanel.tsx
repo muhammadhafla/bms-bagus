@@ -217,6 +217,10 @@ export function TransferCheckoutPanel({
             onChange={(e) => setKurir(e.target.value)}
             placeholder="Contoh: Pak Budi / Mobil Pickup"
             inputSize="md"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
           />
 
           <TextInput
@@ -225,6 +229,10 @@ export function TransferCheckoutPanel({
             onChange={(e) => setCatatan(e.target.value)}
             placeholder="Contoh: Restock etalase Toko 2"
             inputSize="md"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
           />
 
           <div className="flex gap-2 pt-2">

@@ -221,6 +221,10 @@ export const WarehouseBarcodeSearch = React.forwardRef<
         type="text"
         placeholder={placeholder}
         value={barcodeInput}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
         onChange={(e) => {
           setBarcodeInput(e.target.value);
           setSearchSelectedIndex(-1);

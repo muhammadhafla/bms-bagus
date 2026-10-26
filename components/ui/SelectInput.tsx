@@ -491,14 +491,16 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
         {/* Mobile Bottom Sheet Drawer (vaul) */}
         {mounted && !isDesktop && (
           <Drawer.Root
+            nested={true}
             open={isOpen}
             onOpenChange={(open) => {
               setIsOpen(open);
             }}
+            repositionInputs={false}
           >
             <Drawer.Portal>
               <Drawer.Overlay className="fixed inset-0 z-[130] bg-black/60 backdrop-blur-xs animate-fade-in" />
-              <Drawer.Content className="fixed right-0 bottom-0 left-0 z-[131] flex max-h-[85vh] flex-col rounded-t-3xl bg-white outline-none dark:bg-neutral-950 shadow-2xl">
+              <Drawer.Content className="fixed right-0 bottom-0 left-0 z-[131] flex max-h-[85dvh] flex-col rounded-t-3xl bg-white outline-none dark:bg-neutral-950 shadow-2xl">
                 {/* Grab Handle */}
                 <div className="mx-auto mt-3 mb-1 h-1.5 w-12 shrink-0 rounded-full bg-neutral-300 dark:bg-neutral-700" />
 

@@ -20,6 +20,7 @@ interface ModalProps {
   isBottomSheetOnMobile?: boolean;
   isFullScreenOnMobile?: boolean;
   nested?: boolean;
+  repositionInputs?: boolean;
 }
 
 export function Modal({
@@ -34,6 +35,7 @@ export function Modal({
   isBottomSheetOnMobile = false,
   isFullScreenOnMobile = false,
   nested = false,
+  repositionInputs = false,
 }: ModalProps) {
   const titleId = useId();
   const focusTrapRef = useFocusTrap(isOpen);
@@ -85,10 +87,11 @@ export function Modal({
         onOpenChange={(open) => {
           if (!open) onClose();
         }}
+        repositionInputs={repositionInputs}
       >
         <Drawer.Portal>
           <Drawer.Overlay className={`fixed inset-0 bg-black/50 ${nested ? 'z-[120]' : 'z-[100]'}`} />
-          <Drawer.Content className={`fixed right-0 bottom-0 left-0 flex max-h-[96vh] flex-col rounded-t-2xl bg-white outline-none dark:bg-neutral-950 ${nested ? 'z-[121]' : 'z-[101]'}`}>
+          <Drawer.Content className={`fixed right-0 bottom-0 left-0 flex max-h-[92dvh] flex-col rounded-t-2xl bg-white outline-none dark:bg-neutral-950 ${nested ? 'z-[121]' : 'z-[101]'}`}>
             <div className="mx-auto mt-2.5 mb-1 h-1 w-10 shrink-0 rounded-full bg-neutral-300 dark:bg-neutral-700" />
             {title && (
               <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-4 py-2.5 dark:border-neutral-800">
@@ -103,7 +106,7 @@ export function Modal({
                 </div>
               </div>
             )}
-            <div className="flex-1 overflow-y-auto p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:p-5">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-3 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] sm:p-5">
               {children}
             </div>
             {footer && (
@@ -132,10 +135,10 @@ export function Modal({
           aria-labelledby={title ? titleId : undefined}
           className={`relative w-full ${sizeClasses[size]} flex flex-col bg-white shadow-xl dark:bg-neutral-950 ${
             isFullScreenOnMobile
-              ? 'animate-slide-up sm:animate-fade-in-up h-[100dvh] rounded-none pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:pt-0'
+              ? 'animate-slide-up sm:animate-fade-in-up h-[100dvh] rounded-none pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:h-auto sm:max-h-[90dvh] sm:rounded-2xl sm:pt-0'
               : isBottomSheetOnMobile
-                ? 'animate-slide-up sm:animate-fade-in-up max-h-[90vh] rounded-t-2xl pb-[env(safe-area-inset-bottom)] sm:max-h-full sm:rounded-2xl'
-                : 'animate-fade-in-up max-h-[90vh] rounded-2xl sm:max-h-full'
+                ? 'animate-slide-up sm:animate-fade-in-up max-h-[90dvh] rounded-t-2xl pb-[env(safe-area-inset-bottom)] sm:max-h-full sm:rounded-2xl'
+                : 'animate-fade-in-up max-h-[90dvh] rounded-2xl sm:max-h-full'
           }`}
         >
           {isBottomSheetOnMobile && (

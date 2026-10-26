@@ -41,10 +41,11 @@ export function MobileAutocompleteSheet({
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
+      repositionInputs={false}
     >
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-[110] bg-black/50" />
-        <Drawer.Content className="fixed right-0 bottom-0 left-0 z-[111] flex h-[80vh] flex-col rounded-t-2xl bg-white outline-none dark:bg-neutral-950">
+        <Drawer.Content className="fixed right-0 bottom-0 left-0 z-[111] flex h-[80dvh] flex-col rounded-t-2xl bg-white outline-none dark:bg-neutral-950">
           <div className="mx-auto mt-3 mb-1 h-1.5 w-12 shrink-0 rounded-full bg-neutral-300 dark:bg-neutral-700" />
 
           <div className="flex shrink-0 items-center justify-between px-5 pt-2 pb-3">

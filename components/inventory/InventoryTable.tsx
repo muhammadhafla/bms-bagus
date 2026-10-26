@@ -915,82 +915,93 @@ export const InventoryTable = React.memo(function InventoryTable({
         </div>
 
         {/* Mobile Action Buttons (Mobile Only) */}
-        <AdminOnly>
-          <div className="mt-2.5 flex flex-col gap-2 border-t border-neutral-200 pt-2.5 dark:border-neutral-800 lg:hidden">
+        {canEdit && (
+          <div className="mt-3 flex flex-col gap-2 border-t border-neutral-200 pt-3 pb-2 dark:border-neutral-800 lg:hidden">
             <Button
               variant="primary"
               size="sm"
               onClick={handleSave}
-              className="w-full min-h-[38px] text-xs sm:text-sm font-semibold"
+              className="w-full min-h-[40px] text-xs sm:text-sm font-semibold shadow-xs"
               leftIcon={<IconDeviceFloppy size={18} />}
             >
               Simpan Perubahan
             </Button>
 
-            <div className="grid grid-cols-2 gap-1.5">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setPrintModalOpen(true)}
-                className="w-full justify-center text-xs font-medium min-h-[36px]"
-                leftIcon={<IconPrinter size={15} className="text-blue-600 dark:text-blue-400" />}
-              >
-                Cetak Label
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setHistoryModalOpen(true)}
-                className="w-full justify-center text-xs font-medium min-h-[36px]"
-                leftIcon={<IconHistory size={15} className="text-brand-600 dark:text-brand-400" />}
-              >
-                Riwayat Harga
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  if (selectedItem) {
-                    setMergeSourceItems([selectedItem]);
-                    setMergeModalOpen(true);
+            <AdminOnly>
+              <div className="grid grid-cols-2 gap-1.5">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setPrintModalOpen(true)}
+                  className="w-full justify-center text-xs font-medium min-h-[36px]"
+                  leftIcon={<IconPrinter size={15} className="text-blue-600 dark:text-blue-400" />}
+                >
+                  Cetak Label
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setHistoryModalOpen(true)}
+                  className="w-full justify-center text-xs font-medium min-h-[36px]"
+                  leftIcon={<IconHistory size={15} className="text-brand-600 dark:text-brand-400" />}
+                >
+                  Riwayat Harga
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    if (selectedItem) {
+                      setMergeSourceItems([selectedItem]);
+                      setMergeModalOpen(true);
+                    }
+                  }}
+                  className="w-full justify-center text-xs font-medium min-h-[36px]"
+                  leftIcon={<IconGitMerge size={15} className="text-purple-600 dark:purple-400" />}
+                >
+                  Gabung (Merge)
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setDiscontinueConfirm(true)}
+                  className="w-full justify-center text-xs font-medium min-h-[36px]"
+                  leftIcon={
+                    selectedItem?.is_discontinued ? (
+                      <IconCheck size={15} className="text-emerald-600" />
+                    ) : (
+                      <IconBan size={15} className="text-amber-600" />
+                    )
                   }
-                }}
-                className="w-full justify-center text-xs font-medium min-h-[36px]"
-                leftIcon={<IconGitMerge size={15} className="text-purple-600 dark:purple-400" />}
-              >
-                Gabung (Merge)
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setDiscontinueConfirm(true)}
-                className="w-full justify-center text-xs font-medium min-h-[36px]"
-                leftIcon={
-                  selectedItem?.is_discontinued ? (
-                    <IconCheck size={15} className="text-emerald-600" />
-                  ) : (
-                    <IconBan size={15} className="text-amber-600" />
-                  )
-                }
-              >
-                {selectedItem?.is_discontinued ? 'Aktifkan' : 'Discontinue'}
-              </Button>
-            </div>
+                >
+                  {selectedItem?.is_discontinued ? 'Aktifkan' : 'Discontinue'}
+                </Button>
+              </div>
 
-            <div>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={handlePromptDelete}
-                disabled={isCheckingDelete}
-                className="w-full text-xs font-medium min-h-[36px]"
-                leftIcon={isCheckingDelete ? <Spinner size="sm" /> : <IconTrash size={15} />}
-              >
-                {isCheckingDelete ? 'Memeriksa Kelayakan...' : 'Hapus Barang'}
-              </Button>
-            </div>
+              <div>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handlePromptDelete}
+                  disabled={isCheckingDelete}
+                  className="w-full text-xs font-medium min-h-[36px]"
+                  leftIcon={isCheckingDelete ? <Spinner size="sm" /> : <IconTrash size={15} />}
+                >
+                  {isCheckingDelete ? 'Memeriksa Kelayakan...' : 'Hapus Barang'}
+                </Button>
+              </div>
+            </AdminOnly>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={closeSlideOver}
+              className="w-full justify-center text-xs font-medium min-h-[36px]"
+            >
+              Batal
+            </Button>
           </div>
-        </AdminOnly>
+        )}
       </Modal>
 
       <Modal

@@ -39,6 +39,7 @@ export function ResponsivePanel({
       onOpenChange={(open) => !open && onClose()}
       direction={direction}
       snapPoints={!isDesktop ? snapPoints : undefined}
+      repositionInputs={false}
     >
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-[100] bg-black/50" />

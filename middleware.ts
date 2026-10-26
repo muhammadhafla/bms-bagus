@@ -6,13 +6,13 @@ import { createServerClient } from '@supabase/ssr';
  * Menggantikan ProtectedRoute yang hanya client-side (bisa di-bypass via DevTools).
  *
  * Alur:
- * 1. Skip path publik (login, static assets, API auth routes)
- * 2. Cek session Supabase via cookie
- * 3. Redirect ke /login jika tidak ada session
+ * 1. Skip static assets dan path publik (offline, API auth)
+ * 2. Cek user Supabase via getUser() untuk auto-refresh session via refresh token di cookie
+ * 3. Jika user sudah login dan mengakses /login, redirect ke /dashboard
+ * 4. Jika user belum login dan mengakses route proteksi, redirect ke /login
  */
 
 const PUBLIC_PATHS = [
-  '/login',
   '/offline',
   '/api/auth',
   '/_next',
@@ -30,7 +30,7 @@ function isPublicPath(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Lewati path publik — tidak perlu cek session
+  // Lewati static assets dan path publik tanpa overhead session check
   if (isPublicPath(pathname)) {
     return NextResponse.next({
       request: {
@@ -85,15 +85,50 @@ export async function middleware(request: NextRequest) {
       },
     );
 
-    // Cek session via cookie secara lokal tanpa HTTP request untuk mempercepat TTFB
-    // PERINGATAN: Ini hanya fast gate. Untuk security mutlak, gunakan getUser() di Server Action/API Route.
+    // PENTING: Gunakan getUser(), JANGAN getSession().
+    // getSession() tidak me-refresh token yang expired di server context.
+    // getUser() akan otomatis menggunakan Refresh Token di cookie untuk memperbarui
+    // Access Token yang expired (> 1 jam) dan memicu setAll() untuk menyimpan cookie baru.
     const {
-      data: { session },
+      data: { user },
       error,
-    } = await supabase.auth.getSession();
+    } = await supabase.auth.getUser();
 
-    // Tidak ada session → redirect ke login atau return 401
-    if (error || !session) {
+    // Jika user mengakses halaman login
+    if (pathname === '/login') {
+      if (user) {
+        // User sudah terautentikasi, alihkan langsung ke dashboard
+        const dashboardUrl = new URL('/dashboard', request.url);
+        const redirectResponse = NextResponse.redirect(dashboardUrl);
+        supabaseCookies.forEach(({ name, value, options }) =>
+          redirectResponse.cookies.set(name, value, options),
+        );
+        return redirectResponse;
+      }
+      // User belum login, izinkan akses ke /login
+      return response;
+    }
+
+    // Fallback toleransi untuk mode offline PWA / network error
+    const isNetworkError =
+      error &&
+      (error.message?.includes('fetch failed') ||
+        error.message?.includes('Failed to fetch') ||
+        error.message?.includes('NetworkError') ||
+        error.name === 'AuthRetryableFetchError');
+
+    const allCookies = request.cookies.getAll();
+    const hasAuthCookie = allCookies.some(
+      (c) => c.name.includes('-auth-token') || c.name.includes('supabase'),
+    );
+
+    if (isNetworkError && hasAuthCookie) {
+      // Izinkan lewat agar cache PWA / client-side offline dapat menangani
+      return response;
+    }
+
+    // Tidak ada user yang valid → redirect ke login atau return 401
+    if (error || !user) {
       if (pathname.startsWith('/api/')) {
         const apiResponse = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         supabaseCookies.forEach(({ name, value, options }) =>

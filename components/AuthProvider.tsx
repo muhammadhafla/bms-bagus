@@ -12,14 +12,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const prevUserIdRef = useRef<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
-  const lastCheckedRef = useRef<number>(Date.now());
+  const lastCheckedRef = useRef<number>(0);
 
   // Safe wrapper for checkAndRefreshSession dengan throttle 30 detik
   const safeCheckSession = useCallback(async (force = false) => {
     if (!isMountedRef.current) return false;
     const now = Date.now();
     // Throttle: jika baru dicek kurang dari 30 detik lalu, lewati (kecuali dipaksa)
-    if (!force && now - lastCheckedRef.current < 30000) {
+    if (!force && lastCheckedRef.current > 0 && now - lastCheckedRef.current < 30000) {
       return true;
     }
     lastCheckedRef.current = now;
@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     isMountedRef.current = true;
+    lastCheckedRef.current = Date.now();
     initialize();
 
     return () => {

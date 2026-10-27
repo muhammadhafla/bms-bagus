@@ -7,9 +7,11 @@ import { createServerClient } from '@supabase/ssr';
  *
  * Alur:
  * 1. Skip static assets dan path publik (offline, API auth)
- * 2. Cek user Supabase via getUser() untuk auto-refresh session via refresh token di cookie
- * 3. Jika user sudah login dan mengakses /login, redirect ke /dashboard
- * 4. Jika user belum login dan mengakses route proteksi, redirect ke /login
+ * 2. Bypass rotasi token untuk background prefetch & RSC Next.js (mencegah cookie desync)
+ * 3. Delegasi otorisasi API ke endpoint auth-guard masing-masing
+ * 4. Cek user Supabase via getUser() untuk navigasi halaman penuh (auto-refresh sesi via cookie)
+ * 5. Redirect ke /dashboard jika sudah login saat mengakses /login
+ * 6. Redirect ke /login jika belum login saat mengakses route proteksi
  */
 
 const PUBLIC_PATHS = [
@@ -30,24 +32,50 @@ function isPublicPath(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Lewati static assets dan path publik tanpa overhead session check
+  // 1. Lewati static assets dan path publik tanpa overhead session check
   if (isPublicPath(pathname)) {
-    return NextResponse.next({
-      request: {
-        headers: request.headers,
-      },
-    });
+    return NextResponse.next({ request });
   }
 
-  // Buat response baru untuk menangani cookie refresh
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
+  // 2. Deteksi Next.js background prefetch request
+  // PENTING: Browser mengabaikan Set-Cookie pada request prefetch.
+  // Jika token dirotasi pada prefetch, refresh token lama akan hangus di Supabase
+  // tetapi browser masih menyimpannya, memicu error 400 refresh_token_not_found saat navigasi nyata.
+  const isPrefetch =
+    request.headers.get('next-router-prefetch') === '1' ||
+    request.headers.get('purpose') === 'prefetch' ||
+    request.headers.get('x-middleware-prefetch') === '1';
 
-  // Array to capture cookies that need to be updated or deleted
-  let supabaseCookies: { name: string; value: string; options: any }[] = [];
+  if (isPrefetch) {
+    const allCookies = request.cookies.getAll();
+    const hasAuthCookie = allCookies.some(
+      (c) => c.name.includes('-auth-token') || c.name.includes('supabase'),
+    );
+    if (hasAuthCookie) {
+      return NextResponse.next({ request });
+    }
+  }
+
+  // 3. Tangani rute /api/* (selain /api/auth yang sudah dilewati di PUBLIC_PATHS)
+  // Serahkan verifikasi detail ke endpoint auth-guard masing-masing untuk mencegah
+  // race condition penukaran token bersamaan dari micro-request API paralel.
+  if (pathname.startsWith('/api/')) {
+    const allCookies = request.cookies.getAll();
+    const hasAuthCookie = allCookies.some(
+      (c) => c.name.includes('-auth-token') || c.name.includes('supabase'),
+    );
+    const hasAuthHeader = Boolean(request.headers.get('authorization'));
+
+    if (!hasAuthCookie && !hasAuthHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    return NextResponse.next({ request });
+  }
+
+  // 4. Inisialisasi response untuk menangani cookie refresh
+  let response = NextResponse.next({
+    request,
+  });
 
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -67,16 +95,13 @@ export async function middleware(request: NextRequest) {
             return request.cookies.getAll();
           },
           setAll(cookiesToSet) {
-            supabaseCookies = cookiesToSet;
-            // Set cookie di request untuk downstream
+            // Update request cookies untuk downstream Server Components
             cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-            // Buat response baru dengan cookie yang diperbarui
+            // Buat response baru dengan request yang sudah diperbarui
             response = NextResponse.next({
-              request: {
-                headers: request.headers,
-              },
+              request,
             });
-
+            // Pasang cookie baru ke response
             cookiesToSet.forEach(({ name, value, options }) =>
               response.cookies.set(name, value, options),
             );
@@ -86,7 +111,6 @@ export async function middleware(request: NextRequest) {
     );
 
     // PENTING: Gunakan getUser(), JANGAN getSession().
-    // getSession() tidak me-refresh token yang expired di server context.
     // getUser() akan otomatis menggunakan Refresh Token di cookie untuk memperbarui
     // Access Token yang expired (> 1 jam) dan memicu setAll() untuk menyimpan cookie baru.
     const {
@@ -100,16 +124,16 @@ export async function middleware(request: NextRequest) {
         // User sudah terautentikasi, alihkan langsung ke dashboard
         const dashboardUrl = new URL('/dashboard', request.url);
         const redirectResponse = NextResponse.redirect(dashboardUrl);
-        supabaseCookies.forEach(({ name, value, options }) =>
-          redirectResponse.cookies.set(name, value, options),
-        );
+        response.cookies.getAll().forEach((cookie) => {
+          redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+        });
         return redirectResponse;
       }
       // User belum login, izinkan akses ke /login
       return response;
     }
 
-    // Fallback toleransi untuk mode offline PWA / network error
+    // Fallback toleransi untuk mode offline PWA / network error sementara
     const isNetworkError =
       error &&
       (error.message?.includes('fetch failed') ||
@@ -127,16 +151,8 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // Tidak ada user yang valid → redirect ke login atau return 401
+    // Tidak ada user yang valid → redirect ke login
     if (error || !user) {
-      if (pathname.startsWith('/api/')) {
-        const apiResponse = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        supabaseCookies.forEach(({ name, value, options }) =>
-          apiResponse.cookies.set(name, value, options),
-        );
-        return apiResponse;
-      }
-
       const loginUrl = new URL('/login', request.url);
       // Validasi path sebelum set ke param (cegah open redirect)
       const safeRedirect =
@@ -144,15 +160,15 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set('redirectTo', safeRedirect);
 
       const redirectResponse = NextResponse.redirect(loginUrl);
-      supabaseCookies.forEach(({ name, value, options }) =>
-        redirectResponse.cookies.set(name, value, options),
-      );
+      response.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+      });
       return redirectResponse;
     }
 
     return response;
   } catch (err) {
-    console.error('[Middleware] Error checking session:', err);
+    console.error('[Middleware] Error checking auth:', err);
 
     // Graceful fallback: periksa apakah ada cookie auth Supabase
     const allCookies = request.cookies.getAll();
@@ -163,10 +179,6 @@ export async function middleware(request: NextRequest) {
     if (hasAuthCookie) {
       // Izinkan lewat agar client-side PWA / cache dapat menangani gracefully
       return response;
-    }
-
-    if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const loginUrl = new URL('/login', request.url);

@@ -12,10 +12,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const prevUserIdRef = useRef<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
+  const lastCheckedRef = useRef<number>(Date.now());
 
-  // Safe wrapper for checkAndRefreshSession
-  const safeCheckSession = useCallback(async () => {
+  // Safe wrapper for checkAndRefreshSession dengan throttle 30 detik
+  const safeCheckSession = useCallback(async (force = false) => {
     if (!isMountedRef.current) return false;
+    const now = Date.now();
+    // Throttle: jika baru dicek kurang dari 30 detik lalu, lewati (kecuali dipaksa)
+    if (!force && now - lastCheckedRef.current < 30000) {
+      return true;
+    }
+    lastCheckedRef.current = now;
     try {
       const result = await checkAndRefreshSession();
       if (!isMountedRef.current) return false;
@@ -74,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       prevUserIdRef.current = userId;
       // Debounce rapid user changes
       const timeout = setTimeout(() => {
-        safeCheckSession().catch(console.error);
+        safeCheckSession(true).catch(console.error);
       }, 100);
       return () => clearTimeout(timeout);
     }

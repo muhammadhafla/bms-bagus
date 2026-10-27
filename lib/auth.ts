@@ -95,6 +95,25 @@ async function retryWithBackoff<T>(fn: () => Promise<T>, retries = MAX_RETRY): P
   throw lastError;
 }
 
+/**
+ * Web Locks API helper untuk mencegah multi-tab race condition saat refresh session.
+ * Jika pengguna membuka banyak tab sekaligus, hanya 1 tab utama (leader) yang
+ * memanggil endpoint /token Supabase, sedangkan tab lain menunggu dan menggunakan sesi baru.
+ */
+async function withCrossTabLock<T>(name: string, fn: () => Promise<T>): Promise<T> {
+  if (typeof window !== 'undefined' && 'locks' in navigator && navigator.locks?.request) {
+    try {
+      return await navigator.locks.request(name, { mode: 'exclusive' }, async () => {
+        return await fn();
+      });
+    } catch {
+      // Fallback jika browser lock tidak tersedia
+      return await fn();
+    }
+  }
+  return await fn();
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
@@ -218,47 +237,88 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (sessionRefreshPromise) return sessionRefreshPromise;
 
     const doRefresh = async () => {
-      set({ isRefreshing: true });
+      // Gunakan Web Locks API untuk memastikan hanya 1 tab yang memanggil /token ke Supabase
+      return await withCrossTabLock('bms:auth-session-refresh', async () => {
+        set({ isRefreshing: true });
 
-      try {
-        // Use explicit refreshSession instead of getSession
-        const { data, error } = await supabase.auth.refreshSession();
+        try {
+          // Double check: sebelum memanggil /token, periksa apakah tab lain baru saja me-refresh sesi
+          const { data: currentData } = await supabase.auth.getSession();
+          if (currentData?.session?.expires_at) {
+            const remainingMs = currentData.session.expires_at * 1000 - Date.now();
+            // Jika token masih valid lebih dari 2 menit, berarti tab lain sudah berhasil me-refresh!
+            if (remainingMs > 2 * 60 * 1000) {
+              const currentUser = get().user;
+              if (!currentUser || currentUser.id !== currentData.session.user.id) {
+                const profile = await fetchProfile(currentData.session.user.id);
+                set({
+                  user: currentData.session.user,
+                  profile,
+                  isRefreshing: false,
+                  initialized: true,
+                });
+              } else {
+                set({
+                  user: currentData.session.user,
+                  isRefreshing: false,
+                  initialized: true,
+                });
+              }
+              get().setSessionExpiry(currentData.session.expires_at * 1000);
+              return true;
+            }
+          }
 
-        if (error || !data.session) {
-          console.error('Session refresh failed:', error);
+          // Gunakan explicit refreshSession
+          const { data, error } = await supabase.auth.refreshSession();
+
+          if (error || !data.session) {
+            console.error('Session refresh failed:', error);
+            // Jangan langsung menghapus user jika browser offline
+            const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+            if (isOffline) {
+              set({ isRefreshing: false });
+              return false;
+            }
+            set({ user: null, profile: null, isRefreshing: false, initialized: true });
+            return false;
+          }
+
+          // Fetch profile with guard
+          const fetchId = ++profileFetchSeq;
+          const profile = await fetchProfile(data.session.user.id);
+
+          if (fetchId === profileFetchSeq && profile) {
+            set({
+              user: data.session.user,
+              profile,
+              isRefreshing: false,
+              initialized: true,
+            });
+          } else {
+            set({
+              user: data.session.user,
+              isRefreshing: false,
+              initialized: true,
+            });
+          }
+
+          if (data.session.expires_at) {
+            get().setSessionExpiry(data.session.expires_at * 1000);
+          }
+
+          return true;
+        } catch (error) {
+          console.error('Session refresh exception:', error);
+          const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+          if (isOffline) {
+            set({ isRefreshing: false });
+            return false;
+          }
           set({ user: null, profile: null, isRefreshing: false, initialized: true });
           return false;
         }
-
-        // Fetch profile with guard
-        const fetchId = ++profileFetchSeq;
-        const profile = await fetchProfile(data.session.user.id);
-
-        if (fetchId === profileFetchSeq && profile) {
-          set({
-            user: data.session.user,
-            profile,
-            isRefreshing: false,
-            initialized: true,
-          });
-        } else {
-          set({
-            user: data.session.user,
-            isRefreshing: false,
-            initialized: true,
-          });
-        }
-
-        if (data.session.expires_at) {
-          get().setSessionExpiry(data.session.expires_at * 1000);
-        }
-
-        return true;
-      } catch (error) {
-        console.error('Session refresh exception:', error);
-        set({ user: null, profile: null, isRefreshing: false, initialized: true });
-        return false;
-      }
+      });
     };
 
     sessionRefreshPromise = doRefresh().finally(() => {
@@ -299,9 +359,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const expiresAt = data.session.expires_at * 1000;
         get().setSessionExpiry(expiresAt);
 
-        // If session expires within 1 minute, proactively refresh
+        // Jika token akan kedaluwarsa dalam < 2 menit, lakukan proactive refresh dengan cross-tab lock
         const timeLeft = expiresAt - Date.now();
-        if (timeLeft < 60 * 1000) {
+        if (timeLeft < 2 * 60 * 1000) {
           return await get().refreshSession();
         }
       }

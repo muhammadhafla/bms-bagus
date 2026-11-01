@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { mutasiApi, gajiApi } from '@/lib/api/payroll';
-import { Card, Button, TextInput, ModernPagination, ConfirmDialog } from '@/components/ui';
+import { Card, Button, TextInput, ModernPagination, Modal, MonthPicker } from '@/components/ui';
 import { IconReport, IconWallet, IconSearch, IconArrowRight } from '@tabler/icons-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -20,6 +20,15 @@ export default function AdminGajiDashboard() {
   const limit = 20;
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [selectedPeriode, setSelectedPeriode] = useState(() => {
+    const now = new Date();
+    // Jika tanggal 1-10 di awal bulan, defaultkan ke bulan kemarin yang baru saja berakhir
+    if (now.getDate() <= 10) {
+      const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      return `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+    }
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
 
   const { data: balancesData, isLoading, refetch } = useQuery({
     queryKey: ['admin_payroll_balances', { page, search }],
@@ -33,7 +42,7 @@ export default function AdminGajiDashboard() {
       return res;
     },
     onSuccess: () => {
-      toast.success('Gaji dan EWA untuk bulan ini berhasil diproses!');
+      toast.success(`Gaji dan EWA untuk periode ${selectedPeriode} berhasil diproses!`);
       setIsConfirmOpen(false);
       refetch();
     },
@@ -183,18 +192,41 @@ export default function AdminGajiDashboard() {
 
       </div>
 
-      <ConfirmDialog
+      <Modal
         isOpen={isConfirmOpen}
-        title="Tutup Buku Gaji?"
-        message="Apakah Anda yakin ingin memproses gaji dan tutup buku untuk bulan ini? Tindakan ini akan menghitung Gaji Bulanan dan memasukkannya ke saldo EWA."
-        confirmLabel="Ya, Proses Gaji"
-        cancelLabel="Batal"
-        onConfirm={() => {
-          const periode = new Date().toISOString().substring(0, 7);
-          prosesGajiMutation.mutate(periode);
-        }}
-        onCancel={() => setIsConfirmOpen(false)}
-      />
+        onClose={() => setIsConfirmOpen(false)}
+        title="Tutup Buku Gaji"
+        size="md"
+        footer={
+          <div className="flex justify-end gap-2 w-full">
+            <Button
+              variant="secondary"
+              onClick={() => setIsConfirmOpen(false)}
+              disabled={prosesGajiMutation.isPending}
+            >
+              Batal
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => prosesGajiMutation.mutate(selectedPeriode)}
+              disabled={prosesGajiMutation.isPending || !selectedPeriode}
+            >
+              {prosesGajiMutation.isPending ? 'Memproses...' : 'Ya, Proses Gaji'}
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-4 py-2">
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            Pilih periode bulan yang ingin diproses dan ditutup buku. Tindakan ini akan mengkalkulasi kehadiran, lembur, serta potongan libur, lalu memasukkan hak Gaji Bulanan ke saldo dompet karyawan.
+          </p>
+          <MonthPicker
+            label="Pilih Periode Bulan"
+            value={selectedPeriode}
+            onChange={(val) => setSelectedPeriode(val)}
+          />
+        </div>
+      </Modal>
     </PullToRefresh>
   );
 }

@@ -171,6 +171,25 @@ export const waBridgeApi = {
   },
 
   /**
+   * Membatalkan pesan yang gagal agar tidak dikirim ulang (Cancel)
+   */
+  async cancelMessage(id: string) {
+    return safeQuery<boolean>(
+      async () => {
+        const { error } = await supabase
+          .from('wa_outbox')
+          .update({
+            status: 'cancelled',
+          })
+          .eq('id', id);
+
+        return { data: !error, error: error as Error | null };
+      },
+      { isMutation: true }
+    );
+  },
+
+  /**
    * Mereset tanggal inaktivitas HP ke hari ini (setelah Owner membuka HP)
    */
   async resetInactivityDate() {

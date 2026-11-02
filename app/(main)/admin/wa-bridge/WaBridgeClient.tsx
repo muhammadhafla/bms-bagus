@@ -40,6 +40,7 @@ export default function WaBridgeClient() {
     logoutSession,
     sendTestMessage,
     retryMessage,
+    cancelMessage,
     updateSettings,
     resetInactivityDate,
     refreshAll,
@@ -154,7 +155,18 @@ export default function WaBridgeClient() {
       )}
 
       {/* Queue Metrics KPI */}
-      <QueueStatsCard stats={status?.queue_stats} />
+      <QueueStatsCard
+        stats={status?.queue_stats}
+        activeStatus={filter.status}
+        onStatusClick={(statusKey) => {
+          setFilter((prev) => ({
+            ...prev,
+            status: statusKey,
+            page: 1,
+          }));
+          setActiveTab('history');
+        }}
+      />
 
       {/* Navigation Tabs (Scrollable & Concise) */}
       <div className="flex items-center gap-1 sm:gap-2 border-b border-neutral-200 dark:border-neutral-800 overflow-x-auto no-scrollbar pb-0.5">
@@ -207,6 +219,7 @@ export default function WaBridgeClient() {
           gudangList={gudangList}
           onFilterChange={(newF) => setFilter((prev) => ({ ...prev, ...newF }))}
           onRetry={retryMessage}
+          onCancel={cancelMessage}
         />
       )}
 

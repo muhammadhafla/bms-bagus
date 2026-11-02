@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { WaOutboxItem, WaOutboxFilter } from '@/types/wa-bridge';
 import { FilterButton, ResponsivePanel, Button } from '@/components/ui';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import {
   IconSearch,
   IconCheck,
@@ -24,6 +25,7 @@ interface MultiBranchOutboxTableProps {
   gudangList: { id: string; kode_gudang: string; nama: string }[];
   onFilterChange: (newFilter: Partial<WaOutboxFilter>) => void;
   onRetry: (id: string) => Promise<void>;
+  onCancel?: (id: string) => Promise<void>;
 }
 
 export function MultiBranchOutboxTable({
@@ -33,9 +35,12 @@ export function MultiBranchOutboxTable({
   gudangList,
   onFilterChange,
   onRetry,
+  onCancel,
 }: MultiBranchOutboxTableProps) {
   const [selectedItem, setSelectedItem] = useState<WaOutboxItem | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [cancelConfirmTarget, setCancelConfirmTarget] = useState<WaOutboxItem | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [tempGudangId, setTempGudangId] = useState(filter.gudangId || 'all');
   const [tempStatus, setTempStatus] = useState(filter.status || 'all');
@@ -61,6 +66,7 @@ export function MultiBranchOutboxTable({
         delivered: 'Centang 2',
         read: 'Dibaca',
         failed: 'Gagal',
+        cancelled: 'Dibatalkan',
       };
       badges.push({
         id: 'status',
@@ -103,6 +109,21 @@ export function MultiBranchOutboxTable({
       await onRetry(id);
     } finally {
       setRetryingId(null);
+    }
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!cancelConfirmTarget || !onCancel) return;
+    const id = cancelConfirmTarget.id;
+    setCancellingId(id);
+    try {
+      await onCancel(id);
+      if (selectedItem?.id === id) {
+        setSelectedItem((prev) => (prev ? { ...prev, status: 'cancelled' } : null));
+      }
+    } finally {
+      setCancellingId(null);
+      setCancelConfirmTarget(null);
     }
   };
 
@@ -159,6 +180,13 @@ export function MultiBranchOutboxTable({
           <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] sm:text-xs font-bold text-rose-700 dark:bg-rose-950/70 dark:text-rose-300">
             <IconAlertCircle className="h-3 w-3" />
             Gagal
+          </span>
+        );
+      case 'cancelled':
+        return (
+          <span className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] sm:text-xs font-semibold text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
+            <IconX className="h-3 w-3 text-neutral-500" />
+            Dibatalkan
           </span>
         );
       default:
@@ -287,14 +315,26 @@ export function MultiBranchOutboxTable({
                 </span>
 
                 {item.status === 'failed' && (
-                  <button
-                    onClick={() => handleRetry(item.id)}
-                    disabled={retryingId === item.id}
-                    className="inline-flex items-center gap-1 rounded bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white shadow hover:bg-rose-700 disabled:opacity-50 active:scale-95 transition"
-                  >
-                    <IconRefresh className={`h-2.5 w-2.5 ${retryingId === item.id ? 'animate-spin' : ''}`} />
-                    Kirim Ulang
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    {onCancel && (
+                      <button
+                        onClick={() => setCancelConfirmTarget(item)}
+                        disabled={cancellingId === item.id}
+                        className="inline-flex items-center gap-0.5 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-1.5 py-0.5 text-[10px] font-semibold text-neutral-600 dark:text-neutral-300 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-neutral-700 disabled:opacity-50 active:scale-95 transition"
+                      >
+                        <IconX className="h-2.5 w-2.5" />
+                        Batalkan
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleRetry(item.id)}
+                      disabled={retryingId === item.id}
+                      className="inline-flex items-center gap-1 rounded bg-brand-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs hover:bg-brand-700 disabled:opacity-50 active:scale-95 transition"
+                    >
+                      <IconRefresh className={`h-2.5 w-2.5 ${retryingId === item.id ? 'animate-spin' : ''}`} />
+                      Kirim Ulang
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -384,15 +424,28 @@ export function MultiBranchOutboxTable({
                       </button>
 
                       {item.status === 'failed' && (
-                        <button
-                          onClick={() => handleRetry(item.id)}
-                          disabled={retryingId === item.id}
-                          className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white shadow hover:bg-brand-700 disabled:opacity-50"
-                          title="Kirim ulang pesan gagal"
-                        >
-                          <IconRefresh className={`h-3.5 w-3.5 ${retryingId === item.id ? 'animate-spin' : ''}`} />
-                          Retry
-                        </button>
+                        <>
+                          {onCancel && (
+                            <button
+                              onClick={() => setCancelConfirmTarget(item)}
+                              disabled={cancellingId === item.id}
+                              className="inline-flex items-center gap-1 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300 shadow-xs hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-neutral-700 disabled:opacity-50 transition"
+                              title="Batalkan pengiriman pesan ini"
+                            >
+                              <IconX className="h-3.5 w-3.5" />
+                              Batalkan
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleRetry(item.id)}
+                            disabled={retryingId === item.id}
+                            className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white shadow-xs hover:bg-brand-700 disabled:opacity-50 transition"
+                            title="Kirim ulang pesan gagal"
+                          >
+                            <IconRefresh className={`h-3.5 w-3.5 ${retryingId === item.id ? 'animate-spin' : ''}`} />
+                            Retry
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>
@@ -469,6 +522,7 @@ export function MultiBranchOutboxTable({
               <option value="delivered">Delivered (Centang 2)</option>
               <option value="read">Read (Centang 2 Biru)</option>
               <option value="failed">Failed (Gagal)</option>
+              <option value="cancelled">Cancelled (Dibatalkan)</option>
             </select>
           </div>
 
@@ -557,10 +611,34 @@ export function MultiBranchOutboxTable({
               )}
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-neutral-200 dark:border-neutral-800">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t border-neutral-200 dark:border-neutral-800">
+              {selectedItem.status === 'failed' ? (
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  {onCancel && (
+                    <button
+                      onClick={() => setCancelConfirmTarget(selectedItem)}
+                      disabled={cancellingId === selectedItem.id}
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white px-3 py-2 text-xs font-bold text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-neutral-700 disabled:opacity-50 transition"
+                    >
+                      <IconX className="h-4 w-4" />
+                      Batalkan Pesan
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleRetry(selectedItem.id)}
+                    disabled={retryingId === selectedItem.id}
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-brand-700 disabled:opacity-50 transition"
+                  >
+                    <IconRefresh className={`h-4 w-4 ${retryingId === selectedItem.id ? 'animate-spin' : ''}`} />
+                    Kirim Ulang
+                  </button>
+                </div>
+              ) : (
+                <div />
+              )}
               <button
                 onClick={() => setSelectedItem(null)}
-                className="rounded-xl bg-neutral-100 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
+                className="w-full sm:w-auto rounded-xl bg-neutral-100 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 text-center"
               >
                 Tutup
               </button>
@@ -568,6 +646,19 @@ export function MultiBranchOutboxTable({
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialog for Cancellation */}
+      <ConfirmDialog
+        isOpen={!!cancelConfirmTarget}
+        title="Batalkan Pengiriman Pesan?"
+        message={`Apakah Anda yakin ingin membatalkan pengiriman pesan ke +${cancelConfirmTarget?.phone}? Status akan menjadi Dibatalkan secara permanen dan tidak dapat dikirim ulang.`}
+        confirmLabel="Ya, Batalkan"
+        cancelLabel="Kembali"
+        danger={true}
+        isLoading={cancellingId === cancelConfirmTarget?.id}
+        onConfirm={handleConfirmCancel}
+        onCancel={() => setCancelConfirmTarget(null)}
+      />
     </div>
   );
 }

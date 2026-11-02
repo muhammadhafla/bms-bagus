@@ -203,6 +203,20 @@ export function useWaBridge() {
     }
   };
 
+  const cancelMessage = async (id: string) => {
+    try {
+      const res = await waBridgeApi.cancelMessage(id);
+      if (!res.error && res.data) {
+        toast.success('Pesan berhasil dibatalkan.');
+        loadOutbox();
+      } else {
+        toast.error(`Gagal membatalkan pesan: ${res.error?.message}`);
+      }
+    } catch (err: any) {
+      toast.error(`Gagal: ${err.message}`);
+    }
+  };
+
   const updateSettings = async (payload: Partial<WaSettings>) => {
     setIsActionLoading(true);
     try {
@@ -253,6 +267,7 @@ export function useWaBridge() {
     logoutSession,
     sendTestMessage,
     retryMessage,
+    cancelMessage,
     updateSettings,
     resetInactivityDate,
     refreshAll,

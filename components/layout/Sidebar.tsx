@@ -41,6 +41,7 @@ import {
   IconTrash,
   IconHelpCircle,
   IconShieldLock,
+  IconBrandWhatsapp,
 } from '@tabler/icons-react';
 
 import { useSidebarContext } from './SidebarProvider';
@@ -53,6 +54,7 @@ const OPERASIONAL_ITEMS = [
   { href: '/transactions/return', title: 'Retur', icon: IconArrowBack },
   { href: '/inventory/promo', title: 'Manajemen Promo', icon: IconTicket },
   { href: '/admin/pos-auth', title: 'Otorisasi POS', icon: IconShieldLock },
+  { href: '/admin/wa-bridge', title: 'WhatsApp Bridge', icon: IconBrandWhatsapp },
 ];
 
 const INVENTORY_ITEMS = [
@@ -258,6 +260,7 @@ export function Sidebar() {
     if (item.href === '/transactions/return') return isKasir || isWarehouseUser || isAdminUser;
     if (item.href === '/inventory/promo') return isAdminUser;
     if (item.href === '/admin/pos-auth') return isAdminUser || isKepalaGudang;
+    if (item.href === '/admin/wa-bridge') return isAdminUser;
     return true;
   }), [isAdminUser, isKepalaGudang, isFinanceUser, isKasir, isWarehouseUser]);
 

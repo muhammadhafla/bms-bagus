@@ -21,6 +21,7 @@ import {
   IconBuildingWarehouse,
   IconUserCheck,
   IconShieldLock,
+  IconBrandWhatsapp,
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -294,6 +295,13 @@ export function MobileLaunchpad({
           },
         ]
       : []),
+    {
+      href: '/admin/wa-bridge',
+      title: 'WhatsApp',
+      icon: IconBrandWhatsapp,
+      color: 'text-emerald-600',
+      bg: 'bg-neutral-100 dark:bg-neutral-800',
+    },
     {
       href: '/warehouse/transfers',
       title: 'Mutasi',

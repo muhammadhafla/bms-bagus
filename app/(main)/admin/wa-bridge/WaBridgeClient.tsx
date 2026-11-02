@@ -107,7 +107,7 @@ export default function WaBridgeClient() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 sm:space-y-6 pb-28">
       {/* Page Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -124,7 +124,7 @@ export default function WaBridgeClient() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsTestModalOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 transition"
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 sm:py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 active:scale-95 transition"
           >
             <IconSend className="h-4 w-4" />
             Kirim Uji Coba
@@ -156,45 +156,45 @@ export default function WaBridgeClient() {
       {/* Queue Metrics KPI */}
       <QueueStatsCard stats={status?.queue_stats} />
 
-      {/* Navigation Tabs */}
-      <div className="flex border-b border-neutral-200 dark:border-neutral-800">
+      {/* Navigation Tabs (Scrollable & Concise) */}
+      <div className="flex items-center gap-1 sm:gap-2 border-b border-neutral-200 dark:border-neutral-800 overflow-x-auto no-scrollbar pb-0.5">
         <button
           onClick={() => setActiveTab('history')}
-          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs sm:text-sm font-bold transition ${
+          className={`inline-flex flex-shrink-0 items-center gap-2 border-b-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-bold whitespace-nowrap transition ${
             activeTab === 'history'
               ? 'border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400'
               : 'border-transparent text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200'
           }`}
         >
           <IconReceipt className="h-4 w-4" />
-          Riwayat Pengiriman Seluruh Cabang
-          <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-bold text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+          <span>Riwayat Pesan</span>
+          <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
             {outboxTotal}
           </span>
         </button>
 
         <button
           onClick={() => setActiveTab('promo')}
-          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs sm:text-sm font-bold transition ${
+          className={`inline-flex flex-shrink-0 items-center gap-2 border-b-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-bold whitespace-nowrap transition ${
             activeTab === 'promo'
               ? 'border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400'
               : 'border-transparent text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200'
           }`}
         >
           <IconSparkles className="h-4 w-4" />
-          Footer Promosi Dinamis
+          <span>Promo Struk</span>
         </button>
 
         <button
           onClick={() => setActiveTab('inactivity')}
-          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs sm:text-sm font-bold transition ${
+          className={`inline-flex flex-shrink-0 items-center gap-2 border-b-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-bold whitespace-nowrap transition ${
             activeTab === 'inactivity'
               ? 'border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400'
               : 'border-transparent text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200'
           }`}
         >
           <IconCalendarEvent className="h-4 w-4" />
-          Pengingat Inaktivitas 14 Hari
+          <span>Masa Aktif HP</span>
         </button>
       </div>
 

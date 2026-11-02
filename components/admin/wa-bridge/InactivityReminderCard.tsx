@@ -77,7 +77,7 @@ export function InactivityReminderCard({
   };
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 space-y-6">
+    <div className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 space-y-5 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-orange-600 dark:bg-orange-950/60 dark:text-orange-400">
@@ -127,7 +127,7 @@ export function InactivityReminderCard({
         <button
           onClick={onResetDays}
           disabled={isActionLoading}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-300 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-700 shadow-sm hover:bg-neutral-100 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 transition"
+          className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 sm:py-2 text-xs font-semibold text-neutral-700 shadow-sm hover:bg-neutral-100 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 active:scale-95 transition"
         >
           <IconRotateClockwise className="h-3.5 w-3.5" />
           Saya Sudah Buka HP (Reset Hari 0)
@@ -178,11 +178,11 @@ export function InactivityReminderCard({
           />
         </div>
 
-        <div className="md:col-span-3 flex justify-end">
+        <div className="md:col-span-3 flex justify-end pt-1">
           <button
             type="submit"
             disabled={isActionLoading}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow hover:bg-brand-700 disabled:opacity-50 transition"
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-xs sm:text-sm font-semibold text-white shadow hover:bg-brand-700 disabled:opacity-50 active:scale-95 transition"
           >
             <IconDeviceFloppy className="h-4 w-4" />
             {isActionLoading ? 'Menyimpan...' : isSaved ? 'Tersimpan ✓' : 'Simpan Pengaturan'}

@@ -32,8 +32,8 @@ export function TestMessageModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-2xl dark:border-neutral-800 dark:bg-neutral-900 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-t-3xl sm:rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6 shadow-2xl dark:border-neutral-800 dark:bg-neutral-900 space-y-4">
         <div className="flex items-center justify-between border-b border-neutral-200 pb-3 dark:border-neutral-800">
           <div className="flex items-center gap-2">
             <IconBrandWhatsapp className="h-5 w-5 text-emerald-600" />
@@ -55,7 +55,7 @@ export function TestMessageModal({
               Nomor WhatsApp Tujuan
             </label>
             <input
-              type="text"
+              type="tel"
               placeholder="Contoh: 6281234567890"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -81,14 +81,14 @@ export function TestMessageModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+              className="flex-1 sm:flex-none justify-center rounded-xl px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800 active:scale-95 transition"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={isActionLoading}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-emerald-700 disabled:opacity-50"
+              className="flex-1 sm:flex-none justify-center inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-emerald-700 disabled:opacity-50 active:scale-95 transition"
             >
               <IconSend className="h-4 w-4" />
               {isActionLoading ? 'Mengirim...' : 'Kirim Sekarang'}

@@ -25,8 +25,8 @@ export function QrScanCard({
     : null;
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-      <div className="flex flex-col lg:flex-row items-center gap-8">
+    <div className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <div className="flex flex-col lg:flex-row items-center gap-6 lg:gap-8">
         {/* QR Code Container */}
         <div className="flex flex-col items-center">
           <div className="relative flex h-64 w-64 items-center justify-center rounded-2xl border-2 border-dashed border-neutral-300 bg-white p-3 shadow-inner dark:border-neutral-700">

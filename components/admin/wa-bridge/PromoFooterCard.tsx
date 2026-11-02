@@ -29,8 +29,8 @@ export function PromoFooterCard({
   };
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-      <div className="flex flex-col lg:flex-row gap-8">
+    <div className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
         {/* Left: Input Form */}
         <div className="flex-1 space-y-4">
           <div className="flex items-center gap-2">
@@ -64,19 +64,19 @@ export function PromoFooterCard({
               </span>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
               <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-                <IconInfoCircle className="h-4 w-4 text-neutral-400" />
-                <span>Diinjeksi otomatis oleh Supabase tanpa perlu restart POS kasir.</span>
+                <IconInfoCircle className="h-4 w-4 text-neutral-400 flex-shrink-0" />
+                <span>Diinjeksi otomatis oleh database tanpa restart kasir.</span>
               </div>
 
               <button
                 type="submit"
                 disabled={isActionLoading}
-                className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow hover:bg-brand-700 disabled:opacity-50 transition"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-xs sm:text-sm font-semibold text-white shadow hover:bg-brand-700 disabled:opacity-50 active:scale-95 transition"
               >
                 <IconDeviceFloppy className="h-4 w-4" />
-                {isActionLoading ? 'Menyimpan...' : isSaved ? 'Tersimpan ✓' : 'Simpan Footer'}
+                {isActionLoading ? 'Menyimpan...' : isSaved ? 'Tersimpan ✓' : 'Simpan Promo'}
               </button>
             </div>
           </form>

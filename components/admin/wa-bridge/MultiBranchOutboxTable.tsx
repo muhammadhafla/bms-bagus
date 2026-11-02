@@ -166,8 +166,86 @@ export function MultiBranchOutboxTable({
         </div>
       </div>
 
-      {/* Table Content */}
-      <div className="overflow-x-auto">
+      {/* Mobile Card List View (< md) */}
+      <div className="block md:hidden divide-y divide-neutral-200 dark:divide-neutral-800">
+        {items.length === 0 ? (
+          <div className="p-8 text-center text-xs text-neutral-400">
+            Tidak ada data riwayat pengiriman yang cocok.
+          </div>
+        ) : (
+          items.map((item) => (
+            <div key={item.id} className="p-4 space-y-2.5 hover:bg-neutral-50/50 dark:hover:bg-neutral-800/40 transition">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-xs font-bold text-neutral-900 dark:text-neutral-100">
+                  +{item.phone}
+                </span>
+                {getStatusBadge(item.status)}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400">
+                <span className="inline-flex items-center gap-1 font-medium text-neutral-700 dark:text-neutral-300">
+                  <IconBuildingStore className="h-3.5 w-3.5 text-neutral-400" />
+                  {item.gudang?.nama || 'Pusat / Global'}
+                </span>
+                <span>•</span>
+                <span className="font-semibold uppercase text-neutral-700 dark:text-neutral-300">
+                  {item.type}
+                </span>
+                {item.reference_id && (
+                  <>
+                    <span>•</span>
+                    <span className="font-mono text-[11px] text-neutral-400">
+                      {item.reference_id}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              <div className="text-[11px] text-neutral-400 font-mono">
+                {new Date(item.created_at).toLocaleDateString('id-ID', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                })}{' '}
+                {new Date(item.created_at).toLocaleTimeString('id-ID', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </div>
+
+              {item.error_message && (
+                <div className="rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 p-2 text-[11px] text-rose-700 dark:text-rose-300">
+                  {item.error_message}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  onClick={() => setSelectedItem(item)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 active:scale-95 transition"
+                >
+                  <IconEye className="h-3.5 w-3.5" />
+                  Detail Struk
+                </button>
+
+                {item.status === 'failed' && (
+                  <button
+                    onClick={() => handleRetry(item.id)}
+                    disabled={retryingId === item.id}
+                    className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-brand-700 disabled:opacity-50 active:scale-95 transition"
+                  >
+                    <IconRefresh className={`h-3.5 w-3.5 ${retryingId === item.id ? 'animate-spin' : ''}`} />
+                    Retry
+                  </button>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table Content (>= md) */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left text-xs sm:text-sm">
           <thead className="border-b border-neutral-200 bg-neutral-50/70 text-xs font-semibold text-neutral-500 uppercase tracking-wider dark:border-neutral-800 dark:bg-neutral-800/40 dark:text-neutral-400">
             <tr>
@@ -262,23 +340,23 @@ export function MultiBranchOutboxTable({
 
       {/* Pagination Footer */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-5 py-3 border-t border-neutral-200 dark:border-neutral-800 text-xs">
-          <span className="text-neutral-500 dark:text-neutral-400">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 sm:px-5 border-t border-neutral-200 dark:border-neutral-800 text-xs">
+          <span className="text-neutral-500 dark:text-neutral-400 text-center sm:text-left">
             Halaman {currentPage} dari {totalPages} ({total} total data)
           </span>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto justify-center">
             <button
               onClick={() => onFilterChange({ page: Math.max(1, currentPage - 1) })}
               disabled={currentPage <= 1}
-              className="rounded-lg border border-neutral-200 bg-white px-3 py-1 font-semibold text-neutral-700 disabled:opacity-40 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+              className="flex-1 sm:flex-none rounded-lg border border-neutral-200 bg-white px-3 py-1.5 font-semibold text-neutral-700 disabled:opacity-40 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 active:scale-95 transition"
             >
               Sebelumnya
             </button>
             <button
               onClick={() => onFilterChange({ page: Math.min(totalPages, currentPage + 1) })}
               disabled={currentPage >= totalPages}
-              className="rounded-lg border border-neutral-200 bg-white px-3 py-1 font-semibold text-neutral-700 disabled:opacity-40 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+              className="flex-1 sm:flex-none rounded-lg border border-neutral-200 bg-white px-3 py-1.5 font-semibold text-neutral-700 disabled:opacity-40 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 active:scale-95 transition"
             >
               Berikutnya
             </button>
@@ -288,8 +366,8 @@ export function MultiBranchOutboxTable({
 
       {/* Receipt Modal Preview */}
       {selectedItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-2xl border border-neutral-200 bg-white p-6 shadow-2xl dark:border-neutral-800 dark:bg-neutral-900 space-y-4 max-h-[85vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-t-3xl sm:rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6 shadow-2xl dark:border-neutral-800 dark:bg-neutral-900 space-y-4 max-h-[90vh] sm:max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between border-b border-neutral-200 pb-3 dark:border-neutral-800">
               <div className="flex items-center gap-2">
                 <IconReceipt className="h-5 w-5 text-brand-600" />

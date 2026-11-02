@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { WaOutboxItem, WaOutboxFilter } from '@/types/wa-bridge';
+import { FilterButton, ResponsivePanel, Button } from '@/components/ui';
 import {
   IconSearch,
-  IconFilter,
   IconCheck,
   IconChecks,
   IconClock,
@@ -35,10 +35,66 @@ export function MultiBranchOutboxTable({
 }: MultiBranchOutboxTableProps) {
   const [selectedItem, setSelectedItem] = useState<WaOutboxItem | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [tempGudangId, setTempGudangId] = useState(filter.gudangId || 'all');
+  const [tempStatus, setTempStatus] = useState(filter.status || 'all');
 
   const currentPage = filter.page || 1;
   const limit = filter.limit || 20;
   const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  const activeFilters = useMemo(() => {
+    const badges: { id: string; label: string; onRemove: () => void }[] = [];
+    if (filter.gudangId && filter.gudangId !== 'all') {
+      const g = gudangList.find((item) => item.id === filter.gudangId);
+      badges.push({
+        id: 'gudang',
+        label: `Cabang: ${g?.nama || filter.gudangId}`,
+        onRemove: () => onFilterChange({ gudangId: 'all', page: 1 }),
+      });
+    }
+    if (filter.status && filter.status !== 'all') {
+      const statusLabels: Record<string, string> = {
+        pending: 'Pending',
+        sent: 'Centang 1',
+        delivered: 'Centang 2',
+        read: 'Dibaca',
+        failed: 'Gagal',
+      };
+      badges.push({
+        id: 'status',
+        label: `Status: ${statusLabels[filter.status] || filter.status}`,
+        onRemove: () => onFilterChange({ status: 'all', page: 1 }),
+      });
+    }
+    return badges;
+  }, [filter.gudangId, filter.status, gudangList, onFilterChange]);
+
+  const handleOpenFilter = () => {
+    setTempGudangId(filter.gudangId || 'all');
+    setTempStatus(filter.status || 'all');
+    setIsFilterOpen(true);
+  };
+
+  const handleApplyFilters = () => {
+    onFilterChange({
+      gudangId: tempGudangId,
+      status: tempStatus,
+      page: 1,
+    });
+    setIsFilterOpen(false);
+  };
+
+  const handleResetFilters = () => {
+    setTempGudangId('all');
+    setTempStatus('all');
+    onFilterChange({
+      gudangId: 'all',
+      status: 'all',
+      page: 1,
+    });
+    setIsFilterOpen(false);
+  };
 
   const handleRetry = async (id: string) => {
     setRetryingId(id);
@@ -53,49 +109,49 @@ export function MultiBranchOutboxTable({
     switch (status) {
       case 'read':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-cyan-100 px-2.5 py-0.5 text-xs font-bold text-cyan-700 dark:bg-cyan-950/70 dark:text-cyan-300">
-            <IconChecks className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+          <span className="inline-flex items-center gap-1 rounded-full bg-cyan-100 px-2 py-0.5 text-[10px] sm:text-xs font-bold text-cyan-700 dark:bg-cyan-950/70 dark:text-cyan-300">
+            <IconChecks className="h-3 w-3 text-cyan-600 dark:text-cyan-400" />
             Dibaca (Centang 2 Biru)
           </span>
         );
       case 'delivered':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300">
-            <IconChecks className="h-3.5 w-3.5" />
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] sm:text-xs font-bold text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300">
+            <IconChecks className="h-3 w-3" />
             Sampai (Centang 2)
           </span>
         );
       case 'sent':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-700 dark:bg-blue-950/70 dark:text-blue-300">
-            <IconCheck className="h-3.5 w-3.5" />
+          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] sm:text-xs font-bold text-blue-700 dark:bg-blue-950/70 dark:text-blue-300">
+            <IconCheck className="h-3 w-3" />
             Terkirim (Centang 1)
           </span>
         );
       case 'pending':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700 dark:bg-amber-950/70 dark:text-amber-300">
-            <IconClock className="h-3.5 w-3.5" />
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] sm:text-xs font-bold text-amber-700 dark:bg-amber-950/70 dark:text-amber-300">
+            <IconClock className="h-3 w-3" />
             Antrean (Pending)
           </span>
         );
       case 'processing':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold text-purple-700 dark:bg-purple-950/70 dark:text-purple-300">
-            <IconClock className="h-3.5 w-3.5 animate-spin" />
+          <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] sm:text-xs font-bold text-purple-700 dark:bg-purple-950/70 dark:text-purple-300">
+            <IconClock className="h-3 w-3 animate-spin" />
             Diproses
           </span>
         );
       case 'failed':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-700 dark:bg-rose-950/70 dark:text-rose-300">
-            <IconAlertCircle className="h-3.5 w-3.5" />
+          <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] sm:text-xs font-bold text-rose-700 dark:bg-rose-950/70 dark:text-rose-300">
+            <IconAlertCircle className="h-3 w-3" />
             Gagal
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
+          <span className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] sm:text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
             {status}
           </span>
         );
@@ -104,141 +160,138 @@ export function MultiBranchOutboxTable({
 
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900 overflow-hidden">
-      {/* Header & Filter Controls */}
-      <div className="p-5 border-b border-neutral-200 dark:border-neutral-800 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
-              <IconReceipt className="h-5 w-5 text-brand-600" />
-              Riwayat Pengiriman Pesan Seluruh Cabang
-            </h3>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-              Total {total} pesan tercatat dari seluruh terminal POS kasir dan sistem web.
-            </p>
-          </div>
-        </div>
-
-        {/* Filter Inputs */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* Cabang Filter */}
-          <div>
-            <select
-              value={filter.gudangId || 'all'}
-              onChange={(e) => onFilterChange({ gudangId: e.target.value, page: 1 })}
-              className="w-full rounded-xl border border-neutral-200 bg-neutral-50/70 p-2 text-xs sm:text-sm text-neutral-900 focus:border-brand-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
-            >
-              <option value="all">Semua Cabang / Gudang</option>
-              {gudangList.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.nama} ({g.kode_gudang})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Status Filter */}
-          <div>
-            <select
-              value={filter.status || 'all'}
-              onChange={(e) => onFilterChange({ status: e.target.value, page: 1 })}
-              className="w-full rounded-xl border border-neutral-200 bg-neutral-50/70 p-2 text-xs sm:text-sm text-neutral-900 focus:border-brand-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
-            >
-              <option value="all">Semua Status Pengiriman</option>
-              <option value="pending">Pending (Antrean)</option>
-              <option value="sent">Sent (Centang 1)</option>
-              <option value="delivered">Delivered (Centang 2)</option>
-              <option value="read">Read (Dibaca)</option>
-              <option value="failed">Failed (Gagal)</option>
-            </select>
-          </div>
-
-          {/* Search Box */}
-          <div className="relative">
+      {/* Header & Filter Toolbar */}
+      <div className="p-3 sm:p-4 border-b border-neutral-200 dark:border-neutral-800 space-y-2.5">
+        <div className="flex items-center gap-2">
+          {/* Search Input */}
+          <div className="relative flex-1">
             <IconSearch className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
             <input
               type="text"
               placeholder="Cari nomor HP / no nota..."
               value={filter.search || ''}
               onChange={(e) => onFilterChange({ search: e.target.value, page: 1 })}
-              className="w-full rounded-xl border border-neutral-200 bg-neutral-50/70 pl-9 pr-3 py-2 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-brand-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+              className="w-full rounded-xl border border-neutral-200 bg-neutral-50/70 pl-9 pr-8 py-2 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-brand-500 focus:bg-white focus:outline-none dark:border-neutral-700 dark:bg-neutral-800/70 dark:text-neutral-100"
             />
+            {filter.search && (
+              <button
+                onClick={() => onFilterChange({ search: '', page: 1 })}
+                className="absolute right-2.5 top-2.5 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+              >
+                <IconX size={14} />
+              </button>
+            )}
           </div>
+
+          {/* Filter Button (Opens SlideOver / Drawer) */}
+          <FilterButton onClick={handleOpenFilter} activeCount={activeFilters.length} />
         </div>
+
+        {/* Active Filter Badges */}
+        {activeFilters.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            <span className="text-[11px] text-neutral-400 flex-shrink-0">Filter:</span>
+            {activeFilters.map((badge) => (
+              <span
+                key={badge.id}
+                className="inline-flex items-center gap-1 rounded-full bg-brand-50 text-brand-700 dark:bg-brand-950/60 dark:text-brand-300 border border-brand-200 dark:border-brand-800/60 px-2.5 py-0.5 text-[11px] font-medium whitespace-nowrap"
+              >
+                {badge.label}
+                <button onClick={badge.onRemove} className="text-brand-400 hover:text-brand-700 ml-0.5">
+                  <IconX size={12} />
+                </button>
+              </span>
+            ))}
+            <button
+              onClick={handleResetFilters}
+              className="text-[11px] text-neutral-400 hover:text-rose-500 underline ml-1 whitespace-nowrap"
+            >
+              Reset
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Mobile Card List View (< md) */}
-      <div className="block md:hidden divide-y divide-neutral-200 dark:divide-neutral-800">
+      {/* Mobile Card List View (< md) - Padat & Ringkas */}
+      <div className="block md:hidden divide-y divide-neutral-100 dark:divide-neutral-800/80">
         {items.length === 0 ? (
           <div className="p-8 text-center text-xs text-neutral-400">
             Tidak ada data riwayat pengiriman yang cocok.
           </div>
         ) : (
           items.map((item) => (
-            <div key={item.id} className="p-4 space-y-2.5 hover:bg-neutral-50/50 dark:hover:bg-neutral-800/40 transition">
+            <div
+              key={item.id}
+              className="px-3.5 py-2.5 space-y-1.5 hover:bg-neutral-50/60 dark:hover:bg-neutral-800/40 transition active:bg-neutral-100/60 dark:active:bg-neutral-800/70"
+            >
+              {/* Row 1: Nomor HP & Status Badge */}
               <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-xs font-bold text-neutral-900 dark:text-neutral-100">
+                <span className="font-mono text-xs font-bold text-neutral-900 dark:text-neutral-100 tracking-tight">
                   +{item.phone}
                 </span>
                 {getStatusBadge(item.status)}
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400">
-                <span className="inline-flex items-center gap-1 font-medium text-neutral-700 dark:text-neutral-300">
-                  <IconBuildingStore className="h-3.5 w-3.5 text-neutral-400" />
-                  {item.gudang?.nama || 'Pusat / Global'}
-                </span>
-                <span>•</span>
-                <span className="font-semibold uppercase text-neutral-700 dark:text-neutral-300">
-                  {item.type}
-                </span>
-                {item.reference_id && (
-                  <>
-                    <span>•</span>
-                    <span className="font-mono text-[11px] text-neutral-400">
-                      {item.reference_id}
-                    </span>
-                  </>
-                )}
-              </div>
-
-              <div className="text-[11px] text-neutral-400 font-mono">
-                {new Date(item.created_at).toLocaleDateString('id-ID', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                })}{' '}
-                {new Date(item.created_at).toLocaleTimeString('id-ID', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </div>
-
-              {item.error_message && (
-                <div className="rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 p-2 text-[11px] text-rose-700 dark:text-rose-300">
-                  {item.error_message}
+              {/* Row 2: Cabang • Tipe/Nota & Tombol Struk */}
+              <div className="flex items-center justify-between gap-2 text-[11px] text-neutral-500 dark:text-neutral-400">
+                <div className="flex items-center gap-1.5 truncate">
+                  <IconBuildingStore className="h-3 w-3 text-neutral-400 flex-shrink-0" />
+                  <span className="truncate max-w-[120px]">{item.gudang?.nama || 'Pusat / Global'}</span>
+                  <span className="text-neutral-300 dark:text-neutral-600">•</span>
+                  <span className="font-semibold uppercase text-neutral-700 dark:text-neutral-300 text-[10px]">
+                    {item.type}
+                  </span>
+                  {item.reference_id && (
+                    <>
+                      <span className="text-neutral-300 dark:text-neutral-600">•</span>
+                      <span className="font-mono text-[10px] text-neutral-400 truncate max-w-[90px]">
+                        {item.reference_id}
+                      </span>
+                    </>
+                  )}
                 </div>
-              )}
 
-              <div className="flex items-center justify-end gap-2 pt-1">
                 <button
                   onClick={() => setSelectedItem(item)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 active:scale-95 transition"
+                  className="inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-neutral-700 shadow-xs hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 flex-shrink-0 active:scale-95 transition"
                 >
-                  <IconEye className="h-3.5 w-3.5" />
-                  Detail Struk
+                  <IconEye className="h-3 w-3 text-neutral-400" />
+                  Struk
                 </button>
+              </div>
+
+              {/* Row 3: Timestamp & Retry (bila gagal) */}
+              <div className="flex items-center justify-between text-[10px] text-neutral-400 font-mono">
+                <span>
+                  {new Date(item.created_at).toLocaleDateString('id-ID', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                  })}{' '}
+                  {new Date(item.created_at).toLocaleTimeString('id-ID', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
 
                 {item.status === 'failed' && (
                   <button
                     onClick={() => handleRetry(item.id)}
                     disabled={retryingId === item.id}
-                    className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-brand-700 disabled:opacity-50 active:scale-95 transition"
+                    className="inline-flex items-center gap-1 rounded bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white shadow hover:bg-rose-700 disabled:opacity-50 active:scale-95 transition"
                   >
-                    <IconRefresh className={`h-3.5 w-3.5 ${retryingId === item.id ? 'animate-spin' : ''}`} />
-                    Retry
+                    <IconRefresh className={`h-2.5 w-2.5 ${retryingId === item.id ? 'animate-spin' : ''}`} />
+                    Kirim Ulang
                   </button>
                 )}
               </div>
+
+              {/* Error Detail (if any) */}
+              {item.error_message && (
+                <div className="rounded bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 px-2 py-1 text-[10px] text-rose-700 dark:text-rose-300 truncate">
+                  {item.error_message}
+                </div>
+              )}
             </div>
           ))
         )}
@@ -363,6 +416,68 @@ export function MultiBranchOutboxTable({
           </div>
         </div>
       )}
+
+      {/* Filter SlideOver / Bottom Drawer */}
+      <ResponsivePanel
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        title="Filter Riwayat Pesan"
+      >
+        <div className="p-4 sm:p-6 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
+              Cabang / Gudang
+            </label>
+            <select
+              value={tempGudangId}
+              onChange={(e) => setTempGudangId(e.target.value)}
+              className="w-full rounded-xl border border-neutral-200 bg-neutral-50/70 p-2.5 text-xs sm:text-sm text-neutral-900 focus:border-brand-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+            >
+              <option value="all">Semua Cabang / Gudang</option>
+              {gudangList.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.nama} ({g.kode_gudang})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
+              Status Pengiriman
+            </label>
+            <select
+              value={tempStatus}
+              onChange={(e) => setTempStatus(e.target.value)}
+              className="w-full rounded-xl border border-neutral-200 bg-neutral-50/70 p-2.5 text-xs sm:text-sm text-neutral-900 focus:border-brand-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+            >
+              <option value="all">Semua Status Pengiriman</option>
+              <option value="pending">Pending (Antrean)</option>
+              <option value="sent">Sent (Centang 1)</option>
+              <option value="delivered">Delivered (Centang 2)</option>
+              <option value="read">Read (Centang 2 Biru)</option>
+              <option value="failed">Failed (Gagal)</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+            <Button
+              variant="secondary"
+              className="flex-1 justify-center"
+              onClick={handleResetFilters}
+            >
+              Reset
+            </Button>
+            <Button
+              variant="primary"
+              className="flex-1 justify-center"
+              onClick={handleApplyFilters}
+            >
+              Terapkan Filter
+            </Button>
+          </div>
+        </div>
+      </ResponsivePanel>
 
       {/* Receipt Modal Preview */}
       {selectedItem && (

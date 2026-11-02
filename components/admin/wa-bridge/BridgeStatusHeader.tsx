@@ -64,28 +64,28 @@ export function BridgeStatusHeader({
       )}
 
       {/* Main Connection Status Card */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="rounded-2xl border border-neutral-200 bg-white p-3.5 sm:p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="flex flex-col gap-3.5 sm:gap-4 md:flex-row md:items-center md:justify-between">
           {/* Left: WhatsApp Account & VPS status */}
-          <div className="flex items-start gap-4">
+          <div className="flex items-center sm:items-start gap-3 sm:gap-4">
             <div
-              className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl ${
+              className={`flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-xl sm:rounded-2xl ${
                 isConnected
                   ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400'
                   : 'bg-neutral-100 text-neutral-400 dark:bg-neutral-800 dark:text-neutral-500'
               }`}
             >
-              <IconBrandWhatsapp className="h-7 w-7" />
+              <IconBrandWhatsapp className="h-6 w-6 sm:h-7 sm:w-7" />
             </div>
 
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h2 className="text-base sm:text-lg font-bold text-neutral-900 dark:text-neutral-100 truncate">
                   {isConnected ? status?.name || 'Akun Toko' : 'WhatsApp Belum Terhubung'}
                 </h2>
                 {/* Connection Status Badge */}
                 <span
-                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                  className={`inline-flex items-center gap-1 rounded-full px-2 sm:px-2.5 py-0.5 text-[11px] sm:text-xs font-semibold ${
                     isConnected
                       ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300'
                       : 'bg-rose-100 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300'
@@ -101,7 +101,7 @@ export function BridgeStatusHeader({
 
                 {/* VPS Online Badge */}
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] sm:text-[11px] font-medium ${
                     isOnline
                       ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300'
                       : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
@@ -109,11 +109,11 @@ export function BridgeStatusHeader({
                   title="Status Heartbeat Remote Bridge"
                 >
                   <IconServer className="h-3 w-3" />
-                  VPS Bridge: {isOnline ? 'Online' : 'Offline'}
+                  VPS: {isOnline ? 'Online' : 'Offline'}
                 </span>
               </div>
 
-              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400">
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-0.5 text-[11px] sm:text-xs text-neutral-500 dark:text-neutral-400">
                 {isConnected && status?.phone && (
                   <span className="flex items-center gap-1 font-mono">
                     <IconDeviceMobile className="h-3.5 w-3.5" />
@@ -122,7 +122,7 @@ export function BridgeStatusHeader({
                 )}
                 {status?.updated_at && (
                   <span>
-                    Heartbeat Terakhir:{' '}
+                    Heartbeat:{' '}
                     {new Date(status.updated_at).toLocaleTimeString('id-ID', {
                       hour: '2-digit',
                       minute: '2-digit',
@@ -135,11 +135,11 @@ export function BridgeStatusHeader({
           </div>
 
           {/* Right: Actions */}
-          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full md:w-auto pt-2 sm:pt-0">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full md:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-neutral-100 dark:border-neutral-800">
             <button
               onClick={onRefresh}
               disabled={isLoading || isActionLoading}
-              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 sm:py-2 text-xs font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 active:scale-95 transition"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3 py-2 sm:px-3.5 sm:py-2 text-xs font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 active:scale-95 transition"
               title="Segarkan data status dari server"
             >
               <IconRefresh className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
@@ -150,7 +150,7 @@ export function BridgeStatusHeader({
               <button
                 onClick={onLogout}
                 disabled={isActionLoading}
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 sm:py-2 text-xs font-semibold text-rose-700 shadow-sm hover:bg-rose-100 disabled:opacity-50 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60 active:scale-95 transition"
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 sm:px-3.5 sm:py-2 text-xs font-semibold text-rose-700 shadow-sm hover:bg-rose-100 disabled:opacity-50 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60 active:scale-95 transition"
               >
                 <IconPower className="h-3.5 w-3.5" />
                 Logout WA
@@ -159,7 +159,7 @@ export function BridgeStatusHeader({
               <button
                 onClick={onResetSession}
                 disabled={isActionLoading}
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5 sm:py-2 text-xs font-semibold text-amber-700 shadow-sm hover:bg-amber-100 disabled:opacity-50 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/60 active:scale-95 transition"
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 sm:px-3.5 sm:py-2 text-xs font-semibold text-amber-700 shadow-sm hover:bg-amber-100 disabled:opacity-50 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/60 active:scale-95 transition"
               >
                 <IconRefresh className="h-3.5 w-3.5" />
                 Reset Sesi

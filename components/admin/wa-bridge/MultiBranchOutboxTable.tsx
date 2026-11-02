@@ -14,6 +14,7 @@ import {
   IconBuildingStore,
   IconX,
   IconReceipt,
+  IconMessage,
 } from '@tabler/icons-react';
 
 interface MultiBranchOutboxTableProps {
@@ -102,6 +103,17 @@ export function MultiBranchOutboxTable({
       await onRetry(id);
     } finally {
       setRetryingId(null);
+    }
+  };
+
+  const getActionLabel = (type: string) => {
+    switch (type) {
+      case 'receipt':
+        return 'Struk';
+      case 'text':
+        return 'Pesan';
+      default:
+        return 'Detail';
     }
   };
 
@@ -256,7 +268,7 @@ export function MultiBranchOutboxTable({
                   className="inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-neutral-700 shadow-xs hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 flex-shrink-0 active:scale-95 transition"
                 >
                   <IconEye className="h-3 w-3 text-neutral-400" />
-                  Struk
+                  {getActionLabel(item.type)}
                 </button>
               </div>
 
@@ -365,10 +377,10 @@ export function MultiBranchOutboxTable({
                       <button
                         onClick={() => setSelectedItem(item)}
                         className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
-                        title="Lihat pesan struk"
+                        title={`Lihat ${getActionLabel(item.type).toLowerCase()}`}
                       >
                         <IconEye className="h-3.5 w-3.5" />
-                        Detail
+                        {getActionLabel(item.type)}
                       </button>
 
                       {item.status === 'failed' && (
@@ -485,9 +497,13 @@ export function MultiBranchOutboxTable({
           <div className="w-full max-w-lg rounded-t-3xl sm:rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6 shadow-2xl dark:border-neutral-800 dark:bg-neutral-900 space-y-4 max-h-[90vh] sm:max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between border-b border-neutral-200 pb-3 dark:border-neutral-800">
               <div className="flex items-center gap-2">
-                <IconReceipt className="h-5 w-5 text-brand-600" />
+                {selectedItem.type === 'receipt' ? (
+                  <IconReceipt className="h-5 w-5 text-brand-600" />
+                ) : (
+                  <IconMessage className="h-5 w-5 text-brand-600" />
+                )}
                 <h4 className="font-bold text-sm sm:text-base text-neutral-900 dark:text-neutral-100">
-                  Pratinjau Pesan Struk (+{selectedItem.phone})
+                  Pratinjau {getActionLabel(selectedItem.type)} (+{selectedItem.phone})
                 </h4>
               </div>
               <button

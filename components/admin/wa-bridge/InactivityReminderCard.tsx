@@ -32,21 +32,24 @@ export function InactivityReminderCard({
   const [targetPhone, setTargetPhone] = useState(settings?.inactivity_reminder_phone ?? '');
   const [testPhone, setTestPhone] = useState('');
   const [isSaved, setIsSaved] = useState(false);
+  const [daysSinceActive, setDaysSinceActive] = useState(0);
 
   useEffect(() => {
     if (settings) {
       setEnabled(settings.enable_inactivity_reminder);
       setIntervalDays(settings.inactivity_reminder_interval_days);
       setTargetPhone(settings.inactivity_reminder_phone || '');
+
+      if (settings.last_phone_active_date) {
+        const lastActive = new Date(settings.last_phone_active_date).getTime();
+        const diffTime = Math.max(0, Date.now() - lastActive);
+        setDaysSinceActive(Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+      } else {
+        setDaysSinceActive(0);
+      }
     }
   }, [settings]);
 
-  // Calculate days since phone active
-  const lastActiveDate = settings?.last_phone_active_date
-    ? new Date(settings.last_phone_active_date)
-    : new Date();
-  const diffTime = Math.abs(Date.now() - lastActiveDate.getTime());
-  const daysSinceActive = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   const daysRemaining = Math.max(0, 14 - daysSinceActive);
   const isWarning = daysSinceActive >= intervalDays;
 

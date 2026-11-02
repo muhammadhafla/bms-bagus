@@ -133,7 +133,7 @@ export function QrScanCard({
                   Tautkan Perangkat & Pindai QR Code
                 </p>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  Tekan tombol <span className="font-semibold text-neutral-700 dark:text-neutral-300">"Tautkan Perangkat"</span>, lalu arahkan kamera ponsel ke QR Code di samping kiri.
+                  Tekan tombol <span className="font-semibold text-neutral-700 dark:text-neutral-300">&quot;Tautkan Perangkat&quot;</span>, lalu arahkan kamera ponsel ke QR Code di samping kiri.
                 </p>
               </div>
             </div>

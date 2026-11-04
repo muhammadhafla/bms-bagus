@@ -8,6 +8,7 @@ import { InstallBanner } from '@/components/ui/InstallBanner';
 import BottomNav from '@/components/ui/BottomNav';
 import { Toaster } from 'sonner';
 import { PosAuthRealtimeListener } from './PosAuthRealtimeListener';
+import { CommandPalette } from '@/components/ui/CommandPalette';
 
 export function MainContentWrapper({ children }: { children: React.ReactNode }) {
   const { contentMargin } = useSidebarContext();
@@ -42,6 +43,8 @@ export function MainContentWrapper({ children }: { children: React.ReactNode }) 
       <Toaster richColors position="top-center" style={{ zIndex: 9999 }} />
       {/* Realtime POS Authorization Listener */}
       <PosAuthRealtimeListener />
+      {/* Global Command Palette (Ctrl+K) */}
+      <CommandPalette />
     </>
   );
 }

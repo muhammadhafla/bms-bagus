@@ -54,3 +54,5 @@ export {
   type SpinnerProps,
 } from './PageLoadingSpinner';
 export * from './HorizontalScrollArea';
+export * from './CommandPalette';
+

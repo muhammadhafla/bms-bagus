@@ -22,3 +22,10 @@ export interface PrintPayload {
 export type StockAdjustmentWithInventory = StockAdjustment & {
   inventory?: { nama_barang: string };
 };
+
+// Domain Bounded Contexts
+export * from './domain/pos-contract';
+export * from './domain/warehouse';
+export * from './domain/finance';
+export * from './domain/payroll';
+

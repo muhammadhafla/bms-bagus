@@ -45,6 +45,7 @@ import {
 } from '@tabler/icons-react';
 
 import { useSidebarContext } from './SidebarProvider';
+import { CommandPaletteTrigger } from '@/components/ui/CommandPalette';
 
 const DASHBOARD_ITEMS = [{ href: '/dashboard', title: 'Dashboard', icon: IconLayoutDashboard }];
 
@@ -355,6 +356,11 @@ export function Sidebar() {
               )}
             </button>
           )}
+        </div>
+
+        {/* Command Palette Trigger (Desktop only) */}
+        <div className="hidden px-3 pb-2 lg:block">
+          <CommandPaletteTrigger collapsed={!isSidebarVisible} />
         </div>
 
         {/* Navigation */}

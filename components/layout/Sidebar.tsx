@@ -46,64 +46,18 @@ import {
 
 import { useSidebarContext } from './SidebarProvider';
 import { CommandPaletteTrigger } from '@/components/ui/CommandPalette';
+import { getNavItemsBySection } from '@/lib/constants/navigation';
 
-const DASHBOARD_ITEMS = [{ href: '/dashboard', title: 'Dashboard', icon: IconLayoutDashboard }];
+const DASHBOARD_ITEMS = getNavItemsBySection('dashboard');
+const OPERASIONAL_ITEMS = getNavItemsBySection('operasional');
+const INVENTORY_ITEMS = getNavItemsBySection('inventory');
+const WAREHOUSE_ITEMS = getNavItemsBySection('warehouse');
+const FINANCE_ITEMS = getNavItemsBySection('finance');
+const PAYROLL_ITEMS = getNavItemsBySection('payroll').filter((item) => item.href.startsWith('/admin'));
+const PAYROLL_ITEMS_STAFF = getNavItemsBySection('payroll').filter((item) => !item.href.startsWith('/admin'));
+const REPORT_ITEMS = getNavItemsBySection('reports');
+const MASTER_ITEMS = getNavItemsBySection('master');
 
-const OPERASIONAL_ITEMS = [
-  { href: '/purchasing', title: 'Transaksi Baru', icon: IconShoppingCart },
-  { href: '/transactions/history', title: 'Riwayat Transaksi', icon: IconHistory },
-  { href: '/transactions/return', title: 'Retur', icon: IconArrowBack },
-  { href: '/inventory/promo', title: 'Manajemen Promo', icon: IconTicket },
-  { href: '/admin/pos-auth', title: 'Otorisasi POS', icon: IconShieldLock },
-  { href: '/admin/wa-bridge', title: 'WhatsApp Bridge', icon: IconBrandWhatsapp },
-];
-
-const INVENTORY_ITEMS = [
-  { href: '/inventory', title: 'Katalog Produk', icon: IconPackage },
-  { href: '/inventory/stock-opname', title: 'Stok Opname', icon: IconClipboardCheck },
-  { href: '/bulk-print', title: 'Cetak Massal', icon: IconPrinter },
-  { href: '/print-history', title: 'Riwayat Cetak', icon: IconHistory },
-];
-
-const WAREHOUSE_ITEMS = [
-  { href: '/warehouse/stocks', title: 'Stok per Gudang', icon: IconBuildingWarehouse },
-  { href: '/warehouse/transfers', title: 'Mutasi & Transfer', icon: IconTruck },
-  { href: '/warehouse/outbound', title: 'Pengeluaran Khusus', icon: IconTrash },
-];
-
-const FINANCE_ITEMS = [
-  { href: '/finance/cash-flow', title: 'Arus Kas', icon: IconReport },
-  { href: '/finance/operasional', title: 'Pengeluaran', icon: IconReceipt },
-  { href: '/finance/ledger', title: 'Buku Besar', icon: IconBook },
-];
-
-const PAYROLL_ITEMS = [
-  { href: '/admin/payroll/kehadiran', title: 'Data Kehadiran', icon: IconClock },
-  { href: '/admin/payroll/kasbon', title: 'Persetujuan Kasbon', icon: IconWallet },
-  { href: '/admin/payroll/gaji', title: 'Dashboard Keuangan', icon: IconReport },
-];
-
-const PAYROLL_ITEMS_STAFF = [
-  { href: '/payroll', title: 'Absensi', icon: IconClock },
-  { href: '/payroll/gaji', title: 'Dompet Saya', icon: IconWallet },
-];
-
-const REPORT_ITEMS = [
-  { href: '/analytics', title: 'Analisis & Laporan', icon: IconChartBar },
-  { href: '/inventory/reports/difference', title: 'Laporan Selisih', icon: IconReport },
-];
-
-const MASTER_ITEMS = [
-  { href: '/users', title: 'Data Pengguna', icon: IconUsers },
-  { href: '/admin/payroll/karyawan', title: 'Data Karyawan', icon: IconUsers },
-  { href: '/members', title: 'Master Member', icon: IconUsersGroup },
-  { href: '/members/tiers', title: 'Konfigurasi Tier', icon: IconSettings },
-  { href: '/inventory/kategori', title: 'Kategori Barang', icon: IconTags },
-  { href: '/purchasing/supplier', title: 'Data Supplier', icon: IconTruck },
-  { href: '/warehouse/master', title: 'Master Gudang', icon: IconBuildingWarehouse },
-  { href: '/master/label-templates', title: 'Template Label', icon: IconTags },
-  { href: '/admin/payroll/lokasi-kerja', title: 'Lokasi Outlet', icon: IconMapPin },
-];
 
 interface SidebarLinkProps {
   href: string;

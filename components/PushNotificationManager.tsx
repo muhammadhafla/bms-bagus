@@ -21,6 +21,7 @@ export function PushNotificationManager() {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
 
@@ -145,6 +146,34 @@ export function PushNotificationManager() {
     }
   };
 
+  const testPush = async () => {
+    try {
+      setIsTesting(true);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const res = await fetch('/api/push/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || 'Gagal mengirim notifikasi uji coba');
+      }
+
+      toast.success('Notifikasi uji coba dikirim! Periksa layar / banner HP Anda.');
+    } catch (err: any) {
+      toast.error('Uji coba gagal: ' + (err.message || 'Error tidak diketahui'));
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   if (!isSupported) {
     return (
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-300">
@@ -224,8 +253,16 @@ export function PushNotificationManager() {
       )}
 
       {isSubscribed && (
-        <div className="border-t border-neutral-200/60 pt-2 text-[11px] text-emerald-600 dark:border-neutral-800 dark:text-emerald-400">
-          ✓ Perangkat ini aktif menerima notifikasi.
+        <div className="flex items-center justify-between border-t border-neutral-200/60 pt-2 text-[11px] text-emerald-600 dark:border-neutral-800 dark:text-emerald-400">
+          <span>✓ Perangkat ini aktif menerima notifikasi.</span>
+          <button
+            type="button"
+            onClick={testPush}
+            disabled={isTesting}
+            className="rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-[11px] font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-50 active:scale-95 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+          >
+            {isTesting ? 'Mengirim...' : 'Kirim Uji Coba'}
+          </button>
         </div>
       )}
     </div>

@@ -1,25 +1,12 @@
 import { NextResponse } from 'next/server';
 import { sendPushNotification } from '@/lib/push';
-import { createAdminClient, verifyAuth } from '@/lib/api/auth-guard';
+import { createAdminClient, verifyWebhookOrAuth } from '@/lib/api/auth-guard';
 
 export async function POST(request: Request) {
   try {
-    // Verifikasi otorisasi via webhook secret atau sesi terotentikasi
-    const secretHeader = request.headers.get('x-webhook-secret');
-    const expectedSecret = process.env.CRON_SECRET || process.env.WEBHOOK_SECRET;
-
-    let isAuthorized = false;
-    if (expectedSecret && secretHeader === expectedSecret) {
-      isAuthorized = true;
-    } else {
-      const { user } = await verifyAuth(request);
-      if (user) {
-        isAuthorized = true;
-      }
-    }
-
-    if (!isAuthorized) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await verifyWebhookOrAuth(request);
+    if (!authResult.authorized) {
+      return authResult.error;
     }
 
     const body = await request.json();

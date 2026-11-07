@@ -10,6 +10,8 @@ import {
   IconDotsVertical,
   IconCalendar,
   IconX,
+  IconCrown,
+  IconBuildingStore,
 } from '@tabler/icons-react';
 import { AdminOnly } from '@/components/role';
 import { toast } from 'sonner';
@@ -31,6 +33,7 @@ export default function PromoListPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [openActionId, setOpenActionId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [targetTab, setTargetTab] = useState<'all' | 'member' | 'umum'>('all');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   useEffect(() => {
@@ -54,6 +57,14 @@ export default function PromoListPage() {
     fetchPromos();
   }, [fetchPromos]);
 
+  const memberPromosCount = useMemo(() => {
+    return promos.filter((p) => p.is_member_only).length;
+  }, [promos]);
+
+  const generalPromosCount = useMemo(() => {
+    return promos.filter((p) => !p.is_member_only).length;
+  }, [promos]);
+
   const getPromoStatus = (promo: Promo) => {
     if (promo.status === 'nonaktif') return { label: 'Nonaktif', color: 'neutral' };
 
@@ -69,6 +80,13 @@ export default function PromoListPage() {
   const filteredPromos = useMemo(() => {
     let result = promos;
 
+    // Filter Target Audiens: Member vs Umum
+    if (targetTab === 'member') {
+      result = result.filter((p) => p.is_member_only);
+    } else if (targetTab === 'umum') {
+      result = result.filter((p) => !p.is_member_only);
+    }
+
     if (statusFilter !== 'all') {
       result = result.filter((promo) => {
         const status = getPromoStatus(promo).label.toLowerCase();
@@ -79,7 +97,7 @@ export default function PromoListPage() {
     if (!searchQuery.trim()) return result;
     const fuse = new Fuse(result, { keys: ['nama'], threshold: 0.3 });
     return fuse.search(searchQuery).map((res) => res.item);
-  }, [promos, searchQuery, statusFilter]);
+  }, [promos, searchQuery, statusFilter, targetTab]);
 
   return (
     <AdminOnly>
@@ -124,6 +142,72 @@ export default function PromoListPage() {
               </div>
             </div>
 
+            {/* SUB-TAB NAVIGASI TARGET: SEMUA, KHUSUS MEMBER, PROMO UMUM */}
+            <div className="mb-4 flex items-center gap-2 border-b border-neutral-200/80 pb-3 dark:border-neutral-800">
+              <button
+                onClick={() => setTargetTab('all')}
+                className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all sm:text-sm ${
+                  targetTab === 'all'
+                    ? 'bg-neutral-900 text-white shadow-xs dark:bg-white dark:text-neutral-900'
+                    : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
+                }`}
+              >
+                <IconTags size={16} className="shrink-0" />
+                <span>Semua Promo</span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                    targetTab === 'all'
+                      ? 'bg-neutral-700 text-white dark:bg-neutral-200 dark:text-neutral-900'
+                      : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
+                  }`}
+                >
+                  {promos.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setTargetTab('member')}
+                className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all sm:text-sm ${
+                  targetTab === 'member'
+                    ? 'bg-amber-500 text-white shadow-xs'
+                    : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
+                }`}
+              >
+                <IconCrown size={16} className={`shrink-0 ${targetTab === 'member' ? 'text-white' : 'text-amber-500'}`} />
+                <span>Khusus Member</span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                    targetTab === 'member'
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                  }`}
+                >
+                  {memberPromosCount}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setTargetTab('umum')}
+                className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all sm:text-sm ${
+                  targetTab === 'umum'
+                    ? 'bg-brand-600 text-white shadow-xs'
+                    : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
+                }`}
+              >
+                <IconBuildingStore size={16} className={`shrink-0 ${targetTab === 'umum' ? 'text-white' : 'text-brand-600 dark:text-brand-400'}`} />
+                <span>Promo Umum</span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                    targetTab === 'umum'
+                      ? 'bg-brand-700 text-white'
+                      : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
+                  }`}
+                >
+                  {generalPromosCount}
+                </span>
+              </button>
+            </div>
+
             {statusFilter !== 'all' && (
               <div
                 className="no-scrollbar animate-fade-in-up flex w-full items-center gap-2 overflow-x-auto pb-4 whitespace-nowrap"
@@ -156,6 +240,9 @@ export default function PromoListPage() {
                         Nama Promo
                       </th>
                       <th className="px-5 py-4 text-xs font-bold tracking-wider whitespace-nowrap text-neutral-500 uppercase dark:text-neutral-400">
+                        Target Audiens
+                      </th>
+                      <th className="px-5 py-4 text-xs font-bold tracking-wider whitespace-nowrap text-neutral-500 uppercase dark:text-neutral-400">
                         Status
                       </th>
                       <th className="px-5 py-4 text-xs font-bold tracking-wider whitespace-nowrap text-neutral-500 uppercase dark:text-neutral-400">
@@ -177,6 +264,9 @@ export default function PromoListPage() {
                             <div className="h-6 w-24 rounded-full bg-neutral-200 dark:bg-neutral-800"></div>
                           </td>
                           <td className="px-5 py-4">
+                            <div className="h-6 w-24 rounded-full bg-neutral-200 dark:bg-neutral-800"></div>
+                          </td>
+                          <td className="px-5 py-4">
                             <div className="h-4 w-32 rounded bg-neutral-200 dark:bg-neutral-800"></div>
                           </td>
                           <td className="px-5 py-4">
@@ -187,7 +277,7 @@ export default function PromoListPage() {
                     ) : filteredPromos.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={4}
+                          colSpan={5}
                           className="py-12 text-center text-neutral-500 dark:text-neutral-400"
                         >
                           <div className="flex flex-col items-center justify-center gap-3">
@@ -212,6 +302,19 @@ export default function PromoListPage() {
                               <div className="font-bold text-neutral-900 dark:text-neutral-100">
                                 {promo.nama}
                               </div>
+                            </td>
+                            <td className="px-5 py-4">
+                              {promo.is_member_only ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                                  <IconCrown size={14} className="shrink-0 text-amber-600 dark:text-amber-400" />
+                                  <span>Khusus Member</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+                                  <IconBuildingStore size={14} className="shrink-0 text-neutral-500 dark:text-neutral-400" />
+                                  <span>Umum</span>
+                                </span>
+                              )}
                             </td>
                             <td className="px-5 py-4">
                               <Badge variant={status.color as any}>{status.label}</Badge>
@@ -273,8 +376,23 @@ export default function PromoListPage() {
                           className="hover:border-brand-300 dark:hover:border-brand-700 relative flex cursor-pointer flex-col gap-3 rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm transition-colors dark:border-neutral-800 dark:bg-neutral-900"
                         >
                           <div className="flex items-start justify-between gap-2">
-                            <div className="text-base leading-tight font-bold text-neutral-900 dark:text-white">
-                              {promo.nama}
+                            <div>
+                              <div className="text-base leading-tight font-bold text-neutral-900 dark:text-white">
+                                {promo.nama}
+                              </div>
+                              <div className="mt-1">
+                                {promo.is_member_only ? (
+                                  <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                                    <IconCrown size={12} className="shrink-0 text-amber-600 dark:text-amber-400" />
+                                    <span>Khusus Member</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 rounded-md bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+                                    <IconBuildingStore size={12} className="shrink-0 text-neutral-500 dark:text-neutral-400" />
+                                    <span>Umum</span>
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <Badge variant={status.color as any}>{status.label}</Badge>
                           </div>

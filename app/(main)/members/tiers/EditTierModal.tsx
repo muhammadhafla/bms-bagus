@@ -14,6 +14,7 @@ interface EditTierModalProps {
   initialDiscount: number;
   initialMultiplier: number;
   initialMinPoints: number;
+  initialMinPurchase?: number;
 }
 
 export default function EditTierModal({
@@ -25,16 +26,19 @@ export default function EditTierModal({
   initialDiscount,
   initialMultiplier,
   initialMinPoints,
+  initialMinPurchase = 0,
 }: EditTierModalProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<{
     discount_percentage: number | string;
     point_multiplier: number | string;
     min_points_required: number | string;
+    min_purchase_amount: number | string;
   }>({
     discount_percentage: initialDiscount,
     point_multiplier: initialMultiplier,
     min_points_required: initialMinPoints,
+    min_purchase_amount: initialMinPurchase,
   });
 
   useEffect(() => {
@@ -42,8 +46,9 @@ export default function EditTierModal({
       discount_percentage: initialDiscount,
       point_multiplier: initialMultiplier,
       min_points_required: initialMinPoints,
+      min_purchase_amount: initialMinPurchase,
     });
-  }, [initialDiscount, initialMultiplier, initialMinPoints, isOpen]);
+  }, [initialDiscount, initialMultiplier, initialMinPoints, initialMinPurchase, isOpen]);
 
   if (!isOpen) return null;
 
@@ -58,6 +63,7 @@ export default function EditTierModal({
           discount_percentage: Number(formData.discount_percentage) || 0,
           point_multiplier: Number(formData.point_multiplier) || 0,
           min_points_required: Number(formData.min_points_required) || 0,
+          min_purchase_amount: Number(formData.min_purchase_amount) || 0,
           updated_at: new Date().toISOString(),
         })
         .eq('id', tierId);
@@ -108,6 +114,29 @@ export default function EditTierModal({
               setFormData((prev) => ({ ...prev, discount_percentage: 0 }));
             }
           }}
+        />
+
+        <TextInput
+          label="Minimal Belanja Diskon (Rp)"
+          type="number"
+          step="1000"
+          min="0"
+          value={formData.min_purchase_amount}
+          placeholder="0"
+          onFocus={(e) => e.target.select()}
+          onChange={(e) => {
+            const val = e.target.value;
+            setFormData({
+              ...formData,
+              min_purchase_amount: val === '' ? '' : parseFloat(val) || 0,
+            });
+          }}
+          onBlur={() => {
+            if (formData.min_purchase_amount === '' || formData.min_purchase_amount === null) {
+              setFormData((prev) => ({ ...prev, min_purchase_amount: 0 }));
+            }
+          }}
+          helperText="Diskon persentase tier hanya aktif jika total belanja transaksi minimal nominal ini."
         />
 
         <TextInput

@@ -19,6 +19,7 @@ interface MemberTier {
   discount_percentage: number;
   point_multiplier: number;
   min_points_required: number;
+  min_purchase_amount?: number;
   updated_at: string;
 }
 
@@ -179,6 +180,17 @@ export default function MemberTiersPage() {
                               {tier.min_points_required.toLocaleString()} Poin
                             </div>
                           </div>
+
+                          <div>
+                            <div className="mb-1 text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                              Minimal Belanja Diskon
+                            </div>
+                            <div className="font-semibold text-emerald-600 dark:text-emerald-400">
+                              {tier.min_purchase_amount && tier.min_purchase_amount > 0
+                                ? `Rp ${Number(tier.min_purchase_amount).toLocaleString('id-ID')}`
+                                : 'Tanpa Minimal Belanja'}
+                            </div>
+                          </div>
                         </div>
 
                         <div className="mt-6 border-t border-neutral-200/50 pt-4 text-xs text-neutral-400 dark:border-neutral-800/50">
@@ -205,6 +217,7 @@ export default function MemberTiersPage() {
           initialDiscount={editTierModal.tier.discount_percentage}
           initialMultiplier={editTierModal.tier.point_multiplier}
           initialMinPoints={editTierModal.tier.min_points_required}
+          initialMinPurchase={editTierModal.tier.min_purchase_amount ?? 0}
         />
       )}
     </AmbientLayout>

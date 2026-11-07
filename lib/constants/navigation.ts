@@ -24,6 +24,7 @@ import {
   IconTrash,
   IconShieldLock,
   IconBrandWhatsapp,
+  IconGift,
 } from '@tabler/icons-react';
 
 export interface RolePermissions {
@@ -371,6 +372,16 @@ export const APP_NAVIGATION_ITEMS: AppNavItem[] = [
     icon: IconSettings,
     section: 'master',
     keywords: ['tier member', 'level member', 'poin reward', 'diskon member'],
+    isAllowedForRole: (p) => p.isAdminUser,
+  },
+  {
+    id: 'nav-loyalty',
+    href: '/loyalty',
+    title: 'App Loyalty',
+    subtitle: 'Katalog reward, voucher, anggaran, & broadcast FCM Kawan Bagus',
+    icon: IconGift,
+    section: 'master',
+    keywords: ['loyalty', 'kawan bagus', 'reward', 'voucher', 'poin', 'broadcast fcm', 'diskon member'],
     isAllowedForRole: (p) => p.isAdminUser,
   },
   {

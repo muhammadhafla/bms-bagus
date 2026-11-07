@@ -8,6 +8,7 @@ export interface Promo {
   tanggal_mulai: string;
   tanggal_selesai: string;
   status: 'aktif' | 'nonaktif';
+  is_member_only?: boolean;
   created_at: string;
   updated_at: string;
   created_by?: string;
@@ -67,6 +68,7 @@ export const promoApi = {
             tanggal_mulai: promo.tanggal_mulai,
             tanggal_selesai: promo.tanggal_selesai,
             status: promo.status || 'aktif',
+            is_member_only: promo.is_member_only ?? false,
           })
           .eq('id', promoId);
         if (error) throw error;
@@ -78,6 +80,7 @@ export const promoApi = {
             tanggal_mulai: promo.tanggal_mulai,
             tanggal_selesai: promo.tanggal_selesai,
             status: promo.status || 'aktif',
+            is_member_only: promo.is_member_only ?? false,
           })
           .select('id')
           .single();

@@ -43,6 +43,7 @@ export default function PromoEditor({ id }: { id?: string }) {
     return format(startOfHour(addDays(new Date(), 7)), "yyyy-MM-dd'T'HH:mm");
   });
   const [status, setStatus] = useState<'aktif' | 'nonaktif'>('aktif');
+  const [isMemberOnly, setIsMemberOnly] = useState(false);
 
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
@@ -79,6 +80,7 @@ export default function PromoEditor({ id }: { id?: string }) {
           setTanggalMulai(res.data.promo.tanggal_mulai.slice(0, 16));
           setTanggalSelesai(res.data.promo.tanggal_selesai.slice(0, 16));
           setStatus(res.data.promo.status);
+          setIsMemberOnly(Boolean(res.data.promo.is_member_only));
           setItems(res.data.items);
         } else {
           toast.error('Promo tidak ditemukan');
@@ -176,6 +178,7 @@ export default function PromoEditor({ id }: { id?: string }) {
           tanggal_mulai: new Date(tanggalMulai).toISOString(),
           tanggal_selesai: new Date(tanggalSelesai).toISOString(),
           status,
+          is_member_only: isMemberOnly,
         },
         items.map((i) => ({
           inventory_id: i.inventory_id,
@@ -324,6 +327,17 @@ export default function PromoEditor({ id }: { id?: string }) {
         </div>
       </div>
       <div className="w-full xl:w-48">
+        <SelectInput
+          label="Target Audiens"
+          value={isMemberOnly ? 'member' : 'umum'}
+          onChange={(val) => setIsMemberOnly(val === 'member')}
+          options={[
+            { value: 'umum', label: 'Promo Umum' },
+            { value: 'member', label: 'Khusus Member' },
+          ]}
+        />
+      </div>
+      <div className="w-full xl:w-36">
         <SelectInput
           label="Status"
           value={status}

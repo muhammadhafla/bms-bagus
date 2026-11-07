@@ -14,6 +14,7 @@ import {
   IconX,
   IconArrowDown,
   IconLoader2,
+  IconRefresh,
 } from '@tabler/icons-react';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
@@ -22,6 +23,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 import { fetchApi } from '@/lib/fetchApi';
+import { supabase } from '@/lib/supabase';
 
 import { PrintJob } from './types';
 import { PrintHistoryTable } from './components/PrintHistoryTable';
@@ -42,6 +44,7 @@ function PrintHistoryContent() {
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
   // URL-based State
   const startDate = searchParams.get('startDate') || '';
@@ -95,8 +98,8 @@ function PrintHistoryContent() {
     router.push(`${pathname}?${params.toString()}`);
   };
 
-  const fetchHistory = useCallback(async (signal?: AbortSignal) => {
-    setLoading(true);
+  const fetchHistory = useCallback(async (signal?: AbortSignal, silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -108,7 +111,10 @@ function PrintHistoryContent() {
       if (status) params.append('status', status);
       if (gudangId) params.append('gudang_id', gudangId);
 
-      const res = await fetchApi(`/api/print/history?${params.toString()}`, { signal });
+      const res = await fetchApi(`/api/print/history?${params.toString()}`, {
+        signal,
+        cache: 'no-store',
+      });
 
       if (!res.ok) throw new Error('Gagal memuat riwayat');
 
@@ -124,23 +130,98 @@ function PrintHistoryContent() {
       if (err instanceof Error) {
         if (err.name === 'AbortError') return; // Abaikan error pembatalan request
         console.error('Failed to fetch print history', err);
-        toast.error(err.message || 'Gagal memuat riwayat cetak');
+        if (!silent) {
+          toast.error(err.message || 'Gagal memuat riwayat cetak');
+        }
       }
     } finally {
-      if (!signal?.aborted) {
+      if (!silent && !signal?.aborted) {
         setLoading(false);
       }
     }
   }, [page, startDate, endDate, status, gudangId]);
 
+  // Initial load saat filter URL berubah
   useEffect(() => {
     const controller = new AbortController();
     fetchHistory(controller.signal);
     return () => controller.abort();
   }, [fetchHistory]);
 
+  // Supabase Realtime Subscription untuk tabel print_jobs
+  useEffect(() => {
+    const channel = supabase
+      .channel('print_jobs_realtime_sync')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'print_jobs',
+        },
+        (payload: any) => {
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            // Update in-place pada baris tabel secara instan tanpa flicker / loading
+            setJobs((prevJobs) =>
+              prevJobs.map((job) =>
+                job.id === payload.new.id
+                  ? {
+                      ...job,
+                      status: payload.new.status,
+                      printed_at: payload.new.printed_at,
+                      error_message: payload.new.error_message,
+                      device_name: payload.new.device_name ?? job.device_name,
+                    }
+                  : job
+              )
+            );
+          } else if (payload.eventType === 'INSERT') {
+            // Jika ada pekerjaan cetak baru dan user di halaman 1, lakukan silent refetch
+            if (page === 1) {
+              fetchHistory(undefined, true);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [page, fetchHistory]);
+
+  // PWA & Browser Tab Resume: Otomatis silent refetch saat tab/layar ponsel aktif kembali
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchHistory(undefined, true);
+      }
+    };
+
+    const handleWindowFocus = () => {
+      fetchHistory(undefined, true);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [fetchHistory]);
+
   const handleRefresh = async () => {
-    await fetchHistory();
+    await fetchHistory(undefined, true);
+  };
+
+  const handleManualRefresh = async () => {
+    setIsManualRefreshing(true);
+    try {
+      await fetchHistory(undefined, false);
+    } finally {
+      setIsManualRefreshing(false);
+    }
   };
 
   const openDetail = (job: PrintJob) => {
@@ -242,9 +323,23 @@ function PrintHistoryContent() {
               </div>
 
               <div
-                className="animate-fade-in-up shrink-0 pt-1 lg:pt-0"
+                className="animate-fade-in-up flex items-center gap-2 shrink-0 pt-1 lg:pt-0"
                 style={{ animationDelay: '50ms' }}
               >
+                <Button
+                  variant="secondary"
+                  onClick={handleManualRefresh}
+                  disabled={isManualRefreshing || loading}
+                  className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl !min-h-0 !p-0 sm:w-auto sm:!px-4 sm:!py-2 border border-white/40 bg-white/70 shadow-sm backdrop-blur-xl transition-shadow hover:shadow-md dark:border-neutral-800/60 dark:bg-neutral-900/60"
+                  aria-label="Segarkan Data"
+                >
+                  <IconRefresh
+                    size={18}
+                    className={`shrink-0 text-neutral-600 dark:text-neutral-300 ${isManualRefreshing ? 'animate-spin text-brand-500' : ''}`}
+                  />
+                  <span className="ml-2 hidden font-medium sm:inline">Segarkan</span>
+                </Button>
+
                 <FilterButton
                   onClick={() => setIsFilterOpen(true)}
                   activeCount={activeFilters.length}

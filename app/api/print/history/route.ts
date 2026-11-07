@@ -49,18 +49,37 @@ export async function GET(request: Request) {
     const { data, error, count } = await query;
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json(
+        { error: error.message },
+        {
+          status: 400,
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            Pragma: 'no-cache',
+            Expires: '0',
+          },
+        },
+      );
     }
 
-    return NextResponse.json({
-      history: data,
-      pagination: {
-        page,
-        limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit),
+    return NextResponse.json(
+      {
+        history: data,
+        pagination: {
+          page,
+          limit,
+          total: count || 0,
+          totalPages: Math.ceil((count || 0) / limit),
+        },
       },
-    });
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      },
+    );
   } catch (err: unknown) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

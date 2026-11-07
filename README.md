@@ -246,7 +246,7 @@ Sistem menggunakan arsitektur **Multi-Role** (`roles TEXT[]` pada tabel `public.
 ## 🚀 Memulai (Getting Started)
 
 ### Prasyarat
-- **Node.js:** Versi 20.x atau 22.x LTS
+- **Node.js:** Versi 24.x LTS (direkomendasikan untuk dev dan prod)
 - **Package Manager:** npm (versi 10+)
 - **Supabase:** Proyek Supabase Cloud atau instance Supabase lokal aktif
 

@@ -190,8 +190,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
               return (
                 <label
                   key={r.id}
-                  onClick={() => handleRoleToggle(r.id)}
-                  className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-all ${
+                  className={`flex cursor-pointer select-none items-start gap-3 rounded-xl border p-3 transition-all ${
                     isChecked
                       ? 'border-brand-500 bg-brand-50/60 dark:border-brand-500/80 dark:bg-brand-950/20'
                       : 'border-neutral-200 bg-white hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900/60'
@@ -200,8 +199,8 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
                   <input
                     type="checkbox"
                     checked={isChecked}
-                    onChange={() => {}} // Handled by container
-                    className="text-brand-600 focus:ring-brand-500 mt-1 h-4 w-4 rounded border-neutral-300"
+                    onChange={() => handleRoleToggle(r.id)}
+                    className="text-brand-600 focus:ring-brand-500 mt-1 h-4 w-4 cursor-pointer rounded border-neutral-300"
                   />
                   <div>
                     <div className="text-sm font-semibold text-neutral-900 dark:text-white">

@@ -173,10 +173,13 @@ export default function RewardModal({
           <div className="flex items-center gap-4">
             <div className="relative h-20 w-24 flex-shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 flex items-center justify-center">
               {imageUrl ? (
-                <img
+                <Image
                   src={imageUrl}
                   alt="Reward banner"
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes="96px"
+                  className="object-cover"
+                  unoptimized={!imageUrl.includes('supabase.co')}
                 />
               ) : (
                 <IconPhoto className="h-8 w-8 text-neutral-400" />

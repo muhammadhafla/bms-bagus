@@ -18,6 +18,7 @@ import {
 } from '@tabler/icons-react';
 import RewardModal from './RewardModal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import Image from 'next/image';
 
 interface LoyaltyRewardsTabProps {
   rewards: PointReward[];
@@ -140,10 +141,13 @@ export default function LoyaltyRewardsTab({ rewards, onRefresh }: LoyaltyRewards
                         <div className="flex items-center gap-3">
                           <div className="relative h-11 w-11 flex-shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 flex items-center justify-center">
                             {r.image_url ? (
-                              <img
+                              <Image
                                 src={r.image_url}
                                 alt={r.title}
-                                className="h-full w-full object-cover"
+                                fill
+                                sizes="44px"
+                                className="object-cover"
+                                unoptimized={!r.image_url.includes('supabase.co')}
                               />
                             ) : (
                               <IconGift className="h-5 w-5 text-neutral-400" />

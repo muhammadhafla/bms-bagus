@@ -18,6 +18,7 @@ export interface Kehadiran {
   status_pulang_awal?: 'tidak_ada' | 'pending' | 'disetujui_penuh' | 'disetujui_durasi' | 'ditolak';
   alasan_pulang_awal?: string | null;
   menit_pulang_awal?: number;
+  catatan_admin?: string | null;
   created_at: string;
   lat_masuk?: number | null;
   lng_masuk?: number | null;
@@ -188,6 +189,7 @@ export const kehadiranApi = {
           .from('kehadiran')
           .select(`
             *,
+            profiles:profiles!kehadiran_user_id_fkey(nama),
             lokasi_masuk:lokasi_kerja!kehadiran_lokasi_masuk_id_fkey(id, nama),
             lokasi_pulang:lokasi_kerja!kehadiran_lokasi_pulang_id_fkey(id, nama)
           `)
@@ -196,8 +198,10 @@ export const kehadiranApi = {
           
         if (res.error) return { data: null, error: res.error as Error };
         
-        if (res.data && res.data.length > 0) {
-          const userIds = [...new Set(res.data.map((d: any) => d.user_id))];
+        let listData = (res.data || []) as Kehadiran[];
+        // Fallback jika PostgREST tidak memetakan profiles
+        if (listData.length > 0 && !listData[0].profiles) {
+          const userIds = [...new Set(listData.map((d: any) => d.user_id))];
           const { data: profiles } = await supabase
             .from('profiles')
             .select('id, nama')
@@ -209,13 +213,13 @@ export const kehadiranApi = {
               return acc;
             }, {});
             
-            res.data = res.data.map((d: any) => ({
+            listData = listData.map((d: any) => ({
               ...d,
               profiles: profileMap[d.user_id] || null
             }));
           }
         }
-        return { data: res.data as Kehadiran[], error: null };
+        return { data: listData, error: null };
       });
       return result;
     } catch (err: any) {
@@ -233,6 +237,7 @@ export const kehadiranApi = {
           .from('kehadiran')
           .select(`
             *,
+            profiles:profiles!kehadiran_user_id_fkey(nama),
             lokasi_masuk:lokasi_kerja!kehadiran_lokasi_masuk_id_fkey(id, nama),
             lokasi_pulang:lokasi_kerja!kehadiran_lokasi_pulang_id_fkey(id, nama)
           `)
@@ -241,8 +246,10 @@ export const kehadiranApi = {
           
         if (res.error) return { data: null, error: res.error as Error };
         
-        if (res.data && res.data.length > 0) {
-          const userIds = [...new Set(res.data.map((d: any) => d.user_id))];
+        let listData = (res.data || []) as Kehadiran[];
+        // Fallback jika PostgREST tidak memetakan profiles
+        if (listData.length > 0 && !listData[0].profiles) {
+          const userIds = [...new Set(listData.map((d: any) => d.user_id))];
           const { data: profiles } = await supabase
             .from('profiles')
             .select('id, nama')
@@ -254,13 +261,13 @@ export const kehadiranApi = {
               return acc;
             }, {});
             
-            res.data = res.data.map((d: any) => ({
+            listData = listData.map((d: any) => ({
               ...d,
               profiles: profileMap[d.user_id] || null
             }));
           }
         }
-        return { data: res.data as Kehadiran[], error: null };
+        return { data: listData, error: null };
       });
       return result;
     } catch (err: any) {
@@ -305,9 +312,9 @@ export const kehadiranApi = {
   },
 
   /**
-   * Review Pulang Awal (Admin: 'hitung_penuh' | 'sesuai_durasi')
+   * Review Pulang Awal (Admin: 'hitung_penuh' | 'sesuai_durasi' | 'ditolak')
    */
-  async reviewPulangAwal(id: string, keputusan: 'hitung_penuh' | 'sesuai_durasi', catatan?: string) {
+  async reviewPulangAwal(id: string, keputusan: 'hitung_penuh' | 'sesuai_durasi' | 'ditolak', catatan?: string) {
     try {
       const result = await safeQuery(
         async () => {
@@ -373,6 +380,42 @@ export const kehadiranApi = {
     } catch (err: any) {
       return { data: null, error: { message: err.message || 'Terjadi kesalahan' } };
     }
+  },
+
+  /**
+   * Reject Lembur Single (Admin)
+   */
+  async rejectLembur(id: string) {
+    try {
+      const result = await safeQuery(
+        async () => {
+          const res = await supabase
+            .from('kehadiran')
+            .update({
+              menit_lembur_disetujui: 0,
+              status_lembur: 'ditolak'
+            })
+            .eq('id', id)
+            .select()
+            .single();
+          return { data: res.data as Kehadiran, error: res.error as Error | null };
+        },
+        { isMutation: true }
+      );
+      return result;
+    } catch (err: any) {
+      return { data: null, error: { message: err.message || 'Terjadi kesalahan' } };
+    }
+  },
+
+  /**
+   * Review Lembur (Admin: 'disetujui' | 'ditolak')
+   */
+  async reviewLembur(id: string, keputusan: 'disetujui' | 'ditolak', menitDisetujui?: number) {
+    if (keputusan === 'ditolak') {
+      return this.rejectLembur(id);
+    }
+    return this.approveLembur(id, menitDisetujui ?? 0);
   },
 
   /**
@@ -449,6 +492,7 @@ export const kehadiranApi = {
           .select(
             `
               *,
+              profiles:profiles!kehadiran_user_id_fkey(nama),
               lokasi_masuk:lokasi_kerja!kehadiran_lokasi_masuk_id_fkey(id, nama),
               lokasi_pulang:lokasi_kerja!kehadiran_lokasi_pulang_id_fkey(id, nama)
             `,
@@ -493,7 +537,8 @@ export const kehadiranApi = {
 
         let listData = (res.data || []) as Kehadiran[];
 
-        if (listData.length > 0) {
+        // Fallback jika PostgREST tidak otomatis memetakan profiles
+        if (listData.length > 0 && !listData[0].profiles) {
           const userIds = [...new Set(listData.map((d: any) => d.user_id))];
           const { data: profiles } = await supabase
             .from('profiles')
@@ -538,6 +583,7 @@ export const kehadiranApi = {
           .from('kehadiran')
           .select(`
             *,
+            profiles:profiles!kehadiran_user_id_fkey(nama),
             lokasi_masuk:lokasi_kerja!kehadiran_lokasi_masuk_id_fkey(id, nama),
             lokasi_pulang:lokasi_kerja!kehadiran_lokasi_pulang_id_fkey(id, nama)
           `)
@@ -567,8 +613,10 @@ export const kehadiranApi = {
         const res = await query;
         if (res.error) return { data: null, error: res.error as Error };
 
-        if (res.data && res.data.length > 0) {
-          const userIds = [...new Set(res.data.map((d: any) => d.user_id))];
+        let listData = (res.data || []) as Kehadiran[];
+        // Fallback jika PostgREST tidak otomatis memetakan profiles
+        if (listData.length > 0 && !listData[0].profiles) {
+          const userIds = [...new Set(listData.map((d: any) => d.user_id))];
           const { data: profiles } = await supabase
             .from('profiles')
             .select('id, nama')
@@ -580,13 +628,13 @@ export const kehadiranApi = {
               return acc;
             }, {});
             
-            res.data = res.data.map((d: any) => ({
+            listData = listData.map((d: any) => ({
               ...d,
               profiles: profileMap[d.user_id] || null
             }));
           }
         }
-        return { data: res.data as Kehadiran[], error: null };
+        return { data: listData, error: null };
       });
       return result;
     } catch (err: any) {

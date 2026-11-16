@@ -1,9 +1,9 @@
-import { DataTable, Badge, ModernPagination, type Column } from '@/components/ui';
-import { IconCalendarEvent, IconMapPin, IconChevronRight } from '@tabler/icons-react';
+import { useMemo, Dispatch, SetStateAction } from 'react';
+import { DataTable, Badge, ModernPagination, Button, type Column } from '@/components/ui';
+import { IconCalendarEvent, IconMapPin, IconChevronRight, IconAlertTriangle } from '@tabler/icons-react';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { Kehadiran } from '@/lib/api/payroll';
-import { Dispatch, SetStateAction } from 'react';
 
 export const getTimeFromIso = (isoString?: string | null) => {
   if (!isoString) return '';
@@ -27,6 +27,8 @@ export const getStatusBadge = (status: string) => {
 interface KehadiranTableProps {
   list: Kehadiran[];
   isLoadingList: boolean;
+  isErrorList?: boolean;
+  onRetry?: () => void;
   page: number;
   totalPages: number;
   totalItems: number;
@@ -37,13 +39,18 @@ interface KehadiranTableProps {
   selectedPulangAwalIds: string[];
   handleToggleSelectLembur: (id: string) => void;
   handleToggleSelectPulangAwal: (id: string) => void;
+  handleSelectAllLembur?: (selectAll: boolean) => void;
+  handleSelectAllPulangAwal?: (selectAll: boolean) => void;
   setReviewPulangAwalModalItem: Dispatch<SetStateAction<Kehadiran | null>>;
+  setReviewLemburModalItem?: Dispatch<SetStateAction<Kehadiran | null>>;
   handleOpenEdit: (item: Kehadiran) => void;
 }
 
 export function KehadiranTable({
   list,
   isLoadingList,
+  isErrorList,
+  onRetry,
   page,
   totalPages,
   totalItems,
@@ -54,13 +61,51 @@ export function KehadiranTable({
   selectedPulangAwalIds,
   handleToggleSelectLembur,
   handleToggleSelectPulangAwal,
+  handleSelectAllLembur,
+  handleSelectAllPulangAwal,
   setReviewPulangAwalModalItem,
+  setReviewLemburModalItem,
   handleOpenEdit,
 }: KehadiranTableProps) {
+  const isAllSelected = useMemo(() => {
+    if (list.length === 0) return false;
+    const currentIds = activeTab === 'lembur' ? selectedLemburIds : selectedPulangAwalIds;
+    return list.every((item) => currentIds.includes(item.id));
+  }, [list, activeTab, selectedLemburIds, selectedPulangAwalIds]);
+
+  const isSomeSelected = useMemo(() => {
+    if (list.length === 0 || isAllSelected) return false;
+    const currentIds = activeTab === 'lembur' ? selectedLemburIds : selectedPulangAwalIds;
+    return list.some((item) => currentIds.includes(item.id));
+  }, [list, activeTab, selectedLemburIds, selectedPulangAwalIds, isAllSelected]);
+
+  const handleToggleSelectAll = () => {
+    const nextVal = !isAllSelected;
+    if (activeTab === 'lembur') {
+      handleSelectAllLembur?.(nextVal);
+    } else if (activeTab === 'pulang_awal') {
+      handleSelectAllPulangAwal?.(nextVal);
+    }
+  };
+
   const columns: Column<Kehadiran>[] = [
     ...((activeTab === 'lembur' || activeTab === 'pulang_awal') ? [{
       key: 'checkbox',
-      header: 'Pilih',
+      header: (
+        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+          <input 
+            type="checkbox" 
+            checked={isAllSelected}
+            ref={(el) => {
+              if (el) el.indeterminate = isSomeSelected;
+            }}
+            onChange={handleToggleSelectAll}
+            className="rounded border-neutral-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+            aria-label="Pilih semua data pada halaman ini"
+          />
+          <span className="text-xs font-semibold">Pilih</span>
+        </div>
+      ),
       render: (row: Kehadiran) => (
         <input 
           type="checkbox" 
@@ -73,7 +118,8 @@ export function KehadiranTable({
               handleToggleSelectPulangAwal(row.id);
             }
           }}
-          className="rounded border-neutral-300 text-teal-600 focus:ring-teal-500"
+          className="rounded border-neutral-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+          aria-label={`Pilih presensi ${row.profiles?.nama || 'karyawan'}`}
         />
       )
     }] : []),
@@ -153,10 +199,10 @@ export function KehadiranTable({
       header: 'Telat', 
       render: (row: Kehadiran) => {
         if (row.menit_telat > 30) {
-          return <span className="text-rose-600 font-semibold text-xs">{row.menit_telat}m (Denda)</span>;
+          return <span className="text-rose-600 dark:text-rose-400 font-semibold text-xs">{row.menit_telat}m (Denda)</span>;
         }
         if (row.menit_telat > 0) {
-          return <span className="text-amber-600 font-medium text-xs">{row.menit_telat}m (Toleransi)</span>;
+          return <span className="text-amber-600 dark:text-amber-400 font-medium text-xs">{row.menit_telat}m (Toleransi)</span>;
         }
         return <span className="text-neutral-400">-</span>;
       }
@@ -194,8 +240,21 @@ export function KehadiranTable({
       key: 'lembur', 
       header: 'Lembur', 
       render: (row: Kehadiran) => {
+        if (row.status_lembur === 'pending') {
+          return (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setReviewLemburModalItem?.(row);
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-teal-100 text-teal-800 hover:bg-teal-200 dark:bg-teal-950/60 dark:text-teal-300 border border-teal-300 dark:border-teal-800 transition-colors shadow-xs animate-pulse cursor-pointer"
+            >
+              Review ({row.menit_lembur_aktual || 0}m)
+            </button>
+          );
+        }
         if (row.status_lembur === 'disetujui') return <Badge variant="success">+{row.menit_lembur_disetujui}m</Badge>;
-        if (row.status_lembur === 'pending') return <Badge variant="warning">Pending {row.menit_lembur_aktual}m</Badge>;
         if (row.status_lembur === 'ditolak') return <Badge variant="danger">Ditolak</Badge>;
         return <span className="text-neutral-400">-</span>;
       }
@@ -211,6 +270,17 @@ export function KehadiranTable({
             {[1, 2, 3, 4, 5].map(i => (
               <div key={i} className="h-14 w-full animate-pulse rounded-xl bg-neutral-100 dark:bg-neutral-800" />
             ))}
+          </div>
+        ) : isErrorList ? (
+          <div className="flex flex-col items-center justify-center p-12 text-center text-rose-500">
+            <IconAlertTriangle className="mb-2 h-10 w-10 opacity-70 text-rose-500" />
+            <p className="font-semibold text-neutral-800 dark:text-neutral-200">Gagal memuat data presensi</p>
+            <p className="text-xs text-neutral-500 mt-1 mb-4">Terjadi kesalahan koneksi atau jaringan.</p>
+            {onRetry && (
+              <Button variant="secondary" size="sm" onClick={onRetry}>
+                Coba Lagi
+              </Button>
+            )}
           </div>
         ) : (
           <div className="flex-1 flex flex-col">
@@ -246,6 +316,17 @@ export function KehadiranTable({
             {[1, 2, 3].map(i => (
               <div key={i} className="h-28 w-full animate-pulse rounded-2xl bg-neutral-100 dark:bg-neutral-800" />
             ))}
+          </div>
+        ) : isErrorList ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm dark:border-neutral-800 dark:bg-neutral-900 text-rose-500">
+            <IconAlertTriangle className="mb-2 h-10 w-10 opacity-70 text-rose-500" />
+            <p className="font-semibold text-neutral-800 dark:text-neutral-200">Gagal memuat data presensi</p>
+            <p className="text-xs text-neutral-500 mt-1 mb-4">Terjadi kesalahan koneksi atau jaringan.</p>
+            {onRetry && (
+              <Button variant="secondary" size="sm" onClick={onRetry}>
+                Coba Lagi
+              </Button>
+            )}
           </div>
         ) : list.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm dark:border-neutral-800 dark:bg-neutral-900 text-neutral-500 dark:text-neutral-400">
@@ -352,11 +433,22 @@ export function KehadiranTable({
                 )}
 
                 {item.status_lembur !== 'tidak_ada' && (
-                  <div className="mt-1 flex items-center gap-1.5 border-t border-neutral-100 pt-2 text-[11px] dark:border-neutral-800/60">
+                  <div className="mt-1 flex items-center justify-between border-t border-neutral-100 pt-2 text-[11px] dark:border-neutral-800/60">
                     <span className="text-neutral-500">Lembur:</span>
-                    <div className="origin-left scale-90">
+                    <div>
+                      {item.status_lembur === 'pending' && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReviewLemburModalItem?.(item);
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300 border border-teal-300 dark:border-teal-800 cursor-pointer"
+                        >
+                          Review ({item.menit_lembur_aktual || 0}m)
+                        </button>
+                      )}
                       {item.status_lembur === 'disetujui' && <Badge variant="success">+{item.menit_lembur_disetujui}m</Badge>}
-                      {item.status_lembur === 'pending' && <Badge variant="warning">Pending {item.menit_lembur_aktual}m</Badge>}
                       {item.status_lembur === 'ditolak' && <Badge variant="danger">Ditolak</Badge>}
                     </div>
                   </div>

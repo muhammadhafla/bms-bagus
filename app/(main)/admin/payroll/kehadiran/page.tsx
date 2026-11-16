@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useRealtimeQuery } from '@/lib/hooks/useRealtimeQuery';
@@ -12,7 +12,9 @@ import {
   IconCalendarEvent, 
   IconCheck, 
   IconAlertCircle,
-  IconUserCheck
+  IconUserCheck,
+  IconSearch,
+  IconX
 } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -38,20 +40,13 @@ function AdminKehadiranContent() {
 
   const tabParam = searchParams.get('tab') as 'all' | 'pulang_awal' | 'lembur' | null;
 
-  // Tab State: 'all' | 'pulang_awal' | 'lembur'
-  const [activeTab, setActiveTab] = useState<'all' | 'pulang_awal' | 'lembur'>(
-    tabParam && ['all', 'pulang_awal', 'lembur'].includes(tabParam) ? tabParam : 'all'
-  );
-
-  useEffect(() => {
-    if (tabParam && ['all', 'pulang_awal', 'lembur'].includes(tabParam)) {
-      setActiveTab(tabParam);
-    }
-  }, [tabParam]);
+  // Tab State disinkronkan langsung dengan URL searchParams
+  const activeTab = tabParam && ['all', 'pulang_awal', 'lembur'].includes(tabParam) ? tabParam : 'all';
 
   const [selectedLemburIds, setSelectedLemburIds] = useState<string[]>([]);
   const [selectedPulangAwalIds, setSelectedPulangAwalIds] = useState<string[]>([]);
   const [reviewPulangAwalModalItem, setReviewPulangAwalModalItem] = useState<Kehadiran | null>(null);
+  const [reviewLemburModalItem, setReviewLemburModalItem] = useState<Kehadiran | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [selectedKehadiran, setSelectedKehadiran] = useState<Kehadiran | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -65,8 +60,14 @@ function AdminKehadiranContent() {
   const statusHadir = searchParams.get('statusHadir') || 'all';
   const lokasiId = searchParams.get('lokasiId') || 'all';
 
-  const updateFilters = (newFilters: FilterState) => {
+  const updateFilters = useCallback((newFilters: FilterState & { tab?: 'all' | 'pulang_awal' | 'lembur' }) => {
     const params = new URLSearchParams(searchParams.toString());
+    const targetTab = newFilters.tab !== undefined ? newFilters.tab : activeTab;
+    if (targetTab && targetTab !== 'all') {
+      params.set('tab', targetTab);
+    } else {
+      params.delete('tab');
+    }
     if (newFilters.search !== undefined) newFilters.search ? params.set('search', newFilters.search) : params.delete('search');
     if (newFilters.startDate !== undefined) newFilters.startDate ? params.set('startDate', newFilters.startDate) : params.delete('startDate');
     if (newFilters.endDate !== undefined) newFilters.endDate ? params.set('endDate', newFilters.endDate) : params.delete('endDate');
@@ -75,10 +76,31 @@ function AdminKehadiranContent() {
     
     params.set('page', (newFilters.page || 1).toString());
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  };
+  }, [searchParams, activeTab, pathname, router]);
+
+  // Inline Search State with Debounce (350ms)
+  const [searchInput, setSearchInput] = useState(search);
+  useEffect(() => {
+    setSearchInput(search);
+  }, [search]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== search) {
+        updateFilters({ search: searchInput, page: 1 });
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchInput, search, updateFilters]);
 
   const setPage = (newPage: number) => {
     updateFilters({ page: newPage });
+  };
+
+  const handleTabChange = (newTab: 'all' | 'pulang_awal' | 'lembur') => {
+    setSelectedLemburIds([]);
+    setSelectedPulangAwalIds([]);
+    updateFilters({ tab: newTab, page: 1 });
   };
 
   // 1. Query Live Summary Stats Hari Ini
@@ -89,8 +111,28 @@ function AdminKehadiranContent() {
     refetchOnWindowFocus: true,
   });
 
+  // Query All-Time Pending Backlog Counters for Tabs
+  const { data: pendingLemburCount } = useQuery({
+    queryKey: ['admin_pending_lembur_count'],
+    queryFn: () => kehadiranApi.getPendingLemburCount().then(res => res.count),
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+  });
+
+  const { data: pendingPulangAwalCount } = useQuery({
+    queryKey: ['admin_pending_pulang_awal_count'],
+    queryFn: () => kehadiranApi.getPendingPulangAwalCount().then(res => res.count),
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+  });
+
   // 2. Query Data Kehadiran (Server-Side Paginated)
-  const { data: paginatedResult, isLoading: isLoadingList } = useQuery({
+  const { 
+    data: paginatedResult, 
+    isLoading: isLoadingList,
+    isError: isErrorList,
+    refetch: refetchList
+  } = useQuery({
     queryKey: ['admin_payroll_kehadiran_paginated', page, limit, search, startDate, endDate, statusHadir, lokasiId, activeTab],
     queryFn: () => kehadiranApi.getPaginated({
       page,
@@ -112,6 +154,8 @@ function AdminKehadiranContent() {
     queryKeys: [
       ['admin_today_kehadiran_summary'],
       ['admin_payroll_kehadiran_paginated'],
+      ['admin_pending_lembur_count'],
+      ['admin_pending_pulang_awal_count'],
     ],
   });
 
@@ -119,15 +163,17 @@ function AdminKehadiranContent() {
   const totalItems = paginatedResult?.total || 0;
   const totalPages = Math.ceil(totalItems / limit);
 
-  // 3. Query Master Karyawan & Toko
+  // 3. Query Master Karyawan & Toko (Cache StaleTime 5 Menit)
   const { data: karyawanList } = useQuery({
     queryKey: ['admin_payroll_karyawan'],
     queryFn: () => karyawanApi.getAll().then(res => res.data),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: storeList } = useQuery({
     queryKey: ['admin_payroll_stores'],
     queryFn: () => lokasiKerjaApi.getAll().then(res => res.data || []),
+    staleTime: 5 * 60 * 1000,
   });
 
   const {
@@ -135,6 +181,7 @@ function AdminKehadiranContent() {
     updateMutation,
     reviewPulangAwalMutation,
     bulkReviewPulangAwalMutation,
+    reviewLemburMutation,
     bulkApproveMutation,
   } = useKehadiranMutations({
     onSuccessBulkReviewPulangAwal: () => setSelectedPulangAwalIds([]),
@@ -151,6 +198,22 @@ function AdminKehadiranContent() {
     setSelectedLemburIds(prev => 
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
+  };
+
+  const handleSelectAllLembur = (selectAll: boolean) => {
+    if (selectAll) {
+      setSelectedLemburIds(list.map((item) => item.id));
+    } else {
+      setSelectedLemburIds([]);
+    }
+  };
+
+  const handleSelectAllPulangAwal = (selectAll: boolean) => {
+    if (selectAll) {
+      setSelectedPulangAwalIds(list.map((item) => item.id));
+    } else {
+      setSelectedPulangAwalIds([]);
+    }
   };
 
   const handleBulkReviewPulangAwal = (keputusan: 'hitung_penuh' | 'sesuai_durasi') => {
@@ -170,8 +233,16 @@ function AdminKehadiranContent() {
   };
 
   const handleExportCsv = async () => {
-    const url = `/api/export/kehadiran/csv?startDate=${startDate}&endDate=${endDate}&lokasiId=${lokasiId}&statusHadir=${statusHadir}`;
-    await downloadOrShareFile(url, `Rekap_Kehadiran_${startDate}_${endDate}.csv`, 'Rekap Kehadiran', 'text/csv');
+    setIsExporting(true);
+    try {
+      const url = `/api/export/kehadiran/csv?startDate=${startDate}&endDate=${endDate}&lokasiId=${lokasiId}&statusHadir=${statusHadir}`;
+      await downloadOrShareFile(url, `Rekap_Kehadiran_${startDate || 'all'}_${endDate || 'all'}.csv`, 'Rekap Kehadiran', 'text/csv');
+      toast.success('File CSV berhasil diunduh');
+    } catch (err: any) {
+      toast.error('Gagal mengekspor CSV: ' + (err?.message || 'Terjadi kesalahan'));
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const getActiveFilters = () => {
@@ -229,7 +300,7 @@ function AdminKehadiranContent() {
   return (
     <div className="flex flex-col gap-3 px-2 py-4 w-full md:p-4 lg:p-8 pb-20">
       {/* Top Header */}
-      <div className="flex flex-row items-center justify-between gap-2 mb-1">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-1">
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400">
             <IconClock className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -240,20 +311,47 @@ function AdminKehadiranContent() {
           </div>
         </div>
 
-        <KehadiranFilters 
-          search={search}
-          startDate={startDate}
-          endDate={endDate}
-          statusHadir={statusHadir}
-          lokasiId={lokasiId}
-          karyawanList={karyawanList || []}
-          storeList={storeList || []}
-          updateFilters={updateFilters}
-          activeFilters={getActiveFilters()}
-          isExporting={isExporting}
-          onExportCsv={handleExportCsv}
-          onOpenCreate={() => setIsCreateOpen(true)}
-        />
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          {/* Quick Search Input */}
+          <div className="relative flex-1 sm:w-60 min-w-[160px]">
+            <IconSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Cari karyawan..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all shadow-2xs"
+            />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchInput('');
+                  updateFilters({ search: '', page: 1 });
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 p-0.5 cursor-pointer"
+                aria-label="Bersihkan pencarian"
+              >
+                <IconX size={13} />
+              </button>
+            )}
+          </div>
+
+          <KehadiranFilters 
+            search={search}
+            startDate={startDate}
+            endDate={endDate}
+            statusHadir={statusHadir}
+            lokasiId={lokasiId}
+            karyawanList={karyawanList || []}
+            storeList={storeList || []}
+            updateFilters={updateFilters}
+            activeFilters={getActiveFilters()}
+            isExporting={isExporting}
+            onExportCsv={handleExportCsv}
+            onOpenCreate={() => setIsCreateOpen(true)}
+          />
+        </div>
       </div>
 
       {/* Compact Live Stats Summary */}
@@ -294,14 +392,12 @@ function AdminKehadiranContent() {
 
       {/* Tabs & Bulk Action Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-1">
-        <div className="flex items-center gap-1.5 p-1 bg-neutral-100 dark:bg-neutral-800 rounded-xl w-fit">
+        <div role="tablist" aria-label="Tab Kategori Presensi" className="flex items-center gap-1.5 p-1 bg-neutral-100 dark:bg-neutral-800 rounded-xl w-fit">
           <button
-            onClick={() => {
-              setActiveTab('all');
-              setSelectedLemburIds([]);
-              setSelectedPulangAwalIds([]);
-            }}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            role="tab"
+            aria-selected={activeTab === 'all'}
+            onClick={() => handleTabChange('all')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'all'
                 ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white shadow-sm'
                 : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200'
@@ -311,41 +407,37 @@ function AdminKehadiranContent() {
           </button>
           
           <button
-            onClick={() => {
-              setActiveTab('pulang_awal');
-              setSelectedLemburIds([]);
-              setSelectedPulangAwalIds([]);
-            }}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            role="tab"
+            aria-selected={activeTab === 'pulang_awal'}
+            onClick={() => handleTabChange('pulang_awal')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'pulang_awal'
                 ? 'bg-white dark:bg-neutral-900 text-amber-600 dark:text-amber-400 shadow-sm'
                 : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200'
             }`}
           >
             <span>Pulang Awal</span>
-            {(summaryData?.pending_pulang_awal || 0) > 0 && (
+            {(pendingPulangAwalCount || 0) > 0 && (
               <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300">
-                {summaryData?.pending_pulang_awal}
+                {pendingPulangAwalCount}
               </span>
             )}
           </button>
 
           <button
-            onClick={() => {
-              setActiveTab('lembur');
-              setSelectedLemburIds([]);
-              setSelectedPulangAwalIds([]);
-            }}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            role="tab"
+            aria-selected={activeTab === 'lembur'}
+            onClick={() => handleTabChange('lembur')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'lembur'
                 ? 'bg-white dark:bg-neutral-900 text-teal-600 dark:text-teal-400 shadow-sm'
                 : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200'
             }`}
           >
             <span>Persetujuan Lembur</span>
-            {(summaryData?.pending_lembur || 0) > 0 && (
+            {(pendingLemburCount || 0) > 0 && (
               <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-teal-100 text-teal-700 dark:bg-teal-900/60 dark:text-teal-300">
-                {summaryData?.pending_lembur}
+                {pendingLemburCount}
               </span>
             )}
           </button>
@@ -391,11 +483,20 @@ function AdminKehadiranContent() {
         )}
       </div>
 
-      <FilterBadges activeFilters={getActiveFilters()} totalItems={totalItems} />
+      <FilterBadges 
+        activeFilters={getActiveFilters()} 
+        totalItems={totalItems} 
+        onResetAll={() => {
+          setSearchInput('');
+          updateFilters({ search: '', startDate: '', endDate: '', statusHadir: 'all', lokasiId: 'all', page: 1 });
+        }}
+      />
 
       <KehadiranTable 
         list={list}
         isLoadingList={isLoadingList}
+        isErrorList={isErrorList}
+        onRetry={refetchList}
         page={page}
         totalPages={totalPages}
         totalItems={totalItems}
@@ -406,7 +507,10 @@ function AdminKehadiranContent() {
         selectedPulangAwalIds={selectedPulangAwalIds}
         handleToggleSelectLembur={handleToggleSelectLembur}
         handleToggleSelectPulangAwal={handleToggleSelectPulangAwal}
+        handleSelectAllLembur={handleSelectAllLembur}
+        handleSelectAllPulangAwal={handleSelectAllPulangAwal}
         setReviewPulangAwalModalItem={setReviewPulangAwalModalItem}
+        setReviewLemburModalItem={setReviewLemburModalItem}
         handleOpenEdit={setSelectedKehadiran}
       />
 
@@ -417,11 +521,14 @@ function AdminKehadiranContent() {
         setIsCreateOpen={setIsCreateOpen}
         reviewPulangAwalModalItem={reviewPulangAwalModalItem}
         setReviewPulangAwalModalItem={setReviewPulangAwalModalItem}
+        reviewLemburModalItem={reviewLemburModalItem}
+        setReviewLemburModalItem={setReviewLemburModalItem}
         karyawanIdOptions={karyawanIdOptions}
         storeFormOptions={storeFormOptions}
         createMutation={createMutation}
         updateMutation={updateMutation}
         reviewPulangAwalMutation={reviewPulangAwalMutation}
+        reviewLemburMutation={reviewLemburMutation}
       />
     </div>
   );

@@ -12,7 +12,7 @@ export type SortDirection = 'asc' | 'desc';
 
 export interface Column<T> {
   key: string;
-  header: string;
+  header: React.ReactNode;
   sortable?: boolean;
   width?: string;
   align?: 'left' | 'center' | 'right';

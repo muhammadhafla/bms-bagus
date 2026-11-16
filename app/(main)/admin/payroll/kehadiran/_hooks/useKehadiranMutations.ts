@@ -7,6 +7,7 @@ interface MutationOptions {
   onSuccessUpdate?: () => void;
   onSuccessReviewPulangAwal?: () => void;
   onSuccessBulkReviewPulangAwal?: (count: number) => void;
+  onSuccessReviewLembur?: () => void;
   onSuccessBulkApprove?: (count: number) => void;
 }
 
@@ -14,12 +15,13 @@ export function useKehadiranMutations(options?: MutationOptions) {
   const queryClient = useQueryClient();
 
   const invalidateQueries = () => {
-    queryClient.invalidateQueries({
-      predicate: (query) => {
-        const key = query.queryKey[0];
-        return typeof key === 'string' && (key.includes('payroll') || key.includes('kehadiran'));
-      },
-    });
+    // Targeted invalidation hanya untuk data kehadiran & antrean, bukan master toko/karyawan
+    queryClient.invalidateQueries({ queryKey: ['admin_payroll_kehadiran_paginated'] });
+    queryClient.invalidateQueries({ queryKey: ['admin_today_kehadiran_summary'] });
+    queryClient.invalidateQueries({ queryKey: ['admin_pending_lembur_count'] });
+    queryClient.invalidateQueries({ queryKey: ['admin_pending_pulang_awal_count'] });
+    queryClient.invalidateQueries({ queryKey: ['admin_pending_lembur_list'] });
+    queryClient.invalidateQueries({ queryKey: ['admin_pending_pulang_awal_list'] });
   };
 
   const createMutation = useMutation({
@@ -64,22 +66,45 @@ export function useKehadiranMutations(options?: MutationOptions) {
   });
 
   const reviewPulangAwalMutation = useMutation({
-    mutationFn: (args: { id: string; keputusan: 'hitung_penuh' | 'sesuai_durasi'; catatan?: string }) =>
+    mutationFn: (args: { id: string; keputusan: 'hitung_penuh' | 'sesuai_durasi' | 'ditolak'; catatan?: string }) =>
       kehadiranApi.reviewPulangAwal(args.id, args.keputusan, args.catatan),
     onSuccess: (res, vars) => {
       if (res.error) {
         toast.error(res.error.message);
         return;
       }
-      const msg =
-        vars.keputusan === 'hitung_penuh'
-          ? 'Absensi disetujui dihitung penuh (jam clockout diset ke jam shift).'
-          : 'Absensi disetujui dihitung sesuai durasi riil.';
+      let msg = 'Keputusan kepulangan awal berhasil disimpan.';
+      if (vars.keputusan === 'hitung_penuh') {
+        msg = 'Absensi disetujui dihitung penuh (jam clockout diset ke jam shift).';
+      } else if (vars.keputusan === 'sesuai_durasi') {
+        msg = 'Absensi disetujui dihitung sesuai durasi riil.';
+      } else if (vars.keputusan === 'ditolak') {
+        msg = 'Pengajuan kepulangan awal ditolak (dihitung durasi riil & ditandai).';
+      }
       toast.success(msg);
       invalidateQueries();
       options?.onSuccessReviewPulangAwal?.();
     },
     onError: () => toast.error('Gagal melakukan review kepulangan awal'),
+  });
+
+  const reviewLemburMutation = useMutation({
+    mutationFn: (args: { id: string; keputusan: 'disetujui' | 'ditolak'; menitDisetujui?: number }) =>
+      kehadiranApi.reviewLembur(args.id, args.keputusan, args.menitDisetujui),
+    onSuccess: (res, vars) => {
+      if (res.error) {
+        toast.error(res.error.message);
+        return;
+      }
+      const msg =
+        vars.keputusan === 'disetujui'
+          ? `Lembur disetujui (${vars.menitDisetujui || 0} menit)!`
+          : 'Pengajuan lembur telah ditolak.';
+      toast.success(msg);
+      invalidateQueries();
+      options?.onSuccessReviewLembur?.();
+    },
+    onError: () => toast.error('Gagal memproses review lembur'),
   });
 
   const bulkReviewPulangAwalMutation = useMutation({
@@ -116,6 +141,7 @@ export function useKehadiranMutations(options?: MutationOptions) {
     updateMutation,
     reviewPulangAwalMutation,
     bulkReviewPulangAwalMutation,
+    reviewLemburMutation,
     bulkApproveMutation,
   };
 }

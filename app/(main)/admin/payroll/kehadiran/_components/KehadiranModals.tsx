@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Modal, TextInput, SelectInput, Button, Badge } from '@/components/ui';
-import { IconMapPin, IconExternalLink, IconCheck, IconClock } from '@tabler/icons-react';
+import { Modal, TextInput, SelectInput, Button, Badge, TextareaInput } from '@/components/ui';
+import { IconMapPin, IconExternalLink, IconCheck, IconClock, IconX, IconAlertTriangle } from '@tabler/icons-react';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { Kehadiran } from '@/lib/api/payroll';
@@ -14,11 +14,14 @@ interface KehadiranModalsProps {
   setIsCreateOpen: (val: boolean) => void;
   reviewPulangAwalModalItem: Kehadiran | null;
   setReviewPulangAwalModalItem: (val: Kehadiran | null) => void;
+  reviewLemburModalItem?: Kehadiran | null;
+  setReviewLemburModalItem?: (val: Kehadiran | null) => void;
   karyawanIdOptions: { label: string; value: string }[];
   storeFormOptions: { label: string; value: string }[];
   createMutation: any;
   updateMutation: any;
   reviewPulangAwalMutation: any;
+  reviewLemburMutation?: any;
 }
 
 export function KehadiranModals({
@@ -28,11 +31,14 @@ export function KehadiranModals({
   setIsCreateOpen,
   reviewPulangAwalModalItem,
   setReviewPulangAwalModalItem,
+  reviewLemburModalItem,
+  setReviewLemburModalItem,
   karyawanIdOptions,
   storeFormOptions,
   createMutation,
   updateMutation,
   reviewPulangAwalMutation,
+  reviewLemburMutation,
 }: KehadiranModalsProps) {
   // Edit State
   const [editStatusHadir, setEditStatusHadir] = useState<string>('');
@@ -48,6 +54,36 @@ export function KehadiranModals({
       setEditLokasiPulangId(selectedKehadiran.lokasi_pulang_id || '');
     }
   }, [selectedKehadiran]);
+
+  // Review Pulang Awal State
+  const [pulangAwalKeputusan, setPulangAwalKeputusan] = useState<'hitung_penuh' | 'sesuai_durasi' | 'ditolak'>('hitung_penuh');
+  const [pulangAwalCatatan, setPulangAwalCatatan] = useState('');
+
+  useEffect(() => {
+    if (reviewPulangAwalModalItem) {
+      setPulangAwalKeputusan(
+        reviewPulangAwalModalItem.status_pulang_awal === 'disetujui_durasi'
+          ? 'sesuai_durasi'
+          : reviewPulangAwalModalItem.status_pulang_awal === 'ditolak'
+          ? 'ditolak'
+          : 'hitung_penuh'
+      );
+      setPulangAwalCatatan(reviewPulangAwalModalItem.catatan_admin || '');
+    }
+  }, [reviewPulangAwalModalItem]);
+
+  // Review Lembur State
+  const [lemburMenitDisetujui, setLemburMenitDisetujui] = useState<number>(0);
+
+  useEffect(() => {
+    if (reviewLemburModalItem) {
+      setLemburMenitDisetujui(
+        reviewLemburModalItem.menit_lembur_disetujui !== null && reviewLemburModalItem.menit_lembur_disetujui !== undefined
+          ? reviewLemburModalItem.menit_lembur_disetujui
+          : reviewLemburModalItem.menit_lembur_aktual || 0
+      );
+    }
+  }, [reviewLemburModalItem]);
 
   // Create State
   const [createDate, setCreateDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -70,13 +106,15 @@ export function KehadiranModals({
 
     const originalDateStr = selectedKehadiran.tanggal;
     
-    let waktu_masuk_iso: string | null = selectedKehadiran.waktu_masuk;
+    let waktu_masuk_iso: string | null = null;
     if (waktu_masuk_time) {
       const d = new Date(`${originalDateStr}T${waktu_masuk_time}:00`);
       if (!isNaN(d.getTime())) waktu_masuk_iso = d.toISOString();
+    } else if (selectedKehadiran.waktu_masuk && status_hadir === 'hadir') {
+      waktu_masuk_iso = selectedKehadiran.waktu_masuk;
     }
     
-    let waktu_pulang_iso: string | null = selectedKehadiran.waktu_pulang || null;
+    let waktu_pulang_iso: string | null = null;
     if (waktu_pulang_time) {
       const d = new Date(`${originalDateStr}T${waktu_pulang_time}:00`);
       if (!isNaN(d.getTime())) waktu_pulang_iso = d.toISOString();
@@ -94,6 +132,8 @@ export function KehadiranModals({
       if (dPulang > dMasuk) {
         menit_kerja = Math.round((dPulang - dMasuk) / (1000 * 60));
       }
+    } else if (!waktu_pulang_iso) {
+      menit_kerja = 0;
     }
 
     updateMutation.mutate(
@@ -187,7 +227,7 @@ export function KehadiranModals({
           title={`Edit Kehadiran: ${selectedKehadiran.profiles?.nama}`}
           isBottomSheetOnMobile
         >
-          <form onSubmit={handleEditSubmit} className="flex flex-col gap-4 mt-4">
+          <form key={selectedKehadiran.id} onSubmit={handleEditSubmit} className="flex flex-col gap-4 mt-4">
             <div className="rounded-lg bg-neutral-50 dark:bg-neutral-800 p-3 mb-1 flex items-center justify-between">
               <span className="text-sm text-neutral-500">Tanggal:</span>
               <span className="font-semibold text-neutral-900 dark:text-white">
@@ -459,6 +499,7 @@ export function KehadiranModals({
           isBottomSheetOnMobile
         >
           <div className="flex flex-col gap-4 mt-2">
+            {/* Header info card */}
             <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40">
               <div className="flex items-center justify-between pb-3 border-b border-amber-200/40 dark:border-amber-900/40">
                 <div>
@@ -472,6 +513,7 @@ export function KehadiranModals({
                 <Badge variant="warning">Pulang {reviewPulangAwalModalItem.menit_pulang_awal || 0} Menit Lebih Awal</Badge>
               </div>
 
+              {/* Time grid */}
               <div className="grid grid-cols-2 gap-3 mt-3 text-xs">
                 <div>
                   <span className="text-neutral-500 block">Jam Masuk:</span>
@@ -487,16 +529,47 @@ export function KehadiranModals({
                 </div>
               </div>
 
-              {reviewPulangAwalModalItem.alasan_pulang_awal && (
-                <div className="mt-3 pt-3 border-t border-amber-200/40 dark:border-amber-900/40">
-                  <span className="text-[11px] font-bold text-neutral-600 dark:text-neutral-400 block mb-0.5">Alasan Karyawan:</span>
+              {/* Location info if available */}
+              {(reviewPulangAwalModalItem.lokasi_pulang?.nama || reviewPulangAwalModalItem.lat_pulang) && (
+                <div className="mt-3 pt-3 border-t border-amber-200/40 dark:border-amber-900/40 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 text-neutral-700 dark:text-neutral-300 font-medium">
+                    <IconMapPin size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>Lokasi: {reviewPulangAwalModalItem.lokasi_pulang?.nama || 'Tercatat via GPS'}</span>
+                    {reviewPulangAwalModalItem.accuracy_pulang && (
+                      <span className="text-[10px] text-neutral-400">(±{Math.round(reviewPulangAwalModalItem.accuracy_pulang)}m)</span>
+                    )}
+                  </div>
+                  {reviewPulangAwalModalItem.lat_pulang && reviewPulangAwalModalItem.lng_pulang && (
+                    <a
+                      href={`https://www.google.com/maps?q=${reviewPulangAwalModalItem.lat_pulang},${reviewPulangAwalModalItem.lng_pulang}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-teal-600 hover:underline dark:text-teal-400"
+                    >
+                      <IconExternalLink size={11} />
+                      Maps
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {/* Reason or Warning */}
+              <div className="mt-3 pt-3 border-t border-amber-200/40 dark:border-amber-900/40">
+                <span className="text-[11px] font-bold text-neutral-600 dark:text-neutral-400 block mb-0.5">Alasan Karyawan:</span>
+                {reviewPulangAwalModalItem.alasan_pulang_awal ? (
                   <p className="text-xs italic text-neutral-800 dark:text-neutral-200 bg-white/60 dark:bg-neutral-900/50 p-2.5 rounded-xl border border-amber-200/30">
                     &quot;{reviewPulangAwalModalItem.alasan_pulang_awal}&quot;
                   </p>
-                </div>
-              )}
+                ) : (
+                  <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400 bg-amber-100/50 dark:bg-amber-900/20 p-2 rounded-xl">
+                    <IconAlertTriangle size={14} className="shrink-0" />
+                    <span>Karyawan tidak menyertakan alasan kepulangan awal.</span>
+                  </div>
+                )}
+              </div>
             </div>
 
+            {/* Decision options */}
             <div className="flex flex-col gap-2">
               <p className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">
                 Pilih Keputusan Penghitungan Absensi:
@@ -505,20 +578,20 @@ export function KehadiranModals({
               {/* Option 1: Hitung Penuh */}
               <button
                 type="button"
-                onClick={() => reviewPulangAwalMutation.mutate(
-                  { id: reviewPulangAwalModalItem.id, keputusan: 'hitung_penuh' },
-                  { onSuccess: () => setReviewPulangAwalModalItem(null) }
-                )}
-                disabled={reviewPulangAwalMutation.isPending}
-                className="flex items-start gap-3 p-3.5 rounded-2xl border-2 border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/40 hover:bg-emerald-50 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 text-left transition-all cursor-pointer group active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                onClick={() => setPulangAwalKeputusan('hitung_penuh')}
+                className={`flex items-start gap-3 p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                  pulangAwalKeputusan === 'hitung_penuh'
+                    ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 shadow-xs'
+                    : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 opacity-80'
+                }`}
               >
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 mt-0.5">
                   <IconCheck size={18} stroke={2.5} />
                 </div>
                 <div className="flex-1">
                   <p className="font-bold text-sm text-emerald-900 dark:text-emerald-200">Hitung Penuh</p>
-                  <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
-                    Jam clockout otomatis diset ke jam pulang jadwal shift dan durasi kerja dihitung penuh.
+                  <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
+                    Jam clockout diset ke jam pulang jadwal shift dan durasi kerja dihitung penuh (gaji tidak terpotong).
                   </p>
                 </div>
               </button>
@@ -526,26 +599,59 @@ export function KehadiranModals({
               {/* Option 2: Sesuai Durasi */}
               <button
                 type="button"
-                onClick={() => reviewPulangAwalMutation.mutate(
-                  { id: reviewPulangAwalModalItem.id, keputusan: 'sesuai_durasi' },
-                  { onSuccess: () => setReviewPulangAwalModalItem(null) }
-                )}
-                disabled={reviewPulangAwalMutation.isPending}
-                className="flex items-start gap-3 p-3.5 rounded-2xl border-2 border-slate-200 dark:border-neutral-700 bg-slate-50/50 hover:bg-slate-100/70 dark:bg-neutral-800/40 dark:hover:bg-neutral-800/70 text-left transition-all cursor-pointer group active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:outline-none"
+                onClick={() => setPulangAwalKeputusan('sesuai_durasi')}
+                className={`flex items-start gap-3 p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                  pulangAwalKeputusan === 'sesuai_durasi'
+                    ? 'border-slate-500 bg-slate-50/80 dark:bg-neutral-800/80 shadow-xs'
+                    : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 opacity-80'
+                }`}
               >
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-200 text-slate-700 dark:bg-neutral-700 dark:text-neutral-300 mt-0.5">
                   <IconClock size={18} />
                 </div>
                 <div className="flex-1">
                   <p className="font-bold text-sm text-slate-900 dark:text-slate-200">Hitung Sesuai Durasi</p>
-                  <p className="text-xs text-slate-600 dark:text-neutral-400 mt-0.5">
-                    Jam clockout tetap pada jam pulang aktual dan durasi kerja dihitung riil.
+                  <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
+                    Jam clockout tetap pada jam pulang aktual dan durasi kerja dihitung riil (potongan menit kerja).
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 3: Tolak */}
+              <button
+                type="button"
+                onClick={() => setPulangAwalKeputusan('ditolak')}
+                className={`flex items-start gap-3 p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                  pulangAwalKeputusan === 'ditolak'
+                    ? 'border-rose-500 bg-rose-50/70 dark:bg-rose-950/40 shadow-xs'
+                    : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 opacity-80'
+                }`}
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300 mt-0.5">
+                  <IconX size={18} stroke={2.5} />
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-sm text-rose-900 dark:text-rose-200">Tolak Pengajuan</p>
+                  <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
+                    Tandai kepulangan awal sebagai tidak sah/ditolak. Jam kerja tetap riil.
                   </p>
                 </div>
               </button>
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-neutral-100 dark:border-neutral-800">
+            {/* Admin notes */}
+            <div>
+              <TextareaInput
+                label="Catatan Admin (Opsional)"
+                placeholder="Tulis alasan persetujuan atau penolakan..."
+                value={pulangAwalCatatan}
+                onChange={(e) => setPulangAwalCatatan(e.target.value)}
+                rows={2}
+              />
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex justify-end gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
               <Button
                 variant="ghost"
                 onClick={() => setReviewPulangAwalModalItem(null)}
@@ -553,6 +659,139 @@ export function KehadiranModals({
               >
                 Batal
               </Button>
+              <Button
+                variant="primary"
+                loading={reviewPulangAwalMutation.isPending}
+                onClick={() => {
+                  reviewPulangAwalMutation.mutate(
+                    {
+                      id: reviewPulangAwalModalItem.id,
+                      keputusan: pulangAwalKeputusan,
+                      catatan: pulangAwalCatatan.trim() || undefined,
+                    },
+                    {
+                      onSuccess: () => setReviewPulangAwalModalItem(null),
+                    }
+                  );
+                }}
+              >
+                Simpan Keputusan
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal Review Lembur Khusus */}
+      {reviewLemburModalItem && (
+        <Modal
+          isOpen={!!reviewLemburModalItem}
+          onClose={() => setReviewLemburModalItem && setReviewLemburModalItem(null)}
+          title="Review Pengajuan Lembur"
+          size="md"
+          isBottomSheetOnMobile
+        >
+          <div className="flex flex-col gap-4 mt-2">
+            {/* Header info */}
+            <div className="p-4 rounded-2xl bg-teal-50/60 dark:bg-teal-950/30 border border-teal-200/60 dark:border-teal-900/40">
+              <div className="flex items-center justify-between pb-3 border-b border-teal-200/40 dark:border-teal-900/40">
+                <div>
+                  <h4 className="font-bold text-base text-neutral-900 dark:text-white">
+                    {reviewLemburModalItem.profiles?.nama || 'Unknown'}
+                  </h4>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    {format(new Date(reviewLemburModalItem.tanggal), 'EEEE, dd MMMM yyyy', { locale: idLocale })}
+                  </p>
+                </div>
+                <Badge variant="warning">
+                  Lembur Aktual: {reviewLemburModalItem.menit_lembur_aktual || 0} Menit
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mt-3 text-xs">
+                <div>
+                  <span className="text-neutral-500 block">Jam Masuk:</span>
+                  <span className="font-mono font-bold text-sm text-neutral-800 dark:text-neutral-200">
+                    {getTimeFromIso(reviewLemburModalItem.waktu_masuk) || '--:--'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-neutral-500 block">Jam Pulang:</span>
+                  <span className="font-mono font-bold text-sm text-teal-700 dark:text-teal-300">
+                    {getTimeFromIso(reviewLemburModalItem.waktu_pulang) || '--:--'}
+                  </span>
+                </div>
+              </div>
+
+              {(reviewLemburModalItem.lokasi_masuk?.nama || reviewLemburModalItem.lokasi_pulang?.nama) && (
+                <div className="mt-3 pt-3 border-t border-teal-200/40 dark:border-teal-900/40 text-xs text-neutral-600 dark:text-neutral-300 flex items-center gap-1.5">
+                  <IconMapPin size={14} className="text-teal-600 shrink-0" />
+                  <span>
+                    Outlet: {reviewLemburModalItem.lokasi_pulang?.nama || reviewLemburModalItem.lokasi_masuk?.nama}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Input Menit Lembur Disetujui */}
+            <div className="flex flex-col gap-2">
+              <TextInput
+                label="Menit Lembur Disetujui"
+                name="menit_lembur_disetujui"
+                type="number"
+                min={0}
+                value={lemburMenitDisetujui.toString()}
+                onChange={(e) => setLemburMenitDisetujui(Math.max(0, parseInt(e.target.value || '0', 10)))}
+                helperText={`Karyawan mengajukan ${reviewLemburModalItem.menit_lembur_aktual || 0} menit. Anda dapat menyesuaikan menit yang disetujui.`}
+              />
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-between pt-2 border-t border-neutral-100 dark:border-neutral-800">
+              <Button
+                variant="ghost"
+                onClick={() => setReviewLemburModalItem && setReviewLemburModalItem(null)}
+                disabled={reviewLemburMutation?.isPending}
+              >
+                Batal
+              </Button>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  className="!text-rose-600 dark:!text-rose-400 hover:!bg-rose-50 dark:hover:!bg-rose-950/40"
+                  loading={reviewLemburMutation?.isPending}
+                  onClick={() => {
+                    if (reviewLemburMutation) {
+                      reviewLemburMutation.mutate(
+                        { id: reviewLemburModalItem.id, keputusan: 'ditolak' },
+                        { onSuccess: () => setReviewLemburModalItem && setReviewLemburModalItem(null) }
+                      );
+                    }
+                  }}
+                >
+                  Tolak Lembur
+                </Button>
+                <Button
+                  variant="primary"
+                  className="!bg-teal-600 hover:!bg-teal-700 text-white"
+                  loading={reviewLemburMutation?.isPending}
+                  onClick={() => {
+                    if (reviewLemburMutation) {
+                      reviewLemburMutation.mutate(
+                        {
+                          id: reviewLemburModalItem.id,
+                          keputusan: 'disetujui',
+                          menitDisetujui: lemburMenitDisetujui,
+                        },
+                        { onSuccess: () => setReviewLemburModalItem && setReviewLemburModalItem(null) }
+                      );
+                    }
+                  }}
+                >
+                  Setujui ({lemburMenitDisetujui} Menit)
+                </Button>
+              </div>
             </div>
           </div>
         </Modal>

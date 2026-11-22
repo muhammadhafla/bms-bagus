@@ -13,7 +13,7 @@ const APP_ROUTES: RouteConfig[] = [
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bms.vercel.app';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bms.bagusin.sbs';
   const currentDate = new Date();
 
   return APP_ROUTES.map((route) => ({

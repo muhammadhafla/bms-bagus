@@ -80,9 +80,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (userId !== prevUserIdRef.current) {
       prevUserIdRef.current = userId;
-      // Debounce rapid user changes
+      // Debounce rapid user changes; respect 30s throttle so initial mount doesn't duplicate session check
       const timeout = setTimeout(() => {
-        safeCheckSession(true).catch(console.error);
+        safeCheckSession(false).catch(console.error);
       }, 100);
       return () => clearTimeout(timeout);
     }

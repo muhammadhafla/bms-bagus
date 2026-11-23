@@ -1,5 +1,11 @@
 /// <reference lib="webworker" />
-import { type PrecacheEntry, Serwist, type SerwistGlobalConfig } from 'serwist';
+import {
+  NetworkOnly,
+  type PrecacheEntry,
+  type RuntimeCaching,
+  Serwist,
+  type SerwistGlobalConfig,
+} from 'serwist';
 import { defaultCache } from '@serwist/next/worker';
 
 export {};
@@ -17,12 +23,24 @@ const precacheEntries = [
   { url: '/offline', revision: '1' },
 ];
 
+const authAndSupabaseBypassRules: RuntimeCaching[] = [
+  {
+    matcher: ({ url }) =>
+      url.hostname.endsWith('.supabase.co') || url.hostname.endsWith('.supabase.in'),
+    handler: new NetworkOnly(),
+  },
+  {
+    matcher: ({ sameOrigin, url }) => sameOrigin && url.pathname.startsWith('/login'),
+    handler: new NetworkOnly(),
+  },
+];
+
 const serwist = new Serwist({
   precacheEntries,
   skipWaiting: false, // We will handle this manually via postMessage
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching: [...authAndSupabaseBypassRules, ...defaultCache],
   fallbacks: {
     entries: [
       {

@@ -1,11 +1,24 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { IconLock, IconEye, IconEyeOff, IconUser } from '@tabler/icons-react';
 import { Button, TextInput } from '@/components/ui';
+
+function getSafeRedirectTarget(): string {
+  if (typeof window === 'undefined') return '/dashboard';
+  const rawRedirect = new URLSearchParams(window.location.search).get('redirectTo');
+  if (
+    rawRedirect &&
+    rawRedirect.startsWith('/') &&
+    !rawRedirect.startsWith('//') &&
+    !rawRedirect.startsWith('/login')
+  ) {
+    return rawRedirect;
+  }
+  return '/dashboard';
+}
 
 export function LoginForm() {
   const [identifier, setIdentifier] = useState('');
@@ -14,15 +27,9 @@ export function LoginForm() {
   const [error, setError] = useState('');
   const [identifierError, setIdentifierError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const { signIn, loading, user } = useAuthStore();
-  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { signIn, loading } = useAuthStore();
   const identifierInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (user) {
-      router.push('/dashboard');
-    }
-  }, [user, router]);
 
   useEffect(() => {
     identifierInputRef.current?.focus();
@@ -52,38 +59,52 @@ export function LoginForm() {
     return isValid;
   };
 
+  const isBusy = isSubmitting || loading;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isBusy) return;
     setError('');
 
     if (!validateForm()) {
       return;
     }
 
-    let loginEmail = identifier.trim();
+    setIsSubmitting(true);
 
-    // Resolve username to email if it's not an email
-    if (!loginEmail.includes('@')) {
-      const { data, error: resolveError } = await supabase.rpc('resolve_username', {
-        p_username: loginEmail.toLowerCase(),
-      });
+    try {
+      let loginEmail = identifier.trim();
 
-      if (resolveError || !data) {
-        setError('Email/username atau password salah');
-        return;
+      // Resolve username to email if it's not an email
+      if (!loginEmail.includes('@')) {
+        const { data, error: resolveError } = await supabase.rpc('resolve_username', {
+          p_username: loginEmail.toLowerCase(),
+        });
+
+        if (resolveError || !data) {
+          setError('Email/username atau password salah');
+          setIsSubmitting(false);
+          return;
+        }
+        loginEmail = data;
       }
-      loginEmail = data;
-    }
 
-    const result = await signIn(loginEmail, password);
-    if (result.success) {
-      router.push('/dashboard');
-    } else {
-      setError(
-        result.error?.includes('Invalid')
-          ? 'Email/username atau password salah'
-          : result.error || 'Login gagal',
-      );
+      const result = await signIn(loginEmail, password);
+      if (result.success) {
+        // Hard navigation menghindari router cache / RSC hang pasca set-cookie login
+        // sekaligus menjaga tombol tetap nonaktif sampai halaman berpindah.
+        window.location.assign(getSafeRedirectTarget());
+      } else {
+        setError(
+          result.error?.includes('Invalid')
+            ? 'Email/username atau password salah'
+            : result.error || 'Login gagal',
+        );
+        setIsSubmitting(false);
+      }
+    } catch {
+      setError('Terjadi kesalahan saat login');
+      setIsSubmitting(false);
     }
   };
 
@@ -138,7 +159,8 @@ export function LoginForm() {
 
       <Button
         type="submit"
-        disabled={loading}
+        disabled={isBusy}
+        loading={isBusy}
         fullWidth
         size="lg"
         variant="primary"
@@ -147,7 +169,7 @@ export function LoginForm() {
           if ('vibrate' in navigator) navigator.vibrate(15);
         }}
       >
-        {loading ? 'Memverifikasi...' : 'Masuk'}
+        {isBusy ? 'Memverifikasi...' : 'Masuk'}
       </Button>
     </form>
   );

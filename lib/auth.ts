@@ -382,6 +382,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (initTimeoutId) clearTimeout(initTimeoutId);
     set({
       authSubscription: null,
+      initialized: false,
       sessionWarningTimerId: null,
       initTimeoutId: null,
       isRefreshing: false,
@@ -391,9 +392,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   initialize: async () => {
-    // Guard: prevent re-initialization if already done
-    const { initialized } = get();
-    if (initialized) return;
+    // Guard: prevent re-initialization only if listener is still active
+    const { initialized, authSubscription } = get();
+    if (initialized && authSubscription) return;
 
     try {
       // Unsubscribe existing subscription before creating new one
@@ -557,36 +558,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       if (data.user) {
-        // Fetch profile with guard
-        const fetchId = ++profileFetchSeq;
-        const profile = await fetchProfile(data.user.id);
-
-        // Set state synchronously so we don't rely on _setProfileIfLatest
-        // which requires get().user to already be set.
-        if (fetchId === profileFetchSeq && profile) {
-          set({
-            user: data.user,
-            profile,
-            loading: false,
-            isRefreshing: false,
-            initialized: true,
-          });
-        } else {
-          set({
-            user: data.user,
-            loading: false,
-            isRefreshing: false,
-            initialized: true,
-          });
-          if (!profile) {
-            console.error('Failed to fetch profile in signIn for user', data.user.id);
-          }
-        }
+        const loggedInUser = data.user;
+        // Set user immediately so login navigation is not blocked by profile query/retry
+        set({
+          user: loggedInUser,
+          loading: false,
+          isRefreshing: false,
+          initialized: true,
+        });
 
         // Set session expiry tracking
         if (data.session?.expires_at) {
           get().setSessionExpiry(data.session.expires_at * 1000);
         }
+
+        // Fetch profile in background for callers that stay mounted on the same page
+        const fetchId = ++profileFetchSeq;
+        fetchProfile(loggedInUser.id)
+          .then((profile) => {
+            get()._setProfileIfLatest(fetchId, profile, loggedInUser.id);
+          })
+          .catch((err) => {
+            console.error('Failed to fetch profile in signIn for user', loggedInUser.id, err);
+          });
+      } else {
+        set({ loading: false, isRefreshing: false });
       }
 
       return { success: true };

@@ -29,6 +29,30 @@ function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((path) => pathname.startsWith(path));
 }
 
+function hasSupabaseAuthCookie(request: NextRequest): boolean {
+  return request.cookies
+    .getAll()
+    .some((c) => c.name.includes('-auth-token') || c.name.includes('supabase'));
+}
+
+function buildLoginRedirect(
+  request: NextRequest,
+  pathname: string,
+  sourceResponse?: NextResponse,
+): NextResponse {
+  const loginUrl = new URL('/login', request.url);
+  // Validasi path sebelum set ke param (cegah open redirect)
+  const safeRedirect =
+    pathname.startsWith('/') && !pathname.startsWith('//') ? pathname : '/dashboard';
+  loginUrl.searchParams.set('redirectTo', safeRedirect);
+
+  const redirectResponse = NextResponse.redirect(loginUrl);
+  sourceResponse?.cookies.getAll().forEach((cookie) => {
+    redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+  });
+  return redirectResponse;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -46,33 +70,33 @@ export async function middleware(request: NextRequest) {
     request.headers.get('purpose') === 'prefetch' ||
     request.headers.get('x-middleware-prefetch') === '1';
 
-  if (isPrefetch) {
-    const allCookies = request.cookies.getAll();
-    const hasAuthCookie = allCookies.some(
-      (c) => c.name.includes('-auth-token') || c.name.includes('supabase'),
-    );
-    if (hasAuthCookie) {
-      return NextResponse.next({ request });
-    }
+  if (isPrefetch && hasSupabaseAuthCookie(request)) {
+    return NextResponse.next({ request });
   }
 
   // 3. Tangani rute /api/* (selain /api/auth yang sudah dilewati di PUBLIC_PATHS)
   // Serahkan verifikasi detail ke endpoint auth-guard masing-masing untuk mencegah
   // race condition penukaran token bersamaan dari micro-request API paralel.
   if (pathname.startsWith('/api/')) {
-    const allCookies = request.cookies.getAll();
-    const hasAuthCookie = allCookies.some(
-      (c) => c.name.includes('-auth-token') || c.name.includes('supabase'),
-    );
     const hasAuthHeader = Boolean(request.headers.get('authorization'));
 
-    if (!hasAuthCookie && !hasAuthHeader) {
+    if (!hasSupabaseAuthCookie(request) && !hasAuthHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     return NextResponse.next({ request });
   }
 
-  // 4. Inisialisasi response untuk menangani cookie refresh
+  // 4. Cek cepat keberadaan cookie auth Supabase sebelum inisialisasi client / network call
+  const hasAuthCookie = hasSupabaseAuthCookie(request);
+
+  if (!hasAuthCookie) {
+    if (pathname === '/login') {
+      return NextResponse.next({ request });
+    }
+    return buildLoginRedirect(request, pathname);
+  }
+
+  // 5. Inisialisasi response untuk menangani cookie refresh
   let response = NextResponse.next({
     request,
   });
@@ -110,17 +134,14 @@ export async function middleware(request: NextRequest) {
       },
     );
 
-    // PENTING: Gunakan getUser(), JANGAN getSession().
-    // getUser() akan otomatis menggunakan Refresh Token di cookie untuk memperbarui
-    // Access Token yang expired (> 1 jam) dan memicu setAll() untuk menyimpan cookie baru.
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
+    // Gunakan getClaims() (verifikasi JWT lokal via JWKS jika asymmetric, atau fallback
+    // getUser() jika symmetric) sekaligus auto-refresh token expired via getSession() -> setAll().
+    const { data: claimsData, error } = await supabase.auth.getClaims();
+    const isAuthenticated = Boolean(claimsData?.claims?.sub);
 
     // Jika user mengakses halaman login
     if (pathname === '/login') {
-      if (user) {
+      if (isAuthenticated) {
         // User sudah terautentikasi, alihkan langsung ke dashboard
         const dashboardUrl = new URL('/dashboard', request.url);
         const redirectResponse = NextResponse.redirect(dashboardUrl);
@@ -141,29 +162,14 @@ export async function middleware(request: NextRequest) {
         error.message?.includes('NetworkError') ||
         error.name === 'AuthRetryableFetchError');
 
-    const allCookies = request.cookies.getAll();
-    const hasAuthCookie = allCookies.some(
-      (c) => c.name.includes('-auth-token') || c.name.includes('supabase'),
-    );
-
     if (isNetworkError && hasAuthCookie) {
       // Izinkan lewat agar cache PWA / client-side offline dapat menangani
       return response;
     }
 
-    // Tidak ada user yang valid → redirect ke login
-    if (error || !user) {
-      const loginUrl = new URL('/login', request.url);
-      // Validasi path sebelum set ke param (cegah open redirect)
-      const safeRedirect =
-        pathname.startsWith('/') && !pathname.startsWith('//') ? pathname : '/dashboard';
-      loginUrl.searchParams.set('redirectTo', safeRedirect);
-
-      const redirectResponse = NextResponse.redirect(loginUrl);
-      response.cookies.getAll().forEach((cookie) => {
-        redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
-      });
-      return redirectResponse;
+    // Tidak ada klaim sesi yang valid → redirect ke login
+    if (error || !isAuthenticated) {
+      return buildLoginRedirect(request, pathname, response);
     }
 
     return response;
@@ -171,21 +177,12 @@ export async function middleware(request: NextRequest) {
     console.error('[Middleware] Error checking auth:', err);
 
     // Graceful fallback: periksa apakah ada cookie auth Supabase
-    const allCookies = request.cookies.getAll();
-    const hasAuthCookie = allCookies.some(
-      (c) => c.name.includes('-auth-token') || c.name.includes('supabase'),
-    );
-
-    if (hasAuthCookie) {
+    if (hasSupabaseAuthCookie(request)) {
       // Izinkan lewat agar client-side PWA / cache dapat menangani gracefully
       return response;
     }
 
-    const loginUrl = new URL('/login', request.url);
-    const safeRedirect =
-      pathname.startsWith('/') && !pathname.startsWith('//') ? pathname : '/dashboard';
-    loginUrl.searchParams.set('redirectTo', safeRedirect);
-    return NextResponse.redirect(loginUrl);
+    return buildLoginRedirect(request, pathname);
   }
 }
 

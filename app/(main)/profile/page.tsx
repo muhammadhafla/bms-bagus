@@ -143,20 +143,22 @@ export default function ProfilePage() {
     }
   };
 
-  const renderEditForm = (isMobile: boolean = false) => (
+  const editFormContent = (
     <div
-      className={`mx-auto max-w-2xl px-4 py-4 sm:py-6 ${isMobile ? 'block lg:hidden' : 'hidden lg:block'}`}
+      className={`mx-auto max-w-2xl px-4 py-4 sm:py-6 ${
+        showMobileEditForm ? 'block' : 'hidden lg:block'
+      }`}
     >
       <div className="mb-5 flex items-center gap-3">
-        {isMobile && (
-          <button
-            onClick={() => setShowMobileEditForm(false)}
-            className="-ml-2 rounded-lg bg-neutral-100 p-1.5 dark:bg-neutral-800"
-          >
-            <IconChevronRight className="h-5 w-5 rotate-180 text-neutral-600 dark:text-neutral-400" />
-          </button>
-        )}
-        {!isMobile && <IconUser className="text-brand-500 h-7 w-7" />}
+        <button
+          type="button"
+          onClick={() => setShowMobileEditForm(false)}
+          aria-label="Kembali ke menu akun"
+          className="-ml-2 rounded-lg bg-neutral-100 p-1.5 lg:hidden dark:bg-neutral-800"
+        >
+          <IconChevronRight className="h-5 w-5 rotate-180 text-neutral-600 dark:text-neutral-400" />
+        </button>
+        <IconUser className="text-brand-500 hidden h-7 w-7 lg:block" />
         <div>
           <h1 className="text-xl font-bold text-neutral-900 dark:text-white">Edit Profil</h1>
           <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
@@ -320,15 +322,12 @@ export default function ProfilePage() {
         danger
       />
 
-      {/* Desktop View: Always show the edit form */}
-      {renderEditForm(false)}
+      {/* Edit Form: single instance (always shown on desktop, toggled on mobile) */}
+      {editFormContent}
 
-      {/* Mobile View */}
-      <div className="block h-full pb-6 lg:hidden">
-        {showMobileEditForm ? (
-          renderEditForm(true)
-        ) : (
-          <div className="flex h-full flex-col space-y-3">
+      {/* Mobile Menu View */}
+      <div className={showMobileEditForm ? 'hidden' : 'block h-full pb-6 lg:hidden'}>
+        <div className="flex h-full flex-col space-y-3">
             {/* Header: User Profile Card */}
             <div
               className="bg-gradient-to-r from-brand-600 to-brand-500 flex cursor-pointer items-center gap-3 rounded-2xl p-3 text-white shadow-md transition-transform active:scale-95"
@@ -593,8 +592,7 @@ export default function ProfilePage() {
                 Keluar Aplikasi
               </button>
             </div>
-          </div>
-        )}
+        </div>
       </div>
     </AmbientLayout>
   );

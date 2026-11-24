@@ -85,5 +85,8 @@
     "edge >= 100",
     "not IE 11",
     "not dead"
-  ]
+  ],
+  "allowScripts": {
+    "unrs-resolver@1.11.1": true
+  }
 }

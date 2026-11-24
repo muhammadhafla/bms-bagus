@@ -1,5 +1,6 @@
 import { supabase } from '../client';
 import { safeQuery } from '../utils';
+import type { Database } from '@/types/supabase';
 
 export interface SlipGaji {
   id: string;
@@ -227,11 +228,13 @@ export const gajiApi = {
    */
   async upsertSlip(payload: Partial<SlipGaji> & { user_id: string, periode_bulan: string }) {
     try {
+      const { profiles: _profiles, ...dbFields } = payload;
+      const upsertPayload: Database['public']['Tables']['slip_gaji']['Insert'] = dbFields;
       const result = await safeQuery(
         async () => {
           const res = await supabase
             .from('slip_gaji')
-            .upsert(payload, { onConflict: 'user_id, periode_bulan' })
+            .upsert(upsertPayload, { onConflict: 'user_id, periode_bulan' })
             .select()
             .single();
           return { data: res.data as SlipGaji, error: res.error as Error | null };

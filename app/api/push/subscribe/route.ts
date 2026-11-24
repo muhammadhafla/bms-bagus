@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { verifyAuth, createAdminClient } from '@/lib/api/auth-guard';
 import { z } from 'zod';
+import { verifyAuth, createAdminClient } from '@/lib/api/auth-guard';
 
 const subscriptionSchema = z.object({
-  endpoint: z.string().url(),
+  endpoint: z.url(),
   keys: z.object({
-    auth: z.string(),
-    p256dh: z.string(),
+    auth: z.string().min(1),
+    p256dh: z.string().min(1),
   }),
 });
 
@@ -15,8 +15,12 @@ export async function POST(request: Request) {
     const { user, error: authError } = await verifyAuth(request);
     if (authError) return authError;
 
-    const body = await request.json();
-    const validatedData = subscriptionSchema.parse(body);
+    const rawBody = await request.json().catch(() => null);
+    const parsed = subscriptionSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid subscription payload' }, { status: 400 });
+    }
+    const validatedData = parsed.data;
 
     const supabase = createAdminClient();
 
@@ -31,7 +35,7 @@ export async function POST(request: Request) {
           p256dh_key: validatedData.keys.p256dh,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: 'endpoint' }
+        { onConflict: 'endpoint' },
       );
 
     if (dbError) {

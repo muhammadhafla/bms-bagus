@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { verifyRoles, createAdminClient } from '@/lib/api/auth-guard';
+import type { Database } from '@/types/supabase';
 
 const updatePrintJobSchema = z.object({
   status: z.enum(['Pending', 'Printing', 'Done', 'Failed']),
@@ -63,7 +64,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
     }
 
-    const updateData: Record<string, unknown> = { status };
+    const updateData: Database['public']['Tables']['print_jobs']['Update'] = { status };
     if (device_name !== undefined) {
       updateData.device_name = device_name;
     }

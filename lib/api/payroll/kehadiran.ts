@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
 import { supabase } from '../client';
 import { safeQuery } from '../utils';
+import type { Database } from '@/types/supabase';
 
 export interface Kehadiran {
   id: string;
@@ -110,7 +111,7 @@ export const kehadiranApi = {
           const res = await supabase.rpc('absen_masuk_with_gps', {
             p_lat: lat,
             p_lng: lng,
-            p_accuracy: accuracy ?? null,
+            p_accuracy: accuracy ?? undefined,
             p_status_hadir: status_hadir
           });
           
@@ -136,8 +137,8 @@ export const kehadiranApi = {
             p_kehadiran_id: id,
             p_lat: lat,
             p_lng: lng,
-            p_accuracy: accuracy ?? null,
-            p_alasan_pulang_awal: alasanPulangAwal ?? null
+            p_accuracy: accuracy ?? undefined,
+            p_alasan_pulang_awal: alasanPulangAwal ?? undefined
           });
           
           if (res.error) throw res.error;
@@ -321,7 +322,7 @@ export const kehadiranApi = {
           const res = await supabase.rpc('review_pulang_awal', {
             p_kehadiran_id: id,
             p_keputusan: keputusan,
-            p_catatan_admin: catatan ?? null
+            p_catatan_admin: catatan ?? undefined
           });
           if (res.error) throw res.error;
           return { data: res.data as Kehadiran, error: null };
@@ -445,7 +446,7 @@ export const kehadiranApi = {
       const result = await safeQuery(async () => {
         const res = await supabase.rpc('get_today_kehadiran_summary');
         if (res.error) throw res.error;
-        return { data: res.data as TodaySummary, error: null };
+        return { data: res.data as unknown as TodaySummary | null, error: null };
       });
       return result;
     } catch (err: any) {
@@ -647,11 +648,13 @@ export const kehadiranApi = {
    */
   async updateKehadiran(id: string, payload: Partial<Kehadiran>) {
     try {
+      const { profiles: _profiles, lokasi_masuk: _lm, lokasi_pulang: _lp, ...dbFields } = payload;
+      const updatePayload: Database['public']['Tables']['kehadiran']['Update'] = dbFields;
       const result = await safeQuery(
         async () => {
           const res = await supabase
             .from('kehadiran')
-            .update(payload)
+            .update(updatePayload)
             .eq('id', id)
             .select()
             .single();
@@ -670,11 +673,13 @@ export const kehadiranApi = {
    */
   async createKehadiran(payload: Omit<Kehadiran, 'id' | 'created_at' | 'profiles'>) {
     try {
+      const { lokasi_masuk: _lm, lokasi_pulang: _lp, ...dbFields } = payload;
+      const insertPayload: Database['public']['Tables']['kehadiran']['Insert'] = dbFields;
       const result = await safeQuery(
         async () => {
           const res = await supabase
             .from('kehadiran')
-            .insert([payload])
+            .insert([insertPayload])
             .select()
             .single();
           return { data: res.data as Kehadiran, error: res.error as Error | null };

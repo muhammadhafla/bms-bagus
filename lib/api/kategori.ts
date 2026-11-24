@@ -4,7 +4,7 @@ import { safeQuery } from './utils';
 export interface Kategori {
   id: string;
   nama: string;
-  created_at: string;
+  created_at: string | null;
 }
 
 export const kategoriApi = {

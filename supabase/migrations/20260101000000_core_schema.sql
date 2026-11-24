@@ -315,15 +315,6 @@ CREATE TABLE IF NOT EXISTS kas_log (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS receipt_templates (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    type TEXT NOT NULL DEFAULT 'SALE',
-    template TEXT NOT NULL, -- JSON string representation
-    is_active BOOLEAN NOT NULL DEFAULT false,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
 -- Add columns to penjualan_return_items if not exist
 ALTER TABLE IF EXISTS penjualan_return_items ADD COLUMN IF NOT EXISTS penjualan_item_id UUID;
 

@@ -1,12 +1,13 @@
 import { supabase } from './client';
 import { safeQuery } from './utils';
+import { validateSupplier } from '@/lib/validation';
 
 export interface Supplier {
   id: string;
   nama: string;
-  kontak?: string;
-  alamat?: string;
-  created_at: string;
+  kontak?: string | null;
+  alamat?: string | null;
+  created_at: string | null;
 }
 
 export const supplierApi = {
@@ -25,6 +26,13 @@ export const supplierApi = {
   },
 
   async create(data: { nama: string; kontak?: string; alamat?: string }) {
+    const validation = validateSupplier(data);
+    if (!validation.success) {
+      return {
+        data: null,
+        error: { message: validation.error.issues[0]?.message || 'Data supplier tidak valid' },
+      };
+    }
     return safeQuery<Supplier>(async () => {
       const result = await supabase.from('supplier').insert(data).select().single();
       return { data: result.data, error: result.error as Error | null };
@@ -40,6 +48,13 @@ export const supplierApi = {
   },
 
   async update(id: string, data: { nama: string; kontak?: string; alamat?: string }) {
+    const validation = validateSupplier(data);
+    if (!validation.success) {
+      return {
+        data: null,
+        error: { message: validation.error.issues[0]?.message || 'Data supplier tidak valid' },
+      };
+    }
     return safeQuery<Supplier>(async () => {
       const result = await supabase.from('supplier').update(data).eq('id', id).select().single();
       return { data: result.data, error: result.error as Error | null };

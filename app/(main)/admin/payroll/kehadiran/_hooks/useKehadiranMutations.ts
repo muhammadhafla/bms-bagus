@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { kehadiranApi, Kehadiran } from '@/lib/api/payroll';
+import { queryKeys } from '@/lib/queryKeys';
 import { toast } from 'sonner';
 
 interface MutationOptions {
@@ -16,12 +17,12 @@ export function useKehadiranMutations(options?: MutationOptions) {
 
   const invalidateQueries = () => {
     // Targeted invalidation hanya untuk data kehadiran & antrean, bukan master toko/karyawan
-    queryClient.invalidateQueries({ queryKey: ['admin_payroll_kehadiran_paginated'] });
-    queryClient.invalidateQueries({ queryKey: ['admin_today_kehadiran_summary'] });
-    queryClient.invalidateQueries({ queryKey: ['admin_pending_lembur_count'] });
-    queryClient.invalidateQueries({ queryKey: ['admin_pending_pulang_awal_count'] });
-    queryClient.invalidateQueries({ queryKey: ['admin_pending_lembur_list'] });
-    queryClient.invalidateQueries({ queryKey: ['admin_pending_pulang_awal_list'] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminKehadiran });
+    queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminTodaySummary });
+    queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminPendingLemburCount });
+    queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminPendingPulangAwalCount });
+    queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminPendingLemburList });
+    queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminPendingPulangAwalList });
   };
 
   const createMutation = useMutation({

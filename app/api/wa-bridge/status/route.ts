@@ -8,7 +8,7 @@ const bridgeStatusSchema = z.object({
   phone: z.string().max(50).nullable().optional(),
   name: z.string().max(255).nullable().optional(),
   qr_base64: z.string().max(500000).nullable().optional(),
-  qr_expires_at: z.string().datetime().nullable().optional(),
+  qr_expires_at: z.iso.datetime().nullable().optional(),
   is_session_corrupted: z.boolean().optional().default(false),
   queue_stats: z
     .object({

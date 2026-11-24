@@ -213,7 +213,11 @@ function WarehouseStocksContent() {
   const items = stocksRes?.data?.data || [];
   const totalCount = stocksRes?.data?.count || 0;
   const totalPages = Math.ceil(totalCount / limit) || 1;
-  const error = queryError ? (queryError as Error).message : null;
+  const error = queryError
+    ? (queryError as Error).message
+    : stocksRes?.error
+      ? stocksRes.error.message
+      : null;
 
   // Active filter count
   const activeFilterCount = useMemo(() => {

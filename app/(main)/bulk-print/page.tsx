@@ -77,6 +77,7 @@ export default function BulkPrintPage() {
       }
     } catch (err) {
       console.error('Error fetching warehouses:', err);
+      toast.error('Gagal memuat daftar gudang');
     }
   }, [profile]);
 
@@ -94,6 +95,7 @@ export default function BulkPrintPage() {
 
       if (error) {
         console.error('Error fetching templates:', error);
+        toast.error('Gagal memuat daftar template label');
         return;
       }
 
@@ -106,6 +108,7 @@ export default function BulkPrintPage() {
       }
     } catch (err) {
       console.error('Error fetching templates', err);
+      toast.error('Gagal memuat daftar template label');
     }
   };
 

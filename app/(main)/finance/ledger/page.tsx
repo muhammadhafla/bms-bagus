@@ -63,14 +63,25 @@ export default function LedgerPage() {
   const endDateStr = dateRange.endDate || undefined;
 
   // 1. Fetch Saldo Awal Periode (Kumulatif sebelum startDate)
-  const { data: openingBalance = 0, isLoading: isLoadingOpening } = useQuery({
+  const {
+    data: openingBalance = 0,
+    isLoading: isLoadingOpening,
+    isError: isErrorOpening,
+    refetch: refetchOpening,
+  } = useQuery({
     queryKey: ['buku_besar_opening_balance', startDateStr, selectedGudangId],
     queryFn: () => ledgerApi.getOpeningBalance(startDateStr, selectedGudangId || undefined),
     enabled: !!startDateStr,
   });
 
   // 2. Fetch Mutasi Buku Besar
-  const { data: rawLedgerData, isLoading: isLoadingLedger, isRefetching } = useQuery({
+  const {
+    data: rawLedgerData,
+    isLoading: isLoadingLedger,
+    isError: isErrorLedger,
+    isRefetching,
+    refetch: refetchLedger,
+  } = useQuery({
     queryKey: ['buku_besar', startDateStr, endDateStr, selectedTipe, selectedSumber, searchTerm, selectedGudangId],
     queryFn: () => ledgerApi.getBukuBesar(
       startDateStr, 
@@ -83,6 +94,7 @@ export default function LedgerPage() {
   });
 
   const isLoading = isLoadingLedger || (!!startDateStr && isLoadingOpening);
+  const hasLedgerError = isErrorLedger || (!!startDateStr && isErrorOpening);
 
   // 3. Rekapitulasi (Saldo Berjalan sudah dihitung di database)
   const { ledgerWithSaldo, totalPemasukan, totalPengeluaran, saldoAkhir, baselineOpeningBalance } = useMemo(() => {
@@ -662,6 +674,20 @@ export default function LedgerPage() {
       </div>
 
       {/* Desktop Table View */}
+      {hasLedgerError && (
+        <div className="mb-4 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300">
+          <span>Gagal memuat data buku besar atau saldo awal periode.</span>
+          <button
+            onClick={() => {
+              refetchLedger();
+              if (startDateStr) refetchOpening();
+            }}
+            className="font-semibold text-brand-600 hover:underline dark:text-brand-400"
+          >
+            Coba Lagi
+          </button>
+        </div>
+      )}
       <div className="hidden md:block overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900 print:border-none print:shadow-none">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-neutral-600 dark:text-neutral-300">

@@ -7,11 +7,11 @@ export interface Promo {
   nama: string;
   tanggal_mulai: string;
   tanggal_selesai: string;
-  status: 'aktif' | 'nonaktif';
-  is_member_only?: boolean;
-  created_at: string;
-  updated_at: string;
-  created_by?: string;
+  status: string;
+  is_member_only?: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
+  created_by?: string | null;
 }
 
 export interface PromoItem {
@@ -19,8 +19,8 @@ export interface PromoItem {
   promosi_id: string;
   inventory_id: string;
   diskon_nominal: number;
-  created_at: string;
-  inventory?: InventoryItem;
+  created_at: string | null;
+  inventory?: Partial<InventoryItem> | null;
 }
 
 export const promoApi = {
@@ -73,6 +73,9 @@ export const promoApi = {
           .eq('id', promoId);
         if (error) throw error;
       } else {
+        if (!promo.nama || !promo.tanggal_mulai || !promo.tanggal_selesai) {
+          throw new Error('Nama dan periode promo wajib diisi');
+        }
         const { data, error } = await supabase
           .from('promosi')
           .insert({
@@ -106,6 +109,7 @@ export const promoApi = {
         }
       }
 
+      if (!promoId) throw new Error('Promo ID tidak ditemukan');
       const { data: finalPromo } = await supabase
         .from('promosi')
         .select('*')

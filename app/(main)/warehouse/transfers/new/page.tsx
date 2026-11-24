@@ -274,11 +274,13 @@ function NewTransferContent() {
       };
 
       const res = await transferStokApi.create(payload, user?.id);
-      if (res.error) throw res.error;
+      if (res.error || !res.data) {
+        throw res.error || new Error('Gagal membuat transfer stok');
+      }
 
       // Fetch full transfer for PDF generation
-      const fullRes = await transferStokApi.getById(res.data!.id);
-      const transferDoc = fullRes.data || res.data!;
+      const fullRes = await transferStokApi.getById(res.data.id);
+      const transferDoc = fullRes.data || res.data;
       setCreatedTransfer(transferDoc);
 
       queryClient.invalidateQueries({ queryKey: ['warehouse-transfers'] });

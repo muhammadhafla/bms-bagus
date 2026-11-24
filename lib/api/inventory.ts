@@ -1,6 +1,9 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/supabase';
 import { supabase } from './client';
 import { safeQuery } from './utils';
 import { sanitizeSearchQuery } from '@/lib/utils';
+import { validateInventoryItem, validateInventoryUpdate } from '@/lib/validation';
 import { InventoryItem, InventoryDeletionCheck, MergeInventoryResult } from '@/types/inventory';
 
 export const inventoryApi = {
@@ -38,7 +41,7 @@ export const inventoryApi = {
       sortBy?: string;
       sortDir?: 'asc' | 'desc';
     },
-    client?: any,
+    client?: SupabaseClient<Database>,
   ) {
     const sb = client || supabase;
     const page = Math.max(1, options.page || 1);
@@ -180,7 +183,7 @@ export const inventoryApi = {
     });
   },
 
-  async fuzzySearch(query: string, _inventoryList?: any[], limit = 20) {
+  async fuzzySearch(query: string, _inventoryList?: unknown[], limit = 20) {
     const queryLower = query.toLowerCase().trim();
     if (queryLower.length < 2) return { data: [], error: null };
 
@@ -189,7 +192,10 @@ export const inventoryApi = {
         search_query: queryLower,
         limit_val: limit,
       });
-      return { data: result.data as Array<InventoryItem & { similarity: number }>, error: result.error as Error | null };
+      return {
+        data: result.data as unknown as Array<InventoryItem & { similarity: number }> | null,
+        error: result.error as Error | null,
+      };
     });
   },
 
@@ -207,7 +213,15 @@ export const inventoryApi = {
     });
   },
 
-  async update(id: string, data: Record<string, unknown>) {
+  async update(id: string, data: Database['public']['Tables']['inventory']['Update']) {
+    const validation = validateInventoryUpdate(data);
+    if (!validation.success) {
+      return {
+        data: null,
+        error: { message: validation.error.issues[0]?.message || 'Data inventory tidak valid' },
+      };
+    }
+
     const query = supabase
       .from('inventory')
       .update(data)
@@ -232,6 +246,14 @@ export const inventoryApi = {
     harga_jual?: number;
     diskon?: number;
   }) {
+    const validation = validateInventoryItem(data);
+    if (!validation.success) {
+      return {
+        data: null,
+        error: { message: validation.error.issues[0]?.message || 'Data barang tidak valid' },
+      };
+    }
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -245,7 +267,7 @@ export const inventoryApi = {
           .from('inventory')
           .insert({
             nama_barang: data.nama_barang,
-            kode_barcode: data.kode_barcode || null,
+            kode_barcode: data.kode_barcode || 'AUTO-' + Date.now(),
             id_kategori: data.id_kategori || null,
             created_by: user.id,
             harga_beli_terakhir: data.harga_beli_terakhir ?? 0,
@@ -266,7 +288,10 @@ export const inventoryApi = {
   async checkCanDelete(id: string) {
     return safeQuery<InventoryDeletionCheck>(async () => {
       const result = await supabase.rpc('check_inventory_can_delete', { p_id: id });
-      return { data: result.data as InventoryDeletionCheck, error: result.error as Error | null };
+      return {
+        data: result.data as unknown as InventoryDeletionCheck | null,
+        error: result.error as Error | null,
+      };
     });
   },
 
@@ -274,7 +299,10 @@ export const inventoryApi = {
     if (!ids || ids.length === 0) return { data: [], error: null };
     return safeQuery<InventoryDeletionCheck[]>(async () => {
       const result = await supabase.rpc('check_inventory_batch_can_delete', { p_ids: ids });
-      return { data: (result.data || []) as InventoryDeletionCheck[], error: result.error as Error | null };
+      return {
+        data: (result.data || []) as unknown as InventoryDeletionCheck[],
+        error: result.error as Error | null,
+      };
     });
   },
 
@@ -282,7 +310,10 @@ export const inventoryApi = {
     return safeQuery<{ success: boolean; deleted_count: number }>(
       async () => {
         const result = await supabase.rpc('delete_inventory_item', { p_id: id });
-        return { data: result.data as { success: boolean; deleted_count: number }, error: result.error as Error | null };
+        return {
+          data: result.data as unknown as { success: boolean; deleted_count: number } | null,
+          error: result.error as Error | null,
+        };
       },
       { isMutation: true },
     );
@@ -293,7 +324,10 @@ export const inventoryApi = {
     return safeQuery<{ success: boolean; deleted_count: number }>(
       async () => {
         const result = await supabase.rpc('delete_inventory_batch', { p_ids: ids });
-        return { data: result.data as { success: boolean; deleted_count: number }, error: result.error as Error | null };
+        return {
+          data: result.data as unknown as { success: boolean; deleted_count: number } | null,
+          error: result.error as Error | null,
+        };
       },
       { isMutation: true },
     );
@@ -312,7 +346,10 @@ export const inventoryApi = {
           p_source_ids: sourceIds,
           p_target_id: targetId,
         });
-        return { data: result.data as MergeInventoryResult, error: result.error as Error | null };
+        return {
+          data: result.data as unknown as MergeInventoryResult | null,
+          error: result.error as Error | null,
+        };
       },
       { isMutation: true },
     );
@@ -331,7 +368,7 @@ export const inventoryApi = {
         const result = await supabase
           .rpc('toggle_discontinued', { p_id: id, p_user: user.id })
           .single();
-        return { data: result.data as InventoryItem, error: result.error as Error | null };
+        return { data: result.data as unknown as InventoryItem | null, error: result.error as Error | null };
       },
       { isMutation: true },
     );
@@ -346,7 +383,7 @@ export const inventoryApi = {
         const result = await supabase
           .rpc('snooze_low_stock_item', { p_id: id, p_days: days, p_user: user.id })
           .single();
-        return { data: result.data as InventoryItem, error: result.error as Error | null };
+        return { data: result.data as unknown as InventoryItem | null, error: result.error as Error | null };
       },
       { isMutation: true }
     );
@@ -435,7 +472,7 @@ export const inventoryApi = {
    */
   async checkBatchExistenceByName(
     names: string[],
-    client?: any,
+    client?: SupabaseClient<Database>,
   ): Promise<{ existing: InventoryItem[]; missing: string[]; error: Error | null }> {
     if (!names || names.length === 0) return { existing: [], missing: [], error: null };
 
@@ -563,7 +600,7 @@ export const inventoryApi = {
         const payload = items.map((item, index) => {
           return {
             nama_barang: item.nama_barang.trim(),
-            kode_barcode: item.kode_barcode || null,
+            kode_barcode: item.kode_barcode || 'AUTO-' + Date.now() + index,
             id_kategori: item.id_kategori || null,
             created_by: user.id,
             updated_by: user.id,

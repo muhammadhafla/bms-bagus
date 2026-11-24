@@ -135,6 +135,10 @@ export type Database = {
           lokasi_kerja_id: string | null
           nama: string
           penanggung_jawab: string | null
+          qrisly_is_sandbox: boolean | null
+          qrisly_provider: string | null
+          qrisly_qris_id: string | null
+          qrisly_unique_amount: boolean | null
           tipe: Database["public"]["Enums"]["tipe_gudang"]
           updated_at: string
         }
@@ -149,6 +153,10 @@ export type Database = {
           lokasi_kerja_id?: string | null
           nama: string
           penanggung_jawab?: string | null
+          qrisly_is_sandbox?: boolean | null
+          qrisly_provider?: string | null
+          qrisly_qris_id?: string | null
+          qrisly_unique_amount?: boolean | null
           tipe?: Database["public"]["Enums"]["tipe_gudang"]
           updated_at?: string
         }
@@ -163,6 +171,10 @@ export type Database = {
           lokasi_kerja_id?: string | null
           nama?: string
           penanggung_jawab?: string | null
+          qrisly_is_sandbox?: boolean | null
+          qrisly_provider?: string | null
+          qrisly_qris_id?: string | null
+          qrisly_unique_amount?: boolean | null
           tipe?: Database["public"]["Enums"]["tipe_gudang"]
           updated_at?: string
         }
@@ -175,6 +187,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      help_articles: {
+        Row: {
+          category: string
+          content_md: string
+          created_at: string | null
+          created_by: string | null
+          icon_name: string | null
+          id: string
+          is_published: boolean | null
+          order_index: number | null
+          slug: string
+          storage_path: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string
+          content_md: string
+          created_at?: string | null
+          created_by?: string | null
+          icon_name?: string | null
+          id?: string
+          is_published?: boolean | null
+          order_index?: number | null
+          slug: string
+          storage_path?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          content_md?: string
+          created_at?: string | null
+          created_by?: string | null
+          icon_name?: string | null
+          id?: string
+          is_published?: boolean | null
+          order_index?: number | null
+          slug?: string
+          storage_path?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       inventory: {
         Row: {
@@ -308,6 +365,13 @@ export type Database = {
             referencedRelation: "inventory"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "inventory_barcodes_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "vw_katalog_publik"
+            referencedColumns: ["id"]
+          },
         ]
       }
       inventory_stocks: {
@@ -359,48 +423,64 @@ export type Database = {
             referencedRelation: "inventory"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "inventory_stocks_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "vw_katalog_publik"
+            referencedColumns: ["id"]
+          },
         ]
       }
       karyawan: {
         Row: {
           created_at: string
           denda_telat_per_jam: number
+          gaji_bulanan: number
           gaji_harian: number
           id: string
           jam_masuk: string
           jam_pulang: string
+          jatah_libur_bulanan: number
           lembur_per_jam: number
           nama_bank: string | null
           no_rekening: string | null
           status_karyawan: string
+          tipe_gaji: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
           denda_telat_per_jam?: number
+          gaji_bulanan?: number
           gaji_harian?: number
           id?: string
           jam_masuk?: string
           jam_pulang?: string
+          jatah_libur_bulanan?: number
           lembur_per_jam?: number
           nama_bank?: string | null
           no_rekening?: string | null
           status_karyawan?: string
+          tipe_gaji?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
           denda_telat_per_jam?: number
+          gaji_bulanan?: number
           gaji_harian?: number
           id?: string
           jam_masuk?: string
           jam_pulang?: string
+          jatah_libur_bulanan?: number
           lembur_per_jam?: number
           nama_bank?: string | null
           no_rekening?: string | null
           status_karyawan?: string
+          tipe_gaji?: string
           updated_at?: string
           user_id?: string
         }
@@ -429,8 +509,10 @@ export type Database = {
           gudang_id: string | null
           id: string
           jumlah: number
+          kategori: string | null
           payment_method: string | null
           referensi_id: string | null
+          shift_id: string | null
           tipe: string
         }
         Insert: {
@@ -440,8 +522,10 @@ export type Database = {
           gudang_id?: string | null
           id?: string
           jumlah: number
+          kategori?: string | null
           payment_method?: string | null
           referensi_id?: string | null
+          shift_id?: string | null
           tipe: string
         }
         Update: {
@@ -451,8 +535,10 @@ export type Database = {
           gudang_id?: string | null
           id?: string
           jumlah?: number
+          kategori?: string | null
           payment_method?: string | null
           referensi_id?: string | null
+          shift_id?: string | null
           tipe?: string
         }
         Relationships: [
@@ -491,6 +577,13 @@ export type Database = {
             referencedRelation: "gudang"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "kas_log_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shift_sessions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       kategori: {
@@ -515,6 +608,8 @@ export type Database = {
         Row: {
           accuracy_masuk: number | null
           accuracy_pulang: number | null
+          alasan_pulang_awal: string | null
+          catatan_admin: string | null
           created_at: string
           id: string
           lat_masuk: number | null
@@ -526,17 +621,22 @@ export type Database = {
           menit_kerja: number | null
           menit_lembur_aktual: number | null
           menit_lembur_disetujui: number | null
+          menit_pulang_awal: number | null
           menit_telat: number | null
           status_hadir: string
           status_lembur: string
+          status_pulang_awal: string
           tanggal: string
           user_id: string
           waktu_masuk: string | null
           waktu_pulang: string | null
+          waktu_pulang_aktual: string | null
         }
         Insert: {
           accuracy_masuk?: number | null
           accuracy_pulang?: number | null
+          alasan_pulang_awal?: string | null
+          catatan_admin?: string | null
           created_at?: string
           id?: string
           lat_masuk?: number | null
@@ -548,17 +648,22 @@ export type Database = {
           menit_kerja?: number | null
           menit_lembur_aktual?: number | null
           menit_lembur_disetujui?: number | null
+          menit_pulang_awal?: number | null
           menit_telat?: number | null
           status_hadir?: string
           status_lembur?: string
+          status_pulang_awal?: string
           tanggal?: string
           user_id: string
           waktu_masuk?: string | null
           waktu_pulang?: string | null
+          waktu_pulang_aktual?: string | null
         }
         Update: {
           accuracy_masuk?: number | null
           accuracy_pulang?: number | null
+          alasan_pulang_awal?: string | null
+          catatan_admin?: string | null
           created_at?: string
           id?: string
           lat_masuk?: number | null
@@ -570,13 +675,16 @@ export type Database = {
           menit_kerja?: number | null
           menit_lembur_aktual?: number | null
           menit_lembur_disetujui?: number | null
+          menit_pulang_awal?: number | null
           menit_telat?: number | null
           status_hadir?: string
           status_lembur?: string
+          status_pulang_awal?: string
           tanggal?: string
           user_id?: string
           waktu_masuk?: string | null
           waktu_pulang?: string | null
+          waktu_pulang_aktual?: string | null
         }
         Relationships: [
           {
@@ -669,35 +777,213 @@ export type Database = {
         }
         Relationships: []
       }
+      loyalty_settings: {
+        Row: {
+          created_at: string | null
+          double_points_active: boolean | null
+          double_points_days: number[] | null
+          double_points_multiplier: number | null
+          id: string
+          is_redemption_locked: boolean
+          max_active_vouchers_per_member: number
+          monthly_budget_cap: number
+          point_to_idr_ratio: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          double_points_active?: boolean | null
+          double_points_days?: number[] | null
+          double_points_multiplier?: number | null
+          id?: string
+          is_redemption_locked?: boolean
+          max_active_vouchers_per_member?: number
+          monthly_budget_cap?: number
+          point_to_idr_ratio?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          double_points_active?: boolean | null
+          double_points_days?: number[] | null
+          double_points_multiplier?: number | null
+          id?: string
+          is_redemption_locked?: boolean
+          max_active_vouchers_per_member?: number
+          monthly_budget_cap?: number
+          point_to_idr_ratio?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      member_fcm_tokens: {
+        Row: {
+          created_at: string | null
+          device_info: Json | null
+          fcm_token: string
+          id: string
+          member_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          device_info?: Json | null
+          fcm_token: string
+          id?: string
+          member_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          device_info?: Json | null
+          fcm_token?: string
+          id?: string
+          member_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_fcm_tokens_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_fcm_tokens_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "vw_customer_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_otp_sessions: {
+        Row: {
+          attempts: number | null
+          created_at: string | null
+          expires_at: string
+          id: string
+          otp_code: string
+          phone: string
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          otp_code: string
+          phone: string
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          otp_code?: string
+          phone?: string
+        }
+        Relationships: []
+      }
       member_tiers: {
         Row: {
+          benefits: Json | null
           created_at: string | null
           discount_percentage: number | null
           id: string
           min_points_required: number | null
+          min_purchase_amount: number | null
           name: string
           point_multiplier: number | null
           updated_at: string | null
         }
         Insert: {
+          benefits?: Json | null
           created_at?: string | null
           discount_percentage?: number | null
           id?: string
           min_points_required?: number | null
+          min_purchase_amount?: number | null
           name: string
           point_multiplier?: number | null
           updated_at?: string | null
         }
         Update: {
+          benefits?: Json | null
           created_at?: string | null
           discount_percentage?: number | null
           id?: string
           min_points_required?: number | null
+          min_purchase_amount?: number | null
           name?: string
           point_multiplier?: number | null
           updated_at?: string | null
         }
         Relationships: []
+      }
+      member_vouchers: {
+        Row: {
+          created_at: string | null
+          discount_nominal: number | null
+          expires_at: string
+          id: string
+          id_member: string
+          id_reward: string | null
+          min_purchase_amount: number | null
+          status: string | null
+          title: string
+          used_at: string | null
+          voucher_code: string
+        }
+        Insert: {
+          created_at?: string | null
+          discount_nominal?: number | null
+          expires_at: string
+          id?: string
+          id_member: string
+          id_reward?: string | null
+          min_purchase_amount?: number | null
+          status?: string | null
+          title: string
+          used_at?: string | null
+          voucher_code: string
+        }
+        Update: {
+          created_at?: string | null
+          discount_nominal?: number | null
+          expires_at?: string
+          id?: string
+          id_member?: string
+          id_reward?: string | null
+          min_purchase_amount?: number | null
+          status?: string | null
+          title?: string
+          used_at?: string | null
+          voucher_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_vouchers_id_member_fkey"
+            columns: ["id_member"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_vouchers_id_member_fkey"
+            columns: ["id_member"]
+            isOneToOne: false
+            referencedRelation: "vw_customer_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_vouchers_id_reward_fkey"
+            columns: ["id_reward"]
+            isOneToOne: false
+            referencedRelation: "point_rewards"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       members: {
         Row: {
@@ -708,7 +994,9 @@ export type Database = {
           prefer_digital_receipt: boolean | null
           tier_id: string | null
           tier_points: number | null
+          total_spent: number | null
           updated_at: string | null
+          visit_count: number | null
           whatsapp_number: string
         }
         Insert: {
@@ -719,7 +1007,9 @@ export type Database = {
           prefer_digital_receipt?: boolean | null
           tier_id?: string | null
           tier_points?: number | null
+          total_spent?: number | null
           updated_at?: string | null
+          visit_count?: number | null
           whatsapp_number: string
         }
         Update: {
@@ -730,7 +1020,9 @@ export type Database = {
           prefer_digital_receipt?: boolean | null
           tier_id?: string | null
           tier_points?: number | null
+          total_spent?: number | null
           updated_at?: string | null
+          visit_count?: number | null
           whatsapp_number?: string
         }
         Relationships: [
@@ -914,6 +1206,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pembelian_items_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "vw_katalog_publik"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pembelian_items_pembelian_id_fkey"
             columns: ["pembelian_id"]
             isOneToOne: false
@@ -926,6 +1225,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          gudang_id: string | null
           id: string
           idempotency_key: string | null
           note: string | null
@@ -937,6 +1237,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          gudang_id?: string | null
           id?: string
           idempotency_key?: string | null
           note?: string | null
@@ -948,6 +1249,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          gudang_id?: string | null
           id?: string
           idempotency_key?: string | null
           note?: string | null
@@ -957,6 +1259,13 @@ export type Database = {
           tanggal?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pembelian_return_gudang_id_fkey"
+            columns: ["gudang_id"]
+            isOneToOne: false
+            referencedRelation: "gudang"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pembelian_return_pembelian_id_fkey"
             columns: ["pembelian_id"]
@@ -1022,39 +1331,65 @@ export type Database = {
       }
       pengeluaran_gudang: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           catatan: string | null
           created_at: string
           created_by: string | null
           gudang_id: string
           id: string
           nomor_dokumen: string
+          rejected_note: string | null
+          status: string
           tanggal: string
           tipe: Database["public"]["Enums"]["tipe_pengeluaran_gudang"]
           updated_at: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           catatan?: string | null
           created_at?: string
           created_by?: string | null
           gudang_id: string
           id?: string
           nomor_dokumen: string
+          rejected_note?: string | null
+          status?: string
           tanggal?: string
           tipe: Database["public"]["Enums"]["tipe_pengeluaran_gudang"]
           updated_at?: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           catatan?: string | null
           created_at?: string
           created_by?: string | null
           gudang_id?: string
           id?: string
           nomor_dokumen?: string
+          rejected_note?: string | null
+          status?: string
           tanggal?: string
           tipe?: Database["public"]["Enums"]["tipe_pengeluaran_gudang"]
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pengeluaran_gudang_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pengeluaran_gudang_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "vw_payroll_saldo"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "pengeluaran_gudang_created_by_fkey"
             columns: ["created_by"]
@@ -1112,6 +1447,13 @@ export type Database = {
             columns: ["inventory_id"]
             isOneToOne: false
             referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pengeluaran_gudang_items_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "vw_katalog_publik"
             referencedColumns: ["id"]
           },
           {
@@ -1197,11 +1539,14 @@ export type Database = {
           idempotency_key: string | null
           kembalian: number | null
           member_id: string | null
+          nomor_struk: string | null
           paid_at: string | null
           payment_method: string | null
           points_earned: number | null
           points_redeemed: number | null
           qris_amount: number | null
+          qris_history_id: number | null
+          qris_unique_code: number | null
           receipt_sent_via_wa: boolean | null
           refunded_at: string | null
           shift_id: string | null
@@ -1223,11 +1568,14 @@ export type Database = {
           idempotency_key?: string | null
           kembalian?: number | null
           member_id?: string | null
+          nomor_struk?: string | null
           paid_at?: string | null
           payment_method?: string | null
           points_earned?: number | null
           points_redeemed?: number | null
           qris_amount?: number | null
+          qris_history_id?: number | null
+          qris_unique_code?: number | null
           receipt_sent_via_wa?: boolean | null
           refunded_at?: string | null
           shift_id?: string | null
@@ -1249,11 +1597,14 @@ export type Database = {
           idempotency_key?: string | null
           kembalian?: number | null
           member_id?: string | null
+          nomor_struk?: string | null
           paid_at?: string | null
           payment_method?: string | null
           points_earned?: number | null
           points_redeemed?: number | null
           qris_amount?: number | null
+          qris_history_id?: number | null
+          qris_unique_code?: number | null
           receipt_sent_via_wa?: boolean | null
           refunded_at?: string | null
           shift_id?: string | null
@@ -1351,6 +1702,13 @@ export type Database = {
             columns: ["inventory_id"]
             isOneToOne: false
             referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "penjualan_items_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "vw_katalog_publik"
             referencedColumns: ["id"]
           },
           {
@@ -1473,6 +1831,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "penjualan_return_items_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "vw_katalog_publik"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "penjualan_return_items_penjualan_item_id_fkey"
             columns: ["penjualan_item_id"]
             isOneToOne: false
@@ -1488,8 +1853,143 @@ export type Database = {
           },
         ]
       }
+      point_rewards: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          discount_nominal: number | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          max_claims_per_member: number | null
+          min_purchase_amount: number | null
+          points_required: number
+          reward_type: string | null
+          stock: number | null
+          title: string
+          updated_at: string | null
+          valid_days: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          discount_nominal?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          max_claims_per_member?: number | null
+          min_purchase_amount?: number | null
+          points_required: number
+          reward_type?: string | null
+          stock?: number | null
+          title: string
+          updated_at?: string | null
+          valid_days?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          discount_nominal?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          max_claims_per_member?: number | null
+          min_purchase_amount?: number | null
+          points_required?: number
+          reward_type?: string | null
+          stock?: number | null
+          title?: string
+          updated_at?: string | null
+          valid_days?: number | null
+        }
+        Relationships: []
+      }
+      pos_authorizations: {
+        Row: {
+          action_metadata: Json | null
+          action_type: string
+          attempt_count: number
+          cashier_id: string
+          cashier_name: string
+          claimed_at: string | null
+          claimed_by_id: string | null
+          claimed_by_name: string | null
+          consumed_by_penjualan_id: string | null
+          created_at: string
+          device_name: string | null
+          expires_at: string
+          gudang_id: string | null
+          gudang_name: string | null
+          id: string
+          max_attempts: number
+          pin_code: string
+          rejected_by_id: string | null
+          rejected_by_name: string | null
+          status: string
+          updated_at: string
+          used_at: string | null
+        }
+        Insert: {
+          action_metadata?: Json | null
+          action_type?: string
+          attempt_count?: number
+          cashier_id: string
+          cashier_name: string
+          claimed_at?: string | null
+          claimed_by_id?: string | null
+          claimed_by_name?: string | null
+          consumed_by_penjualan_id?: string | null
+          created_at?: string
+          device_name?: string | null
+          expires_at: string
+          gudang_id?: string | null
+          gudang_name?: string | null
+          id?: string
+          max_attempts?: number
+          pin_code: string
+          rejected_by_id?: string | null
+          rejected_by_name?: string | null
+          status?: string
+          updated_at?: string
+          used_at?: string | null
+        }
+        Update: {
+          action_metadata?: Json | null
+          action_type?: string
+          attempt_count?: number
+          cashier_id?: string
+          cashier_name?: string
+          claimed_at?: string | null
+          claimed_by_id?: string | null
+          claimed_by_name?: string | null
+          consumed_by_penjualan_id?: string | null
+          created_at?: string
+          device_name?: string | null
+          expires_at?: string
+          gudang_id?: string | null
+          gudang_name?: string | null
+          id?: string
+          max_attempts?: number
+          pin_code?: string
+          rejected_by_id?: string | null
+          rejected_by_name?: string | null
+          status?: string
+          updated_at?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_authorizations_gudang_id_fkey"
+            columns: ["gudang_id"]
+            isOneToOne: false
+            referencedRelation: "gudang"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       print_jobs: {
         Row: {
+          claimed_at: string | null
           created_at: string | null
           device_name: string | null
           error_message: string | null
@@ -1501,6 +2001,7 @@ export type Database = {
           template_id: string
         }
         Insert: {
+          claimed_at?: string | null
           created_at?: string | null
           device_name?: string | null
           error_message?: string | null
@@ -1512,6 +2013,7 @@ export type Database = {
           template_id: string
         }
         Update: {
+          claimed_at?: string | null
           created_at?: string | null
           device_name?: string | null
           error_message?: string | null
@@ -1588,6 +2090,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           id: string
+          is_member_only: boolean
           nama: string
           status: string
           tanggal_mulai: string
@@ -1598,6 +2101,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          is_member_only?: boolean
           nama: string
           status?: string
           tanggal_mulai: string
@@ -1608,6 +2112,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          is_member_only?: boolean
           nama?: string
           status?: string
           tanggal_mulai?: string
@@ -1644,6 +2149,13 @@ export type Database = {
             columns: ["inventory_id"]
             isOneToOne: false
             referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promosi_items_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "vw_katalog_publik"
             referencedColumns: ["id"]
           },
           {
@@ -1767,60 +2279,78 @@ export type Database = {
           created_at: string
           dibayar_pada: string | null
           gaji_bersih: number
+          gaji_bulanan: number
           id: string
           periode_bulan: string
           saldo_awal: number | null
           sisa_saldo_akhir: number | null
           status_pembayaran: string
+          tipe_gaji: string
+          total_bonus: number
           total_denda_telat: number
           total_gaji_harian: number
           total_gaji_lembur: number
           total_hari_hadir: number
+          total_hari_libur: number
           total_jam_lembur: number
           total_jam_telat: number
           total_penarikan: number | null
           total_pendapatan_bersih: number | null
           total_potongan_kasbon: number
+          total_potongan_lain: number
+          total_potongan_libur: number
           user_id: string
         }
         Insert: {
           created_at?: string
           dibayar_pada?: string | null
           gaji_bersih?: number
+          gaji_bulanan?: number
           id?: string
           periode_bulan: string
           saldo_awal?: number | null
           sisa_saldo_akhir?: number | null
           status_pembayaran?: string
+          tipe_gaji?: string
+          total_bonus?: number
           total_denda_telat?: number
           total_gaji_harian?: number
           total_gaji_lembur?: number
           total_hari_hadir?: number
+          total_hari_libur?: number
           total_jam_lembur?: number
           total_jam_telat?: number
           total_penarikan?: number | null
           total_pendapatan_bersih?: number | null
           total_potongan_kasbon?: number
+          total_potongan_lain?: number
+          total_potongan_libur?: number
           user_id: string
         }
         Update: {
           created_at?: string
           dibayar_pada?: string | null
           gaji_bersih?: number
+          gaji_bulanan?: number
           id?: string
           periode_bulan?: string
           saldo_awal?: number | null
           sisa_saldo_akhir?: number | null
           status_pembayaran?: string
+          tipe_gaji?: string
+          total_bonus?: number
           total_denda_telat?: number
           total_gaji_harian?: number
           total_gaji_lembur?: number
           total_hari_hadir?: number
+          total_hari_libur?: number
           total_jam_lembur?: number
           total_jam_telat?: number
           total_penarikan?: number | null
           total_pendapatan_bersih?: number | null
           total_potongan_kasbon?: number
+          total_potongan_lain?: number
+          total_potongan_libur?: number
           user_id?: string
         }
         Relationships: [
@@ -1897,6 +2427,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stock_adjustments_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "vw_katalog_publik"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stock_adjustments_stock_opname_item_id_fkey"
             columns: ["stock_opname_item_id"]
             isOneToOne: false
@@ -1958,6 +2495,13 @@ export type Database = {
             referencedRelation: "inventory"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "stock_movements_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "vw_katalog_publik"
+            referencedColumns: ["id"]
+          },
         ]
       }
       stock_opname: {
@@ -1965,6 +2509,7 @@ export type Database = {
           approved_by: string | null
           created_at: string | null
           created_by: string
+          gudang_id: string | null
           id: string
           note: string | null
           opname_date: string
@@ -1975,6 +2520,7 @@ export type Database = {
           approved_by?: string | null
           created_at?: string | null
           created_by: string
+          gudang_id?: string | null
           id?: string
           note?: string | null
           opname_date: string
@@ -1985,6 +2531,7 @@ export type Database = {
           approved_by?: string | null
           created_at?: string | null
           created_by?: string
+          gudang_id?: string | null
           id?: string
           note?: string | null
           opname_date?: string
@@ -2019,6 +2566,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_payroll_saldo"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "stock_opname_gudang_id_fkey"
+            columns: ["gudang_id"]
+            isOneToOne: false
+            referencedRelation: "gudang"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2071,6 +2625,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stock_opname_items_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "vw_katalog_publik"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stock_opname_items_stock_opname_id_fkey"
             columns: ["stock_opname_id"]
             isOneToOne: false
@@ -2100,6 +2661,30 @@ export type Database = {
           id?: string
           kontak?: string | null
           nama?: string
+        }
+        Relationships: []
+      }
+      system_config: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          key: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          key: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          key?: string
+          updated_at?: string | null
+          value?: string
         }
         Relationships: []
       }
@@ -2248,10 +2833,64 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "transfer_stok_items_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "vw_katalog_publik"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "transfer_stok_items_transfer_id_fkey"
             columns: ["transfer_id"]
             isOneToOne: false
             referencedRelation: "transfer_stok"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_bridge_status: {
+        Row: {
+          connected: boolean
+          id: string
+          id_gudang: string | null
+          is_session_corrupted: boolean
+          name: string | null
+          phone: string | null
+          qr_base64: string | null
+          qr_expires_at: string | null
+          queue_stats: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          connected?: boolean
+          id?: string
+          id_gudang?: string | null
+          is_session_corrupted?: boolean
+          name?: string | null
+          phone?: string | null
+          qr_base64?: string | null
+          qr_expires_at?: string | null
+          queue_stats?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          connected?: boolean
+          id?: string
+          id_gudang?: string | null
+          is_session_corrupted?: boolean
+          name?: string | null
+          phone?: string | null
+          qr_base64?: string | null
+          qr_expires_at?: string | null
+          queue_stats?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_bridge_status_id_gudang_fkey"
+            columns: ["id_gudang"]
+            isOneToOne: false
+            referencedRelation: "gudang"
             referencedColumns: ["id"]
           },
         ]
@@ -2261,8 +2900,11 @@ export type Database = {
           created_at: string | null
           error_message: string | null
           id: string
+          id_gudang: string | null
           message: string | null
           phone: string
+          read_at: string | null
+          reference_id: string | null
           source: string
           status: string
           type: string
@@ -2271,8 +2913,11 @@ export type Database = {
           created_at?: string | null
           error_message?: string | null
           id?: string
+          id_gudang?: string | null
           message?: string | null
           phone: string
+          read_at?: string | null
+          reference_id?: string | null
           source: string
           status?: string
           type: string
@@ -2281,11 +2926,55 @@ export type Database = {
           created_at?: string | null
           error_message?: string | null
           id?: string
+          id_gudang?: string | null
           message?: string | null
           phone?: string
+          read_at?: string | null
+          reference_id?: string | null
           source?: string
           status?: string
           type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_outbox_id_gudang_fkey"
+            columns: ["id_gudang"]
+            isOneToOne: false
+            referencedRelation: "gudang"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_settings: {
+        Row: {
+          created_at: string | null
+          enable_inactivity_reminder: boolean
+          id: string
+          inactivity_reminder_interval_days: number
+          inactivity_reminder_phone: string | null
+          last_phone_active_date: string | null
+          updated_at: string | null
+          wa_receipt_promo_footer: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          enable_inactivity_reminder?: boolean
+          id?: string
+          inactivity_reminder_interval_days?: number
+          inactivity_reminder_phone?: string | null
+          last_phone_active_date?: string | null
+          updated_at?: string | null
+          wa_receipt_promo_footer?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          enable_inactivity_reminder?: boolean
+          id?: string
+          inactivity_reminder_interval_days?: number
+          inactivity_reminder_phone?: string | null
+          last_phone_active_date?: string | null
+          updated_at?: string | null
+          wa_receipt_promo_footer?: string | null
         }
         Relationships: []
       }
@@ -2323,6 +3012,56 @@ export type Database = {
           },
         ]
       }
+      vw_katalog_publik: {
+        Row: {
+          diskon: number | null
+          harga_jual: number | null
+          id: string | null
+          id_kategori: string | null
+          is_discontinued: boolean | null
+          kode_barcode: string | null
+          nama_barang: string | null
+          slug: string | null
+          stok: number | null
+          unit: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          diskon?: number | null
+          harga_jual?: number | null
+          id?: string | null
+          id_kategori?: string | null
+          is_discontinued?: boolean | null
+          kode_barcode?: string | null
+          nama_barang?: string | null
+          slug?: string | null
+          stok?: number | null
+          unit?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          diskon?: number | null
+          harga_jual?: number | null
+          id?: string | null
+          id_kategori?: string | null
+          is_discontinued?: boolean | null
+          kode_barcode?: string | null
+          nama_barang?: string | null
+          slug?: string | null
+          stok?: number | null
+          unit?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_id_kategori_fkey"
+            columns: ["id_kategori"]
+            isOneToOne: false
+            referencedRelation: "kategori"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_payroll_saldo: {
         Row: {
           total_saldo: number | null
@@ -2332,154 +3071,89 @@ export type Database = {
       }
     }
     Functions: {
-      absen_masuk_with_gps:
-        | {
-            Args: {
-              p_accuracy?: number
-              p_lat: number
-              p_lng: number
-              p_status_hadir?: string
-            }
-            Returns: {
-              accuracy_masuk: number | null
-              accuracy_pulang: number | null
-              created_at: string
-              id: string
-              lat_masuk: number | null
-              lat_pulang: number | null
-              lng_masuk: number | null
-              lng_pulang: number | null
-              lokasi_masuk_id: string | null
-              lokasi_pulang_id: string | null
-              menit_kerja: number | null
-              menit_lembur_aktual: number | null
-              menit_lembur_disetujui: number | null
-              menit_telat: number | null
-              status_hadir: string
-              status_lembur: string
-              tanggal: string
-              user_id: string
-              waktu_masuk: string | null
-              waktu_pulang: string | null
-            }
-            SetofOptions: {
-              from: "*"
-              to: "kehadiran"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: {
-              p_lat: number
-              p_lng: number
-              p_status_hadir: string
-              p_user_id: string
-            }
-            Returns: {
-              accuracy_masuk: number | null
-              accuracy_pulang: number | null
-              created_at: string
-              id: string
-              lat_masuk: number | null
-              lat_pulang: number | null
-              lng_masuk: number | null
-              lng_pulang: number | null
-              lokasi_masuk_id: string | null
-              lokasi_pulang_id: string | null
-              menit_kerja: number | null
-              menit_lembur_aktual: number | null
-              menit_lembur_disetujui: number | null
-              menit_telat: number | null
-              status_hadir: string
-              status_lembur: string
-              tanggal: string
-              user_id: string
-              waktu_masuk: string | null
-              waktu_pulang: string | null
-            }
-            SetofOptions: {
-              from: "*"
-              to: "kehadiran"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-      absen_pulang_with_gps:
-        | {
-            Args: {
-              p_accuracy?: number
-              p_kehadiran_id: string
-              p_lat: number
-              p_lng: number
-            }
-            Returns: {
-              accuracy_masuk: number | null
-              accuracy_pulang: number | null
-              created_at: string
-              id: string
-              lat_masuk: number | null
-              lat_pulang: number | null
-              lng_masuk: number | null
-              lng_pulang: number | null
-              lokasi_masuk_id: string | null
-              lokasi_pulang_id: string | null
-              menit_kerja: number | null
-              menit_lembur_aktual: number | null
-              menit_lembur_disetujui: number | null
-              menit_telat: number | null
-              status_hadir: string
-              status_lembur: string
-              tanggal: string
-              user_id: string
-              waktu_masuk: string | null
-              waktu_pulang: string | null
-            }
-            SetofOptions: {
-              from: "*"
-              to: "kehadiran"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: {
-              p_kehadiran_id: string
-              p_lat: number
-              p_lng: number
-              p_menit_kerja: number
-              p_menit_lembur: number
-              p_menit_telat: number
-            }
-            Returns: {
-              accuracy_masuk: number | null
-              accuracy_pulang: number | null
-              created_at: string
-              id: string
-              lat_masuk: number | null
-              lat_pulang: number | null
-              lng_masuk: number | null
-              lng_pulang: number | null
-              lokasi_masuk_id: string | null
-              lokasi_pulang_id: string | null
-              menit_kerja: number | null
-              menit_lembur_aktual: number | null
-              menit_lembur_disetujui: number | null
-              menit_telat: number | null
-              status_hadir: string
-              status_lembur: string
-              tanggal: string
-              user_id: string
-              waktu_masuk: string | null
-              waktu_pulang: string | null
-            }
-            SetofOptions: {
-              from: "*"
-              to: "kehadiran"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
+      absen_masuk_with_gps: {
+        Args: {
+          p_accuracy?: number
+          p_lat: number
+          p_lng: number
+          p_status_hadir?: string
+        }
+        Returns: {
+          accuracy_masuk: number | null
+          accuracy_pulang: number | null
+          alasan_pulang_awal: string | null
+          catatan_admin: string | null
+          created_at: string
+          id: string
+          lat_masuk: number | null
+          lat_pulang: number | null
+          lng_masuk: number | null
+          lng_pulang: number | null
+          lokasi_masuk_id: string | null
+          lokasi_pulang_id: string | null
+          menit_kerja: number | null
+          menit_lembur_aktual: number | null
+          menit_lembur_disetujui: number | null
+          menit_pulang_awal: number | null
+          menit_telat: number | null
+          status_hadir: string
+          status_lembur: string
+          status_pulang_awal: string
+          tanggal: string
+          user_id: string
+          waktu_masuk: string | null
+          waktu_pulang: string | null
+          waktu_pulang_aktual: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "kehadiran"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      absen_pulang_with_gps: {
+        Args: {
+          p_accuracy?: number
+          p_alasan_pulang_awal?: string
+          p_kehadiran_id: string
+          p_lat: number
+          p_lng: number
+        }
+        Returns: {
+          accuracy_masuk: number | null
+          accuracy_pulang: number | null
+          alasan_pulang_awal: string | null
+          catatan_admin: string | null
+          created_at: string
+          id: string
+          lat_masuk: number | null
+          lat_pulang: number | null
+          lng_masuk: number | null
+          lng_pulang: number | null
+          lokasi_masuk_id: string | null
+          lokasi_pulang_id: string | null
+          menit_kerja: number | null
+          menit_lembur_aktual: number | null
+          menit_lembur_disetujui: number | null
+          menit_pulang_awal: number | null
+          menit_telat: number | null
+          status_hadir: string
+          status_lembur: string
+          status_pulang_awal: string
+          tanggal: string
+          user_id: string
+          waktu_masuk: string | null
+          waktu_pulang: string | null
+          waktu_pulang_aktual: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "kehadiran"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       add_kas_log: {
         Args: {
           p_catatan: string
@@ -2493,12 +3167,34 @@ export type Database = {
         Args: { p_items: Json; p_penjualan_id: string }
         Returns: undefined
       }
+      approve_and_process_opname: {
+        Args: { p_opname_id: string }
+        Returns: Json
+      }
+      approve_pengeluaran_gudang: {
+        Args: { p_pengeluaran_id: string; p_user: string }
+        Returns: Json
+      }
       bulk_approve_lembur: { Args: { p_ids: string[] }; Returns: number }
+      bulk_review_pulang_awal: {
+        Args: { p_ids: string[]; p_keputusan: string }
+        Returns: number
+      }
       calculate_distance: {
         Args: { lat1: number; lat2: number; lon1: number; lon2: number }
         Returns: number
       }
+      calculate_member_transaction_benefit: {
+        Args: { p_member_id: string; p_subtotal: number }
+        Returns: Json
+      }
       check_and_notify_absensi: { Args: never; Returns: undefined }
+      check_inventory_batch_can_delete: {
+        Args: { p_ids: string[] }
+        Returns: Json
+      }
+      check_inventory_can_delete: { Args: { p_id: string }; Returns: Json }
+      claim_pos_authorization: { Args: { p_id: string }; Returns: Json }
       create_penjualan: { Args: { p_user: string }; Returns: string }
       create_penjualan_return: {
         Args: {
@@ -2508,7 +3204,37 @@ export type Database = {
           p_items: Json
           p_note: string
           p_penjualan_id: string
+          p_shift_id?: string
           p_tanggal: string
+        }
+        Returns: string
+      }
+      create_transfer_stok_batch: {
+        Args: {
+          p_auto_kirim?: boolean
+          p_catatan?: string
+          p_gudang_asal_id: string
+          p_gudang_tujuan_id: string
+          p_items?: Json
+          p_kurir_pengirim?: string
+          p_user?: string
+        }
+        Returns: Json
+      }
+      delete_inventory_batch: { Args: { p_ids: string[] }; Returns: Json }
+      delete_inventory_item: { Args: { p_id: string }; Returns: Json }
+      disburse_payroll_via_cashier: {
+        Args: { p_gudang_id?: string; p_mutasi_id: string; p_shift_id: string }
+        Returns: Json
+      }
+      execute_pengeluaran_gudang: {
+        Args: {
+          p_auto_approve?: boolean
+          p_catatan: string
+          p_gudang_id: string
+          p_items: Json
+          p_tipe: Database["public"]["Enums"]["tipe_pengeluaran_gudang"]
+          p_user: string
         }
         Returns: string
       }
@@ -2542,6 +3268,14 @@ export type Database = {
         }[]
       }
       finalize_penjualan: { Args: { p_penjualan_id: string }; Returns: string }
+      find_suppliers_for_return_by_barcode: {
+        Args: { p_barcode: string }
+        Returns: {
+          supplier_id: string
+          supplier_nama: string
+          total_qty_remaining: number
+        }[]
+      }
       generate_monthly_slips: {
         Args: { p_periode: string }
         Returns: undefined
@@ -2555,6 +3289,18 @@ export type Database = {
           penjualan: number
           profit: number
           trend_date: string
+        }[]
+      }
+      get_active_shifts: {
+        Args: { p_gudang_id?: string }
+        Returns: {
+          gudang_id: string
+          gudang_name: string
+          id: string
+          kasir_id: string
+          kasir_name: string
+          opening_cash: number
+          start_time: string
         }[]
       }
       get_analytics_atv: {
@@ -2624,9 +3370,11 @@ export type Database = {
           total_sold: number
         }[]
       }
+      get_auth_user_default_gudang: { Args: never; Returns: string }
       get_available_return_items: {
         Args: { p_supplier_id: string }
         Returns: {
+          barcode: string
           diskon: number
           harga_beli: number
           inventory_id: string
@@ -2688,29 +3436,52 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      get_inventory_summary:
-        | {
-            Args: never
-            Returns: {
-              total_items: number
-              total_stok: number
-              total_value: number
-            }[]
-          }
-        | {
-            Args: { p_gudang_id?: string }
-            Returns: {
-              total_items: number
-              total_stok: number
-              total_value: number
-            }[]
-          }
-      get_ledger_opening_balance:
-        | { Args: { p_start_date: string }; Returns: number }
-        | {
-            Args: { p_gudang_id?: string; p_start_date: string }
-            Returns: number
-          }
+      get_inventory_summary: {
+        Args: { p_gudang_id?: string }
+        Returns: {
+          total_items: number
+          total_stok: number
+          total_value: number
+        }[]
+      }
+      get_kas_summary: {
+        Args: {
+          p_end_date?: string
+          p_gudang_id?: string
+          p_start_date?: string
+          p_user_id?: string
+        }
+        Returns: Json
+      }
+      get_ledger_opening_balance: {
+        Args: { p_gudang_id?: string; p_start_date: string }
+        Returns: number
+      }
+      get_ledger_with_balance: {
+        Args: {
+          p_end_date?: string
+          p_gudang_id?: string
+          p_search?: string
+          p_start_date?: string
+          p_sumber?: string
+          p_tipe?: string
+        }
+        Returns: {
+          created_at: string
+          created_by: string
+          gudang: Json
+          gudang_id: string
+          id: string
+          keterangan: string
+          nominal: number
+          profiles: Json
+          referensi_id: string
+          saldo_berjalan: number
+          sumber: string
+          tanggal: string
+          tipe_transaksi: string
+        }[]
+      }
       get_low_stock_items: {
         Args: { p_search?: string }
         Returns: {
@@ -2741,10 +3512,19 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_penjualan_returned_items: {
+        Args: { p_penjualan_id: string }
+        Returns: {
+          inventory_id: string
+          penjualan_item_id: string
+          returned_qty: number
+        }[]
+      }
       get_profit_report: {
         Args: {
           p_category_id?: string
           p_end_date?: string
+          p_gudang_id?: string
           p_limit?: number
           p_page?: number
           p_start_date?: string
@@ -2765,6 +3545,7 @@ export type Database = {
         Args: {
           p_category_id?: string
           p_end_date?: string
+          p_gudang_id?: string
           p_limit?: number
           p_page?: number
           p_start_date?: string
@@ -2781,6 +3562,10 @@ export type Database = {
           total_sales: number
           transaction_count: number
         }[]
+      }
+      get_system_config: {
+        Args: { p_default?: string; p_key: string }
+        Returns: string
       }
       get_today_kehadiran_summary: { Args: never; Returns: Json }
       get_today_profit: { Args: { p_date?: string }; Returns: Json }
@@ -2799,7 +3584,20 @@ export type Database = {
           total_sales: number
         }[]
       }
+      get_warehouse_stock_summary: { Args: never; Returns: Json }
+      has_any_role: { Args: { p_roles: string[] }; Returns: boolean }
+      has_role: { Args: { p_role: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
+      is_admin_or_lead_warehouse: { Args: never; Returns: boolean }
+      is_finance_or_admin: { Args: never; Returns: boolean }
+      kirim_transfer_stok: {
+        Args: { p_transfer_id: string; p_user?: string }
+        Returns: Json
+      }
+      merge_duplicate_inventory: {
+        Args: { p_source_ids: string[]; p_target_id: string }
+        Returns: Json
+      }
       pay_penjualan: {
         Args: {
           p_cash_amount: number
@@ -2827,9 +3625,11 @@ export type Database = {
           p_idempotency_key: string
           p_items: Json
           p_member_id?: string
+          p_nomor_struk?: string
           p_payment_method: string
           p_points_earned?: number
           p_points_redeemed?: number
+          p_pos_auth_id?: string
           p_qris_amount: number
           p_receipt_sent_via_wa?: boolean
           p_shift_id?: string
@@ -2861,13 +3661,14 @@ export type Database = {
       preview_gaji: {
         Args: { p_periode: string }
         Returns: {
-          created_at: string
           dibayar_pada: string
           gaji_bersih: number
-          id: string
-          nama: string
+          gaji_bulanan: number
+          nama_karyawan: string
           periode_bulan: string
           status_pembayaran: string
+          tipe_gaji: string
+          total_bonus: number
           total_denda_telat: number
           total_gaji_harian: number
           total_gaji_lembur: number
@@ -2875,6 +3676,8 @@ export type Database = {
           total_jam_lembur: number
           total_jam_telat: number
           total_potongan_kasbon: number
+          total_potongan_lain: number
+          total_potongan_libur: number
           user_id: string
         }[]
       }
@@ -2883,42 +3686,88 @@ export type Database = {
         Returns: Json
       }
       proses_gaji: { Args: { p_periode: string }; Returns: undefined }
-      proses_return_batch:
-        | {
-            Args: {
-              p_created_by?: string
-              p_idempotency_key?: string
-              p_items: Json
-              p_note?: string
-              p_supplier_id: string
-              p_supplier_nama: string
-              p_tanggal?: string
-            }
-            Returns: {
-              return_id: string
-            }[]
-          }
-        | {
-            Args: {
-              p_created_by?: string
-              p_idempotency_key?: string
-              p_items: Json[]
-              p_note?: string
-              p_supplier_id: string
-              p_supplier_nama: string
-              p_tanggal?: string
-            }
-            Returns: {
-              return_id: string
-            }[]
-          }
+      proses_return_batch: {
+        Args: {
+          p_created_by?: string
+          p_gudang_id?: string
+          p_idempotency_key?: string
+          p_items: Json
+          p_note?: string
+          p_supplier_id: string
+          p_supplier_nama: string
+          p_tanggal?: string
+        }
+        Returns: {
+          return_id: string
+        }[]
+      }
       record_shift_to_ledger: {
         Args: { p_shift_id: string }
         Returns: undefined
       }
+      redeem_member_reward_atomic: {
+        Args: { p_member_id: string; p_reward_id: string }
+        Returns: Json
+      }
+      reject_pengeluaran_gudang: {
+        Args: { p_note: string; p_pengeluaran_id: string; p_user: string }
+        Returns: Json
+      }
+      reject_pos_authorization: { Args: { p_id: string }; Returns: Json }
+      release_pos_authorization: { Args: { p_id: string }; Returns: Json }
+      request_member_otp: { Args: { p_phone: string }; Returns: Json }
+      request_pos_authorization: {
+        Args: {
+          p_action_metadata?: Json
+          p_action_type?: string
+          p_device_name?: string
+          p_gudang_id?: string
+        }
+        Returns: Json
+      }
       reset_member_points: { Args: never; Returns: undefined }
       reset_member_tier_points: { Args: never; Returns: undefined }
       resolve_username: { Args: { p_username: string }; Returns: string }
+      review_pulang_awal: {
+        Args: {
+          p_catatan_admin?: string
+          p_kehadiran_id: string
+          p_keputusan: string
+        }
+        Returns: {
+          accuracy_masuk: number | null
+          accuracy_pulang: number | null
+          alasan_pulang_awal: string | null
+          catatan_admin: string | null
+          created_at: string
+          id: string
+          lat_masuk: number | null
+          lat_pulang: number | null
+          lng_masuk: number | null
+          lng_pulang: number | null
+          lokasi_masuk_id: string | null
+          lokasi_pulang_id: string | null
+          menit_kerja: number | null
+          menit_lembur_aktual: number | null
+          menit_lembur_disetujui: number | null
+          menit_pulang_awal: number | null
+          menit_telat: number | null
+          status_hadir: string
+          status_lembur: string
+          status_pulang_awal: string
+          tanggal: string
+          user_id: string
+          waktu_masuk: string | null
+          waktu_pulang: string | null
+          waktu_pulang_aktual: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "kehadiran"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       search_inventory: {
         Args: { limit_val?: number; search_query: string }
         Returns: {
@@ -2968,6 +3817,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      takeover_pos_authorization: { Args: { p_id: string }; Returns: Json }
       tambah_pembelian:
         | {
             Args: {
@@ -2994,6 +3844,7 @@ export type Database = {
           }
       tambah_pembelian_batch: {
         Args: {
+          p_gudang_id?: string
           p_idempotency_key?: string
           p_items: Json
           p_nomor_nota?: string
@@ -3012,6 +3863,10 @@ export type Database = {
           p_user: string
         }
         Returns: undefined
+      }
+      terima_transfer_stok: {
+        Args: { p_items: Json; p_transfer_id: string; p_user?: string }
+        Returns: Json
       }
       toggle_discontinued: {
         Args: { p_id: string; p_user: string }
@@ -3051,6 +3906,45 @@ export type Database = {
           p_supplier_id: string
           p_tanggal: string
           p_user: string
+        }
+        Returns: Json
+      }
+      update_stock_bin: {
+        Args: {
+          p_gudang_id: string
+          p_inventory_id: string
+          p_max_stok?: number
+          p_min_stok?: number
+          p_rak_lokasi: string
+        }
+        Returns: {
+          created_at: string
+          gudang_id: string
+          id: string
+          inventory_id: string
+          max_stok: number | null
+          min_stok: number | null
+          rak_lokasi: string | null
+          stok: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inventory_stocks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      verify_member_otp: {
+        Args: { p_name?: string; p_otp: string; p_phone: string }
+        Returns: Json
+      }
+      verify_pos_authorization: {
+        Args: {
+          p_action_type?: string
+          p_gudang_id?: string
+          p_pin: string
+          p_request_id?: string
         }
         Returns: Json
       }
@@ -3112,12 +4006,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3141,11 +4035,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3166,11 +4060,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3191,11 +4085,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3208,11 +4102,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3261,3 +4155,4 @@ export const Constants = {
     },
   },
 } as const
+

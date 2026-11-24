@@ -3,8 +3,7 @@ import { HydrationBoundary, QueryClient, dehydrate } from '@tanstack/react-query
 import AdminKasbonClient from './AdminKasbonClient';
 import { kasbonApi } from '@/lib/api/payroll';
 import { PageLoadingSpinner } from '@/components/ui';
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export const metadata = {
   title: 'Persetujuan Kasbon',
@@ -16,19 +15,7 @@ type Props = {
 
 export default async function AdminKasbonPage(props: Props) {
   const queryClient = new QueryClient();
-
-  const cookieStore = await cookies();
-  const supabaseServer = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-      },
-    },
-  );
+  const supabaseServer = await createServerSupabaseClient();
 
   const searchParams = await props.searchParams;
   

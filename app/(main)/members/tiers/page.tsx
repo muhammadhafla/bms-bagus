@@ -51,7 +51,17 @@ export default function MemberTiersPage() {
     if (error) {
       toast.error('Gagal memuat data tier');
     } else {
-      setTiers(data || []);
+      setTiers(
+        (data || []).map((t) => ({
+          id: t.id,
+          name: t.name,
+          discount_percentage: t.discount_percentage ?? 0,
+          point_multiplier: t.point_multiplier ?? 1,
+          min_points_required: t.min_points_required ?? 0,
+          min_purchase_amount: t.min_purchase_amount ?? 0,
+          updated_at: t.updated_at || '',
+        })),
+      );
     }
     setLoading(false);
   }, []);

@@ -193,7 +193,12 @@ function TransactionsHistoryContent() {
   return (
     <PullToRefresh
       onRefresh={async () => {
-        await queryClient.invalidateQueries();
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['penjualan'] }),
+          queryClient.invalidateQueries({ queryKey: ['pembelian'] }),
+          queryClient.invalidateQueries({ queryKey: ['retur_penjualan'] }),
+          queryClient.invalidateQueries({ queryKey: ['retur_pembelian'] }),
+        ]);
       }}
       pullingContent={
         <div className="flex items-center justify-center py-4 text-neutral-400">

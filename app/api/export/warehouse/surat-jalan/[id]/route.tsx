@@ -3,11 +3,11 @@ import React from 'react';
 import path from 'path';
 import fs from 'fs';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { z } from 'zod';
 import { renderToStream } from '@react-pdf/renderer';
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
-import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/api/auth-guard';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { generateCode128DataUrl, generateQrCodeDataUrl } from '@/lib/utils/barcode-generator';
 
 export const dynamic = 'force-dynamic';
@@ -502,27 +502,18 @@ const SuratJalanPDF = ({
   );
 };
 
-export async function GET(request: Request, context: any) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const params = await context.params;
-  const id = params.id;
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const parsedId = z.uuid('ID dokumen tidak valid').safeParse(params.id);
+  if (!parsedId.success) {
+    return new NextResponse(parsedId.error.issues[0]?.message || 'ID dokumen tidak valid', {
+      status: 400,
+    });
+  }
+  const id = parsedId.data;
 
   // 1. Verifikasi sesi login pengguna menggunakan cookies
-  const cookieStore = await cookies();
-  const supabaseAuth = createServerClient(
-    supabaseUrl,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {},
-      },
-    },
-  );
+  const supabaseAuth = await createServerSupabaseClient();
 
   const {
     data: { user },
@@ -532,17 +523,9 @@ export async function GET(request: Request, context: any) {
   }
 
   // 2. Client query data (service role jika tersedia, fallback ke supabaseAuth)
-  const supabase = serviceKey
-    ? createClient(supabaseUrl, serviceKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      })
-    : supabaseAuth;
+  const supabase = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabaseAuth;
 
   try {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id)) {
-      return new NextResponse('ID dokumen tidak valid', { status: 400 });
-    }
 
     const { data: requesterProfile } = await supabase
       .from('profiles')
@@ -651,15 +634,15 @@ export async function GET(request: Request, context: any) {
       />,
     );
 
-    return new Response(stream as any, {
+    return new Response(stream as unknown as BodyInit, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="Surat_Jalan_${nomorTransfer}.pdf"`,
       },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('PDF generation error:', err);
-    return new NextResponse('Internal Server Error: ' + err.message, { status: 500 });
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

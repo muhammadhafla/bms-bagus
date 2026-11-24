@@ -86,15 +86,15 @@ export const ledgerApi = {
   // Mengambil Saldo Awal Kumulatif sebelum tanggal tertentu
   async getOpeningBalance(startDate?: string, gudangId?: string): Promise<number> {
     if (!startDate) return 0;
-    
+
     const { data, error } = await supabase.rpc('get_ledger_opening_balance', {
       p_start_date: startDate,
-      p_gudang_id: gudangId || null
+      p_gudang_id: gudangId ?? undefined,
     });
 
     if (error) {
       console.error('Error fetching ledger opening balance:', error);
-      return 0;
+      throw error;
     }
     return Number(data) || 0;
   },
@@ -109,12 +109,12 @@ export const ledgerApi = {
     gudangId?: string
   ) {
     const { data, error } = await supabase.rpc('get_ledger_with_balance', {
-      p_start_date: startDate || null,
-      p_end_date: endDate || null,
-      p_tipe: tipe || null,
-      p_sumber: sumber || null,
-      p_search: search || null,
-      p_gudang_id: gudangId || null
+      p_start_date: startDate || undefined,
+      p_end_date: endDate || undefined,
+      p_tipe: tipe || undefined,
+      p_sumber: sumber || undefined,
+      p_search: search || undefined,
+      p_gudang_id: gudangId || undefined,
     });
 
     if (error) throw error;
@@ -130,7 +130,7 @@ export const ledgerApi = {
     tanggal?: string;
     gudang_id?: string;
   }) {
-    let targetGudangId = params.gudang_id;
+    let targetGudangId: string | null | undefined = params.gudang_id;
     if (!targetGudangId) {
       const { data: defGudang } = await supabase
         .from('gudang')

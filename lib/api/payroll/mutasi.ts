@@ -156,7 +156,9 @@ export const mutasiApi = {
         
       if (balancesData) {
         balancesData.forEach(b => {
-          balancesMap[b.user_id] = b.total_saldo;
+          if (b.user_id) {
+            balancesMap[b.user_id] = b.total_saldo ?? 0;
+          }
         });
       }
     }

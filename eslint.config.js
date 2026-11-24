@@ -3,7 +3,7 @@ const prettierConfig = require('eslint-config-prettier');
 
 module.exports = [
   {
-    ignores: ['test_kas.js', '.agents/**'],
+    ignores: ['.agents/**', 'public/sw.js', 'coverage/**'],
   },
   ...nextConfig,
   prettierConfig,

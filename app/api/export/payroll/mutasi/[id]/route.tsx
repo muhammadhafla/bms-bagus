@@ -1,9 +1,10 @@
 import React from 'react';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { z } from 'zod';
 import { renderToStream } from '@react-pdf/renderer';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-import { createServerClient } from '@supabase/ssr';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
+import type { Database } from '@/types/supabase';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,9 @@ const styles = StyleSheet.create({
 
 const formatCurrency = (amount: number | string) => `Rp ${Number(amount).toLocaleString('id-ID')}`;
 
-const MutasiPDF = ({ mutasiData, profileName, saldo }: { mutasiData: any[], profileName: string, saldo: number }) => (
+type PayrollMutasiRow = Database['public']['Tables']['payroll_mutasi']['Row'];
+
+const MutasiPDF = ({ mutasiData, profileName, saldo }: { mutasiData: PayrollMutasiRow[], profileName: string, saldo: number }) => (
   <Document>
     <Page size="A4" style={styles.page}>
       <Text style={styles.header}>RIWAYAT MUTASI KARYAWAN</Text>
@@ -66,41 +69,32 @@ const MutasiPDF = ({ mutasiData, profileName, saldo }: { mutasiData: any[], prof
 );
 
 const DATE_REGEX = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function GET(request: Request, context: any) {
+const mutasiExportParamsSchema = z.object({
+  id: z.uuid('User ID tidak valid'),
+  startDate: z.string().regex(DATE_REGEX, 'Format startDate tidak valid').optional(),
+  endDate: z.string().regex(DATE_REGEX, 'Format endDate tidak valid').optional(),
+});
+
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const params = await context.params;
-  const userId = params.id;
-
-  if (!userId || !UUID_REGEX.test(userId)) {
-    return new NextResponse('User ID tidak valid', { status: 400 });
-  }
-
   const { searchParams } = new URL(request.url);
-  const startDate = searchParams.get('startDate');
-  const endDate = searchParams.get('endDate');
+  const parsed = mutasiExportParamsSchema.safeParse({
+    id: params.id,
+    startDate: searchParams.get('startDate') || undefined,
+    endDate: searchParams.get('endDate') || undefined,
+  });
 
-  if (startDate && !DATE_REGEX.test(startDate)) {
-    return new NextResponse('Format startDate tidak valid', { status: 400 });
+  if (!parsed.success) {
+    return new NextResponse(parsed.error.issues[0]?.message || 'Parameter tidak valid', {
+      status: 400,
+    });
   }
-  if (endDate && !DATE_REGEX.test(endDate)) {
-    return new NextResponse('Format endDate tidak valid', { status: 400 });
-  }
+
+  const { id: userId, startDate, endDate } = parsed.data;
 
   // 1. Inisialisasi client Supabase dengan Cookie sesi login
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {},
-      },
-    }
-  );
+  const supabase = await createServerSupabaseClient();
   
   try {
     // 2. Verifikasi status login
@@ -161,7 +155,7 @@ export async function GET(request: Request, context: any) {
 
     const stream = await renderToStream(<MutasiPDF mutasiData={mutasiData} profileName={profileName} saldo={saldo} />);
     
-    return new Response(stream as any, {
+    return new Response(stream as unknown as BodyInit, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

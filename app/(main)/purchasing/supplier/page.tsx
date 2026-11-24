@@ -298,7 +298,7 @@ export default function SupplierPage() {
       sortable: true,
       render: (item: Supplier) => (
         <span className="text-sm text-neutral-500 dark:text-neutral-400">
-          {formatDate(item.created_at)}
+          {formatDate(item.created_at ?? '')}
         </span>
       ),
     },
@@ -489,7 +489,9 @@ export default function SupplierPage() {
                           <span className="text-neutral-400 dark:text-neutral-600">-</span>
                         )}
                       </div>
-                      <div className="text-xs text-neutral-500">{formatDate(item.created_at)}</div>
+                      <div className="text-xs text-neutral-500">
+                        {formatDate(item.created_at ?? '')}
+                      </div>
                     </div>
                   )}
                 />

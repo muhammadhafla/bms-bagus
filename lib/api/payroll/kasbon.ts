@@ -1,6 +1,7 @@
 import { supabase } from '../client';
 import { safeQuery } from '../utils';
 import { sanitizeSearchQuery } from '@/lib/utils';
+import type { Database } from '@/types/supabase';
 
 export interface Kasbon {
   id: string;
@@ -63,7 +64,12 @@ export const kasbonApi = {
         .eq('user_id', userId)
         .eq('jenis', 'debit');
 
-      if (status && status !== 'all') query = query.eq('status', status);
+      if (status && status !== 'all') {
+        query = query.eq(
+          'status',
+          status as Database['public']['Enums']['payroll_mutasi_status'],
+        );
+      }
       if (startDate) query = query.gte('tanggal', startDate);
       if (endDate) query = query.lte('tanggal', endDate);
       if (search) query = query.ilike('keterangan', `%${search}%`);
@@ -124,7 +130,12 @@ export const kasbonApi = {
         .select(`*, profiles!inner(nama)`, { count: 'exact' })
         .eq('jenis', 'debit');
       
-      if (status && status !== 'all') query = query.eq('status', status);
+      if (status && status !== 'all') {
+        query = query.eq(
+          'status',
+          status as Database['public']['Enums']['payroll_mutasi_status'],
+        );
+      }
       if (startDate) query = query.gte('tanggal', startDate);
       if (endDate) query = query.lte('tanggal', endDate);
       if (search) {
@@ -184,13 +195,13 @@ export const kasbonApi = {
       const userId = authData.user?.id;
       if (!userId) throw new Error('Not authenticated');
 
-      const payload = {
+      const payload: Database['public']['Tables']['payroll_mutasi']['Insert'] = {
         user_id: userId,
         jenis: 'debit',
         kategori: 'kasbon',
         nominal,
         keterangan,
-        status: 'pending'
+        status: 'pending',
       };
 
       const result = await safeQuery(
@@ -230,13 +241,13 @@ export const kasbonApi = {
 
       // Insert as 'pending' first when disbursing via cashier so that disburse_payroll_via_cashier
       // approves it atomically alongside the shift deduction and ledger entry.
-      const payload = {
+      const payload: Database['public']['Tables']['payroll_mutasi']['Insert'] = {
         user_id: userId,
         jenis: 'debit',
         kategori: 'kasbon',
         nominal,
         keterangan,
-        status: shouldDisburseViaCashier ? 'pending' : status
+        status: shouldDisburseViaCashier ? 'pending' : status,
       };
 
       const result = await safeQuery(

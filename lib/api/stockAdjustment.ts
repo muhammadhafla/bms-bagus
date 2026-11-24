@@ -6,11 +6,11 @@ export interface StockAdjustment {
   stock_opname_item_id: string | null;
   inventory_id: string;
   adjustment_qty: number;
-  adjustment_type: 'increase' | 'decrease';
+  adjustment_type: string;
   reason: string;
   note: string | null;
   created_by: string;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface StockAdjustmentWithInventory extends StockAdjustment {
@@ -44,7 +44,10 @@ export const stockAdjustmentApi = {
           .from('inventory')
           .select('id, nama_barang')
           .in('id', uniqueInventoryIds);
-        return { data: result.data, error: result.error as Error | null };
+        return {
+          data: result.data as { id: string; nama_barang: string }[] | null,
+          error: result.error as Error | null,
+        };
       });
       if (invResult.data) {
         invResult.data.forEach((inv) => {
@@ -77,7 +80,10 @@ export const stockAdjustmentApi = {
           p_opname_id: opnameId,
           p_user_id: user.id,
         });
-        return { data: result.data, error: result.error as Error | null };
+        return {
+          data: result.data as { success: boolean; processed_items: number; opname_id: string } | null,
+          error: result.error as Error | null,
+        };
       },
       { isMutation: true },
     );

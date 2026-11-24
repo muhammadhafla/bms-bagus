@@ -276,7 +276,7 @@ function AnalyticsContent() {
   const showFilterButton = ['sales', 'profit', 'top_items'].includes(activeTab);
 
   const handleRefresh = async () => {
-    await queryClient.invalidateQueries();
+    await queryClient.invalidateQueries({ queryKey: ['analytics'] });
   };
 
   return (

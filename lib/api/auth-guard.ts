@@ -1,9 +1,15 @@
 import { timingSafeEqual } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import type { Database } from '@/types/supabase';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+function getRequiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`[auth-guard] Konfigurasi environment ${name} belum lengkap.`);
+  }
+  return value;
+}
 
 function safeTimingEqual(a: string | null | undefined, b: string | undefined): boolean {
   if (!a || !b) return false;
@@ -13,10 +19,9 @@ function safeTimingEqual(a: string | null | undefined, b: string | undefined): b
 }
 
 export function createAdminClient() {
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Konfigurasi Supabase admin client belum lengkap.');
-  }
-  return createClient(supabaseUrl, supabaseServiceKey, {
+  const supabaseUrl = getRequiredEnv('NEXT_PUBLIC_SUPABASE_URL');
+  const supabaseServiceKey = getRequiredEnv('SUPABASE_SERVICE_ROLE_KEY');
+  return createClient<Database>(supabaseUrl, supabaseServiceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }

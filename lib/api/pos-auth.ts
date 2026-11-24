@@ -1,6 +1,7 @@
 import { supabase } from './client';
 import { safeQuery } from './utils';
 import { PosAuthorization, PosAuthFilter } from '@/types/pos-auth';
+import type { Json } from '@/types/supabase';
 
 export const posAuthApi = {
   /**
@@ -143,15 +144,15 @@ export const posAuthApi = {
     actionType: string = 'access_settings',
     gudangId?: string,
     deviceName?: string,
-    actionMetadata?: Record<string, any>
+    actionMetadata?: Record<string, Json | undefined>
   ) {
     return safeQuery<{ success: boolean; request_id: string; expires_at: string; message: string }>(
       async () => {
         const { data, error } = await supabase.rpc('request_pos_authorization', {
           p_action_type: actionType,
-          p_gudang_id: gudangId || null,
-          p_device_name: deviceName || null,
-          p_action_metadata: actionMetadata || {},
+          p_gudang_id: gudangId || undefined,
+          p_device_name: deviceName || undefined,
+          p_action_metadata: (actionMetadata || {}) as Json,
         });
 
         return {
@@ -172,7 +173,7 @@ export const posAuthApi = {
         const { data, error } = await supabase.rpc('verify_pos_authorization', {
           p_pin: pin,
           p_action_type: actionType,
-          p_gudang_id: gudangId || null,
+          p_gudang_id: gudangId || undefined,
         });
 
         return {

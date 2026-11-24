@@ -132,7 +132,10 @@ export const returnApi = {
         .or(`id.ilike.%${safeQueryString}%,supplier_id.ilike.%${safeQueryString}%`)
         .order('created_at', { ascending: false })
         .limit(20);
-      return { data: result.data, error: result.error as Error | null };
+      return {
+        data: result.data as unknown as ReturnedTransaction[] | null,
+        error: result.error as Error | null,
+      };
     });
   },
 
@@ -145,7 +148,10 @@ export const returnApi = {
         .or(`id.ilike.%${safeQueryString}%`)
         .order('created_at', { ascending: false })
         .limit(20);
-      return { data: result.data, error: result.error as Error | null };
+      return {
+        data: result.data as unknown as Penjualan[] | null,
+        error: result.error as Error | null,
+      };
     });
   },
 
@@ -188,7 +194,7 @@ export const returnApi = {
           p_pembelian_id: data.original_transaction_id,
           p_tanggal: data.tanggal,
           p_created_by: user.id,
-          p_note: data.note ?? null,
+          p_note: data.note ?? '',
           p_idempotency_key: idempotencyKey,
           p_items: data.items,
         });
@@ -217,7 +223,7 @@ export const returnApi = {
           p_penjualan_id: data.original_transaction_id,
           p_tanggal: data.tanggal,
           p_created_by: user.id,
-          p_note: data.note ?? null,
+          p_note: data.note ?? '',
           p_idempotency_key: idempotencyKey,
           p_items: data.items,
         });
@@ -307,7 +313,7 @@ export const returnApi = {
           const { data: inv } = await supabase
             .from('inventory')
             .select('id')
-            .eq('barcode', barcode)
+            .eq('kode_barcode', barcode)
             .maybeSingle();
           if (inv?.id) {
             resolvedInvId = inv.id;
@@ -387,23 +393,26 @@ export const returnApi = {
           p_supplier_id: data.supplier_id,
           p_supplier_nama: data.supplier_nama,
           p_tanggal: data.tanggal,
-          p_note: data.note ?? null,
+          p_note: data.note ?? undefined,
           p_items: data.items,
           p_idempotency_key: idempotencyKey,
           p_created_by: user.id,
-          p_gudang_id: data.gudang_id || null,
+          p_gudang_id: data.gudang_id || undefined,
         });
 
         if (result.error) {
           return { data: null, error: result.error as Error | null };
         }
 
-        const rawData = result.data;
+        const rawData = result.data as unknown;
         let finalId: string | null = null;
         if (Array.isArray(rawData) && rawData.length > 0) {
-          finalId = rawData[0]?.return_id || rawData[0]?.id || (typeof rawData[0] === 'string' ? rawData[0] : null);
+          const first = rawData[0] as { return_id?: string; id?: string } | string;
+          finalId =
+            typeof first === 'string' ? first : (first?.return_id ?? first?.id ?? null);
         } else if (rawData && typeof rawData === 'object') {
-          finalId = (rawData as any).return_id || (rawData as any).id || null;
+          const obj = rawData as { return_id?: string; id?: string };
+          finalId = obj.return_id ?? obj.id ?? null;
         } else if (typeof rawData === 'string') {
           finalId = rawData;
         }

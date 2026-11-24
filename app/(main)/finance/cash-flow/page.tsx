@@ -71,7 +71,12 @@ export default function CashFlowPage() {
     setPage(1);
   }, [filters]);
 
-  const { data: kasLogData, isLoading: isLoadingLog } = useQuery({
+  const {
+    data: kasLogData,
+    isLoading: isLoadingLog,
+    isError: isErrorLog,
+    refetch: refetchLog,
+  } = useQuery({
     queryKey: [
       'kas_log',
       page,
@@ -100,7 +105,11 @@ export default function CashFlowPage() {
     staleTime: 60 * 1000,
   });
 
-  const { data: summaryData, isLoading: isLoadingSummary } = useQuery({
+  const {
+    data: summaryData,
+    isLoading: isLoadingSummary,
+    refetch: refetchSummary,
+  } = useQuery({
     queryKey: [
       'kas_summary',
       isAdmin ? filters.startDate : null,
@@ -124,13 +133,19 @@ export default function CashFlowPage() {
     staleTime: 60 * 1000,
   });
 
-  const { data: shiftSummaryData, isLoading: isLoadingShiftSummary } = useQuery({
+  const {
+    data: shiftSummaryData,
+    isLoading: isLoadingShiftSummary,
+    refetch: refetchShiftSummary,
+  } = useQuery({
     queryKey: ['shift_summary', filters.endDate, filters.gudangId],
     queryFn: () => kasApi.getShiftSummary(filters.endDate, filters.gudangId || undefined),
     enabled: isAdmin && !!currentUserId,
     refetchOnWindowFocus: true,
     staleTime: 60 * 1000,
   });
+
+  const kasLogError = kasLogData?.error?.message || (isErrorLog ? 'Gagal memuat riwayat kas.' : null);
 
   const handleOpenManualKas = useCallback((type: 'SETOR' | 'TARIK') => {
     setManualType(type);
@@ -160,7 +175,11 @@ export default function CashFlowPage() {
   }, [defaultFilters]);
 
   const handleRefresh = useCallback(async () => {
-    await queryClient.invalidateQueries();
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['kas_log'] }),
+      queryClient.invalidateQueries({ queryKey: ['kas_summary'] }),
+      queryClient.invalidateQueries({ queryKey: ['shift_summary'] }),
+    ]);
   }, [queryClient]);
 
   const activeFilters = useMemo(() => {
@@ -327,27 +346,47 @@ export default function CashFlowPage() {
                 onReset={handleResetFilter}
               />
 
-              <CashFlowDesktopTable
-                data={kasLogData?.data || []}
-                isLoading={isLoadingLog}
-                isAdmin={isAdmin}
-                onRowClick={handleRowClick}
-                page={page}
-                setPage={setPage}
-                total={kasLogData?.total || 0}
-                limit={LIMIT}
-              />
+              {kasLogError ? (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50/70 p-6 text-center dark:border-rose-900/50 dark:bg-rose-950/30">
+                  <p className="text-sm font-medium text-rose-700 dark:text-rose-300">
+                    {kasLogError}
+                  </p>
+                  <button
+                    onClick={() => {
+                      refetchLog();
+                      refetchSummary();
+                      if (isAdmin) refetchShiftSummary();
+                    }}
+                    className="mt-3 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400"
+                  >
+                    Coba Lagi
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <CashFlowDesktopTable
+                    data={kasLogData?.data || []}
+                    isLoading={isLoadingLog}
+                    isAdmin={isAdmin}
+                    onRowClick={handleRowClick}
+                    page={page}
+                    setPage={setPage}
+                    total={kasLogData?.total || 0}
+                    limit={LIMIT}
+                  />
 
-              <CashFlowMobileList
-                data={kasLogData?.data || []}
-                isLoading={isLoadingLog}
-                isAdmin={isAdmin}
-                onRowClick={handleRowClick}
-                page={page}
-                setPage={setPage}
-                total={kasLogData?.total || 0}
-                limit={LIMIT}
-              />
+                  <CashFlowMobileList
+                    data={kasLogData?.data || []}
+                    isLoading={isLoadingLog}
+                    isAdmin={isAdmin}
+                    onRowClick={handleRowClick}
+                    page={page}
+                    setPage={setPage}
+                    total={kasLogData?.total || 0}
+                    limit={LIMIT}
+                  />
+                </>
+              )}
             </div>
 
             {isAdmin && (

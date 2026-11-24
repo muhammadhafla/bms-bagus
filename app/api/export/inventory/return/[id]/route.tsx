@@ -3,11 +3,11 @@ import React from 'react';
 import path from 'path';
 import fs from 'fs';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { z } from 'zod';
 import { renderToStream } from '@react-pdf/renderer';
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
-import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/api/auth-guard';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { generateCode128DataUrl, generateQrCodeDataUrl } from '@/lib/utils/barcode-generator';
 
 export const dynamic = 'force-dynamic';
@@ -583,27 +583,18 @@ const ReturnPDF = ({ data, logoDataUrl, barcode128Url, qrCodeUrl, hidePrices = f
   );
 };
 
-export async function GET(request: Request, context: any) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const params = await context.params;
-  const id = params.id;
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const parsedId = z.uuid('ID retur tidak valid').safeParse(params.id);
+  if (!parsedId.success) {
+    return new NextResponse(parsedId.error.issues[0]?.message || 'ID retur tidak valid', {
+      status: 400,
+    });
+  }
+  const id = parsedId.data;
 
   // 1. Verifikasi sesi login pengguna menggunakan cookies
-  const cookieStore = await cookies();
-  const supabaseAuth = createServerClient(
-    supabaseUrl,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {},
-      },
-    },
-  );
+  const supabaseAuth = await createServerSupabaseClient();
 
   const {
     data: { user },
@@ -613,17 +604,9 @@ export async function GET(request: Request, context: any) {
   }
 
   // 2. Client query data (service role jika tersedia, fallback ke supabaseAuth)
-  const supabase = serviceKey
-    ? createClient(supabaseUrl, serviceKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      })
-    : supabaseAuth;
+  const supabase = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabaseAuth;
 
   try {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id)) {
-      return new NextResponse('ID retur tidak valid', { status: 400 });
-    }
 
     const { data: requesterProfile } = await supabase
       .from('profiles')
@@ -727,8 +710,8 @@ export async function GET(request: Request, context: any) {
 
     // 8. Fetch related pembelian invoice info
     const pembelianItemIds = (data.items || [])
-      .map((it: any) => it.pembelian_item_id)
-      .filter(Boolean);
+      .map((it) => it.pembelian_item_id)
+      .filter((itemId): itemId is string => Boolean(itemId));
 
     const invoiceMap: Record<string, { nomor_nota: string; tanggal: string }> = {};
     if (pembelianItemIds.length > 0) {
@@ -751,7 +734,7 @@ export async function GET(request: Request, context: any) {
     }
 
     // 9. Parse Note for Reasons & Compensation Method
-    const { kompensasi, itemReasons, userNote } = parseReturnNote(data.note);
+    const { kompensasi, itemReasons, userNote } = parseReturnNote(data.note ?? undefined);
 
     // 10. Load Company Logo
     let logoDataUrl = '';

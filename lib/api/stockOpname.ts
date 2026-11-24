@@ -5,13 +5,13 @@ import { safeQuery } from './utils';
 export interface StockOpname {
   id: string;
   opname_date: string;
-  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'completed';
+  status: string;
   note: string | null;
   gudang_id: string | null;
   created_by: string;
   approved_by: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
   gudang?: {
     id: string;
     kode_gudang: string;
@@ -40,15 +40,15 @@ export interface StockOpnameItem {
   system_stock: number;
   physical_stock: number;
   difference: number;
-  reason?: 'salah_input' | 'rusak' | 'hilang' | 'kadaluarsa' | 'salah_hitung' | 'lainnya' | null;
+  reason?: string | null;
   note?: string | null;
-  adjusted: boolean;
-  created_at: string;
-  updated_at: string;
+  adjusted: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
   inventory?: {
     nama_barang: string;
     kode_barcode: string;
-    unit: string;
+    unit: string | null;
   } | null;
 }
 
@@ -56,7 +56,7 @@ export interface StockOpnameItemWithInventory extends StockOpnameItem {
   inventory: {
     nama_barang: string;
     kode_barcode: string;
-    unit: string;
+    unit: string | null;
   } | null;
 }
 
@@ -88,13 +88,13 @@ export const stockOpnameApi = {
 
     let profilesMap: Record<string, { nama: string }> = {};
     if (uniqueUserIds.length > 0) {
-      const profilesResult = await safeQuery<{ id: string; nama: string }[]>(async () => {
+      const profilesResult = await safeQuery<{ id: string; nama: string | null }[]>(async () => {
         const result = await supabase.from('profiles').select('id, nama').in('id', uniqueUserIds);
         return { data: result.data, error: result.error as Error | null };
       });
       if (profilesResult.data) {
         profilesResult.data.forEach((p) => {
-          profilesMap[p.id] = { nama: p.nama };
+          profilesMap[p.id] = { nama: p.nama || '-' };
         });
       }
     }
@@ -159,13 +159,13 @@ export const stockOpnameApi = {
 
       let profilesMap: Record<string, { nama: string }> = {};
       if (uniqueUserIds.length > 0) {
-        const profilesResult = await safeQuery<{ id: string; nama: string }[]>(async () => {
+        const profilesResult = await safeQuery<{ id: string; nama: string | null }[]>(async () => {
           const result = await supabase.from('profiles').select('id, nama').in('id', uniqueUserIds);
           return { data: result.data, error: result.error as Error | null };
         });
         if (profilesResult.data) {
           profilesResult.data.forEach((p) => {
-            profilesMap[p.id] = { nama: p.nama };
+            profilesMap[p.id] = { nama: p.nama || '-' };
           });
         }
       }
@@ -255,14 +255,14 @@ export const stockOpnameApi = {
       return { data: null, error: new Error('User not authenticated') };
     }
 
-    let targetGudangId = params?.gudang_id;
+    let targetGudangId: string | undefined = params?.gudang_id;
     if (!targetGudangId) {
       const profileRes = await supabase
         .from('profiles')
         .select('default_gudang_id')
         .eq('id', user.id)
         .maybeSingle();
-      targetGudangId = profileRes.data?.default_gudang_id;
+      targetGudangId = profileRes.data?.default_gudang_id ?? undefined;
       if (!targetGudangId) {
         const defGudang = await supabase
           .from('gudang')
@@ -371,7 +371,14 @@ export const stockOpnameApi = {
         const result = await supabase.rpc('approve_and_process_opname', {
           p_opname_id: opnameId,
         });
-        return { data: result.data, error: result.error as Error | null };
+        return {
+          data: result.data as unknown as {
+            success: boolean;
+            processed_items: number;
+            opname_id: string;
+          } | null,
+          error: result.error as Error | null,
+        };
       },
       { isMutation: true },
     );

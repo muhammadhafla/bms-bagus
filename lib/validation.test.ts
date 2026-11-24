@@ -4,16 +4,11 @@ import {
   inventoryUpdateSchema,
   pembelianItemSchema,
   pembelianSubmitSchema,
-  penjualanItemSchema,
-  penjualanSubmitSchema,
   supplierSchema,
-  receiptTemplateSchema,
   validateInventoryItem,
   validateInventoryUpdate,
   validatePembelianSubmit,
-  validatePenjualanSubmit,
   validateSupplier,
-  validateReceiptTemplate,
 } from './validation';
 
 describe('inventoryItemSchema', () => {
@@ -102,10 +97,10 @@ describe('pembelianItemSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should reject empty inventory_id', () => {
+  it('should reject when both inventory_id and barcode are empty', () => {
     const data = {
       inventory_id: '',
-      barcode: 'ABC123',
+      barcode: '',
       nama_barang: 'Test Item',
       qty: 10,
       harga_beli: 50000,
@@ -154,9 +149,8 @@ describe('pembelianItemSchema', () => {
       nama_barang: 'Test Item',
       qty: 10,
       harga_beli: 50000,
-      diskon: 5000,
-      harga_final: 45000,
-      subtotal: 450000,
+      harga_final: 50000,
+      subtotal: 500000,
     };
     const result = pembelianItemSchema.safeParse(data);
     expect(result.success).toBe(true);
@@ -241,80 +235,6 @@ describe('pembelianSubmitSchema', () => {
   });
 });
 
-describe('penjualanItemSchema', () => {
-  it('should validate valid sales item', () => {
-    const data = {
-      inventory_id: '123',
-      barcode: 'ABC123',
-      nama_barang: 'Test Item',
-      qty: 5,
-      harga_jual: 100000,
-      harga_final: 90000,
-      subtotal: 450000,
-    };
-    const result = penjualanItemSchema.safeParse(data);
-    expect(result.success).toBe(true);
-  });
-
-  it('should reject qty less than 1', () => {
-    const data = {
-      inventory_id: '123',
-      barcode: 'ABC123',
-      nama_barang: 'Test Item',
-      qty: 0,
-      harga_jual: 100000,
-      harga_final: 90000,
-      subtotal: 450000,
-    };
-    const result = penjualanItemSchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
-
-  it('should reject negative harga_jual', () => {
-    const data = {
-      inventory_id: '123',
-      barcode: 'ABC123',
-      nama_barang: 'Test Item',
-      qty: 5,
-      harga_jual: -100000,
-      harga_final: 90000,
-      subtotal: 450000,
-    };
-    const result = penjualanItemSchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
-});
-
-describe('penjualanSubmitSchema', () => {
-  it('should validate valid sales submission', () => {
-    const data = {
-      tanggal: '2024-01-01',
-      items: [
-        {
-          inventory_id: '123',
-          barcode: 'ABC123',
-          nama_barang: 'Test Item',
-          qty: 5,
-          harga_jual: 100000,
-          harga_final: 90000,
-          subtotal: 450000,
-        },
-      ],
-    };
-    const result = penjualanSubmitSchema.safeParse(data);
-    expect(result.success).toBe(true);
-  });
-
-  it('should reject empty items array', () => {
-    const data = {
-      tanggal: '2024-01-01',
-      items: [],
-    };
-    const result = penjualanSubmitSchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
-});
-
 describe('supplierSchema', () => {
   it('should validate valid supplier', () => {
     const data = { nama: 'Supplier ABC' };
@@ -323,7 +243,12 @@ describe('supplierSchema', () => {
   });
 
   it('should validate with optional fields', () => {
-    const data = { nama: 'Supplier ABC', alamat: 'Jl. Test', telepon: '081234567890' };
+    const data = {
+      nama: 'Supplier ABC',
+      alamat: 'Jl. Test',
+      kontak: '081234567890',
+      telepon: '081234567890',
+    };
     const result = supplierSchema.safeParse(data);
     expect(result.success).toBe(true);
   });
@@ -331,26 +256,6 @@ describe('supplierSchema', () => {
   it('should reject empty supplier name', () => {
     const data = { nama: '' };
     const result = supplierSchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
-});
-
-describe('receiptTemplateSchema', () => {
-  it('should validate valid template', () => {
-    const data = { name: 'Template 1', header_text: 'Header', footer_text: 'Footer' };
-    const result = receiptTemplateSchema.safeParse(data);
-    expect(result.success).toBe(true);
-  });
-
-  it('should allow optional fields', () => {
-    const data = { name: 'Template 1', is_active: true };
-    const result = receiptTemplateSchema.safeParse(data);
-    expect(result.success).toBe(true);
-  });
-
-  it('should validate empty name', () => {
-    const data = { name: '' };
-    const result = receiptTemplateSchema.safeParse(data);
     expect(result.success).toBe(false);
   });
 });
@@ -396,36 +301,9 @@ describe('validatePembelianSubmit', () => {
   });
 });
 
-describe('validatePenjualanSubmit', () => {
-  it('should return success for valid data', () => {
-    const result = validatePenjualanSubmit({
-      tanggal: '2024-01-01',
-      items: [
-        {
-          inventory_id: '123',
-          barcode: 'ABC123',
-          nama_barang: 'Test',
-          qty: 1,
-          harga_jual: 100000,
-          harga_final: 100000,
-          subtotal: 100000,
-        },
-      ],
-    });
-    expect(result.success).toBe(true);
-  });
-});
-
 describe('validateSupplier', () => {
   it('should return success for valid data', () => {
     const result = validateSupplier({ nama: 'Supplier ABC' });
-    expect(result.success).toBe(true);
-  });
-});
-
-describe('validateReceiptTemplate', () => {
-  it('should return success for valid data', () => {
-    const result = validateReceiptTemplate({ name: 'Template 1' });
     expect(result.success).toBe(true);
   });
 });

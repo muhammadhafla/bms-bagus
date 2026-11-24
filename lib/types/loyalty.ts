@@ -4,10 +4,10 @@ export interface LoyaltySettings {
   max_active_vouchers_per_member: number;
   is_redemption_locked: boolean;
   point_to_idr_ratio: number;
-  double_points_active?: boolean;
-  double_points_days?: number[];
-  double_points_multiplier?: number;
-  updated_at?: string;
+  double_points_active?: boolean | null;
+  double_points_days?: number[] | null;
+  double_points_multiplier?: number | null;
+  updated_at?: string | null;
 }
 
 export interface MemberTierBenefitResult {

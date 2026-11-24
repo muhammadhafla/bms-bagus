@@ -79,7 +79,7 @@ export default function PromoEditor({ id }: { id?: string }) {
           setNama(res.data.promo.nama);
           setTanggalMulai(res.data.promo.tanggal_mulai.slice(0, 16));
           setTanggalSelesai(res.data.promo.tanggal_selesai.slice(0, 16));
-          setStatus(res.data.promo.status);
+          setStatus(res.data.promo.status === 'nonaktif' ? 'nonaktif' : 'aktif');
           setIsMemberOnly(Boolean(res.data.promo.is_member_only));
           setItems(res.data.items);
         } else {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createAdminClient, verifyAdmin } from '@/lib/api/auth-guard';
+import type { Database } from '@/types/supabase';
 
 const ALLOWED_ROLES = [
   'admin',
@@ -53,7 +54,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: 'Password baru minimal 8 karakter' }, { status: 400 });
     }
 
-    const updatePayload: Record<string, unknown> = { nama };
+    const updatePayload: Database['public']['Tables']['profiles']['Update'] = { nama };
 
     if (roles && roles.length > 0) {
       updatePayload.roles = roles;

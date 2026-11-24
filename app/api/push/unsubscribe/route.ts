@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { verifyAuth, createAdminClient } from '@/lib/api/auth-guard';
 import { z } from 'zod';
+import { verifyAuth, createAdminClient } from '@/lib/api/auth-guard';
 
 const unsubscriptionSchema = z.object({
-  endpoint: z.string().url(),
+  endpoint: z.url(),
 });
 
 export async function POST(request: Request) {
@@ -11,8 +11,11 @@ export async function POST(request: Request) {
     const { user, error: authError } = await verifyAuth(request);
     if (authError) return authError;
 
-    const body = await request.json();
-    const validatedData = unsubscriptionSchema.parse(body);
+    const rawBody = await request.json().catch(() => null);
+    const parsed = unsubscriptionSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid unsubscription payload' }, { status: 400 });
+    }
 
     const supabase = createAdminClient();
 
@@ -20,7 +23,7 @@ export async function POST(request: Request) {
       .from('push_subscriptions')
       .delete()
       .eq('user_id', user.id)
-      .eq('endpoint', validatedData.endpoint);
+      .eq('endpoint', parsed.data.endpoint);
 
     if (dbError) {
       console.error('Failed to delete subscription:', dbError);

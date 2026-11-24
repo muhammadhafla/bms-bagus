@@ -1,9 +1,26 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createAdminClient, verifyRoles } from '@/lib/api/auth-guard';
 
 const TRUSTED_GITHUB_OWNER = 'muhammadhafla';
 const TRUSTED_GITHUB_REPO = 'bms-native-pos';
 const SAFE_SEGMENT_RE = /^[A-Za-z0-9._-]+$/;
+
+const safeSegmentSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(150)
+  .regex(SAFE_SEGMENT_RE)
+  .refine((val) => !val.includes('..'));
+
+const otaQuerySchema = z.object({
+  asset: safeSegmentSchema.optional(),
+  tag: safeSegmentSchema.optional(),
+  platform: safeSegmentSchema.optional().default('win-x64'),
+  channel: safeSegmentSchema.optional().default('win'),
+  appId: safeSegmentSchema.optional().default('BMSPOS'),
+});
 
 interface GitHubReleaseAsset {
   id: number;
@@ -134,21 +151,25 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const requestedAsset = searchParams.get('asset')?.trim();
-    const requestedTag = (searchParams.get('tag') || searchParams.get('version'))?.trim();
-    const platform = (searchParams.get('platform') || 'win-x64').trim().toLowerCase();
-    const channel = (searchParams.get('channel') || 'win').trim().toLowerCase();
-    const appId = (searchParams.get('appId') || 'BMSPOS').trim();
+    const parsedQuery = otaQuerySchema.safeParse({
+      asset: searchParams.get('asset')?.trim() || undefined,
+      tag: (searchParams.get('tag') || searchParams.get('version'))?.trim() || undefined,
+      platform: searchParams.get('platform')?.trim().toLowerCase() || undefined,
+      channel: searchParams.get('channel')?.trim().toLowerCase() || undefined,
+      appId: searchParams.get('appId')?.trim() || undefined,
+    });
 
-    if (requestedAsset && (!SAFE_SEGMENT_RE.test(requestedAsset) || requestedAsset.includes('..'))) {
-      return NextResponse.json({ error: 'Nama aset OTA tidak valid.' }, { status: 400 });
+    if (!parsedQuery.success) {
+      return NextResponse.json({ error: 'Parameter query OTA tidak valid.' }, { status: 400 });
     }
-    if (requestedTag && (!SAFE_SEGMENT_RE.test(requestedTag) || requestedTag.includes('..'))) {
-      return NextResponse.json({ error: 'Tag rilis OTA tidak valid.' }, { status: 400 });
-    }
-    if (!SAFE_SEGMENT_RE.test(platform) || !SAFE_SEGMENT_RE.test(channel)) {
-      return NextResponse.json({ error: 'Parameter platform/channel tidak valid.' }, { status: 400 });
-    }
+
+    const {
+      asset: requestedAsset,
+      tag: requestedTag,
+      platform,
+      channel,
+      appId,
+    } = parsedQuery.data;
 
     const releaseRes = await fetchRelease(token, requestedAsset ? requestedTag : null);
 

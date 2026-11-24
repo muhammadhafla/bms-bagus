@@ -174,7 +174,7 @@ export const reportApi = {
 
     const [summaryResult, listResult] = await Promise.all([
       safeQuery<any[]>(async () => {
-        const res = await supabase.rpc('get_inventory_summary', { p_gudang_id: gudangId || null });
+        const res = await supabase.rpc('get_inventory_summary', { p_gudang_id: gudangId || undefined });
         return { data: res.data, error: res.error as Error | null };
       }),
       safeQuery<any[]>(async () => {
@@ -273,12 +273,12 @@ export const reportApi = {
     // Gunakan RPC get_sales_report — server-side aggregation, tidak tarik semua rows ke client
     const result = await safeQuery<any[]>(async () => {
       const res = await supabase.rpc('get_sales_report', {
-        p_start_date: startDate || null,
-        p_end_date: endDate || null,
-        p_category_id: categoryId || null,
+        p_start_date: startDate || undefined,
+        p_end_date: endDate || undefined,
+        p_category_id: categoryId || undefined,
         p_page: page,
         p_limit: limit,
-        p_gudang_id: gudangId || null,
+        p_gudang_id: gudangId || undefined,
       });
       return { data: res.data, error: res.error as Error | null };
     });
@@ -326,12 +326,12 @@ export const reportApi = {
     // Gunakan RPC get_profit_report — profit akurat berdasarkan cost_at_sale
     const result = await safeQuery<any[]>(async () => {
       const res = await supabase.rpc('get_profit_report', {
-        p_start_date: startDate || null,
-        p_end_date: endDate || null,
-        p_category_id: categoryId || null,
+        p_start_date: startDate || undefined,
+        p_end_date: endDate || undefined,
+        p_category_id: categoryId || undefined,
         p_page: page,
         p_limit: limit,
-        p_gudang_id: gudangId || null,
+        p_gudang_id: gudangId || undefined,
       });
       return { data: res.data, error: res.error as Error | null };
     });
@@ -375,9 +375,9 @@ export const reportApi = {
     // Gunakan RPC get_top_selling_items — server-side aggregation
     const result = await safeQuery<TopSellingItem[]>(async () => {
       const res = await supabase.rpc('get_top_selling_items', {
-        p_start_date: startDate || null,
-        p_end_date: endDate || null,
-        p_category_id: categoryId || null,
+        p_start_date: startDate || undefined,
+        p_end_date: endDate || undefined,
+        p_category_id: categoryId || undefined,
         p_limit: limitItems,
       });
       const mapped = (res.data || []).map(
@@ -452,9 +452,9 @@ export const reportApi = {
 
     const result = await safeQuery<any[]>(async () => {
       const res = await supabase.rpc('export_sales_report', {
-        p_start_date: startDate || null,
-        p_end_date: endDate || null,
-        p_category_id: categoryId || null,
+        p_start_date: startDate || undefined,
+        p_end_date: endDate || undefined,
+        p_category_id: categoryId || undefined,
       });
       return { data: res.data, error: res.error as Error | null };
     });
@@ -481,9 +481,9 @@ export const reportApi = {
 
     const result = await safeQuery<any[]>(async () => {
       const res = await supabase.rpc('export_profit_report', {
-        p_start_date: startDate || null,
-        p_end_date: endDate || null,
-        p_category_id: categoryId || null,
+        p_start_date: startDate || undefined,
+        p_end_date: endDate || undefined,
+        p_category_id: categoryId || undefined,
       });
       return { data: res.data, error: res.error as Error | null };
     });

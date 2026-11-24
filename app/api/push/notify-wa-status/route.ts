@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { sendPushNotification } from '@/lib/push';
 import { createAdminClient, verifyWebhookOrAuth } from '@/lib/api/auth-guard';
+
+const notifyWaStatusSchema = z.object({
+  connected: z.boolean().optional(),
+  is_session_corrupted: z.boolean().optional(),
+  gudang_id: z.uuid().nullable().optional(),
+});
 
 export async function POST(request: Request) {
   try {
@@ -9,7 +16,13 @@ export async function POST(request: Request) {
       return authResult.error;
     }
 
-    const body = await request.json().catch(() => ({}));
+    const rawBody = await request.json().catch(() => ({}));
+    const parsed = notifyWaStatusSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    }
+
+    const body = parsed.data;
     const supabase = createAdminClient();
 
     // Ambil target penerima notifikasi: seluruh admin & owner
@@ -32,10 +45,12 @@ export async function POST(request: Request) {
 
     if (isCorrupted) {
       title = '🚨 Sesi WhatsApp Korup (SessionError)';
-      messageBody = 'Kunci enkripsi WhatsApp mengalami desinkronisasi. Pesan pelanggan tertahan. Buka BMS Web untuk Reset Sesi.';
+      messageBody =
+        'Kunci enkripsi WhatsApp mengalami desinkronisasi. Pesan pelanggan tertahan. Buka BMS Web untuk Reset Sesi.';
     } else if (isDisconnected) {
       title = '⚠️ WhatsApp Toko Terputus';
-      messageBody = 'Perangkat WhatsApp toko terputus. Harap buka BMS Web App untuk menautkan perangkat kembali.';
+      messageBody =
+        'Perangkat WhatsApp toko terputus. Harap buka BMS Web App untuk menautkan perangkat kembali.';
     }
 
     const payload = {
@@ -45,8 +60,7 @@ export async function POST(request: Request) {
       tag: 'wa-bridge-status-alert',
     };
 
-    const promises = targetUserIds.map((userId) => sendPushNotification(userId, payload));
-    await Promise.all(promises);
+    await Promise.all(targetUserIds.map((userId) => sendPushNotification(userId, payload)));
 
     return NextResponse.json({ success: true, recipients_count: targetUserIds.length });
   } catch (error: unknown) {

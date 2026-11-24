@@ -3,14 +3,23 @@ import { z } from 'zod';
 export const inventoryItemSchema = z.object({
   nama_barang: z
     .string()
+    .trim()
     .min(1, 'Nama barang wajib diisi')
     .max(255, 'Nama barang maksimal 255 karakter'),
-  barcode: z.string().optional(),
-  kategori: z.string().optional(),
+  kode_barcode: z.string().trim().optional(),
+  barcode: z.string().trim().optional(),
+  id_kategori: z.uuid('Format kategori ID tidak valid').optional(),
+  kategori: z.string().trim().optional(),
+  harga_beli_terakhir: z.number().min(0, 'Harga beli tidak boleh negatif').optional(),
+  harga_jual: z.number().min(0, 'Harga jual tidak boleh negatif').optional(),
+  diskon: z.number().min(0, 'Diskon tidak boleh negatif').optional(),
 });
 
 export const inventoryUpdateSchema = z.object({
+  nama_barang: z.string().trim().min(1).max(255).optional(),
+  kode_barcode: z.string().trim().min(1).optional(),
   harga_jual: z.number().min(0, 'Harga jual tidak boleh negatif').optional(),
+  harga_beli_terakhir: z.number().min(0, 'Harga beli tidak boleh negatif').optional(),
   diskon: z.number().min(0, 'Diskon tidak boleh negatif').optional(),
   minimum_stock: z
     .number()
@@ -21,61 +30,53 @@ export const inventoryUpdateSchema = z.object({
 
 export const pembelianItemSchema = z
   .object({
-    inventory_id: z.string().min(1, 'Inventory ID wajib diisi'),
-    barcode: z.string(),
-    nama_barang: z.string().max(255, 'Nama barang maksimal 255 karakter'),
+    inventory_id: z.string().optional(),
+    barcode: z.string().optional(),
+    nama_barang: z.string().trim().min(1, 'Nama barang wajib diisi').max(255, 'Nama barang maksimal 255 karakter'),
     qty: z.number().int('Qty harus bilangan bulat').min(1, 'Qty minimal 1'),
-    harga_beli: z.number().min(0, 'Harga beli tidak boleh negatif'),
+    harga_beli: z.number().min(0, 'Harga beli tidak boleh negatif').optional(),
+    harga_jual: z.number().min(0, 'Harga jual tidak boleh negatif').optional(),
     diskon: z.number().min(0, 'Diskon tidak boleh negatif').optional(),
     harga_final: z.number().min(0, 'Harga final tidak boleh negatif'),
-    subtotal: z.number().min(0, 'Subtotal tidak boleh negatif'),
+    subtotal: z.number().min(0, 'Subtotal tidak boleh negatif').optional(),
   })
   .refine(
+    (data) => Boolean((data.inventory_id && data.inventory_id.trim()) || (data.barcode && data.barcode.trim())),
+    { message: 'Item wajib memiliki inventory ID atau barcode', path: ['inventory_id'] },
+  )
+  .refine(
     (data) => {
+      if (data.harga_beli === undefined) return true;
       const expectedFinal = data.harga_beli - (data.diskon || 0);
       return Math.abs(data.harga_final - expectedFinal) < 1;
     },
     { message: 'Harga final tidak konsisten dengan harga beli - diskon', path: ['harga_final'] },
   )
-  .refine((data) => Math.abs(data.subtotal - data.qty * data.harga_final) < 1, {
-    message: 'Subtotal tidak konsisten dengan qty × harga final',
-    path: ['subtotal'],
-  });
+  .refine(
+    (data) => {
+      if (data.subtotal === undefined) return true;
+      return Math.abs(data.subtotal - data.qty * data.harga_final) < 1;
+    },
+    { message: 'Subtotal tidak konsisten dengan qty × harga final', path: ['subtotal'] },
+  );
 
 export const pembelianSubmitSchema = z.object({
-  supplier_id: z.string().uuid('Format supplier ID tidak valid').nullable(),
+  supplier_id: z.uuid('Format supplier ID tidak valid').nullable(),
+  supplier_nama: z.string().nullable().optional(),
   tanggal: z.string().min(1, 'Tanggal wajib diisi'),
   items: z.array(pembelianItemSchema).min(1, 'Minimal 1 item'),
   total_supplier: z.number().min(0, 'Total supplier tidak boleh negatif'),
-});
-
-export const penjualanItemSchema = z.object({
-  inventory_id: z.string().min(1, 'Inventory ID wajib diisi'),
-  barcode: z.string(),
-  nama_barang: z.string().max(255, 'Nama barang maksimal 255 karakter'),
-  qty: z.number().int('Qty harus bilangan bulat').min(1, 'Qty minimal 1'),
-  harga_jual: z.number().min(0, 'Harga jual tidak boleh negatif'),
-  diskon: z.number().min(0, 'Diskon tidak boleh negatif').optional(),
-  harga_final: z.number().min(0, 'Harga final tidak boleh negatif'),
-  subtotal: z.number().min(0, 'Subtotal tidak boleh negatif'),
-});
-
-export const penjualanSubmitSchema = z.object({
-  tanggal: z.string().min(1, 'Tanggal wajib diisi'),
-  items: z.array(penjualanItemSchema).min(1, 'Minimal 1 item'),
+  gudang_id: z.uuid('Format gudang ID tidak valid').nullable().optional(),
+  nomor_nota: z.string().max(100).optional(),
+  note: z.string().max(1000).optional(),
+  idempotency_key: z.string().optional(),
 });
 
 export const supplierSchema = z.object({
-  nama: z.string().min(1, 'Nama supplier wajib diisi'),
+  nama: z.string().trim().min(1, 'Nama supplier wajib diisi').max(255),
   alamat: z.string().optional(),
+  kontak: z.string().optional(),
   telepon: z.string().optional(),
-});
-
-export const receiptTemplateSchema = z.object({
-  name: z.string().min(1, 'Nama template wajib diisi'),
-  header_text: z.string().optional(),
-  footer_text: z.string().optional(),
-  is_active: z.boolean().optional(),
 });
 
 export function validateInventoryItem(data: unknown) {
@@ -90,14 +91,6 @@ export function validatePembelianSubmit(data: unknown) {
   return pembelianSubmitSchema.safeParse(data);
 }
 
-export function validatePenjualanSubmit(data: unknown) {
-  return penjualanSubmitSchema.safeParse(data);
-}
-
 export function validateSupplier(data: unknown) {
   return supplierSchema.safeParse(data);
-}
-
-export function validateReceiptTemplate(data: unknown) {
-  return receiptTemplateSchema.safeParse(data);
 }

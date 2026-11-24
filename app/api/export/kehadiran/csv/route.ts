@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { format } from 'date-fns';
-import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 import Papa from 'papaparse';
+import { createAdminClient } from '@/lib/api/auth-guard';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,49 +18,41 @@ function sanitizeCsvCell(val: unknown): string {
 
 const DATE_REGEX = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
+const kehadiranExportQuerySchema = z.object({
+  startDate: z.string().regex(DATE_REGEX, 'Format startDate tidak valid').optional(),
+  endDate: z.string().regex(DATE_REGEX, 'Format endDate tidak valid').optional(),
+  lokasiId: z.union([z.literal('all'), z.uuid('Invalid lokasiId format')]).optional(),
+  statusHadir: z.string().trim().max(50).optional(),
+});
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const startDate = searchParams.get('startDate');
-  const endDate = searchParams.get('endDate');
-  const lokasiId = searchParams.get('lokasiId');
-  const statusHadir = searchParams.get('statusHadir');
+  const parsedQuery = kehadiranExportQuerySchema.safeParse({
+    startDate: searchParams.get('startDate') || undefined,
+    endDate: searchParams.get('endDate') || undefined,
+    lokasiId: searchParams.get('lokasiId') || undefined,
+    statusHadir: searchParams.get('statusHadir') || undefined,
+  });
 
-  if (startDate && !DATE_REGEX.test(startDate)) {
-    return new NextResponse('Format startDate tidak valid', { status: 400 });
-  }
-  if (endDate && !DATE_REGEX.test(endDate)) {
-    return new NextResponse('Format endDate tidak valid', { status: 400 });
+  if (!parsedQuery.success) {
+    return new NextResponse(parsedQuery.error.issues[0]?.message || 'Parameter tidak valid', {
+      status: 400,
+    });
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const { startDate, endDate, lokasiId, statusHadir } = parsedQuery.data;
 
   // 1. Verifikasi sesi login pengguna menggunakan cookies
-  const cookieStore = await cookies();
-  const supabaseAuth = createServerClient(
-    supabaseUrl,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {},
-      },
-    }
-  );
-
-  const { data: { user } } = await supabaseAuth.auth.getUser();
+  const supabaseAuth = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabaseAuth.auth.getUser();
   if (!user) {
     return new NextResponse('Unauthorized: Silakan login terlebih dahulu.', { status: 401 });
   }
 
   // 2. Client query data
-  const supabase = serviceKey
-    ? createClient(supabaseUrl, serviceKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      })
-    : supabaseAuth;
+  const supabase = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabaseAuth;
 
   try {
     // 3. Verifikasi RBAC: Hanya Admin, Finance, atau Kepala Cabang
@@ -88,10 +80,6 @@ export async function GET(request: Request) {
     if (startDate) query = query.gte('tanggal', startDate);
     if (endDate) query = query.lte('tanggal', endDate);
     if (lokasiId && lokasiId !== 'all') {
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(lokasiId)) {
-        return new NextResponse('Invalid lokasiId format', { status: 400 });
-      }
       query = query.or(`lokasi_masuk_id.eq.${lokasiId},lokasi_pulang_id.eq.${lokasiId}`);
     }
     if (statusHadir && statusHadir !== 'all') {

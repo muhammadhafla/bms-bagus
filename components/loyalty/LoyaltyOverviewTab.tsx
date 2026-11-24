@@ -226,7 +226,7 @@ export default function LoyaltyOverviewTab({
                   </strong>{' '}
                   setiap hari{' '}
                   <strong className="text-neutral-900 dark:text-white">
-                    {formatDaysOfWeek(settings.double_points_days)}
+                    {formatDaysOfWeek(settings.double_points_days ?? undefined)}
                   </strong>
                   .
                 </>

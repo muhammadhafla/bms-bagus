@@ -99,7 +99,7 @@ export const dashboardApi = {
   async getLowStockItems(): Promise<{ data: LowStockItem[]; error: unknown }> {
     const result = await safeQuery<LowStockItem[]>(async () => {
       const result = await supabase
-        .rpc('get_low_stock_items', { p_search: null })
+        .rpc('get_low_stock_items', { p_search: undefined })
         .select('id, nama_barang, stok, minimum_stock')
         .order('stok', { ascending: true })
         .limit(10);

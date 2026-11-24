@@ -174,7 +174,10 @@ export const InventoryTable = React.memo(function InventoryTable({
     setEditForm({
       nama_barang: item.nama_barang || '',
       kode_barcode: item.kode_barcode || '',
-      id_kategori: item.id_kategori?.nama || '',
+      id_kategori:
+        typeof item.id_kategori === 'object'
+          ? item.id_kategori?.nama || ''
+          : item.id_kategori || '',
       harga_beli_terakhir: item.harga_beli_terakhir || 0,
       harga_jual: item.harga_jual || 0,
       diskon: item.diskon || 0,
@@ -443,7 +446,7 @@ export const InventoryTable = React.memo(function InventoryTable({
           </thead>
           <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
             {(Array.isArray(items) ? items : []).map((item) => {
-              const isLowStock = item.stok <= (item.minimum_stock || 0);
+              const isLowStock = (item.stok ?? 0) <= (item.minimum_stock || 0);
 
               return (
                 <tr
@@ -474,7 +477,9 @@ export const InventoryTable = React.memo(function InventoryTable({
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
-                      {item.id_kategori?.nama || '-'}
+                      {(typeof item.id_kategori === 'object'
+                        ? item.id_kategori?.nama
+                        : item.id_kategori) || '-'}
                     </span>
                   </td>
                   {canViewHPP && (
@@ -486,7 +491,7 @@ export const InventoryTable = React.memo(function InventoryTable({
                     {formatCurrency(item.harga_jual)}
                   </td>
                   <td className="px-4 py-3 text-right text-neutral-600 dark:text-neutral-300">
-                    {formatCurrency(item.diskon)}
+                    {formatCurrency(item.diskon || 0)}
                   </td>
                   <td
                     className={`px-4 py-3 text-right font-bold ${isLowStock ? 'text-accent-rose-600 dark:text-accent-rose-300' : 'text-neutral-900 dark:text-neutral-100'}`}
@@ -527,7 +532,7 @@ export const InventoryTable = React.memo(function InventoryTable({
       {/* Mobile Card Layout */}
       <div className="block space-y-3 lg:hidden">
         {(Array.isArray(items) ? items : []).map((item) => {
-          const isLowStock = item.stok <= (item.minimum_stock || 0);
+          const isLowStock = (item.stok ?? 0) <= (item.minimum_stock || 0);
           return (
             <div
               key={item.id}
@@ -556,7 +561,9 @@ export const InventoryTable = React.memo(function InventoryTable({
                       {item.kode_barcode}
                     </p>
                     <span className="inline-flex items-center rounded-md bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
-                      {item.id_kategori?.nama || '-'}
+                      {(typeof item.id_kategori === 'object'
+                        ? item.id_kategori?.nama
+                        : item.id_kategori) || '-'}
                     </span>
                   </div>
                 </div>
@@ -583,7 +590,7 @@ export const InventoryTable = React.memo(function InventoryTable({
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-neutral-500 dark:text-neutral-400">Diskon</span>
                   <span className="font-medium text-neutral-900 dark:text-neutral-100">
-                    {formatCurrency(item.diskon)}
+                    {formatCurrency(item.diskon || 0)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">

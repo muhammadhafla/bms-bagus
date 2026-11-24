@@ -236,9 +236,10 @@ export const warehouseStockApi = {
         const result = await supabase.rpc('update_stock_bin', {
           p_inventory_id: inventoryId,
           p_gudang_id: gudangId,
-          p_rak_lokasi: data.rak_lokasi || null,
-          p_min_stok: data.min_stok !== undefined ? Number(data.min_stok) : null,
-          p_max_stok: data.max_stok !== undefined && data.max_stok !== null ? Number(data.max_stok) : null,
+          p_rak_lokasi: data.rak_lokasi ?? '',
+          p_min_stok: data.min_stok !== undefined ? Number(data.min_stok) : undefined,
+          p_max_stok:
+            data.max_stok !== undefined && data.max_stok !== null ? Number(data.max_stok) : undefined,
         });
 
         return { data: result.data as InventoryStock | null, error: result.error as Error | null };
@@ -580,7 +581,7 @@ export const transferStokApi = {
       async () => {
         const result = await supabase.rpc('kirim_transfer_stok', {
           p_transfer_id: transferId,
-          p_user: userId && userId.trim() !== '' ? userId : null,
+          p_user: userId && userId.trim() !== '' ? userId : undefined,
         });
 
         return {
@@ -602,7 +603,7 @@ export const transferStokApi = {
         const result = await supabase.rpc('terima_transfer_stok', {
           p_transfer_id: transferId,
           p_items: items,
-          p_user: userId && userId.trim() !== '' ? userId : null,
+          p_user: userId && userId.trim() !== '' ? userId : undefined,
         });
 
         return {
@@ -743,12 +744,23 @@ export const pengeluaranGudangApi = {
   ) {
     return safeQuery<string>(
       async () => {
+        let resolvedUserId = userId;
+        if (!resolvedUserId) {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (!user) {
+            return { data: null, error: new Error('User not authenticated') };
+          }
+          resolvedUserId = user.id;
+        }
+
         const result = await supabase.rpc('execute_pengeluaran_gudang', {
           p_gudang_id: data.gudang_id,
           p_tipe: data.tipe,
           p_catatan: data.catatan || '',
           p_items: data.items,
-          p_user: userId || null,
+          p_user: resolvedUserId,
           p_auto_approve: !!data.autoApprove,
         });
 

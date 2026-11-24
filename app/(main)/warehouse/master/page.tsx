@@ -26,6 +26,7 @@ import {
 import { AdminOnly } from '@/components/role';
 import { gudangApi } from '@/lib/api/warehouse';
 import { lokasiKerjaApi } from '@/lib/api/payroll/lokasi_kerja';
+import { queryKeys } from '@/lib/queryKeys';
 import { Gudang, TipeGudang } from '@/types/warehouse';
 
 export default function WarehouseMasterPage() {
@@ -53,7 +54,7 @@ export default function WarehouseMasterPage() {
 
   // Fetch Lokasi Kerja (outlet GPS relations)
   const { data: lokasiRes } = useQuery({
-    queryKey: ['payroll-lokasi-kerja'],
+    queryKey: queryKeys.payroll.adminLokasiKerja,
     queryFn: () => lokasiKerjaApi.getAll(),
   });
 

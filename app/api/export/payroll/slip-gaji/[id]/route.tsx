@@ -1,10 +1,11 @@
 import React from 'react';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { z } from 'zod';
 import { renderToStream } from '@react-pdf/renderer';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
+import { createAdminClient } from '@/lib/api/auth-guard';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
+import type { Database } from '@/types/supabase';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +39,11 @@ const formatCurrency = (amount: number | string) => {
   return `Rp ${num.toLocaleString('id-ID')}`;
 };
 
-const SlipGajiPDF = ({ slip }: { slip: any }) => {
+type SlipGajiRow = Database['public']['Tables']['slip_gaji']['Row'] & {
+  profiles?: { nama: string | null } | null;
+};
+
+const SlipGajiPDF = ({ slip }: { slip: SlipGajiRow }) => {
   const totalPotongan = Number(slip.total_denda_telat || 0) + Number(slip.total_potongan_kasbon || 0);
   const isMinus = Number(slip.gaji_bersih) < 0;
 
@@ -127,47 +132,38 @@ const SlipGajiPDF = ({ slip }: { slip: any }) => {
   );
 };
 
-export async function GET(request: Request, context: any) {
+const slipExportParamsSchema = z.object({
+  id: z.uuid('ID tidak valid'),
+  periode: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Format periode tidak valid (YYYY-MM)').optional(),
+});
+
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const params = await context.params;
-  const id = params.id;
   const { searchParams } = new URL(request.url);
-  const periode = searchParams.get('periode');
-
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!id || !uuidRegex.test(id)) {
-    return new NextResponse('ID tidak valid', { status: 400 });
-  }
-
-  const periodeRegex = /^\d{4}-(0[1-9]|1[0-2])$/;
-  if (periode && !periodeRegex.test(periode)) {
-    return new NextResponse('Format periode tidak valid (YYYY-MM)', { status: 400 });
-  }
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  // 1. Verifikasi sesi login pengguna yang meminta
-  const cookieStore = await cookies();
-  const supabaseAuth = createServerClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '', {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll() {},
-    },
+  const parsed = slipExportParamsSchema.safeParse({
+    id: params.id,
+    periode: searchParams.get('periode') || undefined,
   });
 
-  const { data: { user } } = await supabaseAuth.auth.getUser();
+  if (!parsed.success) {
+    return new NextResponse(parsed.error.issues[0]?.message || 'Parameter tidak valid', {
+      status: 400,
+    });
+  }
+
+  const { id, periode } = parsed.data;
+
+  // 1. Verifikasi sesi login pengguna yang meminta
+  const supabaseAuth = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabaseAuth.auth.getUser();
   if (!user) {
     return new NextResponse('Unauthorized: Silakan login terlebih dahulu.', { status: 401 });
   }
 
   // 2. Client query data
-  const supabase = serviceKey
-    ? createClient(supabaseUrl, serviceKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      })
-    : supabaseAuth;
+  const supabase = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabaseAuth;
   
   try {
     // Cek peran pengguna peminta (apakah Admin)
@@ -223,7 +219,7 @@ export async function GET(request: Request, context: any) {
 
     const stream = await renderToStream(<SlipGajiPDF slip={slip} />);
     
-    return new Response(stream as any, {
+    return new Response(stream as unknown as BodyInit, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

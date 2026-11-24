@@ -17,6 +17,7 @@ const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ss
 import { supabase } from '@/lib/supabase';
 import { fetchApi } from '@/lib/fetchApi';
 import { formatDateWIB } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface LabelTemplate {
   id: string;
@@ -145,12 +146,16 @@ export default function LabelTemplatesPage() {
   const handleRefresh = async () => {
     try {
       const res = await fetchApi('/api/templates');
+      if (!res.ok) {
+        throw new Error('Gagal memuat ulang daftar template');
+      }
       const data = await res.json();
       if (data.templates) {
         setTemplates(data.templates);
       }
     } catch (err) {
-      // ignore
+      console.error('Failed to refresh label templates:', err);
+      toast.error('Gagal memperbarui daftar template');
     }
   };
 

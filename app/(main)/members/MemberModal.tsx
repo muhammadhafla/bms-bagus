@@ -107,7 +107,7 @@ export default function MemberModal({ isOpen, onClose, onSuccess, initialData }:
     setLoading(true);
 
     try {
-      if (isEditMode) {
+      if (isEditMode && initialData?.id) {
         const { error } = await supabase
           .from('members')
           .update({

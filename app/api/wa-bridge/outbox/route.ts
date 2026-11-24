@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createAdminClient, verifyWaBridgeSecret } from '@/lib/api/auth-guard';
+import type { Database } from '@/types/supabase';
 
 const outboxQuerySchema = z.object({
   gudang_id: z.uuid().optional(),
@@ -11,7 +12,7 @@ const outboxPatchSchema = z.object({
   id: z.uuid(),
   status: z.enum(['pending', 'processing', 'sent', 'delivered', 'read', 'failed', 'cancelled']),
   error_message: z.string().max(1000).nullable().optional(),
-  read_at: z.string().datetime().nullable().optional(),
+  read_at: z.iso.datetime().nullable().optional(),
 });
 
 export async function GET(request: Request) {
@@ -70,7 +71,7 @@ export async function PATCH(request: Request) {
     const { id, status, error_message, read_at } = parsed.data;
     const supabase = createAdminClient();
 
-    const updatePayload: Record<string, string | null> = { status };
+    const updatePayload: Database['public']['Tables']['wa_outbox']['Update'] = { status };
     if (error_message !== undefined) updatePayload.error_message = error_message;
     if (read_at !== undefined) updatePayload.read_at = read_at;
 

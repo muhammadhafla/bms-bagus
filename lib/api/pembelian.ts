@@ -1,6 +1,7 @@
 import { supabase } from './client';
 import { safeQuery } from './utils';
 import { sanitizeSearchQuery } from '@/lib/utils';
+import { validatePembelianSubmit } from '@/lib/validation';
 
 export interface PembelianItem {
   id?: string;
@@ -250,31 +251,13 @@ export const purchaseApi = {
         return { data: null, error: { message: 'User not authenticated' } };
       }
 
-      // Validasi input dasar
-      if (data.items.length === 0) {
-        return { data: null, error: { message: 'Item pembelian tidak boleh kosong' } };
-      }
-
-      // Validasi setiap item
-      for (const item of data.items) {
-        if (!item.inventory_id && !item.barcode) {
-          return {
-            data: null,
-            error: { message: `Item ${item.nama_barang} tidak memiliki ID/barcode valid` },
-          };
-        }
-        if (!item.qty || item.qty <= 0) {
-          return {
-            data: null,
-            error: { message: `Qty untuk ${item.nama_barang} harus lebih dari 0` },
-          };
-        }
-        if (item.harga_final < 0) {
-          return {
-            data: null,
-            error: { message: `Harga untuk ${item.nama_barang} tidak boleh negatif` },
-          };
-        }
+      // Validasi input dengan schema Zod terpusat
+      const validation = validatePembelianSubmit(data);
+      if (!validation.success) {
+        return {
+          data: null,
+          error: { message: validation.error.issues[0]?.message || 'Data pembelian tidak valid' },
+        };
       }
 
       // Prepare items for batch RPC - use harga_final (net price after diskon)
@@ -287,12 +270,13 @@ export const purchaseApi = {
 
       const result = await supabase.rpc('tambah_pembelian_batch', {
         p_items: itemsPayload,
-        p_supplier_id: data.supplier_id,
+        // SQL function accepts NULL::uuid for purchases without a supplier, while generated RPC Args omits nullable when no DEFAULT exists
+        p_supplier_id: (data.supplier_id ?? null) as unknown as string,
         p_tanggal: data.tanggal,
         p_user: userId,
         p_idempotency_key: data.idempotency_key,
-        p_nomor_nota: data.nomor_nota || null,
-        p_gudang_id: data.gudang_id || null,
+        p_nomor_nota: data.nomor_nota || undefined,
+        p_gudang_id: data.gudang_id || undefined,
       });
 
       if (result.error) {
@@ -328,9 +312,9 @@ export const purchaseApi = {
       const { data: response, error } = await supabase.rpc('update_pembelian_batch', {
         p_pembelian_id: data.pembelian_id,
         p_items: itemsPayload,
-        p_supplier_id: data.supplier_id || null,
+        p_supplier_id: (data.supplier_id ?? null) as unknown as string,
         p_tanggal: data.tanggal,
-        p_nomor_nota: data.nomor_nota || null,
+        p_nomor_nota: data.nomor_nota || undefined,
         p_user: user.id,
       });
 

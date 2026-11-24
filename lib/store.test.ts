@@ -189,13 +189,16 @@ describe('usePembelianStore', () => {
     });
 
     it('should reset supplier and tanggal', () => {
+      const today = new Date().toISOString().split('T')[0];
       getStore().setSupplier('sup-123');
+      getStore().setTanggal('2020-01-15');
       getStore().setTotalSupplier(100000);
 
       getStore().reset();
       const store = getStore();
 
       expect(store.supplierId).toBeNull();
+      expect(store.tanggal).toBe(today);
       expect(store.totalSupplier).toBe(0);
     });
   });

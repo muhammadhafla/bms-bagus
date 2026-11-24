@@ -1,8 +1,7 @@
 import { Suspense } from 'react';
 import { HydrationBoundary, QueryClient, dehydrate } from '@tanstack/react-query';
 import InventoryPageClient from './InventoryPageClient';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { PageLoadingSpinner } from '@/components/ui';
 import { inventoryApi } from '@/lib/api/inventory';
 
@@ -17,19 +16,7 @@ type Props = {
 
 export default async function InventoryPage(props: Props) {
   const queryClient = new QueryClient();
-
-  const cookieStore = await cookies();
-  const supabaseServer = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-      },
-    },
-  );
+  const supabaseServer = await createServerSupabaseClient();
 
   const searchParams = await props.searchParams;
   const page = Number(searchParams?.page) || 1;

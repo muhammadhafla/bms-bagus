@@ -1,46 +1,40 @@
-# Panduan Re-Deploy Database (Inventory & Native POS)
+# Panduan Re-Deploy & Sinkronisasi Database (Inventory & Native POS)
 
-Dokumen ini ditujukan bagi _developer_ yang ingin melakukan deploy ulang (re-deploy) database Supabase dari awal (scratch) atau melakukan sinkronisasi database untuk environment baru (seperti staging/produksi).
-
-Karena sistem kita memiliki dua sisi fungsional (Supply Side di project `inventory` dan Sales Side di project `native pos`), eksekusi skrip SQL harus dilakukan dengan urutan yang tepat agar _Foreign Keys_ dan dependensi tabel/kolom tidak _error_.
+Dokumen ini merupakan panduan resmi untuk melakukan re-deploy database Supabase dari nol (*clean replay*) maupun menyinkronkan migrasi ke environment *staging*/*produksi* menggunakan direktori resmi `supabase/migrations/`.
 
 ---
 
-## ⚠️ Urutan Eksekusi Skrip SQL
+## Prasyarat
 
-Jalankan skrip-skrip SQL di bawah ini secara berurutan di dalam **Supabase SQL Editor** atau menggunakan _MCP Tools_ / CLI Supabase.
-
-### Tahap 1: Inisialisasi Struktur Dasar (Base Schema)
-
-Skrip ini berisi DDL utama untuk membuat tabel-tabel fundamental (`inventory`, `pembelian`, `penjualan`, `profiles`, dll).
-
-1. Eksekusi file: `C:\project\inventory\sql\database_schema.sql`
-
-### Tahap 2: Migrasi & RPC Sisi Inventory (Supply Side)
-
-Langkah ini menambahkan _flag_ stok, fitur _void_, dan fungsi-fungsi RPC (seperti proses retur dan _batch pembelian_) untuk manajemen stok. 2. Eksekusi file: `C:\project\inventory\sql\migrations\001_add_discontinued_column.sql` 3. Eksekusi file: `C:\project\inventory\sql\migrations\002_combined_migrations.sql`
-_(Catatan: File `002_combined_migrations.sql` sudah mencakup fungsi `get_available_return_items`, `void_pembelian_return_item`, dan script retur lainnya. Anda tidak perlu menjalankan file `supabase_func_*.sql` satu per satu jika menggunakan file kombinasi ini)._
-
-### Tahap 3: Inisialisasi Sisi Native POS (Sales Side)
-
-Skrip ini akan menambahkan tabel khusus kasir (`kas_log`, `receipt_templates`), mengekspansi tabel `penjualan` dengan kolom pembayaran (metode bayar, diskon, kembalian), membuat indeks, mendaftarkan fungsi RPC (`rpc.create_penjualan`, dll), serta mengaktifkan _Row Level Security_ (RLS). 4. Eksekusi file: `C:\project\native pos\database\setup.sql`
-
-### Tahap 4: Migrasi Lanjutan Sisi POS (V2 & Fixes)
-
-Langkah terakhir menambahkan pengamanan _idempotency_ untuk memastikan transaksi kasir bersifat _atomic_ agar tidak _double payment_, dan menimpa fungsi return dengan perbaikan terbaru. 5. Eksekusi file: `C:\project\native pos\database\migration_v2.sql` 6. Eksekusi file: `C:\project\native pos\database\fix_rpc_return.sql` 7. Eksekusi file: `C:\project\native pos\database\enable_realtime_print_jobs.sql`
+1. Pastikan seluruh migrasi berada berurutan di folder [supabase/migrations/](file:///c:/project/inventory/supabase/migrations/).
+2. Pastikan konfigurasi *Auth* dan *Environment Secrets* (seperti `SUPABASE_SERVICE_ROLE_KEY`, URL aplikasi untuk `pg_net` webhook, dan *Extensions* bawaan Supabase) tersedia di project tujuan.
 
 ---
 
-## Tips & Troubleshooting
+## 1. Uji *Clean Replay* (Environment Lokal / Shadow DB)
+
+- **Via Shadow Supabase Project (`supabase_mcp`):**
+  1. Siapkan project Supabase kosong (mis. `dev_inventory`) sebagai shadow DB.
+  2. Jalankan seluruh file `supabase/migrations/*.sql` secara berurutan kronologis (dari `20260101000000_core_schema.sql` hingga migrasi terbaru) menggunakan `supabase_mcp:apply_migration` / `execute_sql`.
+  3. Verifikasi seluruh tabel, view, fungsi RPC, dan policy RLS terbentuk tanpa error.
+- **Via Supabase CLI Lokal (jika Docker Desktop tersedia):**
+  - Jalankan `npx supabase db reset` setelah `supabase init` agar seluruh `supabase/migrations/` di-replay dari nol pada container PostgreSQL lokal.
+
+---
+
+## 2. Deploy & Sinkronisasi ke Environment Remote (Produksi / Staging)
+
+- Gunakan **`supabase_mcp:apply_migration`** untuk menerapkan migrasi baru ke project remote, dan selalu simpan file SQL-nya ke `supabase/migrations/YYYYMMDDHHMMSS_<nama_migrasi>.sql` di Git.
+- Pastikan seluruh versi migrasi tercatat konsisten di `supabase_migrations.schema_migrations`.
 
 > [!IMPORTANT]
-> **Supabase Auth & Profiles:**
-> Tabel `profiles` memiliki relasi ke `auth.users` bawaan Supabase. Pastikan integrasi antara trigger pembuatan user ke tabel `profiles` berjalan dengan baik pada environment baru.
+> **Supabase Auth & Triggers:**
+> Tabel `public.profiles` terhubung ke `auth.users` melalui fungsi trigger `public.handle_new_user()`. Pada project Supabase baru, pastikan trigger pada `auth.users` (`on_auth_user_created`) aktif dan kolom sensitif (`roles`, `default_gudang_id`) dilindungi oleh trigger `guard_profiles_sensitive_columns()`.
 
-> [!WARNING]
-> **RLS (Row Level Security):**
-> File `setup.sql` dari project Native POS akan mengaktifkan RLS (Enable Row Level Security) ke mayoritas tabel dan memberikan _policy access_ default bagi `authenticated` user. Pastikan Anda mengatur _policy_ yang lebih spesifik jika nantinya ada pemisahan peran (_role_), misalnya antara admin inventory dan kasir POS.
+---
 
-> [!TIP]
-> **Verifikasi Schema:**
-> Setelah seluruh _query_ dieksekusi, Anda dapat melakukan pengecekan dengan melihat daftar _Functions (RPC)_ di Dashboard Supabase. Pastikan skema `public` berisi fungsi-fungsi dari Inventory dan skema `rpc` (serta sebagian `public`) berisi fungsi-fungsi kasir dari Native POS.
+## 3. Checklist Verifikasi Pasca-Migrasi
+
+1. **Kelengkapan Skema:** Periksa jumlah tabel di `public` (53 tabel), view utama (`vw_katalog_publik`, `vw_payroll_saldo`, `vw_customer_stats`, `v_recent_transactions`), serta RPC penting (`pay_transaction`, `approve_and_process_opname`, `tambah_pembelian_batch`).
+2. **Keamanan RLS & Privileges:** Pastikan seluruh tabel publik mengaktifkan RLS, tidak ada grant akses langsung untuk `anon` pada tabel/RPC sensitif (`member_otp_sessions`, `system_config`, `wa_outbox`), dan `system_config` hanya dapat diakses admin atau `service_role`.
+3. **Sinkronisasi Tipe TypeScript:** Jalankan `supabase_mcp:generate_typescript_types` dan perbarui [types/supabase.ts](file:///c:/project/inventory/types/supabase.ts) setiap kali ada perubahan DDL.

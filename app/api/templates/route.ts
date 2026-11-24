@@ -1,15 +1,18 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { verifyRoles, verifyAdmin, createAdminClient } from '@/lib/api/auth-guard';
+import type { Json } from '@/types/supabase';
 
 export const dynamic = 'force-dynamic';
+
+const jsonFieldSchema = z.custom<Json>(() => true);
 
 const templateBodySchema = z.object({
   name: z.string().trim().min(1).max(150),
   language: z.string().trim().min(1).max(30),
   content_json: z.union([
-    z.record(z.string(), z.unknown()),
-    z.array(z.unknown()),
+    z.record(z.string(), jsonFieldSchema),
+    z.array(jsonFieldSchema),
     z.string().min(1),
   ]),
   active: z.boolean().optional().default(true),

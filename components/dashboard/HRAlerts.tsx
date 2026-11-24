@@ -5,24 +5,50 @@ import { Card } from '@/components/ui';
 import { IconClock, IconWallet, IconChevronRight, IconAlertTriangle } from '@tabler/icons-react';
 import Link from 'next/link';
 import { kasbonApi, kehadiranApi } from '@/lib/api/payroll';
+import { queryKeys } from '@/lib/queryKeys';
 
 export function HRAlerts({ variant = 'default' }: { variant?: 'default' | 'mobile' }) {
-  const { data: kasbonCount = 0, isLoading: kasbonLoading } = useQuery({
-    queryKey: ['admin_payroll_kasbon', 'pending_count'],
-    queryFn: () => kasbonApi.getPendingCount().then((res) => res.count),
+  const {
+    data: kasbonCount = 0,
+    isLoading: kasbonLoading,
+    isError: kasbonError,
+  } = useQuery({
+    queryKey: queryKeys.payroll.adminPendingKasbonCount,
+    queryFn: async () => {
+      const res = await kasbonApi.getPendingCount();
+      if (res.error) throw res.error;
+      return res.count;
+    },
   });
 
-  const { data: lemburCount = 0, isLoading: lemburLoading } = useQuery({
-    queryKey: ['admin_payroll_lembur', 'pending_count'],
-    queryFn: () => kehadiranApi.getPendingLemburCount().then((res) => res.count),
+  const {
+    data: lemburCount = 0,
+    isLoading: lemburLoading,
+    isError: lemburError,
+  } = useQuery({
+    queryKey: queryKeys.payroll.adminPendingLemburCount,
+    queryFn: async () => {
+      const res = await kehadiranApi.getPendingLemburCount();
+      if (res.error) throw res.error;
+      return res.count;
+    },
   });
 
-  const { data: pulangAwalCount = 0, isLoading: pulangAwalLoading } = useQuery({
-    queryKey: ['admin_payroll_pulang_awal', 'pending_count'],
-    queryFn: () => kehadiranApi.getPendingPulangAwalCount().then((res) => res.count),
+  const {
+    data: pulangAwalCount = 0,
+    isLoading: pulangAwalLoading,
+    isError: pulangAwalError,
+  } = useQuery({
+    queryKey: queryKeys.payroll.adminPendingPulangAwalCount,
+    queryFn: async () => {
+      const res = await kehadiranApi.getPendingPulangAwalCount();
+      if (res.error) throw res.error;
+      return res.count;
+    },
   });
 
   const isLoading = kasbonLoading || lemburLoading || pulangAwalLoading;
+  const hasError = kasbonError || lemburError || pulangAwalError;
 
   if (variant === 'mobile') {
     if (kasbonCount === 0 && lemburCount === 0 && pulangAwalCount === 0 && !isLoading) return null;
@@ -113,6 +139,11 @@ export function HRAlerts({ variant = 'default' }: { variant?: 'default' | 'mobil
     <Card className="flex h-full flex-col p-5 bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-950/20 dark:to-neutral-900 border-indigo-100 dark:border-indigo-900/30">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-lg font-bold text-neutral-900 dark:text-white">HR & Payroll Alerts</h3>
+        {hasError && (
+          <span className="text-xs font-medium text-rose-600 dark:text-rose-400">
+            Gagal memuat
+          </span>
+        )}
       </div>
 
       <div className="flex-1 space-y-3">

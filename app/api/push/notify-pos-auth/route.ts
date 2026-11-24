@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { sendPushNotification } from '@/lib/push';
 import { createAdminClient, verifyWebhookOrAuth } from '@/lib/api/auth-guard';
 
@@ -10,6 +11,14 @@ const ACTION_LABELS: Record<string, string> = {
   return_approval: 'Retur Penjualan',
 };
 
+const notifyPosAuthSchema = z.object({
+  request_id: z.uuid(),
+  action_type: z.string().trim().min(1).max(60).optional(),
+  cashier_name: z.string().trim().max(120).nullable().optional(),
+  gudang_name: z.string().trim().max(120).nullable().optional(),
+  gudang_id: z.uuid().nullable().optional(),
+});
+
 export async function POST(request: Request) {
   try {
     const authResult = await verifyWebhookOrAuth(request);
@@ -17,16 +26,16 @@ export async function POST(request: Request) {
       return authResult.error;
     }
 
-    const body = await request.json();
-
-    if (!body.request_id) {
+    const rawBody = await request.json().catch(() => null);
+    const parsed = notifyPosAuthSchema.safeParse(rawBody);
+    if (!parsed.success) {
       return NextResponse.json({ error: 'Payload tidak lengkap' }, { status: 400 });
     }
 
+    const body = parsed.data;
     const supabase = createAdminClient();
 
-    // 1. Ambil target penerima notifikasi:
-    // Semua user dengan role 'admin'
+    // 1. Ambil target penerima notifikasi: Semua user dengan role 'admin'
     const { data: admins } = await supabase
       .from('profiles')
       .select('id')
@@ -45,12 +54,8 @@ export async function POST(request: Request) {
       }
     }
 
-    // Gabungkan list target user id unik
     const targetUserIds = Array.from(
-      new Set([
-        ...(admins?.map((a) => a.id) || []),
-        ...kepalaGudang.map((k) => k.id),
-      ])
+      new Set([...(admins?.map((a) => a.id) || []), ...kepalaGudang.map((k) => k.id)]),
     );
 
     if (targetUserIds.length === 0) {
@@ -59,7 +64,7 @@ export async function POST(request: Request) {
 
     const cashierName = body.cashier_name || 'Kasir';
     const storeName = body.gudang_name || 'Toko';
-    const actionLabel = ACTION_LABELS[body.action_type] || 'Otorisasi POS';
+    const actionLabel = (body.action_type && ACTION_LABELS[body.action_type]) || 'Otorisasi POS';
 
     // Model Claim & Dispatch: PIN TIDAK disertakan di push notification demi keamanan
     const payload = {
@@ -69,9 +74,7 @@ export async function POST(request: Request) {
       tag: `pos-auth-${body.request_id}`,
     };
 
-    // Kirim notifikasi secara asinkron ke semua target device
-    const promises = targetUserIds.map((userId) => sendPushNotification(userId, payload));
-    await Promise.all(promises);
+    await Promise.all(targetUserIds.map((userId) => sendPushNotification(userId, payload)));
 
     return NextResponse.json({ success: true, recipients_count: targetUserIds.length });
   } catch (error: unknown) {

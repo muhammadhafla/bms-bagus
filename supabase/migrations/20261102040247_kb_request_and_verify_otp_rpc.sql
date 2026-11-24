@@ -18,18 +18,8 @@ CREATE TABLE IF NOT EXISTS public.member_otp_sessions (
 
 ALTER TABLE public.member_otp_sessions ENABLE ROW LEVEL SECURITY;
 
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_policies 
-        WHERE tablename = 'member_otp_sessions' AND policyname = 'member_otp_sessions_allow_all'
-    ) THEN
-        CREATE POLICY member_otp_sessions_allow_all 
-        ON public.member_otp_sessions 
-        FOR ALL TO anon, authenticated 
-        USING (true) WITH CHECK (true);
-    END IF;
-END $$;
+-- Policy permisif member_otp_sessions_allow_all dihapus agar selaras dengan DB live:
+-- RLS aktif dengan 0 policy langsung; seluruh akses melalui RPC SECURITY DEFINER.
 
 -- 2. Fungsi Request OTP
 CREATE OR REPLACE FUNCTION public.request_member_otp(p_phone TEXT)

@@ -35,6 +35,7 @@ import { HRAlerts } from '@/components/dashboard/HRAlerts';
 import { inventoryApi } from '@/lib/api/inventory';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { posAuthApi } from '@/lib/api/pos-auth';
+import { toast } from 'sonner';
 
 export interface ActiveShift {
   userId: string;
@@ -256,11 +257,13 @@ export function MobileLaunchpad({
   const handleSnooze = async (itemId: string, days: number) => {
     setIsSnoozing(true);
     try {
-      await inventoryApi.snoozeLowStock(itemId, days);
+      const res = await inventoryApi.snoozeLowStock(itemId, days);
+      if (res.error) throw res.error;
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       onRefresh();
     } catch (error) {
       console.error('Failed to snooze item:', error);
+      toast.error('Gagal menunda pengingat stok menipis');
     } finally {
       setIsSnoozing(false);
       setSelectedLowStock(null);
@@ -271,11 +274,13 @@ export function MobileLaunchpad({
   const handleDiscontinue = async (itemId: string) => {
     setIsDiscontinuing(true);
     try {
-      await inventoryApi.toggleDiscontinued(itemId);
+      const res = await inventoryApi.toggleDiscontinued(itemId);
+      if (res.error) throw res.error;
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       onRefresh();
     } catch (error) {
       console.error('Failed to discontinue item:', error);
+      toast.error('Gagal memperbarui status diskontinyu barang');
     } finally {
       setIsDiscontinuing(false);
       setSelectedLowStock(null);

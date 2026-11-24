@@ -18,6 +18,7 @@ yarn-error.log*
 *.sln
 .next/
 .kilo/
+coverage/
 
 # PWA files
 public/sw.js

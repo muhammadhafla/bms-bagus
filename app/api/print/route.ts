@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { verifyRoles, createAdminClient } from '@/lib/api/auth-guard';
+import type { Json } from '@/types/supabase';
+
+const jsonFieldSchema = z.custom<Json>(() => true);
 
 const createPrintJobSchema = z.object({
   template_id: z.uuid({ message: 'template_id tidak valid' }),
   payload_json: z.union([
-    z.record(z.string(), z.unknown()),
-    z.array(z.unknown()),
+    z.record(z.string(), jsonFieldSchema),
+    z.array(jsonFieldSchema),
     z.string().min(1),
   ]),
   gudang_id: z

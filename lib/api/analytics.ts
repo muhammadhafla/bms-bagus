@@ -63,14 +63,23 @@ export interface ReturnAnalytics {
   }[];
 }
 
+export interface DashboardSummary {
+  busiest_hours: BusiestHour[];
+  categories: CategoryPerformance[];
+  payments: PaymentMethods;
+  stock_velocity: StockVelocity[];
+  profitability: Profitability[];
+  atv: Atv;
+}
+
 export const analyticsApi = {
   async getBusiestHours(startDate?: string, endDate?: string) {
     const result = await safeQuery<BusiestHour[]>(async () => {
       const res = await supabase.rpc('get_analytics_busiest_hours', {
-        p_start_date: startDate ? `${startDate}T00:00:00Z` : null,
-        p_end_date: endDate ? `${endDate}T23:59:59Z` : null,
+        p_start_date: startDate ? `${startDate}T00:00:00Z` : undefined,
+        p_end_date: endDate ? `${endDate}T23:59:59Z` : undefined,
       });
-      const mapped = (res.data || []).map((row: any) => ({
+      const mapped = (res.data || []).map((row) => ({
         hour_of_day: Number(row.hour_of_day),
         transaction_count: Number(row.transaction_count),
         total_revenue: Number(row.total_revenue),
@@ -87,25 +96,24 @@ export const analyticsApi = {
   ) {
     const result = await safeQuery<SalesTrend[]>(async () => {
       const res = await supabase.rpc('get_analytics_sales_trend', {
-        p_start_date: startDate ? `${startDate}T00:00:00Z` : null,
-        p_end_date: endDate ? `${endDate}T23:59:59Z` : null,
+        p_start_date: startDate ? `${startDate}T00:00:00Z` : undefined,
+        p_end_date: endDate ? `${endDate}T23:59:59Z` : undefined,
         p_group_by: groupBy,
       });
-      const mapped = (res.data || []).map((row: any) => {
+      const daysMap: Record<string, string> = {
+        Monday: 'Senin',
+        Tuesday: 'Selasa',
+        Wednesday: 'Rabu',
+        Thursday: 'Kamis',
+        Friday: 'Jumat',
+        Saturday: 'Sabtu',
+        Sunday: 'Minggu',
+      };
+      const mapped = (res.data || []).map((row) => {
         let label = row.label_waktu.trim();
         if (groupBy === 'day') {
-          const daysMap: Record<string, string> = {
-            Monday: 'Senin',
-            Tuesday: 'Selasa',
-            Wednesday: 'Rabu',
-            Thursday: 'Kamis',
-            Friday: 'Jumat',
-            Saturday: 'Sabtu',
-            Sunday: 'Minggu',
-          };
           label = daysMap[label] || label;
         }
-
         return {
           label_waktu: label,
           transaction_count: Number(row.transaction_count),
@@ -120,10 +128,10 @@ export const analyticsApi = {
   async getCategoryPerformance(startDate?: string, endDate?: string) {
     const result = await safeQuery<CategoryPerformance[]>(async () => {
       const res = await supabase.rpc('get_analytics_categories', {
-        p_start_date: startDate ? `${startDate}T00:00:00Z` : null,
-        p_end_date: endDate ? `${endDate}T23:59:59Z` : null,
+        p_start_date: startDate ? `${startDate}T00:00:00Z` : undefined,
+        p_end_date: endDate ? `${endDate}T23:59:59Z` : undefined,
       });
-      const mapped = (res.data || []).map((row: any) => ({
+      const mapped = (res.data || []).map((row) => ({
         category_name: row.category_name,
         total_revenue: Number(row.total_revenue),
         total_items: Number(row.total_items),
@@ -137,15 +145,15 @@ export const analyticsApi = {
     const result = await safeQuery<PaymentMethods>(async () => {
       const res = await supabase
         .rpc('get_analytics_payment_methods', {
-          p_start_date: startDate ? `${startDate}T00:00:00Z` : null,
-          p_end_date: endDate ? `${endDate}T23:59:59Z` : null,
+          p_start_date: startDate ? `${startDate}T00:00:00Z` : undefined,
+          p_end_date: endDate ? `${endDate}T23:59:59Z` : undefined,
         })
         .single();
 
-      const mapped = {
-        total_cash: Number((res.data as any)?.total_cash || 0),
-        total_qris: Number((res.data as any)?.total_qris || 0),
-        transaction_count: Number((res.data as any)?.transaction_count || 0),
+      const mapped: PaymentMethods = {
+        total_cash: Number(res.data?.total_cash || 0),
+        total_qris: Number(res.data?.total_qris || 0),
+        transaction_count: Number(res.data?.transaction_count || 0),
       };
       return { data: mapped, error: res.error as Error | null };
     });
@@ -158,10 +166,10 @@ export const analyticsApi = {
   async getStockVelocity(startDate?: string, endDate?: string) {
     const result = await safeQuery<StockVelocity[]>(async () => {
       const res = await supabase.rpc('get_analytics_stock_velocity', {
-        p_start_date: startDate ? `${startDate}T00:00:00Z` : null,
-        p_end_date: endDate ? `${endDate}T23:59:59Z` : null,
+        p_start_date: startDate ? `${startDate}T00:00:00Z` : undefined,
+        p_end_date: endDate ? `${endDate}T23:59:59Z` : undefined,
       });
-      const mapped = (res.data || []).map((row: any) => ({
+      const mapped = (res.data || []).map((row) => ({
         inventory_id: row.inventory_id,
         nama_barang: row.nama_barang,
         total_sold: Number(row.total_sold),
@@ -176,10 +184,10 @@ export const analyticsApi = {
   async getProfitability(startDate?: string, endDate?: string) {
     const result = await safeQuery<Profitability[]>(async () => {
       const res = await supabase.rpc('get_analytics_profitability', {
-        p_start_date: startDate ? `${startDate}T00:00:00Z` : null,
-        p_end_date: endDate ? `${endDate}T23:59:59Z` : null,
+        p_start_date: startDate ? `${startDate}T00:00:00Z` : undefined,
+        p_end_date: endDate ? `${endDate}T23:59:59Z` : undefined,
       });
-      const mapped = (res.data || []).map((row: any) => ({
+      const mapped = (res.data || []).map((row) => ({
         inventory_id: row.inventory_id,
         nama_barang: row.nama_barang,
         total_sold: Number(row.total_sold),
@@ -195,13 +203,13 @@ export const analyticsApi = {
     const result = await safeQuery<Atv>(async () => {
       const res = await supabase
         .rpc('get_analytics_atv', {
-          p_start_date: startDate ? `${startDate}T00:00:00Z` : null,
-          p_end_date: endDate ? `${endDate}T23:59:59Z` : null,
+          p_start_date: startDate ? `${startDate}T00:00:00Z` : undefined,
+          p_end_date: endDate ? `${endDate}T23:59:59Z` : undefined,
         })
         .single();
-      const mapped = {
-        avg_transaction_value: Number((res.data as any)?.avg_transaction_value || 0),
-        items_per_ticket: Number((res.data as any)?.items_per_ticket || 0),
+      const mapped: Atv = {
+        avg_transaction_value: Number(res.data?.avg_transaction_value || 0),
+        items_per_ticket: Number(res.data?.items_per_ticket || 0),
       };
       return { data: mapped, error: res.error as Error | null };
     });
@@ -214,10 +222,10 @@ export const analyticsApi = {
   async getReturnAnalytics(startDate?: string, endDate?: string) {
     const result = await safeQuery<ReturnAnalytics>(async () => {
       const res = await supabase.rpc('get_analytics_returns', {
-        p_start_date: startDate ? `${startDate}T00:00:00Z` : null,
-        p_end_date: endDate ? `${endDate}T23:59:59Z` : null,
+        p_start_date: startDate ? `${startDate}T00:00:00Z` : undefined,
+        p_end_date: endDate ? `${endDate}T23:59:59Z` : undefined,
       });
-      return { data: res.data as ReturnAnalytics, error: res.error as Error | null };
+      return { data: res.data as unknown as ReturnAnalytics | null, error: res.error as Error | null };
     });
     return {
       data: result.data || {
@@ -230,16 +238,15 @@ export const analyticsApi = {
   },
 
   async getDashboardSummary(startDate?: string, endDate?: string) {
-    const result = await safeQuery<any>(async () => {
+    const result = await safeQuery<DashboardSummary>(async () => {
       const res = await supabase.rpc('get_dashboard_summary', {
-        p_start_date: startDate || null,
-        p_end_date: endDate || null,
+        p_start_date: startDate || undefined,
+        p_end_date: endDate || undefined,
       });
-      return { data: res.data, error: res.error as Error | null };
+      return { data: res.data as unknown as DashboardSummary | null, error: res.error as Error | null };
     });
-    
-    // Parse numeric fields properly if needed
-    const data = result.data || {
+
+    const data: DashboardSummary = result.data || {
       busiest_hours: [],
       categories: [],
       payments: { total_cash: 0, total_qris: 0, transaction_count: 0 },

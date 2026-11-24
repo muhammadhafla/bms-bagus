@@ -210,7 +210,7 @@ function PembelianPageContent() {
             qty: item.qty,
             harga_final: item.harga_beli || 0,
             harga_jual: item.harga_jual,
-            diskon: item.diskon,
+            diskon: item.diskon ?? undefined,
           })),
         });
 
@@ -400,7 +400,10 @@ function PembelianPageContent() {
         if (!result.error && result.data) {
           handleAddResolvedItem({
             ...result.data,
-            kategori: result.data.id_kategori ?? { id: '', nama: data.kategori },
+            kategori:
+              typeof result.data.id_kategori === 'object' && result.data.id_kategori !== null
+                ? result.data.id_kategori
+                : { id: result.data.id_kategori || '', nama: data.kategori },
           });
           setShowNewItemDialog(false);
           searchRef.current?.clearInput();

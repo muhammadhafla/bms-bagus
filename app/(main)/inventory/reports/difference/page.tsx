@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 import { formatDateWIB } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const reasonLabels: Record<string, string> = {
   salah_input: 'Kesalahan Input',
@@ -69,11 +70,16 @@ export default function DifferenceReportPage() {
   const handleRefresh = async () => {
     try {
       const result = await stockAdjustmentApi.getAll();
-      if (!result.error && result.data) {
+      if (result.error) {
+        toast.error(result.error.message || 'Gagal memuat ulang laporan selisih stok');
+        return;
+      }
+      if (result.data) {
         setAdjustments(result.data);
       }
-    } catch (err: any) {
-      // Ignore error on refresh
+    } catch (err) {
+      console.error('Failed to refresh difference report:', err);
+      toast.error('Gagal memuat ulang laporan selisih stok');
     }
   };
 

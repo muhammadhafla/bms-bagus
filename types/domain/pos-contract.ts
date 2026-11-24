@@ -42,6 +42,7 @@ export interface PosTransactionPayload {
   points_redeemed: number;
   discount_member_amount: number;
   receipt_sent_via_wa?: boolean;
+  p_pos_auth_id?: string | null;
   created_by: string;
   created_at?: string;
 }
@@ -75,7 +76,7 @@ export type PosAuthActionType =
   | 'access_settings'
   | 'return_approval';
 
-export type PosAuthStatus = 'pending' | 'approved' | 'rejected' | 'expired';
+export type PosAuthStatus = 'pending' | 'used' | 'expired' | 'rejected';
 
 export interface PosAuthorizationRequest {
   id: string;
@@ -84,10 +85,19 @@ export interface PosAuthorizationRequest {
   cashier_id: string;
   cashier_name?: string;
   gudang_id?: string | null;
-  device_name?: string;
+  gudang_name?: string | null;
+  device_name?: string | null;
   reason?: string;
-  metadata?: Record<string, unknown>;
-  approved_by?: string | null;
+  action_metadata?: Record<string, unknown> | null;
+  claimed_by_id?: string | null;
+  claimed_by_name?: string | null;
+  claimed_at?: string | null;
+  verified_by_id?: string | null;
+  rejected_by_id?: string | null;
+  rejected_by_name?: string | null;
+  consumed_by_penjualan_id?: string | null;
+  expires_at?: string;
+  used_at?: string | null;
   created_at: string;
   updated_at?: string;
 }

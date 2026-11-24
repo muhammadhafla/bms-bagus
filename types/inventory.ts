@@ -1,31 +1,35 @@
 export interface InventoryItem {
   id: string;
   nama_barang: string;
-  slug?: string;
+  slug?: string | null;
   kode_barcode?: string;
-  harga_beli_terakhir?: number;
+  harga_beli_terakhir?: number | null;
   harga_jual: number;
-  stok: number;
-  id_kategori?: {
-    id: string;
-    nama: string;
-  };
+  stok: number | null;
+  id_kategori?:
+    | {
+        id: string;
+        nama: string;
+        created_at?: string | null;
+      }
+    | string
+    | null;
   kategori?: {
     id: string;
     nama: string;
-  };
-  created_by?: string;
-  created_at?: string;
-  updated_at?: string;
-  minimum_stock?: number;
-  unit?: string;
-  diskon: number;
-  harga_beli?: number;
+  } | null;
+  created_by?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  minimum_stock?: number | null;
+  unit?: string | null;
+  diskon: number | null;
+  harga_beli?: number | null;
   barcode?: string;
-  updated_by?: string;
-  is_discontinued?: boolean;
-  discontinued_at?: string;
-  discontinued_by?: string;
+  updated_by?: string | null;
+  is_discontinued?: boolean | null;
+  discontinued_at?: string | null;
+  discontinued_by?: string | null;
 }
 
 export interface InventoryFilters {

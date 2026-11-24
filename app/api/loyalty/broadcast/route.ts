@@ -1,6 +1,30 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { z } from 'zod';
+import { createAdminClient, verifyAdmin } from '@/lib/api/auth-guard';
+
+const broadcastSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  message: z.string().trim().min(1).max(1000),
+  tierId: z.union([z.literal('all'), z.uuid()]).optional().default('all'),
+  promoUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .refine(
+      (val) => {
+        if (val.startsWith('/') && !val.startsWith('//')) return true;
+        try {
+          const parsed = new URL(val);
+          return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+        } catch {
+          return false;
+        }
+      },
+      { message: 'URL promo harus berupa path internal atau protokol http/https.' },
+    )
+    .optional(),
+});
 
 function getFirebaseCredentials() {
   const projectId = process.env.FIREBASE_PROJECT_ID || 'toko-bagus-kawan-bagus';
@@ -85,51 +109,27 @@ async function getGoogleFcmAccessToken(): Promise<string> {
 
 export async function POST(request: Request) {
   try {
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const token = authHeader.split(' ')[1];
+    const { error: adminError } = await verifyAdmin(request);
+    if (adminError) return adminError;
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
+    const rawBody = await request.json().catch(() => null);
+    const parsed = broadcastSchema.safeParse(rawBody);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Konfigurasi server Supabase tidak lengkap' },
-        { status: 500 },
-      );
-    }
-
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Sesi login tidak sah' }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const { title, message, tierId, promoUrl } = body;
-
-    if (!title || !title.trim() || !message || !message.trim()) {
-      return NextResponse.json(
-        { error: 'Judul dan isi pesan broadcast wajib diisi' },
+        { error: 'Payload broadcast tidak valid. Periksa judul, isi pesan, tier, atau URL promo.' },
         { status: 400 },
       );
     }
+
+    const { title, message, tierId, promoUrl } = parsed.data;
+    const supabaseAdmin = createAdminClient();
 
     // Ambil token FCM dari tabel member_fcm_tokens
     let fcmQuery = supabaseAdmin
       .from('member_fcm_tokens')
       .select('fcm_token, member_id, members!inner(id, tier_id)');
 
-    if (tierId && tierId !== 'all') {
+    if (tierId !== 'all') {
       fcmQuery = fcmQuery.eq('members.tier_id', tierId);
     }
 
@@ -138,7 +138,7 @@ export async function POST(request: Request) {
     if (tokenErr) {
       console.error('Error fetching FCM tokens:', tokenErr);
       return NextResponse.json(
-        { error: 'Gagal mengambil data perangkat member: ' + tokenErr.message },
+        { error: 'Gagal mengambil data perangkat member.' },
         { status: 500 },
       );
     }
@@ -171,8 +171,8 @@ export async function POST(request: Request) {
             message: {
               token: fcmToken,
               notification: {
-                title: title.trim(),
-                body: message.trim(),
+                title,
+                body: message,
               },
               data: {
                 click_action: 'FLUTTER_NOTIFICATION_CLICK',
@@ -217,6 +217,10 @@ export async function POST(request: Request) {
       }),
     );
 
+    if (errors.length > 0) {
+      console.warn('[loyalty/broadcast] Sebagian pengiriman FCM gagal:', errors.slice(0, 5));
+    }
+
     return NextResponse.json({
       success: true,
       message: `Broadcast berhasil dikirim ke ${sentCount} perangkat${
@@ -225,12 +229,11 @@ export async function POST(request: Request) {
       sentCount,
       failedCount,
       totalTargets: uniqueTokens.length,
-      sampleErrors: errors.slice(0, 3),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Broadcast handler error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan saat memproses broadcast' },
+      { error: 'Terjadi kesalahan internal saat memproses broadcast.' },
       { status: 500 },
     );
   }

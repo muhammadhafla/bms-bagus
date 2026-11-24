@@ -622,28 +622,50 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await retryWithBackoff(logout);
     } catch (error) {
       console.warn('Sign out failed, forcing local logout:', error);
-
-      // Force local logout even if server signout failed
+    } finally {
+      // Selalu bersihkan token lokal & non-precache CacheStorage pada setiap logout
+      // untuk mencegah kebocoran sesi/data antar-staf pada perangkat kasir bersama.
       try {
         if (typeof window !== 'undefined') {
           const projectRef =
             process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0] || 'auth';
 
-          // Remove all Supabase auth tokens (based on Supabase storageKey pattern)
-          const keysToRemove = [
+          const keysToRemove = new Set<string>([
             `sb-${projectRef}-auth-token`,
             `sb-${projectRef}-refresh-token`,
             `sb-${projectRef}-persisted-session`,
             'supabase.auth.token',
-          ];
+          ]);
+
+          for (const storage of [window.localStorage, window.sessionStorage]) {
+            for (let i = 0; i < storage.length; i++) {
+              const key = storage.key(i);
+              if (
+                key &&
+                ((key.startsWith('sb-') && key.includes('-auth-token')) ||
+                  key.includes('supabase.auth'))
+              ) {
+                keysToRemove.add(key);
+              }
+            }
+          }
 
           keysToRemove.forEach((key) => {
-            localStorage.removeItem(key);
-            sessionStorage.removeItem(key);
+            window.localStorage.removeItem(key);
+            window.sessionStorage.removeItem(key);
           });
+
+          if ('caches' in window) {
+            const cacheKeys = await window.caches.keys();
+            await Promise.all(
+              cacheKeys
+                .filter((k) => !k.startsWith('serwist-precache'))
+                .map((k) => window.caches.delete(k)),
+            );
+          }
         }
       } catch (e) {
-        console.error('Failed to clear auth storage:', e);
+        console.error('Failed to clear auth storage and runtime cache:', e);
       }
     }
   },

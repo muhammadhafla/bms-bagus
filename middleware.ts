@@ -63,24 +63,22 @@ export async function middleware(request: NextRequest) {
 
   // 2. Deteksi Next.js background prefetch request
   // PENTING: Browser mengabaikan Set-Cookie pada request prefetch.
-  // Jika token dirotasi pada prefetch, refresh token lama akan hangus di Supabase
-  // tetapi browser masih menyimpannya, memicu error 400 refresh_token_not_found saat navigasi nyata.
+  // Jika token dirotasi pada prefetch, refresh token lama akan hangus di Supabase.
+  // Karena itu pada prefetch kita tetap memverifikasi klaim JWT dengan setAll() no-op (tanpa rotasi cookie).
   const isPrefetch =
     request.headers.get('next-router-prefetch') === '1' ||
     request.headers.get('purpose') === 'prefetch' ||
     request.headers.get('x-middleware-prefetch') === '1';
 
-  if (isPrefetch && hasSupabaseAuthCookie(request)) {
-    return NextResponse.next({ request });
-  }
-
   // 3. Tangani rute /api/* (selain /api/auth yang sudah dilewati di PUBLIC_PATHS)
-  // Serahkan verifikasi detail ke endpoint auth-guard masing-masing untuk mencegah
-  // race condition penukaran token bersamaan dari micro-request API paralel.
+  // Serahkan verifikasi detail ke endpoint auth-guard masing-masing, termasuk webhook secret
+  // dari pg_net Supabase (`x-webhook-secret`) dan WA Bridge (`x-wa-bridge-secret`).
   if (pathname.startsWith('/api/')) {
     const hasAuthHeader = Boolean(request.headers.get('authorization'));
+    const hasWebhookSecret = Boolean(request.headers.get('x-webhook-secret'));
+    const hasWaBridgeSecret = Boolean(request.headers.get('x-wa-bridge-secret'));
 
-    if (!hasSupabaseAuthCookie(request) && !hasAuthHeader) {
+    if (!hasSupabaseAuthCookie(request) && !hasAuthHeader && !hasWebhookSecret && !hasWaBridgeSecret) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     return NextResponse.next({ request });
@@ -107,7 +105,7 @@ export async function middleware(request: NextRequest) {
 
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error('[Middleware] Supabase URL atau Anon Key tidak ditemukan di environment');
-      return response;
+      return new NextResponse('Service Unavailable', { status: 503 });
     }
 
     const supabase = createServerClient(
@@ -119,6 +117,10 @@ export async function middleware(request: NextRequest) {
             return request.cookies.getAll();
           },
           setAll(cookiesToSet) {
+            // Jangan rotasi cookie saat background prefetch agar tidak memicu refresh_token_not_found
+            if (isPrefetch) {
+              return;
+            }
             // Update request cookies untuk downstream Server Components
             cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
             // Buat response baru dengan request yang sudah diperbarui
@@ -154,20 +156,7 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // Fallback toleransi untuk mode offline PWA / network error sementara
-    const isNetworkError =
-      error &&
-      (error.message?.includes('fetch failed') ||
-        error.message?.includes('Failed to fetch') ||
-        error.message?.includes('NetworkError') ||
-        error.name === 'AuthRetryableFetchError');
-
-    if (isNetworkError && hasAuthCookie) {
-      // Izinkan lewat agar cache PWA / client-side offline dapat menangani
-      return response;
-    }
-
-    // Tidak ada klaim sesi yang valid → redirect ke login
+    // Fail-closed: tidak ada klaim sesi yang valid atau terjadi error → redirect ke login
     if (error || !isAuthenticated) {
       return buildLoginRedirect(request, pathname, response);
     }
@@ -175,13 +164,9 @@ export async function middleware(request: NextRequest) {
     return response;
   } catch (err) {
     console.error('[Middleware] Error checking auth:', err);
-
-    // Graceful fallback: periksa apakah ada cookie auth Supabase
-    if (hasSupabaseAuthCookie(request)) {
-      // Izinkan lewat agar client-side PWA / cache dapat menangani gracefully
-      return response;
+    if (pathname === '/login') {
+      return NextResponse.next({ request });
     }
-
     return buildLoginRedirect(request, pathname);
   }
 }

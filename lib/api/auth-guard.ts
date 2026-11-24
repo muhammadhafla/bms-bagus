@@ -1,10 +1,21 @@
+import { timingSafeEqual } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+function safeTimingEqual(a: string | null | undefined, b: string | undefined): boolean {
+  if (!a || !b) return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  return bufA.length === bufB.length && timingSafeEqual(bufA, bufB);
+}
+
 export function createAdminClient() {
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Konfigurasi Supabase admin client belum lengkap.');
+  }
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
@@ -103,21 +114,51 @@ export async function verifyRoles(
 export async function verifyWebhookOrAuth(
   request: Request,
 ): Promise<{ authorized: true; error: null } | { authorized: false; error: NextResponse }> {
-  const secretHeader = request.headers.get('x-webhook-secret');
-  const expectedSecret = process.env.CRON_SECRET || process.env.WEBHOOK_SECRET;
+  const expectedCronSecret = process.env.CRON_SECRET;
+  const expectedWebhookSecret = process.env.WEBHOOK_SECRET;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (expectedSecret && expectedSecret.length > 0 && secretHeader === expectedSecret) {
+  if (!expectedCronSecret && !expectedWebhookSecret && !serviceKey) {
+    console.error('[auth-guard] Webhook verification failed: no server secrets configured.');
+    return {
+      authorized: false,
+      error: NextResponse.json({ error: 'Server misconfigured' }, { status: 500 }),
+    };
+  }
+
+  const secretHeader = request.headers.get('x-webhook-secret');
+  if (
+    safeTimingEqual(secretHeader, expectedCronSecret) ||
+    safeTimingEqual(secretHeader, expectedWebhookSecret)
+  ) {
     return { authorized: true, error: null };
   }
 
   const authHeader = request.headers.get('authorization');
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (serviceKey && serviceKey.length > 10 && authHeader === `Bearer ${serviceKey}`) {
+  if (serviceKey && serviceKey.length > 10 && safeTimingEqual(authHeader, `Bearer ${serviceKey}`)) {
     return { authorized: true, error: null };
   }
 
-  const { user } = await verifyAuth(request);
-  if (user) {
+  return {
+    authorized: false,
+    error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+  };
+}
+
+export function verifyWaBridgeSecret(
+  request: Request,
+): { authorized: true; error: null } | { authorized: false; error: NextResponse } {
+  const expectedSecret = process.env.WA_BRIDGE_SECRET || process.env.WEBHOOK_SECRET;
+  if (!expectedSecret) {
+    console.error('[auth-guard] WA Bridge verification failed: WA_BRIDGE_SECRET is not configured.');
+    return {
+      authorized: false,
+      error: NextResponse.json({ error: 'Server misconfigured' }, { status: 500 }),
+    };
+  }
+
+  const bridgeHeader = request.headers.get('x-wa-bridge-secret');
+  if (safeTimingEqual(bridgeHeader, expectedSecret)) {
     return { authorized: true, error: null };
   }
 

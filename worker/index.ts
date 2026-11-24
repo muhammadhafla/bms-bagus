@@ -30,7 +30,16 @@ const authAndSupabaseBypassRules: RuntimeCaching[] = [
     handler: new NetworkOnly(),
   },
   {
+    matcher: ({ sameOrigin, url }) => sameOrigin && url.pathname.startsWith('/api/'),
+    handler: new NetworkOnly(),
+  },
+  {
     matcher: ({ sameOrigin, url }) => sameOrigin && url.pathname.startsWith('/login'),
+    handler: new NetworkOnly(),
+  },
+  {
+    matcher: ({ sameOrigin, request, url }) =>
+      sameOrigin && (request.headers.get('rsc') === '1' || url.searchParams.has('_rsc')),
     handler: new NetworkOnly(),
   },
 ];

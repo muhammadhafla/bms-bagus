@@ -133,6 +133,16 @@ export async function GET(request: Request, context: any) {
   const { searchParams } = new URL(request.url);
   const periode = searchParams.get('periode');
 
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!id || !uuidRegex.test(id)) {
+    return new NextResponse('ID tidak valid', { status: 400 });
+  }
+
+  const periodeRegex = /^\d{4}-(0[1-9]|1[0-2])$/;
+  if (periode && !periodeRegex.test(periode)) {
+    return new NextResponse('Format periode tidak valid (YYYY-MM)', { status: 400 });
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -179,7 +189,7 @@ export async function GET(request: Request, context: any) {
 
     if (error) {
       console.error('[Export Slip Error]:', error);
-      return new NextResponse(`Error query slip_gaji: ${error.message}`, { status: 500 });
+      return new NextResponse('Gagal mengambil data slip gaji', { status: 500 });
     }
 
     // 4. Fallback: jika id yang dikirim adalah user_id
@@ -220,7 +230,8 @@ export async function GET(request: Request, context: any) {
         'Content-Disposition': `inline; filename="Slip_Gaji_${slip.profiles?.nama || 'Karyawan'}_${slip.periode_bulan}.pdf"`
       },
     });
-  } catch (err: any) {
-    return new NextResponse('Internal Server Error: ' + err.message, { status: 500 });
+  } catch (err: unknown) {
+    console.error('[Export Slip Fatal]:', err);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

@@ -1,109 +1,93 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { createAdminClient, verifyAdmin } from '@/lib/api/auth-guard';
 
-function getAdminClient(request: Request) {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { error: 'Unauthorized', status: 401 };
-  }
-  const token = authHeader.split(' ')[1];
+const ALLOWED_ROLES = [
+  'admin',
+  'kepala_cabang',
+  'kepala_gudang',
+  'staff_gudang',
+  'kasir',
+  'finance',
+] as const;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    console.error('Missing SUPABASE_SERVICE_ROLE_KEY');
-    return { error: 'Konfigurasi server tidak lengkap', status: 500 };
-  }
-
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-
-  return { supabaseAdmin, token };
-}
-
-async function verifyAdmin(supabaseAdmin: any, token: string) {
-  const {
-    data: { user },
-    error: authError,
-  } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) {
-    return { error: 'Unauthorized', status: 401 };
-  }
-
-  const { data: profile } = await supabaseAdmin
-    .from('profiles')
-    .select('roles')
-    .eq('id', user.id)
-    .single();
-
-  const requesterRoles: string[] = profile?.roles || [];
-  if (!requesterRoles.includes('admin')) {
-    return { error: 'Forbidden. Hanya Admin yang diizinkan.', status: 403 };
-  }
-
-  return { user };
-}
+const updateUserSchema = z.object({
+  nama: z
+    .string()
+    .trim()
+    .min(1, { message: 'Nama wajib diisi' })
+    .max(120, { message: 'Nama terlalu panjang' }),
+  roles: z.array(z.enum(ALLOWED_ROLES)).min(1).optional(),
+  default_gudang_id: z
+    .union([z.uuid(), z.literal(''), z.null()])
+    .optional()
+    .transform((val) => (val === undefined ? undefined : val || null)),
+  password: z.string().max(128).optional().nullable(),
+  username: z.string().trim().max(50).optional().nullable(),
+});
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const clientRes = getAdminClient(request);
-    if (clientRes.error || !clientRes.supabaseAdmin)
-      return NextResponse.json({ error: clientRes.error }, { status: clientRes.status || 500 });
+    const { error: authError } = await verifyAdmin(request);
+    if (authError) return authError;
 
-    const supabaseAdmin = clientRes.supabaseAdmin;
-    const adminRes = await verifyAdmin(supabaseAdmin, clientRes.token!);
-    if (adminRes.error)
-      return NextResponse.json({ error: adminRes.error }, { status: adminRes.status });
+    const rawId = (await params).id;
+    const idParsed = z.uuid().safeParse(rawId);
+    if (!idParsed.success) {
+      return NextResponse.json({ error: 'User ID tidak valid' }, { status: 400 });
+    }
+    const userId = idParsed.data;
 
-    const body = await request.json();
-    const { nama, roles, default_gudang_id, password, username } = body;
-    const userId = (await params).id;
+    const rawBody = await request.json().catch(() => null);
+    const parsed = updateUserSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message || 'Payload tidak valid' },
+        { status: 400 },
+      );
+    }
 
-    if (!userId) return NextResponse.json({ error: 'User ID tidak ditemukan' }, { status: 400 });
-    if (!nama) return NextResponse.json({ error: 'Nama wajib diisi' }, { status: 400 });
+    const { nama, roles, default_gudang_id, password, username } = parsed.data;
 
-    const assignedRoles: string[] | undefined = Array.isArray(roles) && roles.length > 0
-      ? roles
-      : undefined;
+    if (password && password.trim() !== '' && password.length < 8) {
+      return NextResponse.json({ error: 'Password baru minimal 8 karakter' }, { status: 400 });
+    }
 
-    const updatePayload: any = { nama };
+    const updatePayload: Record<string, unknown> = { nama };
 
-    if (assignedRoles) {
-      updatePayload.roles = assignedRoles;
+    if (roles && roles.length > 0) {
+      updatePayload.roles = roles;
     }
 
     if (default_gudang_id !== undefined) {
-      updatePayload.default_gudang_id = default_gudang_id || null;
+      updatePayload.default_gudang_id = default_gudang_id;
     }
 
     if (username !== undefined) {
-      updatePayload.username = username ? username.toLowerCase().replace(/[^a-z0-9_.]/g, '') : null;
+      updatePayload.username = username
+        ? username.toLowerCase().replace(/[^a-z0-9_.]/g, '') || null
+        : null;
     }
 
+    const supabaseAdmin = createAdminClient();
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update(updatePayload)
       .eq('id', userId);
 
     if (profileError) {
-      return NextResponse.json(
-        { error: profileError.message || 'Gagal memperbarui profil' },
-        { status: 400 },
-      );
+      console.error('Update profile error:', profileError);
+      return NextResponse.json({ error: 'Gagal memperbarui profil user' }, { status: 400 });
     }
 
     if (password && password.trim() !== '') {
-      if (password.length < 6) {
-        return NextResponse.json({ error: 'Password baru minimal 6 karakter' }, { status: 400 });
-      }
       const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
         password,
       });
       if (passwordError) {
+        console.error('Update user password error:', passwordError);
         return NextResponse.json(
-          { error: passwordError.message || 'Profil terupdate, tapi gagal mereset password' },
+          { error: 'Profil terupdate, tetapi gagal mereset password' },
           { status: 400 },
         );
       }
@@ -118,29 +102,31 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const clientRes = getAdminClient(request);
-    if (clientRes.error || !clientRes.supabaseAdmin)
-      return NextResponse.json({ error: clientRes.error }, { status: clientRes.status || 500 });
+    const { user, error: authError } = await verifyAdmin(request);
+    if (authError || !user) return authError!;
 
-    const supabaseAdmin = clientRes.supabaseAdmin;
-    const adminRes = await verifyAdmin(supabaseAdmin, clientRes.token!);
-    if (adminRes.error)
-      return NextResponse.json({ error: adminRes.error }, { status: adminRes.status });
+    const rawId = (await params).id;
+    const idParsed = z.uuid().safeParse(rawId);
+    if (!idParsed.success) {
+      return NextResponse.json({ error: 'User ID tidak valid' }, { status: 400 });
+    }
+    const userId = idParsed.data;
 
-    const userId = (await params).id;
-    if (!userId) return NextResponse.json({ error: 'User ID tidak ditemukan' }, { status: 400 });
-
-    // Hapus user dari Supabase Auth (akan menghapus profiles jika ON DELETE CASCADE, atau kita hapus manual)
-    const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId);
-
-    if (deleteAuthError) {
+    if (userId === user.id) {
       return NextResponse.json(
-        { error: deleteAuthError.message || 'Gagal menghapus user' },
+        { error: 'Tidak dapat menghapus akun Anda sendiri' },
         { status: 400 },
       );
     }
 
-    // Juga hapus dari profiles untuk memastikan (meskipun ada cascade, ini fallback aman)
+    const supabaseAdmin = createAdminClient();
+    const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+    if (deleteAuthError) {
+      console.error('Delete auth user error:', deleteAuthError);
+      return NextResponse.json({ error: 'Gagal menghapus user' }, { status: 400 });
+    }
+
     await supabaseAdmin.from('profiles').delete().eq('id', userId);
 
     return NextResponse.json({ success: true, message: 'User berhasil dihapus' });

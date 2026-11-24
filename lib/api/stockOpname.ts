@@ -366,25 +366,11 @@ export const stockOpnameApi = {
   },
 
   async approve(opnameId: string) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return { data: null, error: new Error('User not authenticated') };
-    }
-
-    return safeQuery<StockOpname>(
+    return safeQuery<{ success: boolean; processed_items: number; opname_id: string }>(
       async () => {
-        const result = await supabase
-          .from('stock_opname')
-          .update({
-            status: 'approved',
-            approved_by: user.id,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', opnameId)
-          .select()
-          .single();
+        const result = await supabase.rpc('approve_and_process_opname', {
+          p_opname_id: opnameId,
+        });
         return { data: result.data, error: result.error as Error | null };
       },
       { isMutation: true },

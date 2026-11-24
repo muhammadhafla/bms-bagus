@@ -1,35 +1,63 @@
 import { NextResponse } from 'next/server';
-import { verifyAuth, createAdminClient } from '@/lib/api/auth-guard';
+import { z } from 'zod';
+import { verifyRoles, createAdminClient } from '@/lib/api/auth-guard';
+
+const createPrintJobSchema = z.object({
+  template_id: z.uuid({ message: 'template_id tidak valid' }),
+  payload_json: z.union([
+    z.record(z.string(), z.unknown()),
+    z.array(z.unknown()),
+    z.string().min(1),
+  ]),
+  gudang_id: z
+    .union([z.uuid(), z.literal(''), z.null()])
+    .optional()
+    .transform((val) => (val ? val : null)),
+});
 
 export async function POST(request: Request) {
   try {
-    const { user, error: authError } = await verifyAuth(request);
-    if (authError) return authError;
+    const { profile, error: authError } = await verifyRoles(request, [
+      'admin',
+      'kepala_cabang',
+      'kepala_gudang',
+      'staff_gudang',
+      'kasir',
+    ]);
+    if (authError || !profile) return authError!;
 
-    const supabase = createAdminClient();
-    const body = await request.json();
-    let { template_id, payload_json, gudang_id } = body;
-
-    if (!template_id || !payload_json) {
+    const rawBody = await request.json().catch(() => null);
+    const parsed = createPrintJobSchema.safeParse(rawBody);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'template_id and payload_json are required' },
+        { error: parsed.error.issues[0]?.message || 'Payload cetak tidak valid' },
         { status: 400 },
       );
     }
 
-    // Graceful fallback jika gudang_id tidak disertakan
-    if (!gudang_id) {
-      // 1. Coba dari default_gudang_id profil user
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('default_gudang_id')
-        .eq('id', user.id)
-        .single();
+    const { template_id, payload_json, gudang_id: requestedGudangId } = parsed.data;
+    const isAdmin = profile.roles.includes('admin');
+    const supabase = createAdminClient();
 
-      if (profile?.default_gudang_id) {
-        gudang_id = profile.default_gudang_id;
-      } else {
-        // 2. Coba dari gudang default sistem (is_default = true)
+    let effectiveGudangId: string | null = null;
+
+    if (!isAdmin) {
+      if (!profile.default_gudang_id) {
+        return NextResponse.json(
+          { error: 'Forbidden. Akun Anda belum memiliki cabang default.' },
+          { status: 403 },
+        );
+      }
+      if (requestedGudangId && requestedGudangId !== profile.default_gudang_id) {
+        return NextResponse.json(
+          { error: 'Forbidden. Tidak diizinkan mencetak ke cabang lain.' },
+          { status: 403 },
+        );
+      }
+      effectiveGudangId = profile.default_gudang_id;
+    } else {
+      effectiveGudangId = requestedGudangId || profile.default_gudang_id;
+      if (!effectiveGudangId) {
         const { data: defaultGudang } = await supabase
           .from('gudang')
           .select('id')
@@ -37,9 +65,8 @@ export async function POST(request: Request) {
           .maybeSingle();
 
         if (defaultGudang?.id) {
-          gudang_id = defaultGudang.id;
+          effectiveGudangId = defaultGudang.id;
         } else {
-          // 3. Fallback ke gudang pertama
           const { data: firstGudang } = await supabase
             .from('gudang')
             .select('id')
@@ -47,14 +74,14 @@ export async function POST(request: Request) {
             .limit(1)
             .maybeSingle();
 
-          gudang_id = firstGudang?.id;
+          effectiveGudangId = firstGudang?.id ?? null;
         }
       }
     }
 
-    if (!gudang_id) {
+    if (!effectiveGudangId) {
       return NextResponse.json(
-        { error: 'gudang_id is required and no active warehouse found' },
+        { error: 'gudang_id wajib ditentukan dan tidak ada gudang aktif' },
         { status: 400 },
       );
     }
@@ -63,7 +90,7 @@ export async function POST(request: Request) {
       .from('print_jobs')
       .insert({
         template_id,
-        gudang_id,
+        gudang_id: effectiveGudangId,
         payload_json,
         status: 'Pending',
       })
@@ -71,11 +98,12 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      console.error('Create print job error:', error);
+      return NextResponse.json({ error: 'Gagal membuat antrean cetak' }, { status: 400 });
     }
 
     return NextResponse.json({ job: data });
-  } catch (err: unknown) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -274,7 +274,20 @@ function renderInlineMarkdown(text: string): React.ReactNode {
         const linkUrl = linkMatch[2];
         const isInternal = linkUrl.startsWith('/');
 
-        if (isInternal) {
+        const isSafeExternal = (() => {
+          try {
+            const parsed = new URL(linkUrl);
+            return (
+              parsed.protocol === 'http:' ||
+              parsed.protocol === 'https:' ||
+              parsed.protocol === 'mailto:'
+            );
+          } catch {
+            return false;
+          }
+        })();
+
+        if (isInternal && !linkUrl.startsWith('//')) {
           parts.push(
             <Link
               key={`link-${keyIdx}`}
@@ -285,7 +298,7 @@ function renderInlineMarkdown(text: string): React.ReactNode {
               <IconArrowUpRight size={12} className="inline" />
             </Link>
           );
-        } else {
+        } else if (isSafeExternal) {
           parts.push(
             <a
               key={`link-${keyIdx}`}
@@ -297,6 +310,12 @@ function renderInlineMarkdown(text: string): React.ReactNode {
               <span>{linkText}</span>
               <IconArrowUpRight size={12} className="inline" />
             </a>
+          );
+        } else {
+          parts.push(
+            <span key={`link-${keyIdx}`} className="font-semibold text-neutral-700 dark:text-neutral-300">
+              {linkText}
+            </span>
           );
         }
       }

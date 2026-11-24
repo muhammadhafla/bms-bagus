@@ -21,6 +21,7 @@ interface ItemCartProps {
   handleEditSubmit: () => void;
   handleEditKeyDown: (e: React.KeyboardEvent<HTMLDivElement>, index: number) => void;
   removeItem: (id: string) => void;
+  canViewHpp?: boolean;
 }
 
 export const ItemCart = React.memo(function ItemCart({
@@ -34,6 +35,7 @@ export const ItemCart = React.memo(function ItemCart({
   handleEditSubmit,
   handleEditKeyDown,
   removeItem,
+  canViewHpp = true,
 }: ItemCartProps) {
   const [historyItem, setHistoryItem] = useState<{ id: string; name: string } | null>(null);
 
@@ -75,15 +77,19 @@ export const ItemCart = React.memo(function ItemCart({
             <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
               Qty
             </th>
-            <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
-              Harga Beli
-            </th>
+            {canViewHpp && (
+              <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                Harga Beli
+              </th>
+            )}
             <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
               Harga Jual
             </th>
-            <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
-              Subtotal
-            </th>
+            {canViewHpp && (
+              <th className="px-4 py-4 text-right text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                Subtotal
+              </th>
+            )}
             <th className="w-16 px-4 py-4 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400">
               Aksi
             </th>
@@ -91,15 +97,15 @@ export const ItemCart = React.memo(function ItemCart({
         </thead>
         <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/50">
           {(Array.isArray(items) ? items : []).map((item, index) => {
-            const prevBeli = item.harga_beli_terakhir ?? 0;
-            const currBeli = item.harga_beli ?? 0;
+            const prevBeli = canViewHpp ? (item.harga_beli_terakhir ?? 0) : 0;
+            const currBeli = canViewHpp ? (item.harga_beli ?? 0) : 0;
             const diffBeli = currBeli - prevBeli;
-            const isNaik = prevBeli > 0 && currBeli > prevBeli;
-            const isTurun = prevBeli > 0 && currBeli < prevBeli;
+            const isNaik = canViewHpp && prevBeli > 0 && currBeli > prevBeli;
+            const isTurun = canViewHpp && prevBeli > 0 && currBeli < prevBeli;
             const percentBeli = prevBeli > 0 ? (Math.abs(diffBeli) / prevBeli) * 100 : 0;
 
             const currJual = item.harga_jual ?? 0;
-            const isRugi = currBeli > 0 && currJual > 0 && currJual <= currBeli;
+            const isRugi = canViewHpp && currBeli > 0 && currJual > 0 && currJual <= currBeli;
 
             return (
               <tr
@@ -151,6 +157,7 @@ export const ItemCart = React.memo(function ItemCart({
                     </div>
                   )}
                 </td>
+                {canViewHpp && (
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-1.5">
                     {/* Minimalist Price Change Indicator */}
@@ -256,6 +263,7 @@ export const ItemCart = React.memo(function ItemCart({
                     )}
                   </div>
                 </td>
+                )}
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-1.5">
                     {isRugi && (
@@ -309,9 +317,11 @@ export const ItemCart = React.memo(function ItemCart({
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-right font-bold text-neutral-900 dark:text-neutral-100">
-                  {formatCurrency(item.subtotal)}
-                </td>
+                {canViewHpp && (
+                  <td className="px-4 py-3 text-right font-bold text-neutral-900 dark:text-neutral-100">
+                    {formatCurrency(item.subtotal)}
+                  </td>
+                )}
                 <td className="px-4 py-3 text-center">
                   <button
                     onClick={() => removeItem(item.id)}
@@ -329,15 +339,15 @@ export const ItemCart = React.memo(function ItemCart({
       {/* Mobile Cards Layout */}
       <div className="block space-y-3 p-0 sm:p-4 lg:hidden">
         {(Array.isArray(items) ? items : []).map((item, index) => {
-          const prevBeli = item.harga_beli_terakhir ?? 0;
-          const currBeli = item.harga_beli ?? 0;
+          const prevBeli = canViewHpp ? (item.harga_beli_terakhir ?? 0) : 0;
+          const currBeli = canViewHpp ? (item.harga_beli ?? 0) : 0;
           const diffBeli = currBeli - prevBeli;
-          const isNaik = prevBeli > 0 && currBeli > prevBeli;
-          const isTurun = prevBeli > 0 && currBeli < prevBeli;
+          const isNaik = canViewHpp && prevBeli > 0 && currBeli > prevBeli;
+          const isTurun = canViewHpp && prevBeli > 0 && currBeli < prevBeli;
           const percentBeli = prevBeli > 0 ? (Math.abs(diffBeli) / prevBeli) * 100 : 0;
 
           const currJual = item.harga_jual ?? 0;
-          const isRugi = currBeli > 0 && currJual > 0 && currJual <= currBeli;
+          const isRugi = canViewHpp && currBeli > 0 && currJual > 0 && currJual <= currBeli;
 
           return (
             <div
@@ -359,7 +369,7 @@ export const ItemCart = React.memo(function ItemCart({
                 </div>
               </div>
 
-              <div className="mb-3 grid grid-cols-[80px_1fr_1fr] gap-3">
+              <div className={`mb-3 grid gap-3 ${canViewHpp ? 'grid-cols-[80px_1fr_1fr]' : 'grid-cols-[90px_1fr]'}`}>
                 <div>
                   <label className="mb-1.5 block text-xs font-medium whitespace-nowrap text-neutral-500 dark:text-neutral-400">
                     Qty
@@ -396,6 +406,7 @@ export const ItemCart = React.memo(function ItemCart({
                     </button>
                   )}
                 </div>
+                {canViewHpp && (
                 <div>
                   <label className="mb-1.5 block text-xs font-medium whitespace-nowrap text-neutral-500 dark:text-neutral-400">
                     Harga Beli
@@ -431,6 +442,7 @@ export const ItemCart = React.memo(function ItemCart({
                     </button>
                   )}
                 </div>
+                )}
                 <div>
                   <label className="mb-1.5 block text-xs font-medium whitespace-nowrap text-neutral-500 dark:text-neutral-400">
                     Harga Jual
@@ -469,6 +481,7 @@ export const ItemCart = React.memo(function ItemCart({
               </div>
 
               {/* Footer Section: Badges di sebelah kiri & Subtotal di sebelah kanan */}
+              {canViewHpp && (
               <div className="flex items-center justify-between border-t border-neutral-100 pt-3 dark:border-neutral-800/50">
                 <div className="flex flex-wrap items-center gap-1.5 pr-2">
                   {isNaik && (
@@ -510,6 +523,7 @@ export const ItemCart = React.memo(function ItemCart({
                   </div>
                 </div>
               </div>
+              )}
             </div>
           );
         })}

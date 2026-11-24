@@ -7,12 +7,30 @@ import Papa from 'papaparse';
 
 export const dynamic = 'force-dynamic';
 
+function sanitizeCsvCell(val: unknown): string {
+  if (val === null || val === undefined) return '';
+  const str = String(val);
+  if (/^[=+\-@\t\r]/.test(str)) {
+    return `'${str}`;
+  }
+  return str;
+}
+
+const DATE_REGEX = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
   const lokasiId = searchParams.get('lokasiId');
   const statusHadir = searchParams.get('statusHadir');
+
+  if (startDate && !DATE_REGEX.test(startDate)) {
+    return new NextResponse('Format startDate tidak valid', { status: 400 });
+  }
+  if (endDate && !DATE_REGEX.test(endDate)) {
+    return new NextResponse('Format endDate tidak valid', { status: 400 });
+  }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -53,7 +71,7 @@ export async function GET(request: Request) {
       .maybeSingle();
 
     const requesterRoles: string[] = requesterProfile?.roles || [];
-    const allowedRoles = ['admin', 'finance', 'kepala_cabang', 'kepala_gudang'];
+    const allowedRoles = ['admin', 'finance'];
     const isAllowed = allowedRoles.some((r) => requesterRoles.includes(r));
 
     if (!isAllowed) {
@@ -105,24 +123,26 @@ export async function GET(request: Request) {
       'Status Lembur'
     ];
 
-    const rows = exportList.map(item => [
-      item.tanggal,
-      item.profiles?.nama || 'Unknown',
-      item.status_hadir,
-      item.lokasi_masuk?.nama || '-',
-      item.lokasi_pulang?.nama || '-',
-      item.waktu_masuk ? format(new Date(item.waktu_masuk), 'HH:mm') : '-',
-      item.waktu_pulang ? format(new Date(item.waktu_pulang), 'HH:mm') : '-',
-      item.waktu_pulang_aktual ? format(new Date(item.waktu_pulang_aktual), 'HH:mm') : '-',
-      item.menit_kerja || 0,
-      item.menit_telat || 0,
-      item.status_pulang_awal || 'tidak_ada',
-      item.menit_pulang_awal || 0,
-      item.alasan_pulang_awal || '-',
-      item.menit_lembur_aktual || 0,
-      item.menit_lembur_disetujui || 0,
-      item.status_lembur
-    ]);
+    const rows = exportList.map((item) =>
+      [
+        item.tanggal,
+        item.profiles?.nama || 'Unknown',
+        item.status_hadir,
+        item.lokasi_masuk?.nama || '-',
+        item.lokasi_pulang?.nama || '-',
+        item.waktu_masuk ? format(new Date(item.waktu_masuk), 'HH:mm') : '-',
+        item.waktu_pulang ? format(new Date(item.waktu_pulang), 'HH:mm') : '-',
+        item.waktu_pulang_aktual ? format(new Date(item.waktu_pulang_aktual), 'HH:mm') : '-',
+        item.menit_kerja || 0,
+        item.menit_telat || 0,
+        item.status_pulang_awal || 'tidak_ada',
+        item.menit_pulang_awal || 0,
+        item.alasan_pulang_awal || '-',
+        item.menit_lembur_aktual || 0,
+        item.menit_lembur_disetujui || 0,
+        item.status_lembur,
+      ].map(sanitizeCsvCell),
+    );
 
     const csvStr = Papa.unparse({
       fields: headers,
@@ -137,7 +157,8 @@ export async function GET(request: Request) {
       status: 200,
       headers: headersList
     });
-  } catch (err: any) {
-    return new NextResponse('Terjadi kesalahan sistem: ' + err.message, { status: 500 });
+  } catch (err: unknown) {
+    console.error('Export kehadiran CSV error:', err);
+    return new NextResponse('Terjadi kesalahan sistem saat mengekspor data.', { status: 500 });
   }
 }

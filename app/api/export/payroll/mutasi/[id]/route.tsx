@@ -65,15 +65,27 @@ const MutasiPDF = ({ mutasiData, profileName, saldo }: { mutasiData: any[], prof
   </Document>
 );
 
+const DATE_REGEX = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function GET(request: Request, context: any) {
   const params = await context.params;
   const userId = params.id;
-  
+
+  if (!userId || !UUID_REGEX.test(userId)) {
+    return new NextResponse('User ID tidak valid', { status: 400 });
+  }
+
   const { searchParams } = new URL(request.url);
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
-  const saldoParam = searchParams.get('saldo');
-  const saldo = saldoParam ? Number(saldoParam) : 0;
+
+  if (startDate && !DATE_REGEX.test(startDate)) {
+    return new NextResponse('Format startDate tidak valid', { status: 400 });
+  }
+  if (endDate && !DATE_REGEX.test(endDate)) {
+    return new NextResponse('Format endDate tidak valid', { status: 400 });
+  }
 
   // 1. Inisialisasi client Supabase dengan Cookie sesi login
   const cookieStore = await cookies();
@@ -121,7 +133,15 @@ export async function GET(request: Request, context: any) {
 
     const profileName = profile?.nama || 'Karyawan';
 
-    // 6. Ambil data mutasi dengan filter tanggal akurat
+    // 6. Ambil saldo bersih terkini dari server (cegah spoof query param ?saldo=)
+    const { data: saldoRow } = await supabase
+      .from('vw_payroll_saldo')
+      .select('total_saldo')
+      .eq('user_id', userId)
+      .maybeSingle();
+    const saldo = Number(saldoRow?.total_saldo ?? 0);
+
+    // 7. Ambil data mutasi dengan filter tanggal akurat
     let query = supabase
       .from('payroll_mutasi')
       .select('*')
@@ -135,7 +155,8 @@ export async function GET(request: Request, context: any) {
     const { data: mutasiData, error } = await query;
 
     if (error || !mutasiData) {
-      return new NextResponse('Gagal memuat data mutasi: ' + (error?.message || 'Data tidak ditemukan'), { status: 500 });
+      console.error('Export mutasi query error:', error);
+      return new NextResponse('Gagal memuat data mutasi', { status: 500 });
     }
 
     const stream = await renderToStream(<MutasiPDF mutasiData={mutasiData} profileName={profileName} saldo={saldo} />);
@@ -147,7 +168,8 @@ export async function GET(request: Request, context: any) {
         'Content-Disposition': `inline; filename="Riwayat_Mutasi_${profileName.replace(/\s+/g, '_')}.pdf"`
       },
     });
-  } catch (err: any) {
-    return new NextResponse('Internal Server Error: ' + err.message, { status: 500 });
+  } catch (err: unknown) {
+    console.error('Export mutasi error:', err);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

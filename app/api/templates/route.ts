@@ -1,11 +1,30 @@
 import { NextResponse } from 'next/server';
-import { verifyAuth, verifyAdmin, createAdminClient } from '@/lib/api/auth-guard';
+import { z } from 'zod';
+import { verifyRoles, verifyAdmin, createAdminClient } from '@/lib/api/auth-guard';
 
 export const dynamic = 'force-dynamic';
 
+const templateBodySchema = z.object({
+  name: z.string().trim().min(1).max(150),
+  language: z.string().trim().min(1).max(30),
+  content_json: z.union([
+    z.record(z.string(), z.unknown()),
+    z.array(z.unknown()),
+    z.string().min(1),
+  ]),
+  active: z.boolean().optional().default(true),
+});
+
 export async function GET(request: Request) {
   try {
-    const { user, error: authError } = await verifyAuth(request);
+    const { error: authError } = await verifyRoles(request, [
+      'admin',
+      'kepala_cabang',
+      'kepala_gudang',
+      'staff_gudang',
+      'kasir',
+      'finance',
+    ]);
     if (authError) return authError;
 
     const supabase = createAdminClient();
@@ -15,49 +34,44 @@ export async function GET(request: Request) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      console.error('Fetch label templates error:', error);
+      return NextResponse.json({ error: 'Gagal mengambil daftar template' }, { status: 400 });
     }
 
     return NextResponse.json({ templates: data });
-  } catch (err: unknown) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const { user, error: authError } = await verifyAdmin(request);
+    const { error: authError } = await verifyAdmin(request);
     if (authError) return authError;
 
-    const supabase = createAdminClient();
-
-    const body = await request.json();
-    const { name, language, content_json, active } = body;
-
-    if (!name || !language || !content_json) {
+    const rawBody = await request.json().catch(() => null);
+    const parsed = templateBodySchema.safeParse(rawBody);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Name, language, and content_json are required' },
+        { error: parsed.error.issues[0]?.message || 'Data template tidak valid' },
         { status: 400 },
       );
     }
 
+    const supabase = createAdminClient();
     const { data, error } = await supabase
       .from('label_templates')
-      .insert({
-        name,
-        language,
-        content_json,
-        active: active !== undefined ? active : true,
-      })
+      .insert(parsed.data)
       .select()
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      console.error('Create label template error:', error);
+      return NextResponse.json({ error: 'Gagal menyimpan template' }, { status: 400 });
     }
 
     return NextResponse.json({ template: data });
-  } catch (err: unknown) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

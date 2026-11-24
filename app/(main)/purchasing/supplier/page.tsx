@@ -68,8 +68,12 @@ export default function SupplierPage() {
   // Role Auth Checks
   const profile = useAuthStore((state) => state.profile);
   const isAdmin = useAuthStore((state) => state.isAdmin);
+  const hasAnyRole = useAuthStore((state) => state.hasAnyRole);
   const initialized = useAuthStore((state) => state.initialized);
-  const showAdminActions = initialized && isAdmin();
+  const showAdminActions =
+    initialized &&
+    !!profile &&
+    (isAdmin() || hasAnyRole(['kepala_gudang', 'kepala_cabang', 'finance']));
 
   // Fetch data
   const fetchSuppliers = useCallback(async () => {

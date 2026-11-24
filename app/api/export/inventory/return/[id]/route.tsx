@@ -348,9 +348,10 @@ interface ReturnPDFProps {
   logoDataUrl?: string;
   barcode128Url?: string;
   qrCodeUrl?: string;
+  hidePrices?: boolean;
 }
 
-const ReturnPDF = ({ data, logoDataUrl, barcode128Url, qrCodeUrl }: ReturnPDFProps) => {
+const ReturnPDF = ({ data, logoDataUrl, barcode128Url, qrCodeUrl, hidePrices = false }: ReturnPDFProps) => {
   const nomorRetur = 'RET-' + (data.id || '').slice(0, 8).toUpperCase();
   const totalJenisBarang = (data.items || []).length;
   const totalQty = (data.items || []).reduce((acc: number, it: any) => acc + (Number(it.qty) || 0), 0);
@@ -483,8 +484,8 @@ const ReturnPDF = ({ data, logoDataUrl, barcode128Url, qrCodeUrl }: ReturnPDFPro
             <Text style={styles.colReason}>Alasan Retur</Text>
             <Text style={styles.colNota}>Ref Nota Beli</Text>
             <Text style={styles.colQty}>Qty</Text>
-            <Text style={styles.colHarga}>Harga Satuan</Text>
-            <Text style={styles.colSubtotal}>Subtotal</Text>
+            {!hidePrices && <Text style={styles.colHarga}>Harga Satuan</Text>}
+            {!hidePrices && <Text style={styles.colSubtotal}>Subtotal</Text>}
           </View>
 
           {data.items?.map((item: any, i: number) => {
@@ -510,10 +511,14 @@ const ReturnPDF = ({ data, logoDataUrl, barcode128Url, qrCodeUrl }: ReturnPDFPro
                   )}
                 </View>
                 <Text style={styles.colQty}>{item.qty}</Text>
-                <Text style={styles.colHarga}>Rp {hargaSatuan.toLocaleString('id-ID')}</Text>
-                <Text style={styles.colSubtotal}>
-                  Rp {(Number(item.harga_final) || 0).toLocaleString('id-ID')}
-                </Text>
+                {!hidePrices && (
+                  <Text style={styles.colHarga}>Rp {hargaSatuan.toLocaleString('id-ID')}</Text>
+                )}
+                {!hidePrices && (
+                  <Text style={styles.colSubtotal}>
+                    Rp {(Number(item.harga_final) || 0).toLocaleString('id-ID')}
+                  </Text>
+                )}
               </View>
             );
           })}
@@ -532,9 +537,11 @@ const ReturnPDF = ({ data, logoDataUrl, barcode128Url, qrCodeUrl }: ReturnPDFPro
           <Text style={styles.summaryLabel}>
             Total: {totalJenisBarang} jenis produk ({totalQty} pcs)
           </Text>
-          <Text style={styles.summaryTotal}>
-            TOTAL RETUR: Rp {(Number(data.total) || 0).toLocaleString('id-ID')}
-          </Text>
+          {!hidePrices && (
+            <Text style={styles.summaryTotal}>
+              TOTAL RETUR: Rp {(Number(data.total) || 0).toLocaleString('id-ID')}
+            </Text>
+          )}
         </View>
 
         {/* 3 SIGNATURES SECTION */}
@@ -625,6 +632,9 @@ export async function GET(request: Request, context: any) {
       .maybeSingle();
 
     const requesterRoles: string[] = requesterProfile?.roles || [];
+    const isAdmin = requesterRoles.includes('admin');
+    const isFinance = requesterRoles.includes('finance');
+    const canViewHpp = isAdmin || isFinance;
     const allowedRoles = ['admin', 'finance', 'kepala_cabang', 'kepala_gudang', 'staff_gudang', 'kasir'];
     const isAllowed = allowedRoles.some((r) => requesterRoles.includes(r));
 
@@ -644,6 +654,14 @@ export async function GET(request: Request, context: any) {
     if (error || !data) {
       console.error('Error fetching return data:', error);
       return new NextResponse('Data tidak ditemukan', { status: 404 });
+    }
+
+    // 3b. Isolasi Cabang untuk non-admin & non-finance (fail-closed)
+    const userGudangId = requesterProfile?.default_gudang_id;
+    if (!canViewHpp && (!userGudangId || data.gudang_id !== userGudangId)) {
+      return new NextResponse('Forbidden: Bukti retur ini bukan milik cabang penempatan Anda.', {
+        status: 403,
+      });
     }
 
     // 4. Fetch Gudang Info
@@ -755,18 +773,29 @@ export async function GET(request: Request, context: any) {
       includeText: true,
     });
 
-    // 12. Generate QR Code containing direct verification link
-    const host = request.headers.get('host') || 'localhost:3000';
-    const proto = request.headers.get('x-forwarded-proto') || 'http';
-    const docUrl = `${proto}://${host}/transactions/history?tab=retur_pembelian&search=${id.slice(0, 8)}`;
+    // 12. Generate QR Code containing direct verification link from trusted app origin
+    let appOrigin = 'https://bms.bagusin.sbs';
+    const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (rawAppUrl) {
+      try {
+        const parsedAppUrl = new URL(rawAppUrl);
+        if (parsedAppUrl.protocol === 'http:' || parsedAppUrl.protocol === 'https:') {
+          appOrigin = parsedAppUrl.origin;
+        }
+      } catch {
+        // fallback ke appOrigin default
+      }
+    }
+    const docUrl = `${appOrigin}/transactions/history?tab=retur_pembelian&search=${id.slice(0, 8)}`;
     const qrCodeUrl = await generateQrCodeDataUrl(docUrl, { scale: 3 });
 
-    // 13. Calculate total from items
-    const total =
-      data.items?.reduce(
-        (sum: number, item: any) => sum + (Number(item.harga_final) || 0),
-        0,
-      ) || 0;
+    // 13. Calculate total from items (only exposed when canViewHpp)
+    const total = canViewHpp
+      ? data.items?.reduce(
+          (sum: number, item: any) => sum + (Number(item.harga_final) || 0),
+          0,
+        ) || 0
+      : 0;
 
     const returnData = {
       id: data.id,
@@ -791,9 +820,9 @@ export async function GET(request: Request, context: any) {
             nomor_nota: invInfo?.nomor_nota || '-',
             tanggal_pembelian: invInfo?.tanggal || '-',
             qty: item.qty,
-            harga_beli: Number(item.harga_beli) || 0,
-            diskon: Number(item.diskon) || 0,
-            harga_final: Number(item.harga_final) || 0,
+            harga_beli: canViewHpp ? Number(item.harga_beli) || 0 : 0,
+            diskon: canViewHpp ? Number(item.diskon) || 0 : 0,
+            harga_final: canViewHpp ? Number(item.harga_final) || 0 : 0,
           };
         }) || [],
       total: total,
@@ -805,6 +834,7 @@ export async function GET(request: Request, context: any) {
         logoDataUrl={logoDataUrl}
         barcode128Url={barcode128Url}
         qrCodeUrl={qrCodeUrl}
+        hidePrices={!canViewHpp}
       />,
     );
 
@@ -815,8 +845,8 @@ export async function GET(request: Request, context: any) {
         'Content-Disposition': `inline; filename="Surat_Retur_${nomorRetur}.pdf"`,
       },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('PDF generation error:', err);
-    return new NextResponse('Internal Server Error: ' + err.message, { status: 500 });
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

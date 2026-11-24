@@ -1,46 +1,62 @@
 import { NextResponse } from 'next/server';
-import { verifyAuth, createAdminClient } from '@/lib/api/auth-guard';
+import { z } from 'zod';
+import { verifyRoles, createAdminClient } from '@/lib/api/auth-guard';
 
 export async function GET(request: Request) {
   try {
-    const { user, error: authError } = await verifyAuth(request);
-    if (authError) return authError;
+    const { profile, error: authError } = await verifyRoles(request, [
+      'admin',
+      'kepala_cabang',
+      'kepala_gudang',
+      'staff_gudang',
+      'kasir',
+    ]);
+    if (authError || !profile) return authError!;
 
-    const supabase = createAdminClient();
     const { searchParams } = new URL(request.url);
-    let gudangId = searchParams.get('gudang_id');
+    const requestedGudangId = searchParams.get('gudang_id');
 
-    // Graceful fallback jika gudang_id tidak disertakan oleh klien lama
-    if (!gudangId) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('default_gudang_id')
-        .eq('id', user.id)
-        .single();
+    if (requestedGudangId && !z.uuid().safeParse(requestedGudangId).success) {
+      return NextResponse.json({ error: 'Format gudang_id tidak valid' }, { status: 400 });
+    }
 
-      if (profile?.default_gudang_id) {
-        gudangId = profile.default_gudang_id;
-      } else {
+    const isAdmin = profile.roles.includes('admin');
+    const supabase = createAdminClient();
+    let effectiveGudangId: string | null = requestedGudangId;
+
+    if (!isAdmin) {
+      if (!profile.default_gudang_id) {
+        return NextResponse.json(
+          { error: 'Forbidden. Akun Anda belum memiliki cabang default.' },
+          { status: 403 },
+        );
+      }
+      if (requestedGudangId && requestedGudangId !== profile.default_gudang_id) {
+        return NextResponse.json(
+          { error: 'Forbidden. Tidak diizinkan membaca antrean cabang lain.' },
+          { status: 403 },
+        );
+      }
+      effectiveGudangId = profile.default_gudang_id;
+    } else if (!effectiveGudangId) {
+      effectiveGudangId = profile.default_gudang_id;
+      if (!effectiveGudangId) {
         const { data: defaultGudang } = await supabase
           .from('gudang')
           .select('id')
           .eq('is_default', true)
           .maybeSingle();
-
-        if (defaultGudang?.id) {
-          gudangId = defaultGudang.id;
-        }
+        effectiveGudangId = defaultGudang?.id ?? null;
       }
     }
 
-    if (!gudangId) {
+    if (!effectiveGudangId) {
       return NextResponse.json(
-        { error: 'gudang_id parameter is required' },
+        { error: 'Parameter gudang_id wajib ditentukan' },
         { status: 400 },
       );
     }
 
-    // Polling endpoint for POS to fetch pending jobs along with their templates
     const { data, error } = await supabase
       .from('print_jobs')
       .select(
@@ -59,15 +75,16 @@ export async function GET(request: Request) {
       `,
       )
       .eq('status', 'Pending')
-      .eq('gudang_id', gudangId)
+      .eq('gudang_id', effectiveGudangId)
       .order('created_at', { ascending: true });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      console.error('Fetch pending print jobs error:', error);
+      return NextResponse.json({ error: 'Gagal mengambil antrean cetak' }, { status: 400 });
     }
 
     return NextResponse.json({ jobs: data });
-  } catch (err: unknown) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

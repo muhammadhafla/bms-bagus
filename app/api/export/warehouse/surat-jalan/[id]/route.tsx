@@ -594,13 +594,12 @@ export async function GET(request: Request, context: any) {
       return new NextResponse('Data tidak ditemukan', { status: 404 });
     }
 
-    // Isolasi Cabang untuk non-admin
+    // Isolasi Cabang untuk non-admin (fail-closed)
     const userGudangId = requesterProfile?.default_gudang_id;
     if (
       !isAdmin &&
-      userGudangId &&
-      data.gudang_asal_id !== userGudangId &&
-      data.gudang_tujuan_id !== userGudangId
+      (!userGudangId ||
+        (data.gudang_asal_id !== userGudangId && data.gudang_tujuan_id !== userGudangId))
     ) {
       return new NextResponse('Forbidden: Surat Jalan ini bukan milik cabang penempatan Anda.', {
         status: 403,
@@ -627,10 +626,20 @@ export async function GET(request: Request, context: any) {
       includeText: true,
     });
 
-    // Generate QR Code containing direct verification link
-    const host = request.headers.get('host') || 'localhost:3000';
-    const proto = request.headers.get('x-forwarded-proto') || 'http';
-    const docUrl = `${proto}://${host}/warehouse/transfers?detailId=${data.id}`;
+    // Generate QR Code containing direct verification link from trusted app origin
+    let appOrigin = 'https://bms.bagusin.sbs';
+    const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (rawAppUrl) {
+      try {
+        const parsedAppUrl = new URL(rawAppUrl);
+        if (parsedAppUrl.protocol === 'http:' || parsedAppUrl.protocol === 'https:') {
+          appOrigin = parsedAppUrl.origin;
+        }
+      } catch {
+        // fallback ke appOrigin default
+      }
+    }
+    const docUrl = `${appOrigin}/warehouse/transfers?detailId=${data.id}`;
     const qrCodeUrl = await generateQrCodeDataUrl(docUrl, { scale: 3 });
 
     const stream = await renderToStream(

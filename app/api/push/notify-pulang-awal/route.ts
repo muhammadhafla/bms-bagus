@@ -44,19 +44,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to fetch recipients' }, { status: 500 });
     }
 
-    // Ambil kepala_cabang / kepala_gudang sesuai cabang pemohon (jika ada), atau seluruh kepala cabang/gudang
-    let kepalaQuery = supabase
-      .from('profiles')
-      .select('id')
-      .overlaps('roles', ['kepala_cabang', 'kepala_gudang']);
-
+    // Ambil kepala_cabang / kepala_gudang hanya untuk cabang pemohon (fail-closed jika pemohon belum punya cabang)
+    let kepalaList: { id: string }[] = [];
     if (pemohon?.default_gudang_id) {
-      kepalaQuery = kepalaQuery.eq('default_gudang_id', pemohon.default_gudang_id);
-    }
+      const { data: branchHeads, error: kepalaErr } = await supabase
+        .from('profiles')
+        .select('id')
+        .overlaps('roles', ['kepala_cabang', 'kepala_gudang'])
+        .eq('default_gudang_id', pemohon.default_gudang_id);
 
-    const { data: kepalaList, error: kepalaErr } = await kepalaQuery;
-    if (kepalaErr) {
-      return NextResponse.json({ error: 'Failed to fetch branch recipients' }, { status: 500 });
+      if (kepalaErr) {
+        return NextResponse.json({ error: 'Failed to fetch branch recipients' }, { status: 500 });
+      }
+      kepalaList = branchHeads || [];
     }
 
     const recipientIds = Array.from(

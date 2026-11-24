@@ -47,7 +47,12 @@ export async function verifyAuth(
 export async function verifyAdmin(
   request: Request,
 ): Promise<
-  { user: { id: string; email?: string }; profile: { id: string; roles: string[] }; error: null } | { user: null; profile: null; error: NextResponse }
+  | {
+      user: { id: string; email?: string };
+      profile: { id: string; roles: string[]; default_gudang_id: string | null };
+      error: null;
+    }
+  | { user: null; profile: null; error: NextResponse }
 > {
   const { user, error: authError } = await verifyAuth(request);
   if (authError || !user) {
@@ -57,7 +62,7 @@ export async function verifyAdmin(
   const admin = createAdminClient();
   const { data: profile, error: profileError } = await admin
     .from('profiles')
-    .select('id, roles')
+    .select('id, roles, default_gudang_id')
     .eq('id', user.id)
     .single();
 
@@ -73,14 +78,27 @@ export async function verifyAdmin(
     };
   }
 
-  return { user, profile: { id: profile.id, roles: userRoles }, error: null };
+  return {
+    user,
+    profile: {
+      id: profile.id,
+      roles: userRoles,
+      default_gudang_id: profile.default_gudang_id ?? null,
+    },
+    error: null,
+  };
 }
 
 export async function verifyRoles(
   request: Request,
   allowedRoles: string[],
 ): Promise<
-  { user: { id: string; email?: string }; profile: { id: string; roles: string[] }; error: null } | { user: null; profile: null; error: NextResponse }
+  | {
+      user: { id: string; email?: string };
+      profile: { id: string; roles: string[]; default_gudang_id: string | null };
+      error: null;
+    }
+  | { user: null; profile: null; error: NextResponse }
 > {
   const { user, error: authError } = await verifyAuth(request);
   if (authError || !user) {
@@ -90,7 +108,7 @@ export async function verifyRoles(
   const admin = createAdminClient();
   const { data: profile, error: profileError } = await admin
     .from('profiles')
-    .select('id, roles')
+    .select('id, roles, default_gudang_id')
     .eq('id', user.id)
     .single();
 
@@ -108,7 +126,15 @@ export async function verifyRoles(
     };
   }
 
-  return { user, profile: { id: profile.id, roles: userRoles }, error: null };
+  return {
+    user,
+    profile: {
+      id: profile.id,
+      roles: userRoles,
+      default_gudang_id: profile.default_gudang_id ?? null,
+    },
+    error: null,
+  };
 }
 
 export async function verifyWebhookOrAuth(

@@ -114,7 +114,10 @@ function TransactionsHistoryContent() {
   const [tempGudangId, setTempGudangId] = useState('');
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const initialized = useAuthStore((state) => state.initialized);
   const isAdminUser = useIsAdmin();
+  const hasRole = useAuthStore((state) => state.hasRole);
+  const canViewHpp = isAdminUser || hasRole('finance');
 
   const tabItems = useMemo(() => [
     { id: 'penjualan', label: 'Penjualan', icon: <IconShoppingCart className="h-4 w-4" /> },
@@ -123,7 +126,7 @@ function TransactionsHistoryContent() {
       label: 'Retur Penjualan',
       icon: <IconArrowBackUp className="h-4 w-4" />,
     },
-    ...(isAdminUser
+    ...(canViewHpp
       ? [
           { id: 'pembelian', label: 'Pembelian', icon: <IconPackage className="h-4 w-4" /> },
           {
@@ -133,7 +136,7 @@ function TransactionsHistoryContent() {
           },
         ]
       : []),
-  ], [isAdminUser]);
+  ], [canViewHpp]);
 
   const handleOpenFilter = () => {
     setTempSearch(search);
@@ -342,7 +345,18 @@ function TransactionsHistoryContent() {
           </ResponsivePanel>
 
           <div className="animate-fade-in-up flex min-h-0 flex-1 flex-col">
-            {historyType === 'penjualan' ? (
+            {!initialized && (historyType === 'pembelian' || historyType === 'retur_pembelian') ? (
+              <TabSkeleton />
+            ) : !canViewHpp && (historyType === 'pembelian' || historyType === 'retur_pembelian') ? (
+              <div className="flex flex-col items-center justify-center rounded-3xl border border-red-200/60 bg-red-50/70 p-8 text-center dark:border-red-900/40 dark:bg-red-950/30">
+                <p className="text-lg font-bold text-red-700 dark:text-red-300">
+                  Akses Ditolak
+                </p>
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                  Riwayat pembelian &amp; HPP hanya dapat diakses oleh Administrator atau Finance.
+                </p>
+              </div>
+            ) : historyType === 'penjualan' ? (
               <RiwayatPenjualanTab
                 search={search}
                 startDate={startDate}

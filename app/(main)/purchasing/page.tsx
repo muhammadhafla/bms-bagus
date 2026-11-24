@@ -46,7 +46,8 @@ import SelectInput from '@/components/ui/SelectInput';
 import { Button, AmbientLayout, Badge, Banner, Modal, TextInput, PageLoadingSpinner } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Portal } from '@/components/ui/Portal';
-import { AdminOnly } from '@/components/role';
+import { RoleGuard } from '@/components/role';
+import { useAuthStore } from '@/lib/auth';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { NewItemDialog } from './NewItemDialog';
 import { ItemCart } from './ItemCart';
@@ -414,6 +415,10 @@ function PembelianPageContent() {
     [handleAddResolvedItem],
   );
 
+  const isAdmin = useAuthStore((state) => state.isAdmin);
+  const hasRole = useAuthStore((state) => state.hasRole);
+  const canViewHpp = isAdmin() || hasRole('finance');
+
   const totalSistem = getTotalSistem();
   const selisih = getSelisih();
   const isValid = selisih === 0;
@@ -421,7 +426,7 @@ function PembelianPageContent() {
   return (
     <ErrorBoundary>
       <AmbientLayout>
-        <AdminOnly>
+        <RoleGuard roles={['kepala_gudang', 'kepala_cabang', 'finance']}>
           <div className="flex min-h-[calc(100vh-2rem)] flex-col lg:h-[calc(100vh-2rem)]">
             {/* Header Section */}
             <div className="mb-4 flex-shrink-0 lg:mb-6">
@@ -512,18 +517,20 @@ function PembelianPageContent() {
                   />
                 </div>
 
-                <div className="hidden min-w-[18rem] flex-col gap-2 xl:flex">
-                  <label className="text-sm font-semibold text-neutral-600 dark:text-neutral-300">
-                    Total Tagihan:
-                  </label>
-                  <PriceInput
-                    value={totalSupplier || 0}
-                    onChange={setTotalSupplier}
-                    className="focus:border-brand-500 focus:shadow-brand w-full rounded-xl border border-white/40 bg-white/50 px-4 py-3 shadow-sm backdrop-blur-md transition-all focus:outline-none dark:border-white/10 dark:bg-neutral-900/50"
-                    placeholder="0"
-                    min={0}
-                  />
-                </div>
+                {canViewHpp && (
+                  <div className="hidden min-w-[18rem] flex-col gap-2 xl:flex">
+                    <label className="text-sm font-semibold text-neutral-600 dark:text-neutral-300">
+                      Total Tagihan:
+                    </label>
+                    <PriceInput
+                      value={totalSupplier || 0}
+                      onChange={setTotalSupplier}
+                      className="focus:border-brand-500 focus:shadow-brand w-full rounded-xl border border-white/40 bg-white/50 px-4 py-3 shadow-sm backdrop-blur-md transition-all focus:outline-none dark:border-white/10 dark:bg-neutral-900/50"
+                      placeholder="0"
+                      min={0}
+                    />
+                  </div>
+                )}
               </div>
 
               {error && (
@@ -551,6 +558,7 @@ function PembelianPageContent() {
                 handleEditSubmit={handleEditSubmit}
                 handleEditKeyDown={handleEditKeyDown}
                 removeItem={removeItem}
+                canViewHpp={canViewHpp}
               />
             </div>
 
@@ -577,6 +585,7 @@ function PembelianPageContent() {
               setSupplierName={setSupplier}
               supplierList={supplierList}
               setTotalSupplier={setTotalSupplier}
+              canViewHpp={canViewHpp}
             />
           </div>
 
@@ -782,7 +791,7 @@ function PembelianPageContent() {
               focusInput();
             }}
           />
-        </AdminOnly>
+        </RoleGuard>
       </AmbientLayout>
     </ErrorBoundary>
   );

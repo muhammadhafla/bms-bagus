@@ -260,26 +260,21 @@ export default function StockOpnameDetailPage() {
 
   const handleApprove = async () => {
     setSaving(true);
+    setProcessing(true);
     const result = await stockOpnameApi.approve(opnameId);
     if (result.error) {
-      addToast({ type: 'error', message: result.error.message });
+      addToast({
+        type: 'error',
+        message: `Gagal menyetujui dan menyesuaikan stok: ${result.error.message}`,
+      });
     } else {
-      setProcessing(true);
-      const adjustResult = await stockAdjustmentApi.processOpnameAdjustments(opnameId);
-      if (adjustResult.error) {
-        addToast({
-          type: 'error',
-          message: `Gagal memproses penyesuaian stok: ${adjustResult.error.message}`,
-        });
-      } else {
-        addToast({
-          type: 'success',
-          message: 'Stock Opname berhasil disetujui dan stok telah disesuaikan',
-        });
-      }
-      setProcessing(false);
+      addToast({
+        type: 'success',
+        message: 'Stock Opname berhasil disetujui dan stok telah disesuaikan',
+      });
       fetchData();
     }
+    setProcessing(false);
     setSaving(false);
   };
 

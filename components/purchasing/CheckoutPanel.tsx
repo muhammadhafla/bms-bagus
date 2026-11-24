@@ -40,6 +40,7 @@ interface CheckoutPanelProps {
   setSupplierName: (name: string) => void;
   supplierList: Supplier[];
   setTotalSupplier: (val: number) => void;
+  canViewHpp?: boolean;
 }
 
 export function CheckoutPanel({
@@ -65,6 +66,7 @@ export function CheckoutPanel({
   setSupplierName,
   supplierList,
   setTotalSupplier,
+  canViewHpp = true,
 }: CheckoutPanelProps) {
   return (
     <>
@@ -73,52 +75,65 @@ export function CheckoutPanel({
         <div className="shadow-elevated rounded-3xl border border-white/40 bg-white/80 p-4 backdrop-blur-xl lg:p-5 dark:border-white/10 dark:bg-neutral-900/80">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-              <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                <div className="rounded-xl border border-white/40 bg-white/50 px-3 py-2.5 text-center shadow-sm backdrop-blur-md lg:rounded-2xl lg:px-5 lg:py-4 lg:text-left dark:border-white/10 dark:bg-neutral-950/50">
-                  <p className="text-[10px] font-medium whitespace-nowrap text-neutral-500 sm:text-xs lg:text-sm dark:text-neutral-400">
-                    Total Sistem
-                  </p>
-                  <p className="mt-0.5 text-sm font-black text-neutral-900 sm:text-xl lg:text-2xl dark:text-white">
-                    {formatCurrency(totalSistem)}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-white/40 bg-white/50 px-3 py-2.5 text-center shadow-sm backdrop-blur-md lg:rounded-2xl lg:px-5 lg:py-4 lg:text-left dark:border-white/10 dark:bg-neutral-950/50">
-                  <p className="text-[10px] font-medium whitespace-nowrap text-neutral-500 sm:text-xs lg:text-sm dark:text-neutral-400">
-                    Total Tagihan
-                  </p>
-                  <p className="mt-0.5 text-sm font-black text-neutral-900 sm:text-xl lg:text-2xl dark:text-white">
-                    {formatCurrency(totalSupplier)}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-white/40 bg-white/50 px-3 py-2.5 text-center shadow-sm backdrop-blur-md lg:rounded-2xl lg:px-5 lg:py-4 lg:text-left dark:border-white/10 dark:bg-neutral-950/50">
-                  <p className="text-[10px] font-medium whitespace-nowrap text-neutral-500 sm:text-xs lg:text-sm dark:text-neutral-400">
-                    Selisih
-                  </p>
-                  <p
-                    className={`mt-0.5 text-sm font-black sm:text-xl lg:text-2xl ${
-                      isValid ? 'text-brand-600 dark:text-brand-400' : 'text-red-600 dark:text-red-400'
-                    }`}
-                  >
-                    {formatCurrency(selisih)}
-                  </p>
-                </div>
-              </div>
+              {canViewHpp ? (
+                <>
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                    <div className="rounded-xl border border-white/40 bg-white/50 px-3 py-2.5 text-center shadow-sm backdrop-blur-md lg:rounded-2xl lg:px-5 lg:py-4 lg:text-left dark:border-white/10 dark:bg-neutral-950/50">
+                      <p className="text-[10px] font-medium whitespace-nowrap text-neutral-500 sm:text-xs lg:text-sm dark:text-neutral-400">
+                        Total Sistem
+                      </p>
+                      <p className="mt-0.5 text-sm font-black text-neutral-900 sm:text-xl lg:text-2xl dark:text-white">
+                        {formatCurrency(totalSistem)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/40 bg-white/50 px-3 py-2.5 text-center shadow-sm backdrop-blur-md lg:rounded-2xl lg:px-5 lg:py-4 lg:text-left dark:border-white/10 dark:bg-neutral-950/50">
+                      <p className="text-[10px] font-medium whitespace-nowrap text-neutral-500 sm:text-xs lg:text-sm dark:text-neutral-400">
+                        Total Tagihan
+                      </p>
+                      <p className="mt-0.5 text-sm font-black text-neutral-900 sm:text-xl lg:text-2xl dark:text-white">
+                        {formatCurrency(totalSupplier)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/40 bg-white/50 px-3 py-2.5 text-center shadow-sm backdrop-blur-md lg:rounded-2xl lg:px-5 lg:py-4 lg:text-left dark:border-white/10 dark:bg-neutral-950/50">
+                      <p className="text-[10px] font-medium whitespace-nowrap text-neutral-500 sm:text-xs lg:text-sm dark:text-neutral-400">
+                        Selisih
+                      </p>
+                      <p
+                        className={`mt-0.5 text-sm font-black sm:text-xl lg:text-2xl ${
+                          isValid ? 'text-brand-600 dark:text-brand-400' : 'text-red-600 dark:text-red-400'
+                        }`}
+                      >
+                        {formatCurrency(selisih)}
+                      </p>
+                    </div>
+                  </div>
 
-              {/* Price Change Summary Chips */}
-              {(itemsNaikCount > 0 || itemsTurunCount > 0) && (
-                <div className="flex flex-col gap-1.5 border-l border-neutral-200/60 pl-3 dark:border-neutral-800/60">
-                  {itemsNaikCount > 0 && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-rose-200/80 bg-rose-50/80 px-2.5 py-1 text-xs font-bold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/50 dark:text-rose-300">
-                      <IconTrendingUp size={13} stroke={2.5} />
-                      {itemsNaikCount} barang naik
-                    </span>
+                  {/* Price Change Summary Chips */}
+                  {(itemsNaikCount > 0 || itemsTurunCount > 0) && (
+                    <div className="flex flex-col gap-1.5 border-l border-neutral-200/60 pl-3 dark:border-neutral-800/60">
+                      {itemsNaikCount > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-rose-200/80 bg-rose-50/80 px-2.5 py-1 text-xs font-bold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/50 dark:text-rose-300">
+                          <IconTrendingUp size={13} stroke={2.5} />
+                          {itemsNaikCount} barang naik
+                        </span>
+                      )}
+                      {itemsTurunCount > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-300">
+                          <IconTrendingDown size={13} stroke={2.5} />
+                          {itemsTurunCount} barang turun
+                        </span>
+                      )}
+                    </div>
                   )}
-                  {itemsTurunCount > 0 && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-300">
-                      <IconTrendingDown size={13} stroke={2.5} />
-                      {itemsTurunCount} barang turun
-                    </span>
-                  )}
+                </>
+              ) : (
+                <div className="rounded-xl border border-white/40 bg-white/50 px-4 py-3 text-left shadow-sm backdrop-blur-md lg:rounded-2xl dark:border-white/10 dark:bg-neutral-950/50">
+                  <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                    Total Item
+                  </p>
+                  <p className="mt-0.5 text-lg font-black text-neutral-900 dark:text-white">
+                    {itemsCount} Barang
+                  </p>
                 </div>
               )}
             </div>
@@ -175,10 +190,10 @@ export function CheckoutPanel({
             </div>
             <div>
               <p className="mb-0.5 text-[10px] leading-tight font-medium text-neutral-500 dark:text-neutral-400">
-                Total Sistem
+                {canViewHpp ? 'Total Sistem' : 'Total Item'}
               </p>
               <p className="text-brand-600 dark:text-brand-400 text-lg leading-tight font-black">
-                {formatCurrency(totalSistem)}
+                {canViewHpp ? formatCurrency(totalSistem) : `${itemsCount} Barang`}
               </p>
             </div>
           </div>
@@ -232,43 +247,47 @@ export function CheckoutPanel({
               placeholder="-- Pilih Supplier --"
             />
 
-            <PriceInput
-              label="Total Tagihan"
-              value={totalSupplier || 0}
-              onChange={setTotalSupplier}
-              className="w-full transition-all focus:outline-none"
-              placeholder="0"
-              min={0}
-            />
+            {canViewHpp && (
+              <>
+                <PriceInput
+                  label="Total Tagihan"
+                  value={totalSupplier || 0}
+                  onChange={setTotalSupplier}
+                  className="w-full transition-all focus:outline-none"
+                  placeholder="0"
+                  min={0}
+                />
 
-            <div className="flex items-center justify-between rounded-xl border border-neutral-100 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-800/50">
-              <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
-                Selisih
-              </span>
-              <span
-                className={`text-lg font-black ${
-                  isValid ? 'text-brand-600 dark:text-brand-400' : 'text-red-600 dark:text-red-400'
-                }`}
-              >
-                {formatCurrency(selisih)}
-              </span>
-            </div>
+                <div className="flex items-center justify-between rounded-xl border border-neutral-100 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-800/50">
+                  <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                    Selisih
+                  </span>
+                  <span
+                    className={`text-lg font-black ${
+                      isValid ? 'text-brand-600 dark:text-brand-400' : 'text-red-600 dark:text-red-400'
+                    }`}
+                  >
+                    {formatCurrency(selisih)}
+                  </span>
+                </div>
 
-            {(itemsNaikCount > 0 || itemsTurunCount > 0) && (
-              <div className="flex flex-wrap items-center gap-2">
-                {itemsNaikCount > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-lg border border-rose-200/80 bg-rose-50/80 px-2.5 py-1.5 text-xs font-bold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/50 dark:text-rose-300">
-                    <IconTrendingUp size={13} stroke={2.5} />
-                    {itemsNaikCount} barang naik
-                  </span>
+                {(itemsNaikCount > 0 || itemsTurunCount > 0) && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {itemsNaikCount > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-lg border border-rose-200/80 bg-rose-50/80 px-2.5 py-1.5 text-xs font-bold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/50 dark:text-rose-300">
+                        <IconTrendingUp size={13} stroke={2.5} />
+                        {itemsNaikCount} barang naik
+                      </span>
+                    )}
+                    {itemsTurunCount > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1.5 text-xs font-bold text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-300">
+                        <IconTrendingDown size={13} stroke={2.5} />
+                        {itemsTurunCount} barang turun
+                      </span>
+                    )}
+                  </div>
                 )}
-                {itemsTurunCount > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1.5 text-xs font-bold text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-300">
-                    <IconTrendingDown size={13} stroke={2.5} />
-                    {itemsTurunCount} barang turun
-                  </span>
-                )}
-              </div>
+              </>
             )}
           </div>
 

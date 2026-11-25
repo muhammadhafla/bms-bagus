@@ -26,11 +26,11 @@ vi.mock('@/lib/push', () => ({
   sendPushNotification: sendPushNotificationMock,
 }));
 
-import { POST as subscribePost } from '../push/subscribe/route';
-import { POST as unsubscribePost } from '../push/unsubscribe/route';
-import { POST as notifyKasbonPost } from '../push/notify-kasbon/route';
-import { GET as outboxGet, PATCH as outboxPatch } from '../wa-bridge/outbox/route';
-import { POST as statusPost } from '../wa-bridge/status/route';
+import { POST as subscribePost } from '../_handlers/push/subscribe';
+import { POST as unsubscribePost } from '../_handlers/push/unsubscribe';
+import { POST as notifyKasbonPost } from '../_handlers/push/notify-kasbon';
+import { GET as outboxGet, PATCH as outboxPatch } from '../_handlers/wa-bridge/outbox';
+import { POST as statusPost } from '../_handlers/wa-bridge/status';
 
 const VALID_UUID = '123e4567-e89b-42d3-a456-426614174000';
 

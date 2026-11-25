@@ -13,10 +13,10 @@ vi.mock('@/lib/api/auth-guard', () => ({
   createAdminClient: createAdminClientMock,
 }));
 
-import { POST as createPrintJob } from '../print/route';
-import { PATCH as updatePrintJob } from '../print/jobs/[id]/route';
-import { GET as getTemplates, POST as createTemplate } from '../templates/route';
-import { PUT as updateTemplate, DELETE as deleteTemplate } from '../templates/[id]/route';
+import { POST as createPrintJob } from '../_handlers/print/create';
+import { PATCH as updatePrintJob } from '../_handlers/print/job-by-id';
+import { GET as getTemplates, POST as createTemplate } from '../_handlers/templates/index';
+import { PUT as updateTemplate, DELETE as deleteTemplate } from '../_handlers/templates/by-id';
 
 const VALID_UUID = '123e4567-e89b-42d3-a456-426614174000';
 

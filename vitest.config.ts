@@ -19,6 +19,7 @@ export default defineConfig({
         'lib/fetchApi.ts',
         'lib/validation.ts',
         'app/api/**/route.{ts,tsx}',
+        'app/api/_handlers/**/*.{ts,tsx}',
       ],
       thresholds: {
         'middleware.ts': {

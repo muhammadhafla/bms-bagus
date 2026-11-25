@@ -13,8 +13,8 @@ vi.mock('@/lib/api/auth-guard', () => ({
   createAdminClient: createAdminClientMock,
 }));
 
-import { POST as broadcastPost } from '../loyalty/broadcast/route';
-import { GET as otaGet } from '../pos/ota/route';
+import { POST as broadcastPost } from '../_handlers/loyalty/broadcast';
+import { GET as otaGet } from '../_handlers/pos/ota';
 
 describe('API /api/loyalty/broadcast & /api/pos/ota', () => {
   const origEnv = { ...process.env };

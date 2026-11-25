@@ -26,11 +26,11 @@ vi.mock('@react-pdf/renderer', () => ({
   StyleSheet: { create: <T,>(styles: T): T => styles },
 }));
 
-import { GET as exportKehadiranCsv } from '../export/kehadiran/csv/route';
-import { GET as exportMutasiPdf } from '../export/payroll/mutasi/[id]/route';
-import { GET as exportSlipGajiPdf } from '../export/payroll/slip-gaji/[id]/route';
-import { GET as exportReturnPdf } from '../export/inventory/return/[id]/route';
-import { GET as exportSuratJalanPdf } from '../export/warehouse/surat-jalan/[id]/route';
+import { GET as exportKehadiranCsv } from '../_handlers/export/kehadiran-csv';
+import { GET as exportMutasiPdf } from '../_handlers/export/payroll-mutasi-pdf';
+import { GET as exportSlipGajiPdf } from '../_handlers/export/payroll-slip-gaji-pdf';
+import { GET as exportReturnPdf } from '../_handlers/export/inventory-return-pdf';
+import { GET as exportSuratJalanPdf } from '../_handlers/export/warehouse-surat-jalan-pdf';
 
 const VALID_UUID = '123e4567-e89b-42d3-a456-426614174000';
 

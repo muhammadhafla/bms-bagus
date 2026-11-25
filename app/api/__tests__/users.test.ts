@@ -11,9 +11,9 @@ vi.mock('@/lib/api/auth-guard', () => ({
   createAdminClient: createAdminClientMock,
 }));
 
-import { POST as createUserPost } from '../users/route';
-import { PATCH as updateUserPatch, DELETE as deleteUser } from '../users/[id]/route';
-import { PATCH as resetPasswordPatch } from '../users/[id]/password/route';
+import { POST as createUserPost } from '../_handlers/users/index';
+import { PATCH as updateUserPatch, DELETE as deleteUser } from '../_handlers/users/by-id';
+import { PATCH as resetPasswordPatch } from '../_handlers/users/password';
 
 const VALID_UUID = '123e4567-e89b-42d3-a456-426614174000';
 

@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useQuery } from '@tanstack/react-query';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore, useIsAdmin } from '@/lib/auth';
 import { posAuthApi } from '@/lib/api/pos-auth';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -126,7 +127,16 @@ const formatRolesLabel = (roles?: string[]) => {
 };
 
 export function Sidebar() {
-  const { user, profile, initialized, signOut, hasRole, hasAnyRole } = useAuthStore();
+  const { user, profile, initialized, signOut, hasRole, hasAnyRole } = useAuthStore(
+    useShallow((state) => ({
+      user: state.user,
+      profile: state.profile,
+      initialized: state.initialized,
+      signOut: state.signOut,
+      hasRole: state.hasRole,
+      hasAnyRole: state.hasAnyRole,
+    })),
+  );
   const isAdminUser = useIsAdmin();
   const isFinanceUser = hasRole('finance') || isAdminUser;
   const isWarehouseUser = hasAnyRole(['kepala_cabang', 'staff_gudang', 'admin']);

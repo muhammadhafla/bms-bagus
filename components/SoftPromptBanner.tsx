@@ -1,46 +1,50 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { Button } from './ui/Button';
 import { IconBellRinging, IconX } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 
+const emptySubscribe = () => () => {};
+
+function canShowPushPrompt(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+  if (typeof Notification === 'undefined' || Notification.permission !== 'default') return false;
+  try {
+    return !localStorage.getItem('push_prompt_dismissed');
+  } catch {
+    return false;
+  }
+}
+
 export function SoftPromptBanner() {
-  const [show, setShow] = useState(false);
+  const isPromptEligible = useSyncExternalStore(emptySubscribe, canShowPushPrompt, () => false);
+  const [isDismissed, setIsDismissed] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    // Only show if supported, not granted, and not dismissed recently
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
-      if (Notification.permission === 'default') {
-        const dismissed = localStorage.getItem('push_prompt_dismissed');
-        if (!dismissed) {
-          setShow(true);
-        }
-      }
-    }
-  }, []);
-
   const dismiss = () => {
-    localStorage.setItem('push_prompt_dismissed', 'true');
-    setShow(false);
+    try {
+      localStorage.setItem('push_prompt_dismissed', 'true');
+    } catch {}
+    setIsDismissed(true);
   };
 
   const goToProfile = () => {
     router.push('/profile');
   };
 
-  if (!show) return null;
+  if (!isPromptEligible || isDismissed) return null;
 
   return (
-    <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+    <div className="mb-6 flex flex-col items-start justify-between gap-4 rounded-lg border border-brand-200 bg-brand-50/80 p-4 sm:flex-row sm:items-center dark:border-brand-800/60 dark:bg-brand-950/30">
       <div className="flex items-start gap-3">
-        <div className="p-2 bg-primary/20 rounded-full text-primary mt-1 sm:mt-0">
+        <div className="mt-1 rounded-full bg-brand-100 p-2 text-brand-600 sm:mt-0 dark:bg-brand-900/50 dark:text-brand-400">
           <IconBellRinging size={20} />
         </div>
         <div>
-          <h4 className="font-medium text-foreground">Dapatkan Pengingat Absen</h4>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h4 className="font-medium text-neutral-900 dark:text-white">Dapatkan Pengingat Absen</h4>
+          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
             Aktifkan notifikasi untuk menerima pengingat absen tepat waktu dan pemberitahuan penting lainnya.
           </p>
         </div>
@@ -52,7 +56,12 @@ export function SoftPromptBanner() {
         <Button size="sm" onClick={goToProfile}>
           Aktifkan Sekarang
         </Button>
-        <button onClick={dismiss} className="text-muted-foreground hover:text-foreground ml-2">
+        <button
+          type="button"
+          onClick={dismiss}
+          aria-label="Tutup banner"
+          className="ml-2 rounded-lg p-1 text-neutral-500 transition-colors hover:bg-brand-100 hover:text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-neutral-400 dark:hover:bg-brand-900/40 dark:hover:text-white"
+        >
           <IconX size={18} />
         </button>
       </div>

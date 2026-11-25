@@ -26,7 +26,7 @@ export default function InventoryPrintModal({
   item,
   nested,
 }: InventoryPrintModalProps) {
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
   const [templates, setTemplates] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [printForm, setPrintForm] = useState({ template_id: '', gudang_id: '', qty: 1 });

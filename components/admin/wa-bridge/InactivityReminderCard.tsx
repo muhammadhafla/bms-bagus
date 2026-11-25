@@ -27,28 +27,29 @@ export function InactivityReminderCard({
   onResetDays,
   onSendTest,
 }: InactivityReminderCardProps) {
+  const [prevSettings, setPrevSettings] = useState(settings);
   const [enabled, setEnabled] = useState(settings?.enable_inactivity_reminder ?? true);
   const [intervalDays, setIntervalDays] = useState(settings?.inactivity_reminder_interval_days ?? 10);
   const [targetPhone, setTargetPhone] = useState(settings?.inactivity_reminder_phone ?? '');
   const [testPhone, setTestPhone] = useState('');
   const [isSaved, setIsSaved] = useState(false);
-  const [daysSinceActive, setDaysSinceActive] = useState(0);
+  const [mountTimeMs] = useState(() => Date.now());
 
-  useEffect(() => {
+  if (settings !== prevSettings) {
+    setPrevSettings(settings);
     if (settings) {
       setEnabled(settings.enable_inactivity_reminder);
       setIntervalDays(settings.inactivity_reminder_interval_days);
       setTargetPhone(settings.inactivity_reminder_phone || '');
-
-      if (settings.last_phone_active_date) {
-        const lastActive = new Date(settings.last_phone_active_date).getTime();
-        const diffTime = Math.max(0, Date.now() - lastActive);
-        setDaysSinceActive(Math.floor(diffTime / (1000 * 60 * 60 * 24)));
-      } else {
-        setDaysSinceActive(0);
-      }
     }
-  }, [settings]);
+  }
+
+  const daysSinceActive = settings?.last_phone_active_date
+    ? Math.floor(
+        Math.max(0, mountTimeMs - new Date(settings.last_phone_active_date).getTime()) /
+          (1000 * 60 * 60 * 24),
+      )
+    : 0;
 
   const daysRemaining = Math.max(0, 14 - daysSinceActive);
   const isWarning = daysSinceActive >= intervalDays;

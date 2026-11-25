@@ -25,6 +25,7 @@ import {
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { queryKeys } from '@/lib/queryKeys';
 
 export default function PengeluaranOperasionalPage() {
   const queryClient = useQueryClient();
@@ -67,15 +68,18 @@ export default function PengeluaranOperasionalPage() {
   }, [filteredList, page, limit]);
 
   // Reset page when search or warehouse changes
-  useEffect(() => {
+  const filterKey = `${search}|${selectedGudangId}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
     setPage(1);
-  }, [search, selectedGudangId]);
+  }
 
   // Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [gudangId, setGudangId] = useState('');
+  const [selectedFormGudangId, setGudangId] = useState('');
   const [kategori, setKategori] = useState('Listrik');
   const [kategoriLainnya, setKategoriLainnya] = useState('');
   const [nominal, setNominal] = useState('');
@@ -84,13 +88,8 @@ export default function PengeluaranOperasionalPage() {
 
   const standardCategories = ['Listrik', 'Air', 'Internet', 'Konsumsi', 'Sewa', 'ATK'];
 
-  // Default warehouse when modal opens
-  useEffect(() => {
-    if (gudangList.length > 0 && !gudangId) {
-      const def = gudangList.find((g) => g.is_default) || gudangList[0];
-      setGudangId(def?.id || '');
-    }
-  }, [gudangList, gudangId]);
+  const defaultFormGudangId = (gudangList.find((g) => g.is_default) || gudangList[0])?.id || '';
+  const gudangId = selectedFormGudangId || defaultFormGudangId;
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -120,8 +119,8 @@ export default function PengeluaranOperasionalPage() {
       toast.success(editingId ? 'Pengeluaran berhasil diperbarui' : 'Pengeluaran berhasil dicatat');
       setIsModalOpen(false);
       resetForm();
-      queryClient.invalidateQueries({ queryKey: ['pengeluaran_operasional'] });
-      queryClient.invalidateQueries({ queryKey: ['buku_besar'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.cashFlow.operasional });
+      queryClient.invalidateQueries({ queryKey: queryKeys.ledger.all });
     },
     onError: (err: any) => {
       toast.error(err.message || 'Gagal menyimpan pengeluaran');
@@ -132,8 +131,8 @@ export default function PengeluaranOperasionalPage() {
     mutationFn: (id: string) => ledgerApi.deletePengeluaranOperasional(id),
     onSuccess: () => {
       toast.success('Pengeluaran berhasil dihapus');
-      queryClient.invalidateQueries({ queryKey: ['pengeluaran_operasional'] });
-      queryClient.invalidateQueries({ queryKey: ['buku_besar'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.cashFlow.operasional });
+      queryClient.invalidateQueries({ queryKey: queryKeys.ledger.all });
     },
     onError: (err: any) => {
       toast.error(err.message || 'Gagal menghapus pengeluaran');

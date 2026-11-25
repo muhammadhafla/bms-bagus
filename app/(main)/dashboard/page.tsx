@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore, useIsAdmin } from '@/lib/auth';
 import {
   IconPackage,
@@ -44,17 +45,21 @@ import { formatDateForInputWIB } from '@/lib/utils';
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 
 
+const emptySubscribe = () => () => {};
+
 function HomeContent() {
-  const { user, initialized } = useAuthStore();
+  const { user, initialized } = useAuthStore(
+    useShallow((state) => ({ user: state.user, initialized: state.initialized })),
+  );
   const isAdminUser = useIsAdmin();
   const router = useRouter();
 
   const isDesktop = useMediaQuery('(min-width: 1024px)');
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
 
   const {
     data: stats,

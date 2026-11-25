@@ -65,4 +65,33 @@ describe('stockOpnameApi', () => {
     expect(res.data).toBeNull();
     expect(res.error?.message).toBe('Inventory not found');
   });
+
+  describe('bulkUpdateItems', () => {
+    it('returns early with updated_count 0 when items list is empty', async () => {
+      const res = await stockOpnameApi.bulkUpdateItems('op-1', []);
+      expect(res.error).toBeNull();
+      expect(res.data).toEqual({ success: true, updated_count: 0 });
+      expect(rpcMock).not.toHaveBeenCalled();
+    });
+
+    it('calls bulk_update_opname_items RPC with p_opname_id and p_items', async () => {
+      rpcMock.mockResolvedValue({
+        data: { success: true, updated_count: 2 },
+        error: null,
+      });
+
+      const payload = [
+        { id: 'item-1', physical_stock: 10, reason: 'selisih', note: 'rak A' },
+        { id: 'item-2', physical_stock: 0, reason: null, note: null },
+      ];
+      const res = await stockOpnameApi.bulkUpdateItems('op-1', payload);
+
+      expect(res.error).toBeNull();
+      expect(res.data).toEqual({ success: true, updated_count: 2 });
+      expect(rpcMock).toHaveBeenCalledWith('bulk_update_opname_items', {
+        p_opname_id: 'op-1',
+        p_items: payload,
+      });
+    });
+  });
 });

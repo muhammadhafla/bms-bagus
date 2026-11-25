@@ -41,25 +41,29 @@ export function KehadiranModals({
   reviewLemburMutation,
 }: KehadiranModalsProps) {
   // Edit State
+  const [prevSelectedKehadiran, setPrevSelectedKehadiran] = useState(selectedKehadiran);
   const [editStatusHadir, setEditStatusHadir] = useState<string>('');
   const [editStatusLembur, setEditStatusLembur] = useState<string>('');
   const [editLokasiMasukId, setEditLokasiMasukId] = useState<string>('');
   const [editLokasiPulangId, setEditLokasiPulangId] = useState<string>('');
 
-  useEffect(() => {
+  if (selectedKehadiran !== prevSelectedKehadiran) {
+    setPrevSelectedKehadiran(selectedKehadiran);
     if (selectedKehadiran) {
       setEditStatusHadir(selectedKehadiran.status_hadir);
       setEditStatusLembur(selectedKehadiran.status_lembur);
       setEditLokasiMasukId(selectedKehadiran.lokasi_masuk_id || '');
       setEditLokasiPulangId(selectedKehadiran.lokasi_pulang_id || '');
     }
-  }, [selectedKehadiran]);
+  }
 
   // Review Pulang Awal State
+  const [prevReviewPulangAwal, setPrevReviewPulangAwal] = useState(reviewPulangAwalModalItem);
   const [pulangAwalKeputusan, setPulangAwalKeputusan] = useState<'hitung_penuh' | 'sesuai_durasi' | 'ditolak'>('hitung_penuh');
   const [pulangAwalCatatan, setPulangAwalCatatan] = useState('');
 
-  useEffect(() => {
+  if (reviewPulangAwalModalItem !== prevReviewPulangAwal) {
+    setPrevReviewPulangAwal(reviewPulangAwalModalItem);
     if (reviewPulangAwalModalItem) {
       setPulangAwalKeputusan(
         reviewPulangAwalModalItem.status_pulang_awal === 'disetujui_durasi'
@@ -70,12 +74,14 @@ export function KehadiranModals({
       );
       setPulangAwalCatatan(reviewPulangAwalModalItem.catatan_admin || '');
     }
-  }, [reviewPulangAwalModalItem]);
+  }
 
   // Review Lembur State
+  const [prevReviewLembur, setPrevReviewLembur] = useState(reviewLemburModalItem);
   const [lemburMenitDisetujui, setLemburMenitDisetujui] = useState<number>(0);
 
-  useEffect(() => {
+  if (reviewLemburModalItem !== prevReviewLembur) {
+    setPrevReviewLembur(reviewLemburModalItem);
     if (reviewLemburModalItem) {
       setLemburMenitDisetujui(
         reviewLemburModalItem.menit_lembur_disetujui !== null && reviewLemburModalItem.menit_lembur_disetujui !== undefined
@@ -83,7 +89,7 @@ export function KehadiranModals({
           : reviewLemburModalItem.menit_lembur_aktual || 0
       );
     }
-  }, [reviewLemburModalItem]);
+  }
 
   // Create State
   const [createDate, setCreateDate] = useState(format(new Date(), 'yyyy-MM-dd'));

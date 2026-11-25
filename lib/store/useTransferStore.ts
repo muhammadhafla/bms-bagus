@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getLocalDateString } from '@/lib/utils';
 
 export interface TransferCartItem {
   inventory_id: string;
@@ -47,7 +48,7 @@ export const useTransferStore = create<TransferStore>()(
       gudangTujuanId: '',
       kurir: '',
       catatan: '',
-      tanggalKirim: new Date().toISOString().split('T')[0],
+      tanggalKirim: getLocalDateString(),
       highlightedItemId: null,
 
       setGudangAsalId: (id: string) => set({ gudangAsalId: id }),
@@ -152,7 +153,7 @@ export const useTransferStore = create<TransferStore>()(
           items: [],
           kurir: '',
           catatan: '',
-          tanggalKirim: new Date().toISOString().split('T')[0],
+          tanggalKirim: getLocalDateString(),
           highlightedItemId: null,
         });
       },

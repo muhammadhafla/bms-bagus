@@ -411,7 +411,8 @@ export const reportApi = {
         inventory:inventory_id (id, nama_barang, kode_barcode)
       `,
       )
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(10000);
 
     if (startDate) dataQuery = dataQuery.gte('created_at', startDate);
     if (endDate) dataQuery = dataQuery.lte('created_at', `${endDate} 23:59:59`);
@@ -446,8 +447,14 @@ export const reportApi = {
 
   async exportSalesReport(startDate?: string, endDate?: string, categoryId?: string, gudangId?: string) {
     if (gudangId) {
-      const res = await this.getSalesReport(startDate, endDate, categoryId, { page: 1, limit: 10000 }, gudangId);
-      return { data: res.data || [], error: res.error };
+      const allRows: SalesSummary[] = [];
+      for (let page = 1; page <= 50; page++) {
+        const res = await this.getSalesReport(startDate, endDate, categoryId, { page, limit: 100 }, gudangId);
+        if (res.error) return { data: null, error: res.error };
+        if (res.data) allRows.push(...res.data);
+        if (!res.hasMore) break;
+      }
+      return { data: allRows, error: null };
     }
 
     const result = await safeQuery<any[]>(async () => {
@@ -475,8 +482,14 @@ export const reportApi = {
 
   async exportProfitReport(startDate?: string, endDate?: string, categoryId?: string, gudangId?: string) {
     if (gudangId) {
-      const res = await this.getProfitReport(startDate, endDate, categoryId, { page: 1, limit: 10000 }, gudangId);
-      return { data: res.data || [], error: res.error };
+      const allRows: ProfitSummary[] = [];
+      for (let page = 1; page <= 50; page++) {
+        const res = await this.getProfitReport(startDate, endDate, categoryId, { page, limit: 100 }, gudangId);
+        if (res.error) return { data: null, error: res.error };
+        if (res.data) allRows.push(...res.data);
+        if (!res.hasMore) break;
+      }
+      return { data: allRows, error: null };
     }
 
     const result = await safeQuery<any[]>(async () => {

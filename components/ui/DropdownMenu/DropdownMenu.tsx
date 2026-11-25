@@ -28,15 +28,15 @@ export function DropdownMenu({
 }: DropdownMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isOpen && menuRef.current) {
-      const firstBtn = menuRef.current.querySelector('button');
-      if (firstBtn) {
-        setTimeout(() => firstBtn.focus(), 50);
-      }
-    }
+    if (!isOpen || !menuRef.current) return;
+    const firstBtn = menuRef.current.querySelector<HTMLButtonElement>('button[role="menuitem"]');
+    if (!firstBtn) return;
+    const timeoutId = setTimeout(() => firstBtn.focus(), 50);
+    return () => clearTimeout(timeoutId);
   }, [isOpen]);
 
   useEffect(() => {
@@ -54,6 +54,7 @@ export function DropdownMenu({
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsOpen(false);
+        triggerRef.current?.focus();
       }
     };
 
@@ -66,26 +67,35 @@ export function DropdownMenu({
   return (
     <div ref={dropdownRef} className={`relative ${className}`}>
       <button
+        ref={triggerRef}
         type="button"
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
         onClick={() => setIsOpen(!isOpen)}
-        className="focus:ring-brand-500 inline-flex items-center gap-2 rounded-lg focus:ring-2 focus:outline-none"
+        className="focus-visible:ring-brand-500 inline-flex items-center gap-2 rounded-lg focus-visible:ring-2 focus-visible:outline-none"
       >
         {trigger}
-        <IconChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <IconChevronDown
+          className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+        />
       </button>
 
       {isOpen && (
         <div
           ref={menuRef}
+          role="menu"
           className={`animate-fade-in-up absolute top-full z-50 mt-1 min-w-[180px] rounded-xl border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-800 dark:bg-neutral-900 ${align === 'right' ? 'right-0' : 'left-0'} `}
         >
           {items.map((item, index) => (
             <button
               key={index}
               type="button"
+              role="menuitem"
               onClick={() => {
                 onSelect(item.value);
                 setIsOpen(false);
+                triggerRef.current?.focus();
               }}
               onKeyDown={(e) => {
                 if (e.key === 'ArrowDown') {
@@ -106,7 +116,7 @@ export function DropdownMenu({
                 {item.icon}
                 {item.label}
               </span>
-              {value === item.value && <IconCheck className="h-4 w-4" />}
+              {value === item.value && <IconCheck className="h-4 w-4" aria-hidden="true" />}
             </button>
           ))}
         </div>

@@ -4,6 +4,7 @@ import InventoryPageClient from './InventoryPageClient';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { PageLoadingSpinner } from '@/components/ui';
 import { inventoryApi } from '@/lib/api/inventory';
+import { queryKeys } from '@/lib/queryKeys';
 
 // Metadata and server configuration
 export const metadata = {
@@ -28,7 +29,7 @@ export default async function InventoryPage(props: Props) {
   const sortDir = (typeof searchParams?.sortDir === 'string' ? searchParams.sortDir : 'asc') as 'asc' | 'desc';
 
   const limitParam = Number(searchParams?.limit);
-  const limit = limitParam && limitParam > 0 ? limitParam : 50;
+  const limit = limitParam && limitParam > 0 ? Math.min(100, limitParam) : 25;
 
   let categoryId = undefined;
   if (categoryName) {
@@ -42,19 +43,16 @@ export default async function InventoryPage(props: Props) {
     }
   }
 
-  const queryKey = [
-    'inventory',
-    {
-      page,
-      limit,
-      search,
-      categoryId,
-      lowStockOnly,
-      activeStatus,
-      sortBy,
-      sortDir,
-    },
-  ];
+  const queryKey = queryKeys.inventory.list({
+    page,
+    limit,
+    search,
+    categoryId,
+    lowStockOnly,
+    activeStatus,
+    sortBy,
+    sortDir,
+  });
 
   await queryClient.prefetchQuery({
     queryKey,

@@ -8,6 +8,7 @@ import { Card, DataTable, Button, Modal, TextInput, Badge, PriceInput, type Colu
 import { IconUsers, IconEdit, IconSearch, IconClock, IconWallet, IconChevronRight } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { debounce } from '@/lib/utils';
+import { queryKeys } from '@/lib/queryKeys';
 
 export default function AdminKaryawanPage() {
   return (
@@ -28,13 +29,15 @@ function AdminKaryawanContent() {
   const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get('search') || '');
 
   // Form states for PriceInput
+  const [prevSelectedUser, setPrevSelectedUser] = useState<Karyawan | null>(null);
   const [formGajiHarian, setFormGajiHarian] = useState(0);
   const [formDendaTelat, setFormDendaTelat] = useState(0);
   const [formLembur, setFormLembur] = useState(0);
   const [formTipeGaji, setFormTipeGaji] = useState<'harian' | 'bulanan'>('harian');
   const [formGajiBulanan, setFormGajiBulanan] = useState(0);
 
-  useEffect(() => {
+  if (selectedUser !== prevSelectedUser) {
+    setPrevSelectedUser(selectedUser);
     if (selectedUser) {
       setFormGajiHarian(selectedUser.gaji_harian);
       setFormDendaTelat(selectedUser.denda_telat_per_jam);
@@ -42,7 +45,7 @@ function AdminKaryawanContent() {
       setFormTipeGaji(selectedUser.tipe_gaji || 'harian');
       setFormGajiBulanan(selectedUser.gaji_bulanan || 0);
     }
-  }, [selectedUser]);
+  }
 
   // URL sync for search
   useEffect(() => {
@@ -90,7 +93,7 @@ function AdminKaryawanContent() {
       }
       toast.success('Data Karyawan berhasil disimpan!');
       setSelectedUser(null);
-      queryClient.invalidateQueries({ queryKey: ['admin_payroll_karyawan'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminKaryawan });
     },
     onError: () => toast.error('Terjadi kesalahan sistem'),
   });

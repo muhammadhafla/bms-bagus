@@ -18,8 +18,6 @@ const inter = Inter({
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
@@ -57,7 +55,7 @@ export default function RootLayout({
   const nonce = undefined;
 
   return (
-    <html lang="id" suppressHydrationWarning className="light">
+    <html lang="id" suppressHydrationWarning>
       <head>
         {process.env.NEXT_PUBLIC_SUPABASE_URL && (
           <link
@@ -74,7 +72,8 @@ export default function RootLayout({
             try {
               const t = localStorage.getItem('theme');
               const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-              const theme = t || (prefersDark ? 'dark' : 'light');
+              const theme = t === 'dark' || t === 'light' ? t : (prefersDark ? 'dark' : 'light');
+              document.documentElement.classList.remove('light', 'dark');
               document.documentElement.classList.add(theme);
             } catch(e) {}
           `,

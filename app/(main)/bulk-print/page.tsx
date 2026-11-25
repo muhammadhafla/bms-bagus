@@ -3,9 +3,10 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBulkPrintStore } from '@/lib/store';
-import { inventoryApi, promoApi } from '@/lib/api';
+import { promoApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { InventoryItem } from '@/types/inventory';
 import { Template } from '@/types';
 import { Gudang } from '@/types/warehouse';
@@ -31,19 +32,11 @@ import { SharedBarcodeSearch } from '@/components/inventory/SharedBarcodeSearch'
 
 export default function BulkPrintPage() {
   const router = useRouter();
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
   const { items, addItem, updateQty, removeItem, reset } = useBulkPrintStore();
-  const { data: inventoryData } = useQuery({
-    queryKey: ['inventory', 'all'],
-    queryFn: async () => {
-      const res = await inventoryApi.getAll();
-      return res.data || [];
-    },
-    select: (data) => data.filter((item) => !item.is_discontinued),
-  });
 
   const { data: activePromosMap } = useQuery({
-    queryKey: ['activePromos'],
+    queryKey: queryKeys.promo.activeMap,
     queryFn: async () => {
       return await promoApi.getActivePromosMap();
     },
@@ -91,7 +84,8 @@ export default function BulkPrintPage() {
       const { data, error } = await supabase
         .from('label_templates')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       if (error) {
         console.error('Error fetching templates:', error);

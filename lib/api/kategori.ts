@@ -86,21 +86,55 @@ export const kategoriApi = {
 
     const categoriesToReturn: Kategori[] = [];
     const missingNames: string[] = [];
+    const seenMissingLower = new Set<string>();
 
     uniqueNames.forEach((name) => {
       const lowerName = name.toLowerCase();
       if (existingMap.has(lowerName)) {
         categoriesToReturn.push(existingMap.get(lowerName)!);
-      } else {
+      } else if (!seenMissingLower.has(lowerName)) {
+        seenMissingLower.add(lowerName);
         missingNames.push(name);
       }
     });
 
-    // Create missing categories one by one
-    for (const name of missingNames) {
-      const newCatRes = await this.create(name);
-      if (!newCatRes.error && newCatRes.data) {
-        categoriesToReturn.push(newCatRes.data);
+    if (missingNames.length === 0) {
+      return { data: categoriesToReturn, error: null };
+    }
+
+    const batchRes = await safeQuery<Kategori[]>(
+      async () => {
+        const result = await supabase
+          .from('kategori')
+          .upsert(
+            missingNames.map((nama) => ({ nama })),
+            { onConflict: 'nama', ignoreDuplicates: true },
+          )
+          .select();
+        return { data: result.data, error: result.error as Error | null };
+      },
+      { isMutation: true },
+    );
+
+    if (batchRes.error) {
+      return { data: null, error: batchRes.error };
+    }
+
+    const insertedList = batchRes.data || [];
+    const insertedMap = new Map<string, Kategori>();
+    insertedList.forEach((c) => {
+      insertedMap.set(c.nama.toLowerCase(), c);
+      categoriesToReturn.push(c);
+    });
+
+    const unresolvedNames = missingNames.filter((n) => !insertedMap.has(n.toLowerCase()));
+    if (unresolvedNames.length > 0) {
+      const refetchRes = await safeQuery<Kategori[]>(async () => {
+        const result = await supabase.from('kategori').select('*').in('nama', unresolvedNames);
+        return { data: result.data, error: result.error as Error | null };
+      });
+      if (refetchRes.data) {
+        categoriesToReturn.push(...refetchRes.data);
       }
     }
 

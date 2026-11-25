@@ -220,9 +220,13 @@ export default function LoyaltyRewardsTab({ rewards, onRefresh }: LoyaltyRewards
                       {/* Status Toggle */}
                       <td className="px-4 py-3 text-center">
                         <button
+                          type="button"
+                          role="switch"
+                          aria-checked={r.is_active}
+                          aria-label="Ubah status aktif reward"
                           onClick={() => handleToggleActive(r)}
                           disabled={togglingId === r.id}
-                          className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
                             r.is_active ? 'bg-brand-600' : 'bg-neutral-300 dark:bg-neutral-700'
                           }`}
                         >
@@ -238,11 +242,13 @@ export default function LoyaltyRewardsTab({ rewards, onRefresh }: LoyaltyRewards
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
+                            type="button"
+                            aria-label="Edit reward"
                             onClick={() => {
                               setSelectedReward(r);
                               setIsModalOpen(true);
                             }}
-                            className="rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+                            className="rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
                             title="Edit Reward"
                           >
                             <IconEdit className="h-4 w-4" />

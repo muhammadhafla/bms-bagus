@@ -14,12 +14,14 @@ export function PromoFooterCard({
   isActionLoading,
   onSaveFooter,
 }: PromoFooterCardProps) {
+  const [prevCurrentFooter, setPrevCurrentFooter] = useState(currentFooter);
   const [footerText, setFooterText] = useState(currentFooter || '');
   const [isSaved, setIsSaved] = useState(false);
 
-  useEffect(() => {
+  if (currentFooter !== prevCurrentFooter) {
+    setPrevCurrentFooter(currentFooter);
     setFooterText(currentFooter || '');
-  }, [currentFooter]);
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -21,7 +21,7 @@ import {
 } from '@tabler/icons-react';
 
 export default function WaBridgeClient() {
-  const { hasRole } = useAuthStore();
+  const hasRole = useAuthStore((state) => state.hasRole);
   const isAdmin = hasRole('admin');
 
   const {

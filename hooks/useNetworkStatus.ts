@@ -1,24 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useSyncExternalStore } from 'react';
+
+function subscribe(onStoreChange: () => void) {
+  window.addEventListener('online', onStoreChange);
+  window.addEventListener('offline', onStoreChange);
+  return () => {
+    window.removeEventListener('online', onStoreChange);
+    window.removeEventListener('offline', onStoreChange);
+  };
+}
 
 export function useNetworkStatus() {
-  const [isOnline, setIsOnline] = useState(true); // default true for SSR
-
-  useEffect(() => {
-    setIsOnline(navigator.onLine);
-
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  return isOnline;
+  return useSyncExternalStore(
+    subscribe,
+    () => navigator.onLine,
+    () => true,
+  );
 }

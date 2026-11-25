@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useRealtimeQuery } from '@/lib/hooks/useRealtimeQuery';
@@ -23,7 +24,11 @@ import { downloadOrShareFile } from '@/lib/utils/file-share';
 import { useKehadiranMutations } from './_hooks/useKehadiranMutations';
 import { KehadiranTable } from './_components/KehadiranTable';
 import { KehadiranFilters, FilterBadges, FilterState } from './_components/KehadiranFilters';
-import { KehadiranModals } from './_components/KehadiranModals';
+
+const KehadiranModals = dynamic(
+  () => import('./_components/KehadiranModals').then((mod) => mod.KehadiranModals),
+  { ssr: false },
+);
 
 export default function AdminKehadiranPage() {
   return (

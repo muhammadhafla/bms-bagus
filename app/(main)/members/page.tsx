@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import {
@@ -17,7 +18,7 @@ import { AmbientLayout, DropdownMenu, ModernPagination, PageLoadingSpinner, Spin
 import { useRouter } from 'next/navigation';
 import { AdminOnly } from '@/components/role';
 import MemberModal from './MemberModal';
-import { formatDateWIB } from '@/lib/utils';
+import { formatDateWIB, sanitizeSearchQuery } from '@/lib/utils';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 interface MemberTier {
@@ -44,11 +45,27 @@ export default function MembersPage() {
   const [editMemberData, setEditMemberData] = useState<Member | undefined>(undefined);
 
   const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const LIMIT = 10;
 
-  const { isAdmin, initialized, user, profile } = useAuthStore();
+  const { isAdmin, initialized, user, profile } = useAuthStore(
+    useShallow((state) => ({
+      isAdmin: state.isAdmin,
+      initialized: state.initialized,
+      user: state.user,
+      profile: state.profile,
+    })),
+  );
   const router = useRouter();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     const isAuthFullyLoaded = initialized && (!user || profile !== null);
@@ -57,45 +74,67 @@ export default function MembersPage() {
     }
   }, [initialized, isAdmin, router, user, profile]);
 
-  const fetchMembers = useCallback(async () => {
-    setLoading(true);
-    // Kita mengambil data member dan melakukan join ke member_tiers
-    const { data, error } = await supabase
+  const buildMembersQuery = useCallback((targetPage: number, searchTerm: string) => {
+    const from = (targetPage - 1) * LIMIT;
+    const to = from + LIMIT - 1;
+    let query = supabase
       .from('members')
       .select(
         `
         *,
         member_tiers ( id, name, discount_percentage )
       `,
+        { count: 'exact' },
       )
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    const cleanSearch = sanitizeSearchQuery(searchTerm);
+    if (cleanSearch) {
+      query = query.or(`name.ilike.%${cleanSearch}%,whatsapp_number.ilike.%${cleanSearch}%`);
+    }
+
+    return query;
+  }, []);
+
+  const fetchMembers = useCallback(async () => {
+    setLoading(true);
+    const { data, count, error } = await buildMembersQuery(page, debouncedSearch);
 
     if (error) {
       toast.error('Gagal memuat data member');
       console.error(error);
     } else {
       setMembers((data as Member[]) || []);
+      setTotalCount(count ?? 0);
     }
     setLoading(false);
-  }, []);
+  }, [buildMembersQuery, page, debouncedSearch]);
 
   useEffect(() => {
-    if (initialized && isAdmin()) {
-      fetchMembers();
-    }
-  }, [fetchMembers, initialized, isAdmin, profile]);
+    if (!initialized || !isAdmin()) return;
+    let active = true;
+    buildMembersQuery(page, debouncedSearch).then(({ data, count, error }) => {
+      if (!active) return;
+      if (error) {
+        toast.error('Gagal memuat data member');
+        console.error(error);
+      } else {
+        setMembers((data as Member[]) || []);
+        setTotalCount(count ?? 0);
+      }
+      setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [buildMembersQuery, page, debouncedSearch, initialized, isAdmin, profile]);
 
-  const filteredMembers = useMemo(() => {
-    if (!searchQuery) return members;
-    const lowerQuery = searchQuery.toLowerCase();
-    return members.filter(
-      (m) => m.name.toLowerCase().includes(lowerQuery) || m.whatsapp_number.includes(lowerQuery),
-    );
-  }, [members, searchQuery]);
-
-  useEffect(() => {
+  const [prevSearchQuery, setPrevSearchQuery] = useState(debouncedSearch);
+  if (debouncedSearch !== prevSearchQuery) {
+    setPrevSearchQuery(debouncedSearch);
     setPage(1);
-  }, [searchQuery]);
+  }
 
   const isAuthFullyLoaded = initialized && (!user || profile !== null);
 
@@ -115,8 +154,9 @@ export default function MembersPage() {
     );
   }
 
-  const totalPages = Math.ceil(filteredMembers.length / LIMIT) || 1;
-  const pagedMembers = filteredMembers.slice((page - 1) * LIMIT, page * LIMIT);
+  const totalPages = Math.ceil(totalCount / LIMIT) || 1;
+  const pagedMembers = members;
+  const filteredMembers = members;
 
   const openEditModal = (member: Member) => {
     setEditMemberData(member);
@@ -382,7 +422,7 @@ export default function MembersPage() {
             </div>
 
             {/* Pagination */}
-            {!loading && filteredMembers.length > LIMIT && (
+            {!loading && totalCount > LIMIT && (
               <ModernPagination
                 page={page}
                 totalPages={totalPages}

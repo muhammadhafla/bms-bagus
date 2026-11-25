@@ -8,7 +8,10 @@ import React, {
   useEffect,
   useMemo,
   useCallback,
+  useSyncExternalStore,
 } from 'react';
+
+const emptySubscribe = () => () => {};
 import {
   IconChevronDown,
   IconCheck,
@@ -75,7 +78,11 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
     const generatedId = useId();
     const inputId = id || generatedId;
     const isDesktop = useMediaQuery('(min-width: 640px)');
-    const [mounted, setMounted] = useState(false);
+    const mounted = useSyncExternalStore(
+      emptySubscribe,
+      () => true,
+      () => false,
+    );
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -85,8 +92,10 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
     const searchInputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-      setMounted(true);
+    const openDropdown = useCallback(() => {
+      setSearch('');
+      setHighlightedIndex(-1);
+      setIsOpen(true);
     }, []);
 
     // Filter out duplicates and separate empty/reset option
@@ -150,14 +159,11 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isOpen, isDesktop]);
 
-    // Reset search & highlighted index when dropdown closes or opens
+    // Focus search input when desktop dropdown opens
     useEffect(() => {
-      if (isOpen) {
-        setSearch('');
-        setHighlightedIndex(-1);
-        if (isDesktop && showSearch) {
-          setTimeout(() => searchInputRef.current?.focus(), 50);
-        }
+      if (isOpen && isDesktop && showSearch) {
+        const timeoutId = setTimeout(() => searchInputRef.current?.focus(), 50);
+        return () => clearTimeout(timeoutId);
       }
     }, [isOpen, isDesktop, showSearch]);
 
@@ -187,7 +193,7 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
 
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        setIsOpen(true);
+        openDropdown();
       }
     };
 
@@ -245,10 +251,15 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
             ref={triggerRef}
             type="button"
             disabled={disabled}
-            onClick={() => !disabled && setIsOpen((prev) => !prev)}
+            onClick={() => {
+              if (disabled) return;
+              if (isOpen) setIsOpen(false);
+              else openDropdown();
+            }}
             onKeyDown={handleTriggerKeyDown}
             aria-haspopup="listbox"
             aria-expanded={isOpen}
+            aria-controls={isOpen ? `${inputId}-listbox` : undefined}
             aria-labelledby={label ? `${inputId}-label` : undefined}
             aria-describedby={
               error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined
@@ -261,7 +272,7 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
                 : isCompact
                 ? 'py-1.5 min-h-[38px]'
                 : 'py-3 min-h-[46px]'
-            } ${isCompact ? 'pl-3 pr-8' : 'pl-4 pr-10'} cursor-pointer ${
+            } ${isCompact ? (isClearable ? 'pl-3 pr-14' : 'pl-3 pr-8') : isClearable ? 'pl-4 pr-16' : 'pl-4 pr-10'} cursor-pointer ${
               error
                 ? 'border-accent-rose-400 focus:border-accent-rose-500 bg-accent-rose-50/30 shadow-[0_0_0_1px_rgba(244,63,94,0.1)]'
                 : isOpen
@@ -306,39 +317,31 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
               )}
             </div>
 
-            {/* Right Actions: Clear Button & Chevron */}
-            <div
-              className={`absolute ${
-                isCompact ? 'right-2' : 'right-3.5'
-              } top-1/2 -translate-y-1/2 flex items-center gap-1.5`}
-            >
-              {isClearable && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={handleClear}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleClear(e as any);
-                    }
-                  }}
-                  className="flex h-6 w-6 items-center justify-center rounded-lg text-neutral-400 hover:bg-neutral-200/70 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200 transition-colors"
-                  title="Kosongkan pilihan"
-                  aria-label="Kosongkan pilihan"
-                >
-                  <IconX className="h-3.5 w-3.5" />
-                </span>
-              )}
-              <IconChevronDown
-                className={`${
-                  isCompact ? 'h-4 w-4' : 'h-5 w-5'
-                } text-neutral-400 transition-transform duration-200 ${
-                  isOpen ? 'rotate-180 text-brand-500 dark:text-brand-400' : ''
-                }`}
-              />
-            </div>
+            {/* Chevron Indicator inside trigger */}
+            <IconChevronDown
+              aria-hidden="true"
+              className={`pointer-events-none shrink-0 ${
+                isCompact ? 'h-4 w-4' : 'h-5 w-5'
+              } text-neutral-400 transition-transform duration-200 ${
+                isOpen ? 'rotate-180 text-brand-500 dark:text-brand-400' : ''
+              }`}
+            />
           </button>
+
+          {/* Sibling Clear Button (avoids nested interactive element inside trigger button) */}
+          {isClearable && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className={`absolute ${
+                isCompact ? 'right-7' : 'right-10'
+              } top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-200/70 hover:text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:hover:bg-neutral-800 dark:hover:text-neutral-200`}
+              title="Kosongkan pilihan"
+              aria-label="Kosongkan pilihan"
+            >
+              <IconX className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          )}
 
           {/* Floating / Static Label */}
           {label && (
@@ -393,10 +396,11 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
                     {search && (
                       <button
                         type="button"
+                        aria-label="Hapus pencarian"
                         onClick={() => setSearch('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded dark:hover:text-neutral-200"
                       >
-                        <IconX size={14} />
+                        <IconX size={14} aria-hidden="true" />
                       </button>
                     )}
                   </div>
@@ -405,6 +409,7 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
 
               {/* Options List */}
               <div
+                id={`${inputId}-listbox`}
                 ref={listRef}
                 role="listbox"
                 className="max-h-60 overflow-y-auto space-y-0.5 overscroll-contain"
@@ -511,10 +516,11 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
                   </Drawer.Title>
                   <button
                     type="button"
+                    aria-label="Tutup pilihan"
                     onClick={() => setIsOpen(false)}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:hover:bg-neutral-800"
                   >
-                    <IconX className="h-5 w-5" />
+                    <IconX className="h-5 w-5" aria-hidden="true" />
                   </button>
                 </div>
 
@@ -525,21 +531,24 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
                       <IconSearch
                         className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400"
                         size={18}
+                        aria-hidden="true"
                       />
                       <input
                         type="text"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder={searchPlaceholder}
+                        aria-label={searchPlaceholder}
                         className="w-full rounded-xl bg-neutral-100 py-3 pl-10 pr-9 text-sm font-medium text-neutral-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-neutral-900 dark:text-neutral-100"
                       />
                       {search && (
                         <button
                           type="button"
+                          aria-label="Hapus pencarian"
                           onClick={() => setSearch('')}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
                         >
-                          <IconX size={16} />
+                          <IconX size={16} aria-hidden="true" />
                         </button>
                       )}
                     </div>
@@ -547,11 +556,18 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
                 )}
 
                 {/* Options List on Mobile */}
-                <div className="flex-1 overflow-y-auto p-3 space-y-1 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
+                <div
+                  id={`${inputId}-listbox`}
+                  role="listbox"
+                  aria-labelledby={label ? `${inputId}-label` : undefined}
+                  className="flex-1 overflow-y-auto p-3 space-y-1 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]"
+                >
                   {/* Reset / Empty Option */}
                   {(!required || emptyOption) && !search && (
                     <button
                       type="button"
+                      role="option"
+                      aria-selected={!value}
                       onClick={() => handleSelect('')}
                       className={`flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left text-sm transition-colors ${
                         !value
@@ -576,6 +592,8 @@ export const SelectInput = forwardRef<HTMLInputElement, SelectInputProps>(
                         <button
                           key={opt.value}
                           type="button"
+                          role="option"
+                          aria-selected={isSelected}
                           disabled={opt.disabled}
                           onClick={() => handleSelect(opt.value)}
                           className={`flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left text-sm transition-colors ${

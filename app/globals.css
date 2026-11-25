@@ -418,7 +418,7 @@ body {
 .focus-ring {
   transition: box-shadow 0.15s ease;
 }
-.focus-ring:focus {
+.focus-ring:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35); /* indigo-500 */
 }
@@ -433,6 +433,15 @@ body {
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
+}
+.dark .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    theme('colors.neutral.800') 0%,
+    theme('colors.neutral.700') 50%,
+    theme('colors.neutral.800') 100%
+  );
+  background-size: 200% 100%;
 }
 
 /* Utility for text balance */

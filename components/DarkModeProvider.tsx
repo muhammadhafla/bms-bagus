@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useCallback, useSyncExternalStore, ReactNode } from 'react';
 
 type Theme = 'light' | 'dark';
 
@@ -10,53 +10,54 @@ interface DarkModeContextType {
 }
 
 const DarkModeContext = createContext<DarkModeContextType | undefined>(undefined);
+const themeListeners = new Set<() => void>();
+
+function subscribeTheme(listener: () => void) {
+  themeListeners.add(listener);
+  const handleStorage = (e: StorageEvent) => {
+    if (e.key === 'theme') listener();
+  };
+  const mql = window.matchMedia('(prefers-color-scheme: dark)');
+  mql.addEventListener('change', listener);
+  window.addEventListener('storage', handleStorage);
+  return () => {
+    themeListeners.delete(listener);
+    mql.removeEventListener('change', listener);
+    window.removeEventListener('storage', handleStorage);
+  };
+}
+
+function getThemeSnapshot(): Theme {
+  if (typeof window === 'undefined') return 'light';
+  try {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+  } catch {}
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
 
 export function DarkModeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light');
-  const [mounted, setMounted] = useState(false);
+  const theme = useSyncExternalStore(
+    subscribeTheme,
+    getThemeSnapshot,
+    () => 'light' as Theme,
+  );
 
   useEffect(() => {
-    let savedTheme: Theme | null = null;
-    try {
-      savedTheme = localStorage.getItem('theme') as Theme | null;
-    } catch {}
-
     const html = document.documentElement;
-    let initialTheme: Theme = 'light';
-
-    if (savedTheme) {
-      initialTheme = savedTheme;
-    } else if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      initialTheme = 'dark';
-    }
-
-    setTheme(initialTheme);
     html.classList.remove('light', 'dark');
-    html.classList.add(initialTheme);
-
-    // Clear inline styles
+    html.classList.add(theme);
     document.body.style.backgroundColor = '';
     document.body.style.color = '';
-
-    setMounted(true);
-  }, []);
+  }, [theme]);
 
   const toggleTheme = useCallback(() => {
-    setTheme((prev) => {
-      const newTheme = prev === 'light' ? 'dark' : 'light';
-      const html = document.documentElement;
-      html.classList.remove('light', 'dark');
-      html.classList.add(newTheme);
-
-      // Clear inline styles
-      document.body.style.backgroundColor = '';
-      document.body.style.color = '';
-
-      try {
-        localStorage.setItem('theme', newTheme);
-      } catch {}
-      return newTheme;
-    });
+    const current = getThemeSnapshot();
+    const newTheme: Theme = current === 'light' ? 'dark' : 'light';
+    try {
+      localStorage.setItem('theme', newTheme);
+    } catch {}
+    themeListeners.forEach((listener) => listener());
   }, []);
 
   return (

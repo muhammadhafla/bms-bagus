@@ -54,8 +54,8 @@ export default function KategoriPage() {
     nama: null,
   });
 
-  const fetchKategoris = useCallback(async () => {
-    setLoading(true);
+  const fetchKategoris = useCallback(async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     const result = await kategoriApi.getAll();
     if (result.error) {
       toast.error('Gagal memuat data kategori');
@@ -66,8 +66,20 @@ export default function KategoriPage() {
   }, []);
 
   useEffect(() => {
-    fetchKategoris();
-  }, [fetchKategoris]);
+    let active = true;
+    kategoriApi.getAll().then((result) => {
+      if (!active) return;
+      if (result.error) {
+        toast.error('Gagal memuat data kategori');
+      } else {
+        setKategoris(result.data || []);
+      }
+      setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleOpenModal = (kategori?: Kategori) => {
     if (kategori) {
@@ -102,8 +114,6 @@ export default function KategoriPage() {
           prev.map((k) => (k.id === editingId ? { ...k, nama: formNama } : k)),
         );
         queryClient.invalidateQueries({ queryKey: queryKeys.kategori.all });
-        queryClient.invalidateQueries({ queryKey: ['kategoris'] });
-        queryClient.invalidateQueries({ queryKey: ['kategori-list'] });
         queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
         handleCloseModal();
       }
@@ -115,8 +125,6 @@ export default function KategoriPage() {
         toast.success('Kategori berhasil ditambahkan');
         setKategoris((prev) => [...prev, result.data as Kategori]);
         queryClient.invalidateQueries({ queryKey: queryKeys.kategori.all });
-        queryClient.invalidateQueries({ queryKey: ['kategoris'] });
-        queryClient.invalidateQueries({ queryKey: ['kategori-list'] });
         queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
         handleCloseModal();
       }
@@ -133,8 +141,6 @@ export default function KategoriPage() {
       toast.success('Kategori berhasil dihapus');
       setKategoris((prev) => prev.filter((k) => k.id !== deleteConfirm.id));
       queryClient.invalidateQueries({ queryKey: queryKeys.kategori.all });
-      queryClient.invalidateQueries({ queryKey: ['kategoris'] });
-      queryClient.invalidateQueries({ queryKey: ['kategori-list'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
     }
     setDeleteConfirm({ isOpen: false, id: null, nama: null });

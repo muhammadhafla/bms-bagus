@@ -27,8 +27,10 @@ import { gudangApi, transferStokApi } from '@/lib/api/warehouse';
 import { inventoryApi } from '@/lib/api';
 import { supabase } from '@/lib/api/client';
 import { Gudang, TransferStok } from '@/types/warehouse';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/lib/auth';
 import { useTransferStore } from '@/lib/store/useTransferStore';
+import { invalidateWarehouseMutation } from '@/lib/queryKeys';
 import { WarehouseBarcodeSearch, WarehouseBarcodeSearchRef, WarehouseSearchResultItem } from '@/components/warehouse/WarehouseBarcodeSearch';
 import { TransferItemCart } from '@/components/warehouse/TransferItemCart';
 import { TransferCheckoutPanel } from '@/components/warehouse/TransferCheckoutPanel';
@@ -48,7 +50,14 @@ function NewTransferContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const { user, profile, hasRole, isAdmin } = useAuthStore();
+  const { user, profile, hasRole, isAdmin } = useAuthStore(
+    useShallow((state) => ({
+      user: state.user,
+      profile: state.profile,
+      hasRole: state.hasRole,
+      isAdmin: state.isAdmin,
+    })),
+  );
   const isSupervisorOrAdmin = isAdmin() || hasRole('kepala_cabang');
 
   const paramAsal = searchParams.get('asal') || (!isSupervisorOrAdmin ? profile?.default_gudang_id : null);
@@ -283,9 +292,7 @@ function NewTransferContent() {
       const transferDoc = fullRes.data || res.data;
       setCreatedTransfer(transferDoc);
 
-      queryClient.invalidateQueries({ queryKey: ['warehouse-transfers'] });
-      queryClient.invalidateQueries({ queryKey: ['warehouse-stocks'] });
-      queryClient.invalidateQueries({ queryKey: ['warehouse-summary'] });
+      invalidateWarehouseMutation(queryClient);
 
       toast.success(
         autoKirim

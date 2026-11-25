@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
 const defaultSidebarState = {
   operasionalExpanded: true,
@@ -14,35 +14,65 @@ const defaultSidebarState = {
 
 type SidebarState = typeof defaultSidebarState;
 
+const STORAGE_KEY = 'bms-sidebar-state';
+const sidebarListeners = new Set<() => void>();
+let cachedRaw: string | null = null;
+let cachedSnapshot: SidebarState = defaultSidebarState;
+
+function subscribeSidebarState(listener: () => void) {
+  sidebarListeners.add(listener);
+  const handleStorage = (e: StorageEvent) => {
+    if (e.key === STORAGE_KEY) listener();
+  };
+  window.addEventListener('storage', handleStorage);
+  return () => {
+    sidebarListeners.delete(listener);
+    window.removeEventListener('storage', handleStorage);
+  };
+}
+
+function getSidebarSnapshot(): SidebarState {
+  if (typeof window === 'undefined') return defaultSidebarState;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw === cachedRaw) return cachedSnapshot;
+    cachedRaw = raw;
+    cachedSnapshot = raw ? { ...defaultSidebarState, ...JSON.parse(raw) } : defaultSidebarState;
+    return cachedSnapshot;
+  } catch {
+    return defaultSidebarState;
+  }
+}
+
+function getServerSidebarSnapshot(): SidebarState {
+  return defaultSidebarState;
+}
+
 export function useSidebarState() {
-  const [state, setState] = useState<SidebarState>(defaultSidebarState);
-  const [isMounted, setIsMounted] = useState(false);
+  const state = useSyncExternalStore(
+    subscribeSidebarState,
+    getSidebarSnapshot,
+    getServerSidebarSnapshot,
+  );
 
-  useEffect(() => {
-    setIsMounted(true);
-    try {
-      const stored = localStorage.getItem('bms-sidebar-state');
-      if (stored) {
-        setState((prev) => ({ ...prev, ...JSON.parse(stored) }));
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    if (!isMounted) return;
-    try {
-      localStorage.setItem('bms-sidebar-state', JSON.stringify(state));
-    } catch {}
-  }, [state, isMounted]);
-
-  const setField = <K extends keyof SidebarState>(
-    key: K,
-    value: SidebarState[K] | ((p: SidebarState[K]) => SidebarState[K]),
-  ) =>
-    setState((prev) => ({
-      ...prev,
-      [key]: typeof value === 'function' ? (value as any)(prev[key]) : value,
-    }));
+  const setField = useCallback(
+    <K extends keyof SidebarState>(
+      key: K,
+      value: SidebarState[K] | ((p: SidebarState[K]) => SidebarState[K]),
+    ) => {
+      const current = getSidebarSnapshot();
+      const nextValue = typeof value === 'function' ? (value as (p: SidebarState[K]) => SidebarState[K])(current[key]) : value;
+      const nextState: SidebarState = { ...current, [key]: nextValue };
+      const serialized = JSON.stringify(nextState);
+      cachedRaw = serialized;
+      cachedSnapshot = nextState;
+      try {
+        localStorage.setItem(STORAGE_KEY, serialized);
+      } catch {}
+      sidebarListeners.forEach((listener) => listener());
+    },
+    [],
+  );
 
   return {
     ...state,
@@ -54,15 +84,15 @@ export function useSidebarState() {
       setField('inventoryExpanded', v),
     setWarehouseExpanded: (v: boolean | ((p: boolean) => boolean)) =>
       setField('warehouseExpanded', v),
-    setFinanceExpanded: (v: boolean | ((p: boolean) => boolean)) => 
+    setFinanceExpanded: (v: boolean | ((p: boolean) => boolean)) =>
       setField('financeExpanded', v),
-    setPayrollExpanded: (v: boolean | ((p: boolean) => boolean)) => 
+    setPayrollExpanded: (v: boolean | ((p: boolean) => boolean)) =>
       setField('payrollExpanded', v),
-    setReportsExpanded: (v: boolean | ((p: boolean) => boolean)) => 
+    setReportsExpanded: (v: boolean | ((p: boolean) => boolean)) =>
       setField('reportsExpanded', v),
-    setMasterExpanded: (v: boolean | ((p: boolean) => boolean)) => 
+    setMasterExpanded: (v: boolean | ((p: boolean) => boolean)) =>
       setField('masterExpanded', v),
-    setAutoHideEnabled: (v: boolean | ((p: boolean) => boolean)) => 
+    setAutoHideEnabled: (v: boolean | ((p: boolean) => boolean)) =>
       setField('autoHideEnabled', v),
   };
 }

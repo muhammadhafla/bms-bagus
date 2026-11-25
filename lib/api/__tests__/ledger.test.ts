@@ -72,4 +72,51 @@ describe('ledgerApi', () => {
       await expect(ledgerApi.getBukuBesar('2026-01-01')).rejects.toThrow('RPC timeout');
     });
   });
+
+  describe('getBukuBesarPaginated', () => {
+    it('forwards pagination filters to get_ledger_paginated and normalizes numeric fields', async () => {
+      rpcMock.mockResolvedValue({
+        data: {
+          items: [{ id: 'row-1', nominal: 50000, saldo_berjalan: 150000 }],
+          total_count: 24,
+          total_pemasukan: 200000,
+          total_pengeluaran: 50000,
+          opening_balance: 100000,
+          net_balance: 150000,
+          closing_balance: 250000,
+          page: 2,
+          limit: 25,
+        },
+        error: null,
+      });
+
+      const result = await ledgerApi.getBukuBesarPaginated({
+        startDate: '2026-11-01',
+        endDate: '2026-11-24',
+        tipe: 'PEMASUKAN',
+        page: 2,
+        limit: 25,
+      });
+
+      expect(rpcMock).toHaveBeenCalledWith('get_ledger_paginated', {
+        p_start_date: '2026-11-01',
+        p_end_date: '2026-11-24',
+        p_tipe: 'PEMASUKAN',
+        p_sumber: undefined,
+        p_search: undefined,
+        p_gudang_id: undefined,
+        p_page: 2,
+        p_limit: 25,
+      });
+      expect(result.total_count).toBe(24);
+      expect(result.opening_balance).toBe(100000);
+      expect(result.closing_balance).toBe(250000);
+      expect(result.items).toHaveLength(1);
+    });
+
+    it('throws when get_ledger_paginated RPC returns an error', async () => {
+      rpcMock.mockResolvedValue({ data: null, error: new Error('Query failed') });
+      await expect(ledgerApi.getBukuBesarPaginated({ page: 1 })).rejects.toThrow('Query failed');
+    });
+  });
 });

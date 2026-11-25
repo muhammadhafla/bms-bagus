@@ -5,6 +5,7 @@ import { inventoryApi } from '@/lib/api/inventory';
 import { useState, useRef, useEffect } from 'react';
 
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 
 interface LowStockAlertProps {
   items: LowStockItem[];
@@ -33,7 +34,7 @@ function LowStockItemRow({ item }: { item: LowStockItem }) {
   const handleDiscontinue = async () => {
     setIsLoading(true);
     await inventoryApi.toggleDiscontinued(item.id);
-    await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     setIsLoading(false);
     setShowConfirm(false);
   };
@@ -41,7 +42,7 @@ function LowStockItemRow({ item }: { item: LowStockItem }) {
   const handleSnooze = async (days: number) => {
     setIsLoading(true);
     await inventoryApi.snoozeLowStock(item.id, days);
-    await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     setIsLoading(false);
     setShowSnooze(false);
   };

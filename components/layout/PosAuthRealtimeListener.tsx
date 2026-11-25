@@ -4,10 +4,12 @@ import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/api/client';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/lib/auth';
 import { playChime } from '@/lib/utils/audio-feedback';
 import { toast } from 'sonner';
 import { PosAuthorization } from '@/types/pos-auth';
+import { invalidatePosAuthMutation } from '@/lib/queryKeys';
 import {
   IconShieldLock,
   IconSettings,
@@ -98,7 +100,14 @@ const DEFAULT_ACTION_STYLE: ActionStyle = {
 export function PosAuthRealtimeListener() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { profile, isAdmin, isKepalaGudang, isKepalaCabang } = useAuthStore();
+  const { profile, isAdmin, isKepalaGudang, isKepalaCabang } = useAuthStore(
+    useShallow((state) => ({
+      profile: state.profile,
+      isAdmin: state.isAdmin,
+      isKepalaGudang: state.isKepalaGudang,
+      isKepalaCabang: state.isKepalaCabang,
+    })),
+  );
 
   useEffect(() => {
     // Hanya pasang listener jika user adalah Admin, Kepala Gudang, atau Kepala Cabang
@@ -116,8 +125,7 @@ export function PosAuthRealtimeListener() {
         },
         (payload) => {
           // Invalidate cache query agar UI auto-update
-          queryClient.invalidateQueries({ queryKey: ['pos-auth-active'] });
-          queryClient.invalidateQueries({ queryKey: ['pos-auth-history'] });
+          invalidatePosAuthMutation(queryClient);
 
           // Tangani event INSERT baru
           if (payload.eventType === 'INSERT') {

@@ -31,6 +31,7 @@ import { helpDocsApi } from '@/lib/api/help-docs';
 import { useAuthStore, useIsAdmin } from '@/lib/auth';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 
 function EditorContent() {
   const router = useRouter();
@@ -38,7 +39,7 @@ function EditorContent() {
   const editId = searchParams.get('id');
   const queryClient = useQueryClient();
 
-  const { initialized } = useAuthStore();
+  const initialized = useAuthStore((state) => state.initialized);
   const isAdminUser = useIsAdmin();
 
   // Form State
@@ -159,8 +160,8 @@ function EditorContent() {
           toast.error(`Gagal memperbarui dokumen: ${res.error.message}`);
         } else {
           toast.success('Dokumen SOP berhasil diperbarui');
-          queryClient.invalidateQueries({ queryKey: ['help-articles'] });
-          queryClient.invalidateQueries({ queryKey: ['help-article', slug] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.help.articles });
+          queryClient.invalidateQueries({ queryKey: queryKeys.help.article(slug) });
           router.push(`/help?topic=${slug}`);
         }
       } else {
@@ -178,7 +179,7 @@ function EditorContent() {
           toast.error(`Gagal membuat dokumen: ${res.error.message}`);
         } else {
           toast.success('Dokumen SOP baru berhasil dibuat dan dipublikasikan');
-          queryClient.invalidateQueries({ queryKey: ['help-articles'] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.help.articles });
           router.push(`/help?topic=${slug}`);
         }
       }
@@ -199,7 +200,7 @@ function EditorContent() {
         toast.error(`Gagal menghapus dokumen: ${res.error.message}`);
       } else {
         toast.success('Dokumen SOP berhasil dihapus');
-        queryClient.invalidateQueries({ queryKey: ['help-articles'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.help.articles });
         router.push('/help');
       }
     } catch (err: any) {

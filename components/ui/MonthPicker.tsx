@@ -43,20 +43,20 @@ export function MonthPicker({
   const initialYear = getYear(initialDate);
 
   const [viewYear, setViewYear] = useState(initialYear);
-  const lastParsedYearRef = useRef<number | null>(initialYear);
+  const [prevValue, setPrevValue] = useState(value);
 
-  // Sync view year if value changed externally
-  useEffect(() => {
+  // Sync view year if value changed externally during render
+  if (value !== prevValue) {
+    setPrevValue(value);
     if (value) {
       try {
         const y = getYear(parse(value, 'yyyy-MM', new Date()));
-        if (lastParsedYearRef.current !== y) {
-          lastParsedYearRef.current = y;
+        if (y !== viewYear) {
           setViewYear(y);
         }
       } catch {}
     }
-  }, [value]);
+  }
 
   useEffect(() => {
     if (variant === 'inline') return;
@@ -84,7 +84,6 @@ export function MonthPicker({
   const handleSelectMonth = (monthIndex: number) => {
     const yearStr = viewYear.toString();
     const monthStr = (monthIndex + 1).toString().padStart(2, '0');
-    lastParsedYearRef.current = viewYear;
     onChange(`${yearStr}-${monthStr}`);
     if (variant === 'popover') {
       setIsOpen(false);

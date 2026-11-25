@@ -30,6 +30,7 @@ import { PrintHistoryTable } from './components/PrintHistoryTable';
 import { PrintHistoryMobileList } from './components/PrintHistoryMobileList';
 import { PrintFilterSidebar } from './components/PrintFilterSidebar';
 import { gudangApi } from '@/lib/api/warehouse';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/lib/auth';
 import { Gudang } from '@/types/warehouse';
 
@@ -37,7 +38,9 @@ function PrintHistoryContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { profile, isAdmin } = useAuthStore();
+  const { profile, isAdmin } = useAuthStore(
+    useShallow((state) => ({ profile: state.profile, isAdmin: state.isAdmin })),
+  );
 
   const [jobs, setJobs] = useState<PrintJob[]>([]);
   const [warehouses, setWarehouses] = useState<Gudang[]>([]);

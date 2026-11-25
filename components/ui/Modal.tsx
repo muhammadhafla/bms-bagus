@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useCallback, useId, useState } from 'react';
+import { useEffect, useCallback, useId, useSyncExternalStore } from 'react';
+
+const emptySubscribe = () => () => {};
 
 import { Portal } from './Portal';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
@@ -61,11 +63,11 @@ export function Modal({
   useBodyScrollLock(isOpen);
 
   const isDesktop = useMediaQuery('(min-width: 640px)');
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
 
   if (!isOpen) return null;
 

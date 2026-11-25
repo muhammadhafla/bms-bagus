@@ -51,7 +51,7 @@ export default function TransferDetailModal({
   userGudangId,
   renderStatusBadge,
 }: TransferDetailModalProps) {
-  const { isAdmin } = useAuthStore();
+  const isAdmin = useAuthStore((state) => state.isAdmin);
 
   if (!selectedTransfer) return null;
 

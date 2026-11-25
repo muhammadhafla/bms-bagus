@@ -32,11 +32,16 @@ const nextConfig: NextConfig = {
       ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
       : '*.supabase.co';
 
+    const scriptSrc =
+      process.env.NODE_ENV === 'production'
+        ? "script-src 'self' 'unsafe-inline';"
+        : "script-src 'self' 'unsafe-inline' 'unsafe-eval';";
+
     const cspHeader = `
       default-src 'self';
       base-uri 'none';
       object-src 'none';
-      script-src 'self' 'unsafe-inline' 'unsafe-eval';
+      ${scriptSrc}
       style-src 'self' 'unsafe-inline';
       img-src 'self' data: https:;
       connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://vitals.vercel-insights.com https://va.vercel-scripts.com;
@@ -48,6 +53,10 @@ const nextConfig: NextConfig = {
       {
         source: '/:path*',
         headers: [
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains',
+          },
           {
             key: 'Content-Security-Policy',
             value: cspHeader,

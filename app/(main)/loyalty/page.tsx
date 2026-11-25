@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -29,12 +30,31 @@ import LoyaltyRewardsTab from '@/components/loyalty/LoyaltyRewardsTab';
 import LoyaltyVouchersTab from '@/components/loyalty/LoyaltyVouchersTab';
 import LoyaltyBroadcastTab from '@/components/loyalty/LoyaltyBroadcastTab';
 import { PageLoadingSpinner } from '@/components/ui';
+import { sanitizeSearchQuery } from '@/lib/utils';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
+const VOUCHER_LIMIT = 20;
+
+interface LoyaltyDashboardMetricsRpc {
+  committed_budget: number;
+  realized_budget: number;
+  active_vouchers_count: number;
+  used_vouchers_count: number;
+  total_members_count: number;
+  total_points_in_circulation: number;
+  active_fcm_devices_count: number;
+}
 
 export default function LoyaltyPage() {
   const router = useRouter();
-  const { isAdmin, initialized, user, profile } = useAuthStore();
+  const { isAdmin, initialized, user, profile } = useAuthStore(
+    useShallow((state) => ({
+      isAdmin: state.isAdmin,
+      initialized: state.initialized,
+      user: state.user,
+      profile: state.profile,
+    })),
+  );
 
   const [activeTab, setActiveTab] = useState<'overview' | 'rewards' | 'vouchers' | 'broadcast'>(
     'overview',
@@ -45,6 +65,11 @@ export default function LoyaltyPage() {
   const [settings, setSettings] = useState<LoyaltySettings | null>(null);
   const [rewards, setRewards] = useState<PointReward[]>([]);
   const [vouchers, setVouchers] = useState<MemberVoucher[]>([]);
+  const [voucherPage, setVoucherPage] = useState(1);
+  const [voucherTotalCount, setVoucherTotalCount] = useState(0);
+  const [voucherStatusFilter, setVoucherStatusFilter] = useState<'all' | 'active' | 'used' | 'expired'>('all');
+  const [voucherSearch, setVoucherSearch] = useState('');
+  const [debouncedVoucherSearch, setDebouncedVoucherSearch] = useState('');
   const [metrics, setMetrics] = useState<LoyaltyBudgetMetrics>({
     monthlyBudgetCap: 3000000,
     committedBudget: 0,
@@ -60,6 +85,20 @@ export default function LoyaltyPage() {
     totalPointsRedeemed: 0,
   });
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedVoucherSearch(voucherSearch);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [voucherSearch]);
+
+  const voucherFilterKey = `${voucherStatusFilter}|${debouncedVoucherSearch}`;
+  const [prevVoucherFilterKey, setPrevVoucherFilterKey] = useState(voucherFilterKey);
+  if (voucherFilterKey !== prevVoucherFilterKey) {
+    setPrevVoucherFilterKey(voucherFilterKey);
+    setVoucherPage(1);
+  }
+
   // Proteksi Akses Khusus Admin
   useEffect(() => {
     const isAuthFullyLoaded = initialized && (!user || profile !== null);
@@ -70,32 +109,11 @@ export default function LoyaltyPage() {
 
   const loadAllData = useCallback(async () => {
     try {
-      // 1. Ambil Pengaturan Anggaran Loyalitas
-      const { data: settingsData } = await supabase
-        .from('loyalty_settings')
-        .select('*')
-        .eq('id', 'default')
-        .maybeSingle();
+      const from = (voucherPage - 1) * VOUCHER_LIMIT;
+      const to = from + VOUCHER_LIMIT - 1;
+      const nowIso = new Date().toISOString();
 
-      const currentSettings: LoyaltySettings = settingsData || {
-        id: 'default',
-        monthly_budget_cap: 3000000,
-        max_active_vouchers_per_member: 2,
-        is_redemption_locked: false,
-        point_to_idr_ratio: 1.0,
-      };
-      setSettings(currentSettings);
-
-      // 2. Ambil Katalog Rewards
-      const { data: rewardsData } = await supabase
-        .from('point_rewards')
-        .select('*')
-        .order('points_required', { ascending: true });
-
-      setRewards((rewardsData as PointReward[]) || []);
-
-      // 3. Ambil Voucher Member + Member detail
-      const { data: vouchersData } = await supabase
+      let vouchersQuery = supabase
         .from('member_vouchers')
         .select(
           `
@@ -103,57 +121,52 @@ export default function LoyaltyPage() {
           members ( name, whatsapp_number ),
           point_rewards ( title, image_url )
         `,
+          { count: 'exact' },
         )
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
-      const parsedVouchers = (vouchersData as MemberVoucher[]) || [];
-      setVouchers(parsedVouchers);
+      if (voucherStatusFilter === 'active') {
+        vouchersQuery = vouchersQuery.eq('status', 'active').gte('expires_at', nowIso);
+      } else if (voucherStatusFilter === 'used') {
+        vouchersQuery = vouchersQuery.eq('status', 'used');
+      } else if (voucherStatusFilter === 'expired') {
+        vouchersQuery = vouchersQuery.eq('status', 'active').lt('expires_at', nowIso);
+      }
 
-      // 4. Hitung Metrik & Pengendalian Anggaran (Bulan Berjalan)
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-
-      let committed = 0;
-      let realized = 0;
-      let activeCount = 0;
-      let usedCount = 0;
-
-      parsedVouchers.forEach((v) => {
-        const isCurrentMonth = new Date(v.created_at) >= new Date(startOfMonth);
-        const isExpired = new Date(v.expires_at) < now;
-
-        if (v.status === 'active' && !isExpired) {
-          activeCount++;
-          if (isCurrentMonth) {
-            committed += Number(v.discount_nominal || 0);
-          }
-        } else if (v.status === 'used') {
-          usedCount++;
-          if (isCurrentMonth) {
-            committed += Number(v.discount_nominal || 0);
-            realized += Number(v.discount_nominal || 0);
-          }
-        }
-      });
-
-      // 5. Total Member & Saldo Poin
-      const { count: memberCount, data: memberPointsData } = await supabase
-        .from('members')
-        .select('points', { count: 'exact' });
-
-      let totalPoints = 0;
-      if (memberPointsData) {
-        totalPoints = memberPointsData.reduce(
-          (sum: number, m: any) => sum + Number(m.points || 0),
-          0,
+      const cleanSearch = sanitizeSearchQuery(debouncedVoucherSearch);
+      if (cleanSearch) {
+        vouchersQuery = vouchersQuery.or(
+          `voucher_code.ilike.%${cleanSearch}%,title.ilike.%${cleanSearch}%`,
         );
       }
 
-      // 6. Total Token FCM aktif
-      const { count: fcmCount } = await supabase
-        .from('member_fcm_tokens')
-        .select('*', { count: 'exact', head: true });
+      const [settingsRes, rewardsRes, vouchersRes, metricsRes] = await Promise.all([
+        supabase.from('loyalty_settings').select('*').eq('id', 'default').maybeSingle(),
+        supabase.from('point_rewards').select('*').order('points_required', { ascending: true }),
+        vouchersQuery,
+        supabase.rpc('get_loyalty_dashboard_metrics'),
+      ]);
 
+      const currentSettings: LoyaltySettings = settingsRes.data || {
+        id: 'default',
+        monthly_budget_cap: 3000000,
+        max_active_vouchers_per_member: 2,
+        is_redemption_locked: false,
+        point_to_idr_ratio: 1.0,
+      };
+      setSettings(currentSettings);
+      setRewards((rewardsRes.data as PointReward[]) || []);
+      setVouchers((vouchersRes.data as MemberVoucher[]) || []);
+      setVoucherTotalCount(vouchersRes.count ?? 0);
+
+      if (metricsRes.error) {
+        throw metricsRes.error;
+      }
+
+      const rpcMetrics = (metricsRes.data || {}) as unknown as LoyaltyDashboardMetricsRpc;
+      const committed = Number(rpcMetrics.committed_budget || 0);
+      const realized = Number(rpcMetrics.realized_budget || 0);
       const budgetCap = Number(currentSettings.monthly_budget_cap) || 3000000;
       const remaining = Math.max(0, budgetCap - committed);
       const usagePercent = budgetCap > 0 ? (committed / budgetCap) * 100 : 0;
@@ -165,11 +178,11 @@ export default function LoyaltyPage() {
         remainingBudget: remaining,
         usagePercentage: usagePercent,
         isLocked: currentSettings.is_redemption_locked || committed >= budgetCap,
-        activeVouchersCount: activeCount,
-        usedVouchersCount: usedCount,
-        totalMembersCount: memberCount || 0,
-        activeFcmDevicesCount: fcmCount || 0,
-        totalPointsInCirculation: totalPoints,
+        activeVouchersCount: Number(rpcMetrics.active_vouchers_count || 0),
+        usedVouchersCount: Number(rpcMetrics.used_vouchers_count || 0),
+        totalMembersCount: Number(rpcMetrics.total_members_count || 0),
+        activeFcmDevicesCount: Number(rpcMetrics.active_fcm_devices_count || 0),
+        totalPointsInCirculation: Number(rpcMetrics.total_points_in_circulation || 0),
         totalPointsRedeemed: committed,
       });
     } catch (err: any) {
@@ -179,7 +192,7 @@ export default function LoyaltyPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [voucherPage, voucherStatusFilter, debouncedVoucherSearch]);
 
   useEffect(() => {
     if (initialized && isAdmin()) {
@@ -242,7 +255,7 @@ export default function LoyaltyPage() {
             {[
               { id: 'overview', label: 'Ringkasan & Anggaran', icon: IconChartBar },
               { id: 'rewards', label: 'Katalog Reward', icon: IconGift, count: rewards.length },
-              { id: 'vouchers', label: 'Voucher Member', icon: IconReceipt2, count: vouchers.length },
+              { id: 'vouchers', label: 'Voucher Member', icon: IconReceipt2, count: voucherTotalCount },
               { id: 'broadcast', label: 'Broadcast Notifikasi (FCM)', icon: IconBellRinging },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -291,7 +304,18 @@ export default function LoyaltyPage() {
           )}
 
           {activeTab === 'vouchers' && (
-            <LoyaltyVouchersTab vouchers={vouchers} onRefresh={loadAllData} />
+            <LoyaltyVouchersTab
+              vouchers={vouchers}
+              onRefresh={loadAllData}
+              page={voucherPage}
+              totalCount={voucherTotalCount}
+              limit={VOUCHER_LIMIT}
+              onPageChange={setVoucherPage}
+              statusFilter={voucherStatusFilter}
+              onStatusFilterChange={setVoucherStatusFilter}
+              searchQuery={voucherSearch}
+              onSearchQueryChange={setVoucherSearch}
+            />
           )}
 
           {activeTab === 'broadcast' && <LoyaltyBroadcastTab />}

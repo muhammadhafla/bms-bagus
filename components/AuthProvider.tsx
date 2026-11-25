@@ -1,14 +1,23 @@
 'use client';
 
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/lib/auth';
 
 // Priority 3: 5 menit fallback mutlak untuk check session
 const SESSION_CHECK_INTERVAL = 300000;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { initialize, cleanup, initialized, checkAndRefreshSession, user, profile } =
-    useAuthStore();
+  const { initialize, cleanup, initialized, checkAndRefreshSession, user, profile } = useAuthStore(
+    useShallow((state) => ({
+      initialize: state.initialize,
+      cleanup: state.cleanup,
+      initialized: state.initialized,
+      checkAndRefreshSession: state.checkAndRefreshSession,
+      user: state.user,
+      profile: state.profile,
+    })),
+  );
   const prevUserIdRef = useRef<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);

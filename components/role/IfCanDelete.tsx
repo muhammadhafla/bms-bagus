@@ -1,5 +1,6 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/lib/auth';
 
 interface IfCanDeleteProps {
@@ -15,10 +16,12 @@ export const IfCanDelete: React.FC<IfCanDeleteProps> = ({
   status,
   fallback = null,
 }) => {
-  const { isAdmin, user } = useAuthStore((state) => ({
-    isAdmin: state.isAdmin(),
-    user: state.user,
-  }));
+  const { isAdmin, user } = useAuthStore(
+    useShallow((state) => ({
+      isAdmin: state.isAdmin(),
+      user: state.user,
+    })),
+  );
 
   if (isAdmin) {
     return <>{children}</>;

@@ -5,8 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { debounce, formatDateWIB, normalizeBarcode } from '@/lib/utils';
 import { StockOpname, StockOpnameItem, stockOpnameApi } from '@/lib/api/stockOpname';
 import { stockAdjustmentApi } from '@/lib/api/stockAdjustment';
-import { inventoryApi } from '@/lib/api';
-import { useQuery } from '@tanstack/react-query';
 import {
   IconArrowLeft,
   IconCheck,
@@ -79,13 +77,6 @@ export default function StockOpnameDetailPage() {
   const [showConfirmDiscard, setShowConfirmDiscard] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
 
-  const { data: inventoryData } = useQuery({
-    queryKey: ['inventory', 'all'],
-    queryFn: async () => {
-      const res = await inventoryApi.getAll();
-      return res.data || [];
-    },
-  });
   const addToast = ({ type, message }: { type: 'success' | 'error' | 'info'; message: string }) => {
     toast(message);
   };
@@ -114,8 +105,29 @@ export default function StockOpnameDetailPage() {
   }, [opnameId]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    let active = true;
+    Promise.all([stockOpnameApi.getById(opnameId), stockOpnameApi.getItems(opnameId)]).then(
+      ([opnameResult, itemsResult]) => {
+        if (!active) return;
+        if (!opnameResult.error && opnameResult.data) {
+          setOpname(opnameResult.data);
+        } else if (opnameResult.error) {
+          console.error('Error fetching opname:', opnameResult.error);
+        }
+        if (!itemsResult.error && itemsResult.data) {
+          setItems(itemsResult.data);
+          setOriginalItems(JSON.parse(JSON.stringify(itemsResult.data)));
+          setHasChanges(false);
+        } else if (itemsResult.error) {
+          console.error('Error fetching items:', itemsResult.error);
+        }
+        setLoading(false);
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [opnameId]);
 
   const updateItem = (itemId: string, field: string, value: string | number | null) => {
     if (opname?.status !== 'draft') return;
@@ -154,22 +166,26 @@ export default function StockOpnameDetailPage() {
     setSaveProgress({ current: 0, total: changedItems.length });
 
     try {
-      let current = 0;
-      for (const item of changedItems) {
+      const changedPayload = changedItems.map((item) => {
         const cleanPhysicalStock =
           item.physical_stock === '' || isNaN(Number(item.physical_stock))
             ? 0
             : Number(item.physical_stock);
 
-        await stockOpnameApi.updateItem(item.id, {
+        return {
+          id: item.id,
           physical_stock: cleanPhysicalStock,
-          system_stock: item.system_stock,
-          reason: item.reason || undefined,
-          note: item.note || undefined,
-        });
-        current++;
-        setSaveProgress({ current, total: changedItems.length });
+          reason: item.reason || null,
+          note: item.note || null,
+        };
+      });
+
+      const bulkRes = await stockOpnameApi.bulkUpdateItems(opnameId, changedPayload);
+      if (bulkRes.error) {
+        throw bulkRes.error;
       }
+
+      setSaveProgress({ current: changedItems.length, total: changedItems.length });
 
       const normalizedItems = items.map((item) => ({
         ...item,

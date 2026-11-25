@@ -9,6 +9,7 @@ import { PriceInput } from '@/components/ui/PriceInput';
 import TextareaInput from '@/components/ui/TextareaInput';
 import { kasApi } from '@/lib/api';
 import { gudangApi } from '@/lib/api/warehouse';
+import { queryKeys, invalidateFinanceMutation } from '@/lib/queryKeys';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -19,12 +20,14 @@ interface ManualKasModalProps {
 }
 
 export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: ManualKasModalProps) {
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  const [prevDefaultType, setPrevDefaultType] = useState(defaultType);
   const [tipe, setTipe] = useState<'SETOR' | 'TARIK'>(defaultType);
   const [kategori, setKategori] = useState<'OPERASIONAL' | 'GAJI' | 'KASBON' | 'SETORAN' | 'LAIN_LAIN'>('OPERASIONAL');
   const [jumlah, setJumlah] = useState<number | null>(null);
   const [catatan, setCatatan] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
-  const [gudangId, setGudangId] = useState('');
+  const [selectedGudangId, setSelectedGudangId] = useState('');
 
   const queryClient = useQueryClient();
 
@@ -34,18 +37,23 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
   });
   const gudangList = useMemo(() => gudangRes?.data || [], [gudangRes?.data]);
 
-  // Reset form when opened with new type & set default gudang
-  useEffect(() => {
+  const defaultGudangId = (gudangList.find((g) => g.is_default) || gudangList[0])?.id || '';
+  const gudangId = selectedGudangId || defaultGudangId;
+  const setGudangId = setSelectedGudangId;
+
+  // Reset form when opened with new type
+  if (isOpen !== prevIsOpen || defaultType !== prevDefaultType) {
+    setPrevIsOpen(isOpen);
+    setPrevDefaultType(defaultType);
     if (isOpen) {
       setTipe(defaultType);
       setKategori('OPERASIONAL');
       setJumlah(null);
       setCatatan('');
       setPaymentMethod('CASH');
-      const def = gudangList.find((g) => g.is_default) || gudangList[0];
-      setGudangId(def?.id || '');
+      setSelectedGudangId('');
     }
-  }, [isOpen, defaultType, gudangList]);
+  }
 
   const mutation = useMutation({
     mutationFn: kasApi.addManualEntry,
@@ -55,9 +63,7 @@ export function ManualKasModal({ isOpen, onClose, defaultType = 'SETOR' }: Manua
         return;
       }
       toast.success('Pencatatan kas berhasil');
-      queryClient.invalidateQueries({ queryKey: ['kas_log'] });
-      queryClient.invalidateQueries({ queryKey: ['shift_balance'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      invalidateFinanceMutation(queryClient);
       onClose();
     },
     onError: (err: any) => {

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { InventoryItem } from '@/types/inventory';
+import { getLocalDateString } from '@/lib/utils';
 
 export interface CartItem extends InventoryItem {
   qty: number;
@@ -37,7 +38,7 @@ export const usePembelianStore = create<PembelianStore>()(
     (set, get) => ({
       items: [],
       supplierId: null,
-      tanggal: new Date().toISOString().split('T')[0],
+      tanggal: getLocalDateString(),
       nomorNota: '',
       totalSupplier: 0,
       editId: null,
@@ -148,7 +149,7 @@ export const usePembelianStore = create<PembelianStore>()(
         set({
           items: [],
           supplierId: null,
-          tanggal: new Date().toISOString().split('T')[0],
+          tanggal: getLocalDateString(),
           nomorNota: '',
           totalSupplier: 0,
           editId: null,

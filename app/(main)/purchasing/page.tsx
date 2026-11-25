@@ -13,7 +13,7 @@ import {
   Supplier,
 } from '@/lib/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/lib/queryKeys';
+import { queryKeys, invalidatePurchasingMutation } from '@/lib/queryKeys';
 import { InventoryItem } from '@/types/inventory';
 import {
   formatCurrency,
@@ -226,13 +226,7 @@ function PembelianPageContent() {
         setSupplier('');
 
         // Invalidate stale caches across modules
-        queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
-        queryClient.invalidateQueries({ queryKey: queryKeys.warehouse.stocksAll });
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
-        queryClient.invalidateQueries({ queryKey: queryKeys.transactions.pembelianAll });
-        queryClient.invalidateQueries({ queryKey: ['kas_log'] });
-        queryClient.invalidateQueries({ queryKey: ['cash_flow_summary'] });
-        queryClient.invalidateQueries({ queryKey: ['buku_besar'] });
+        invalidatePurchasingMutation(queryClient);
 
         router.push('/transactions/history?type=pembelian');
       } else {
@@ -268,13 +262,7 @@ function PembelianPageContent() {
         setSupplier('');
 
         // Invalidate stale caches across modules
-        queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
-        queryClient.invalidateQueries({ queryKey: queryKeys.warehouse.stocksAll });
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
-        queryClient.invalidateQueries({ queryKey: queryKeys.transactions.pembelianAll });
-        queryClient.invalidateQueries({ queryKey: ['kas_log'] });
-        queryClient.invalidateQueries({ queryKey: ['cash_flow_summary'] });
-        queryClient.invalidateQueries({ queryKey: ['buku_besar'] });
+        invalidatePurchasingMutation(queryClient);
       }
     } catch (err: any) {
       toast.error(err.message || 'Terjadi kesalahan saat menyimpan transaksi');

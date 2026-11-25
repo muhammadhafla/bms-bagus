@@ -96,4 +96,139 @@ export const queryKeys = {
     articles: ['help-articles'] as const,
     article: (slug: string) => ['help-article', slug] as const,
   },
+
+  // POS Authorization
+  posAuth: {
+    all: ['pos-auth'] as const,
+    active: ['pos-auth-active'] as const,
+    history: ['pos-auth-history'] as const,
+    historyList: (filters: Record<string, unknown>) =>
+      ['pos-auth-history', filters] as const,
+  },
+
+  // Analytics & Reports
+  analytics: {
+    all: ['analytics'] as const,
+    summary: (startDate: string, endDate: string) =>
+      ['analytics', 'dashboard_summary', startDate, endDate] as const,
+    returns: (startDate: string, endDate: string) =>
+      ['analytics', 'returns', startDate, endDate] as const,
+    salesTrend: (startDate: string, endDate: string, groupBy: string) =>
+      ['analytics', 'salesTrend', startDate, endDate, groupBy] as const,
+  },
+
+  reports: {
+    all: ['report'] as const,
+    sales: (params: readonly unknown[]) => ['report', 'sales', ...params] as const,
+    profit: (params: readonly unknown[]) => ['report', 'profit', ...params] as const,
+    stock: (params: readonly unknown[]) => ['report', 'stock', ...params] as const,
+    topItems: (params: readonly unknown[]) => ['report', 'top_items', ...params] as const,
+    inventoryValue: (params: readonly unknown[]) =>
+      ['report', 'inventory_value', ...params] as const,
+  },
+
+  // Ledger & Cash Flow
+  ledger: {
+    all: ['buku_besar'] as const,
+    paginated: (filters: Record<string, unknown>) =>
+      ['buku_besar', 'paginated', filters] as const,
+    printPreview: (filters: Record<string, unknown>) =>
+      ['buku_besar', 'print_preview', filters] as const,
+  },
+
+  cashFlow: {
+    kasLog: ['kas_log'] as const,
+    kasSummary: ['kas_summary'] as const,
+    cashFlowSummary: ['cash_flow_summary'] as const,
+    shiftSummary: ['shift_summary'] as const,
+    shiftBalance: ['shift_balance'] as const,
+    activeShifts: ['active-shifts'] as const,
+    operasional: ['pengeluaran_operasional'] as const,
+  },
+
+  // Warehouse Operations
+  warehouseOps: {
+    masterList: ['warehouse-list-master'] as const,
+    transfers: ['warehouse-transfers'] as const,
+    outbounds: ['warehouse-outbounds'] as const,
+    summary: ['warehouse-summary'] as const,
+  },
+
+  // Members, Users, Loyalty
+  members: {
+    all: ['members'] as const,
+  },
+  users: {
+    all: ['users'] as const,
+  },
+  loyalty: {
+    all: ['loyalty'] as const,
+  },
 };
+
+export interface QueryInvalidator {
+  invalidateQueries: (options: { queryKey: readonly unknown[] }) => Promise<unknown> | void;
+}
+
+/**
+ * Helper invalidasi lintas modul setelah mutasi inventaris / stok gudang.
+ */
+export async function invalidateInventoryMutation(client: QueryInvalidator) {
+  await Promise.all([
+    client.invalidateQueries({ queryKey: queryKeys.inventory.all }),
+    client.invalidateQueries({ queryKey: queryKeys.warehouse.stocksAll }),
+    client.invalidateQueries({ queryKey: queryKeys.warehouseOps.summary }),
+    client.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
+  ]);
+}
+
+/**
+ * Helper invalidasi lintas modul setelah mutasi kas / buku besar / kasbon.
+ */
+export async function invalidateFinanceMutation(client: QueryInvalidator) {
+  await Promise.all([
+    client.invalidateQueries({ queryKey: queryKeys.ledger.all }),
+    client.invalidateQueries({ queryKey: queryKeys.cashFlow.kasLog }),
+    client.invalidateQueries({ queryKey: queryKeys.cashFlow.kasSummary }),
+    client.invalidateQueries({ queryKey: queryKeys.cashFlow.cashFlowSummary }),
+    client.invalidateQueries({ queryKey: queryKeys.cashFlow.shiftSummary }),
+    client.invalidateQueries({ queryKey: queryKeys.cashFlow.shiftBalance }),
+    client.invalidateQueries({ queryKey: queryKeys.cashFlow.activeShifts }),
+    client.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
+  ]);
+}
+
+/**
+ * Helper invalidasi lintas modul setelah transaksi pembelian / retur stok.
+ */
+export async function invalidatePurchasingMutation(client: QueryInvalidator) {
+  await Promise.all([
+    invalidateInventoryMutation(client),
+    client.invalidateQueries({ queryKey: queryKeys.transactions.pembelianAll }),
+    client.invalidateQueries({ queryKey: queryKeys.ledger.all }),
+    client.invalidateQueries({ queryKey: queryKeys.cashFlow.kasLog }),
+    client.invalidateQueries({ queryKey: queryKeys.cashFlow.cashFlowSummary }),
+  ]);
+}
+
+/**
+ * Helper invalidasi antrean & riwayat otorisasi POS realtime.
+ */
+export async function invalidatePosAuthMutation(client: QueryInvalidator) {
+  await Promise.all([
+    client.invalidateQueries({ queryKey: queryKeys.posAuth.active }),
+    client.invalidateQueries({ queryKey: queryKeys.posAuth.history }),
+  ]);
+}
+
+/**
+ * Helper invalidasi mutasi gudang (transfer & pengeluaran barang).
+ */
+export async function invalidateWarehouseMutation(client: QueryInvalidator) {
+  await Promise.all([
+    client.invalidateQueries({ queryKey: queryKeys.warehouse.stocksAll }),
+    client.invalidateQueries({ queryKey: queryKeys.warehouseOps.transfers }),
+    client.invalidateQueries({ queryKey: queryKeys.warehouseOps.outbounds }),
+    client.invalidateQueries({ queryKey: queryKeys.warehouseOps.summary }),
+  ]);
+}

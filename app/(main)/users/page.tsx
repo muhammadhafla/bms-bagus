@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import {
@@ -18,7 +19,7 @@ import { AmbientLayout, ModernPagination, FilterButton, PageLoadingSpinner, Spin
 import { useRouter } from 'next/navigation';
 import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
-import { formatDateWIB } from '@/lib/utils';
+import { formatDateWIB, sanitizeSearchQuery } from '@/lib/utils';
 import dynamic from 'next/dynamic';
 import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
 
@@ -66,12 +67,28 @@ export default function UsersPage() {
     defaultGudangId: null,
   });
   const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const LIMIT = 10;
-  const { isAdmin, initialized, user, profile } = useAuthStore();
+  const { isAdmin, initialized, user, profile } = useAuthStore(
+    useShallow((state) => ({
+      isAdmin: state.isAdmin,
+      initialized: state.initialized,
+      user: state.user,
+      profile: state.profile,
+    })),
+  );
   const router = useRouter();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     const isAuthFullyLoaded = initialized && (!user || profile !== null);
@@ -80,51 +97,73 @@ export default function UsersPage() {
     }
   }, [initialized, isAdmin, router, user, profile]);
 
+  const buildUsersQuery = useCallback(
+    (targetPage: number, searchTerm: string, targetRole: string) => {
+      const from = (targetPage - 1) * LIMIT;
+      const to = from + LIMIT - 1;
+      let query = supabase
+        .from('profiles')
+        .select('*, default_gudang:default_gudang_id ( id, nama, kode_gudang )', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      const cleanSearch = sanitizeSearchQuery(searchTerm);
+      if (cleanSearch) {
+        query = query.or(
+          `nama.ilike.%${cleanSearch}%,email.ilike.%${cleanSearch}%,username.ilike.%${cleanSearch}%`,
+        );
+      }
+
+      if (targetRole !== 'all') {
+        if (targetRole === 'kepala_cabang') {
+          query = query.overlaps('roles', ['kepala_cabang', 'kepala_gudang']);
+        } else {
+          query = query.contains('roles', [targetRole]);
+        }
+      }
+
+      return query;
+    },
+    [],
+  );
+
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*, default_gudang:default_gudang_id ( id, nama, kode_gudang )')
-      .order('created_at', { ascending: false });
+    const { data, count, error } = await buildUsersQuery(page, debouncedSearch, roleFilter);
 
     if (error) {
       toast.error('Gagal memuat data user');
     } else {
       setUsers((data as unknown as UserProfile[]) || []);
+      setTotalCount(count ?? 0);
     }
     setLoading(false);
-  }, []);
+  }, [buildUsersQuery, page, debouncedSearch, roleFilter]);
 
   useEffect(() => {
-    if (initialized && isAdmin()) {
-      fetchUsers();
-    }
-  }, [fetchUsers, initialized, isAdmin, profile]);
-
-  const filteredUsers = useMemo(() => {
-    return users.filter((u) => {
-      const matchesSearch =
-        u.nama.toLowerCase().includes(search.toLowerCase()) ||
-        (u.email && u.email.toLowerCase().includes(search.toLowerCase())) ||
-        (u.username && u.username.toLowerCase().includes(search.toLowerCase()));
-
-      let matchesRole = true;
-      if (roleFilter !== 'all') {
-        const userRoles = u.roles || [];
-        if (roleFilter === 'kepala_cabang') {
-          matchesRole = userRoles.includes('kepala_cabang') || userRoles.includes('kepala_gudang');
-        } else {
-          matchesRole = userRoles.includes(roleFilter);
-        }
+    if (!initialized || !isAdmin()) return;
+    let active = true;
+    buildUsersQuery(page, debouncedSearch, roleFilter).then(({ data, count, error }) => {
+      if (!active) return;
+      if (error) {
+        toast.error('Gagal memuat data user');
+      } else {
+        setUsers((data as unknown as UserProfile[]) || []);
+        setTotalCount(count ?? 0);
       }
-
-      return matchesSearch && matchesRole;
+      setLoading(false);
     });
-  }, [users, search, roleFilter]);
+    return () => {
+      active = false;
+    };
+  }, [buildUsersQuery, page, debouncedSearch, roleFilter, initialized, isAdmin, profile]);
 
-  useEffect(() => {
+  const userFilterKey = `${debouncedSearch}|${roleFilter}`;
+  const [prevUserFilterKey, setPrevUserFilterKey] = useState(userFilterKey);
+  if (userFilterKey !== prevUserFilterKey) {
+    setPrevUserFilterKey(userFilterKey);
     setPage(1);
-  }, [search, roleFilter]);
+  }
 
   if (!initialized) {
     return <PageLoadingSpinner />;
@@ -134,8 +173,9 @@ export default function UsersPage() {
     return null;
   }
 
-  const totalPages = Math.ceil(filteredUsers.length / LIMIT) || 1;
-  const pagedUsers = filteredUsers.slice((page - 1) * LIMIT, page * LIMIT);
+  const totalPages = Math.ceil(totalCount / LIMIT) || 1;
+  const pagedUsers = users;
+  const filteredUsers = users;
 
   return (
     <AmbientLayout>
@@ -467,7 +507,7 @@ export default function UsersPage() {
             </div>
 
             {/* Pagination */}
-            {!loading && users.length > LIMIT && (
+            {!loading && totalCount > LIMIT && (
               <ModernPagination
                 page={page}
                 totalPages={totalPages}

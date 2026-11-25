@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { kasbonApi, Kasbon, karyawanApi } from '@/lib/api/payroll';
 import { kasApi } from '@/lib/api/kas';
 import { gudangApi } from '@/lib/api/warehouse';
+import { queryKeys, invalidateFinanceMutation } from '@/lib/queryKeys';
 import { Card, DataTable, Button, Modal, Tabs, TextareaInput, Badge, SelectInput, TextInput, DateRangePicker, FilterButton, ModernPagination, type Column } from '@/components/ui';
 import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
 import { IconWallet, IconCheck, IconX, IconPlus, IconArrowDown } from '@tabler/icons-react';
@@ -88,21 +89,17 @@ export default function AdminKasbonClient() {
   });
   const gudangList = useMemo(() => gudangRes?.data || [], [gudangRes?.data]);
 
+  const defaultGudangId = (gudangList.find((g) => g.is_default) || gudangList[0])?.id || '';
+
   const [approveMetode, setApproveMetode] = useState<'TRANSFER' | 'CASH_KASIR'>('TRANSFER');
-  const [approveGudangId, setApproveGudangId] = useState('');
-  const [approveShiftId, setApproveShiftId] = useState('');
+  const [selectedApproveGudangId, setApproveGudangId] = useState('');
+  const approveGudangId = selectedApproveGudangId || defaultGudangId;
+  const [selectedApproveShiftId, setApproveShiftId] = useState('');
 
   const [createMetode, setCreateMetode] = useState<'TRANSFER' | 'CASH_KASIR'>('TRANSFER');
-  const [createGudangId, setCreateGudangId] = useState('');
-  const [createShiftId, setCreateShiftId] = useState('');
-
-  useEffect(() => {
-    if (gudangList.length > 0) {
-      const def = gudangList.find((g) => g.is_default) || gudangList[0];
-      if (!approveGudangId && def?.id) setApproveGudangId(def.id);
-      if (!createGudangId && def?.id) setCreateGudangId(def.id);
-    }
-  }, [gudangList, approveGudangId, createGudangId]);
+  const [selectedCreateGudangId, setCreateGudangId] = useState('');
+  const createGudangId = selectedCreateGudangId || defaultGudangId;
+  const [selectedCreateShiftId, setCreateShiftId] = useState('');
 
   // Active shifts query for approve modal
   const { data: approveShiftsRes } = useQuery({
@@ -120,25 +117,12 @@ export default function AdminKasbonClient() {
   });
   const createShifts = useMemo(() => createShiftsRes?.data || [], [createShiftsRes?.data]);
 
-  useEffect(() => {
-    if (approveShifts.length > 0) {
-      if (!approveShiftId || !approveShifts.some(s => s.id === approveShiftId)) {
-        setApproveShiftId(approveShifts[0].id);
-      }
-    } else {
-      setApproveShiftId('');
-    }
-  }, [approveShifts, approveShiftId]);
-
-  useEffect(() => {
-    if (createShifts.length > 0) {
-      if (!createShiftId || !createShifts.some(s => s.id === createShiftId)) {
-        setCreateShiftId(createShifts[0].id);
-      }
-    } else {
-      setCreateShiftId('');
-    }
-  }, [createShifts, createShiftId]);
+  const approveShiftId = approveShifts.some((s) => s.id === selectedApproveShiftId)
+    ? selectedApproveShiftId
+    : approveShifts[0]?.id || '';
+  const createShiftId = createShifts.some((s) => s.id === selectedCreateShiftId)
+    ? selectedCreateShiftId
+    : createShifts[0]?.id || '';
 
   const list = kasbonData?.data || [];
   const totalItems = kasbonData?.total || 0;
@@ -171,10 +155,8 @@ export default function AdminKasbonClient() {
       setConfirmReject(null);
       setRejectReason('');
       setApproveMetode('TRANSFER');
-      queryClient.invalidateQueries({ queryKey: ['admin_payroll_kasbon'] });
-      queryClient.invalidateQueries({ queryKey: ['buku_besar'] });
-      queryClient.invalidateQueries({ queryKey: ['kas_log'] });
-      queryClient.invalidateQueries({ queryKey: ['active-shifts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminKasbon });
+      invalidateFinanceMutation(queryClient);
     },
     onError: () => toast.error('Terjadi kesalahan sistem'),
   });
@@ -226,10 +208,8 @@ export default function AdminKasbonClient() {
       setCreateNominal('');
       setCreateKeterangan('');
       setCreateMetode('TRANSFER');
-      queryClient.invalidateQueries({ queryKey: ['admin_payroll_kasbon'] });
-      queryClient.invalidateQueries({ queryKey: ['buku_besar'] });
-      queryClient.invalidateQueries({ queryKey: ['kas_log'] });
-      queryClient.invalidateQueries({ queryKey: ['active-shifts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminKasbon });
+      invalidateFinanceMutation(queryClient);
     },
     onError: (err: any) => toast.error(err.message || 'Terjadi kesalahan sistem'),
   });

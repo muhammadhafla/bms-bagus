@@ -46,6 +46,7 @@ import CheckboxInput from '@/components/ui/CheckboxInput';
 import { API_ERROR_MESSAGES, UI_MESSAGES, INVENTORY_MESSAGES } from '@/lib/constants';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useKategoris } from '@/lib/hooks/useKategoris';
+import { queryKeys } from '@/lib/queryKeys';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 
@@ -63,18 +64,23 @@ export default function InventoryPageClient() {
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'nama_barang');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>((searchParams.get('sortDir') as any) || 'asc');
   const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
+  const urlLimitParam = Number(searchParams.get('limit'));
+  const [limit, setLimit] = useState(urlLimitParam > 0 ? Math.min(100, urlLimitParam) : 25);
   const isMobile = useMediaQuery('(max-width: 768px)');
-  const ITEMS_PER_PAGE = isMobile ? 20 : 50;
+  const ITEMS_PER_PAGE = limit;
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const lastPushedSearchRef = useRef(searchParams.get('search') || '');
   const queryClient = useQueryClient();
 
   // Sync state from URL when external navigation occurs (e.g. sidebar click or back/forward)
-  useEffect(() => {
+  const searchParamsString = searchParams.toString();
+  const [prevSearchParamsString, setPrevSearchParamsString] = useState(searchParamsString);
+  const [prevUrlSearch, setPrevUrlSearch] = useState(searchParams.get('search') || '');
+  if (searchParamsString !== prevSearchParamsString) {
+    setPrevSearchParamsString(searchParamsString);
     const urlSearch = searchParams.get('search') || '';
     const urlKategori = searchParams.get('kategori') || '';
     const urlLowStock = searchParams.get('lowStockOnly') === 'true';
@@ -82,20 +88,25 @@ export default function InventoryPageClient() {
     const urlSortBy = searchParams.get('sortBy') || 'nama_barang';
     const urlSortDir = (searchParams.get('sortDir') as any) || 'asc';
     const urlPage = Number(searchParams.get('page')) || 1;
+    const urlLimitRaw = Number(searchParams.get('limit'));
+    const urlLimit = urlLimitRaw > 0 ? Math.min(100, urlLimitRaw) : 25;
 
-    if (urlSearch !== lastPushedSearchRef.current) {
-      setSearch(urlSearch);
-      setDebouncedSearch(urlSearch);
-      lastPushedSearchRef.current = urlSearch;
+    if (urlSearch !== prevUrlSearch) {
+      setPrevUrlSearch(urlSearch);
+      if (urlSearch !== debouncedSearch) {
+        setSearch(urlSearch);
+        setDebouncedSearch(urlSearch);
+      }
     }
 
-    setKategori((prev) => (prev !== urlKategori ? urlKategori : prev));
-    setLowStockOnly((prev) => (prev !== urlLowStock ? urlLowStock : prev));
-    setActiveStatus((prev) => (prev !== urlStatus ? urlStatus : prev));
-    setSortBy((prev) => (prev !== urlSortBy ? urlSortBy : prev));
-    setSortDir((prev) => (prev !== urlSortDir ? urlSortDir : prev));
-    setPage((prev) => (prev !== urlPage ? urlPage : prev));
-  }, [searchParams]);
+    if (kategori !== urlKategori) setKategori(urlKategori);
+    if (lowStockOnly !== urlLowStock) setLowStockOnly(urlLowStock);
+    if (activeStatus !== urlStatus) setActiveStatus(urlStatus);
+    if (sortBy !== urlSortBy) setSortBy(urlSortBy);
+    if (sortDir !== urlSortDir) setSortDir(urlSortDir);
+    if (page !== urlPage) setPage(urlPage);
+    if (limit !== urlLimit) setLimit(urlLimit);
+  }
 
   // Sync state to URL
   useEffect(() => {
@@ -107,16 +118,16 @@ export default function InventoryPageClient() {
     if (sortBy !== 'nama_barang') params.set('sortBy', sortBy);
     if (sortDir !== 'asc') params.set('sortDir', sortDir);
     if (page > 1) params.set('page', page.toString());
+    if (limit !== 25) params.set('limit', limit.toString());
 
     const queryString = params.toString();
     const newUrl = `${pathname}${queryString ? '?' + queryString : ''}`;
     
     const currentQueryString = searchParams.toString();
     if (queryString !== currentQueryString) {
-      lastPushedSearchRef.current = debouncedSearch;
       router.replace(newUrl, { scroll: false });
     }
-  }, [debouncedSearch, kategori, lowStockOnly, activeStatus, sortBy, sortDir, page, pathname, router, searchParams]);
+  }, [debouncedSearch, kategori, lowStockOnly, activeStatus, sortBy, sortDir, page, limit, pathname, router, searchParams]);
 
   // Debounce search
   useEffect(() => {
@@ -127,9 +138,12 @@ export default function InventoryPageClient() {
   }, [search]);
 
   // Reset page when filters change
-  useEffect(() => {
+  const filterKey = `${debouncedSearch}|${kategori}|${lowStockOnly}|${activeStatus}|${sortBy}|${sortDir}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
     setPage(1);
-  }, [debouncedSearch, kategori, lowStockOnly, activeStatus, sortBy, sortDir]);
+  }
 
   const { data: kategoriResponse } = useKategoris();
 
@@ -145,19 +159,16 @@ export default function InventoryPageClient() {
     error: queryError,
     refetch,
   } = useQuery({
-    queryKey: [
-      'inventory',
-      {
-        page,
-        limit: ITEMS_PER_PAGE,
-        search: debouncedSearch,
-        categoryId,
-        lowStockOnly,
-        activeStatus,
-        sortBy,
-        sortDir,
-      },
-    ],
+    queryKey: queryKeys.inventory.list({
+      page,
+      limit: ITEMS_PER_PAGE,
+      search: debouncedSearch,
+      categoryId,
+      lowStockOnly,
+      activeStatus,
+      sortBy,
+      sortDir,
+    }),
     queryFn: () =>
       inventoryApi.getPaginated({
         page,
@@ -186,7 +197,7 @@ export default function InventoryPageClient() {
   const handleUpdate = useCallback(
     (id: string, data: Partial<InventoryItem>) => {
       // InventoryTable already handles the API call, we just need to invalidate the cache
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
     },
     [queryClient],
   );
@@ -199,8 +210,7 @@ export default function InventoryPageClient() {
         return false;
       }
       toast.success('Barang berhasil dihapus');
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory', 'low-stock-count'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
       return true;
     },
     [queryClient],

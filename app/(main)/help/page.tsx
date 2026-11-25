@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/lib/auth';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useQuery } from '@tanstack/react-query';
@@ -48,14 +49,25 @@ const STATIC_SEQUENCE: { id: HelpTopicId; title: string; categoryTitle: string }
 ];
 
 function HelpContent() {
-  const { user, profile } = useAuthStore();
+  const { user, profile } = useAuthStore(
+    useShallow((state) => ({ user: state.user, profile: state.profile })),
+  );
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [activeTopic, setActiveTopic] = useState<HelpTopicId>('roles-overview');
+  const topicParam = searchParams.get('topic') || searchParams.get('doc') || '';
+  const [prevTopicParam, setPrevTopicParam] = useState(topicParam);
+  const [activeTopic, setActiveTopic] = useState<HelpTopicId>(topicParam || 'roles-overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
   const [sidebarFilter, setSidebarFilter] = useState('');
+
+  if (topicParam !== prevTopicParam) {
+    setPrevTopicParam(topicParam);
+    if (topicParam) {
+      setActiveTopic(topicParam);
+    }
+  }
 
   // Fetch dynamic articles list from Supabase
   const { data: dynamicArticlesRes } = useQuery({
@@ -71,14 +83,6 @@ function HelpContent() {
   const dynamicArticle = isDynamicTopic
     ? dynamicArticles.find((art) => art.slug === activeTopic)
     : null;
-
-  // Sync URL search params (?topic=... or ?doc=...)
-  useEffect(() => {
-    const topicParam = searchParams.get('topic') || searchParams.get('doc');
-    if (topicParam) {
-      setActiveTopic(topicParam);
-    }
-  }, [searchParams]);
 
   const handleSelectTopic = (topicId: HelpTopicId) => {
     setActiveTopic(topicId);

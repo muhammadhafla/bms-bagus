@@ -31,6 +31,7 @@ import {
 } from '@/components/ui';
 import { AdminOnly } from '@/components/role';
 import { formatDateForInputWIB } from '@/lib/utils';
+import { queryKeys } from '@/lib/queryKeys';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 
@@ -276,7 +277,7 @@ function AnalyticsContent() {
   const showFilterButton = ['sales', 'profit', 'top_items'].includes(activeTab);
 
   const handleRefresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['analytics'] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all });
   };
 
   return (

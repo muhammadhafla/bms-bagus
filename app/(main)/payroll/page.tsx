@@ -1,7 +1,7 @@
 // Force reload
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, differenceInMinutes, set, isAfter, isBefore, differenceInSeconds } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Modal, Button, TextareaInput } from '@/components/ui';
 import { useAuthStore } from '@/lib/auth';
 import { useRealtimeQuery } from '@/lib/hooks/useRealtimeQuery';
+import { queryKeys } from '@/lib/queryKeys';
 
 // Haversine formula in frontend
 function getDistanceFromLatLonInM(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -31,25 +32,36 @@ function deg2rad(deg: number) {
   return deg * (Math.PI/180);
 }
 
+const emptySubscribe = () => () => {};
+
 export default function PayrollDashboardPage() {
   const [time, setTime] = useState<Date | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
-  const [workDuration, setWorkDuration] = useState<string>('--:--');
+  const isMounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
+  const isGeolocationSupported = useSyncExternalStore(
+    emptySubscribe,
+    () => typeof navigator !== 'undefined' && 'geolocation' in navigator,
+    () => true,
+  );
   const queryClient = useQueryClient();
 
   // GPS State
   const [coords, setCoords] = useState<{lat: number, lng: number, accuracy?: number} | null>(null);
-  const [geoStatus, setGeoStatus] = useState<'checking' | 'valid' | 'out_of_bounds' | 'denied' | 'error'>('checking');
-  const [closestStoreName, setClosestStoreName] = useState<string | null>(null);
+  const [watchGeoStatus, setWatchGeoStatus] = useState<'checking' | 'denied' | 'error'>('checking');
 
   // Realtime clock
   useEffect(() => {
-    setIsMounted(true);
-    setTime(new Date());
+    const initialTick = setTimeout(() => setTime(new Date()), 0);
     const timer = setInterval(() => {
       setTime(new Date());
     }, 1000);
-    return () => clearInterval(timer);
+    return () => {
+      clearTimeout(initialTick);
+      clearInterval(timer);
+    };
   }, []);
 
   // Fetch lokasi kerja (toko/cabang)
@@ -62,7 +74,7 @@ export default function PayrollDashboardPage() {
   
   const handleManualRetry = () => {
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      setGeoStatus('checking');
+      setWatchGeoStatus('checking');
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude, accuracy } = position.coords;
@@ -71,10 +83,10 @@ export default function PayrollDashboardPage() {
         },
         (error) => {
           if (error.code === error.PERMISSION_DENIED) {
-            setGeoStatus('denied');
+            setWatchGeoStatus('denied');
             toast.error(`Akses ditolak: ${error.message}`);
           } else {
-            setGeoStatus('error');
+            setWatchGeoStatus('error');
             toast.error(`GPS Error (${error.code}): ${error.message}`);
           }
         },
@@ -86,12 +98,9 @@ export default function PayrollDashboardPage() {
   // Track GPS Location with accuracy
   useEffect(() => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setGeoStatus('error');
       return;
     }
 
-    setGeoStatus('checking');
-    
     // Watch position to update constantly
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
@@ -100,9 +109,9 @@ export default function PayrollDashboardPage() {
       },
       (error) => {
         if (error.code === error.PERMISSION_DENIED) {
-          setGeoStatus('denied');
+          setWatchGeoStatus('denied');
         } else {
-          setGeoStatus('error');
+          setWatchGeoStatus('error');
         }
       },
       { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
@@ -112,11 +121,19 @@ export default function PayrollDashboardPage() {
   }, [retryCount]);
 
   // Validate coords against stores with dynamic accuracy tolerance (up to +30m buffer)
-  useEffect(() => {
-    if (!coords || !stores || stores.length === 0) return;
-    
+  const { closestStoreName, geoStatus } = useMemo<{
+    closestStoreName: string | null;
+    geoStatus: 'checking' | 'valid' | 'out_of_bounds' | 'denied' | 'error';
+  }>(() => {
+    if (!isGeolocationSupported) {
+      return { closestStoreName: null, geoStatus: 'error' };
+    }
+    if (!coords || !stores || stores.length === 0) {
+      return { closestStoreName: null, geoStatus: watchGeoStatus };
+    }
+
     let closestDist = 9999999;
-    let closestName = null;
+    let closestName: string | null = null;
     let isValid = false;
 
     for (const store of stores) {
@@ -131,13 +148,11 @@ export default function PayrollDashboardPage() {
       }
     }
 
-    setClosestStoreName(closestName);
-    if (isValid) {
-      setGeoStatus('valid');
-    } else {
-      setGeoStatus('out_of_bounds');
-    }
-  }, [coords, stores]);
+    return {
+      closestStoreName: closestName,
+      geoStatus: isValid ? 'valid' : 'out_of_bounds',
+    };
+  }, [isGeolocationSupported, coords, stores, watchGeoStatus]);
 
   const user = useAuthStore((state) => state.user);
 
@@ -175,7 +190,7 @@ export default function PayrollDashboardPage() {
   });
 
   // Live work duration counter
-  useEffect(() => {
+  const workDuration = useMemo(() => {
     if (todayStatus && todayStatus.status_hadir === 'hadir' && todayStatus.waktu_masuk) {
       if (!todayStatus.waktu_pulang && time) {
         const masuk = new Date(todayStatus.waktu_masuk);
@@ -184,21 +199,21 @@ export default function PayrollDashboardPage() {
           const h = Math.floor(diffSec / 3600);
           const m = Math.floor((diffSec % 3600) / 60);
           const s = diffSec % 60;
-          setWorkDuration(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+          return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
       } else if (todayStatus.waktu_pulang) {
-         const masuk = new Date(todayStatus.waktu_masuk);
-         const pulang = new Date(todayStatus.waktu_pulang);
-         const diffSec = differenceInSeconds(pulang, masuk);
-         if (diffSec >= 0) {
+        const masuk = new Date(todayStatus.waktu_masuk);
+        const pulang = new Date(todayStatus.waktu_pulang);
+        const diffSec = differenceInSeconds(pulang, masuk);
+        if (diffSec >= 0) {
           const h = Math.floor(diffSec / 3600);
           const m = Math.floor((diffSec % 3600) / 60);
-          setWorkDuration(`${h.toString().padStart(2, '0')}j ${m.toString().padStart(2, '0')}m`);
-         }
+          return `${h.toString().padStart(2, '0')}j ${m.toString().padStart(2, '0')}m`;
+        }
       }
-    } else {
-      setWorkDuration('--:--:--');
+      return '--:--';
     }
+    return '--:--:--';
   }, [time, todayStatus]);
 
   // State Modal Pulang Awal
@@ -217,7 +232,7 @@ export default function PayrollDashboardPage() {
         return;
       }
       toast.success('Berhasil absen masuk!');
-      queryClient.invalidateQueries({ queryKey: ['payroll'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.payroll.all });
     },
     onError: (err: any) => toast.error(err.message || 'Terjadi kesalahan sistem'),
   });
@@ -242,7 +257,7 @@ export default function PayrollDashboardPage() {
 
       setIsModalPulangAwalOpen(false);
       setAlasanPulangAwal('');
-      queryClient.invalidateQueries({ queryKey: ['payroll'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.payroll.all });
     },
     onError: (err: any) => toast.error(err.message || 'Terjadi kesalahan sistem'),
   });

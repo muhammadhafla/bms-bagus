@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { usePembelianStore } from './store';
 import { InventoryItem } from '@/types/inventory';
+import { getLocalDateString } from './utils';
 
 const createMockItem = (overrides = {}): InventoryItem => ({
   id: 'inv-1',
@@ -189,7 +190,7 @@ describe('usePembelianStore', () => {
     });
 
     it('should reset supplier and tanggal', () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDateString();
       getStore().setSupplier('sup-123');
       getStore().setTanggal('2020-01-15');
       getStore().setTotalSupplier(100000);

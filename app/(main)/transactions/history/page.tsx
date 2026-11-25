@@ -23,6 +23,7 @@ import {
 import { ResponsivePanel } from '@/components/ui/ResponsivePanel';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { gudangApi } from '@/lib/api/warehouse';
+import { queryKeys } from '@/lib/queryKeys';
 import dynamic from 'next/dynamic';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
@@ -194,10 +195,10 @@ function TransactionsHistoryContent() {
     <PullToRefresh
       onRefresh={async () => {
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['penjualan'] }),
-          queryClient.invalidateQueries({ queryKey: ['pembelian'] }),
-          queryClient.invalidateQueries({ queryKey: ['retur_penjualan'] }),
-          queryClient.invalidateQueries({ queryKey: ['retur_pembelian'] }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.transactions.penjualanAll }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.transactions.pembelianAll }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.transactions.returPenjualanAll }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.transactions.returPembelianAll }),
         ]);
       }}
       pullingContent={

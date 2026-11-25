@@ -31,6 +31,8 @@ import {
 import { pengeluaranGudangApi, gudangApi, warehouseStockApi } from '@/lib/api/warehouse';
 import { PengeluaranGudang, TipePengeluaranGudang, Gudang, StatusPengeluaranGudang } from '@/types/warehouse';
 import { formatCurrency, formatDateWIB } from '@/lib/utils';
+import { queryKeys, invalidateWarehouseMutation } from '@/lib/queryKeys';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/lib/auth';
 
 interface OutboundCartItem {
@@ -54,7 +56,14 @@ export default function WarehouseOutboundPage() {
 function WarehouseOutboundContent() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const { user, profile, hasRole, isAdmin } = useAuthStore();
+  const { user, profile, hasRole, isAdmin } = useAuthStore(
+    useShallow((state) => ({
+      user: state.user,
+      profile: state.profile,
+      hasRole: state.hasRole,
+      isAdmin: state.isAdmin,
+    })),
+  );
   const isSupervisorOrAdmin = isAdmin() || hasRole('kepala_cabang');
 
   const [activeTab, setActiveTab] = useState<'ALL' | 'DRAFT' | 'APPROVED' | 'REJECTED'>('ALL');
@@ -64,13 +73,21 @@ function WarehouseOutboundContent() {
   const limit = 15;
 
   // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formGudangId, setFormGudangId] = useState(profile?.default_gudang_id || '');
+  const actionParam = searchParams.get('action');
+  const [prevActionParam, setPrevActionParam] = useState(actionParam);
+  const [isModalOpen, setIsModalOpen] = useState(() => actionParam === 'new');
+  if (actionParam !== prevActionParam) {
+    setPrevActionParam(actionParam);
+    if (actionParam === 'new') {
+      setIsModalOpen(true);
+    }
+  }
+  const [selectedFormGudangId, setFormGudangId] = useState(profile?.default_gudang_id || '');
   const [formTipe, setFormTipe] = useState<TipePengeluaranGudang>('RUSAK');
   const [formCatatan, setFormCatatan] = useState('');
   const [cartItems, setCartItems] = useState<OutboundCartItem[]>([]);
   const [searchItem, setSearchItem] = useState('');
-  const [itemSearchResults, setItemSearchResults] = useState<any[]>([]);
+  const [rawItemSearchResults, setRawItemSearchResults] = useState<any[]>([]);
 
   // Detail & Action Modal State
   const [selectedDoc, setSelectedDoc] = useState<PengeluaranGudang | null>(null);
@@ -84,23 +101,15 @@ function WarehouseOutboundContent() {
   });
   const gudangList: Gudang[] = useMemo(() => gudangRes?.data || [], [gudangRes?.data]);
 
-  // Default warehouse when modal opens
-  useEffect(() => {
-    if (gudangList.length > 0 && !formGudangId) {
-      const userDef = profile?.default_gudang_id 
-        ? gudangList.find((g) => g.id === profile.default_gudang_id) 
-        : null;
-      const def = userDef || gudangList.find((g) => g.is_default) || gudangList[0];
-      setFormGudangId(def.id);
-    }
-  }, [gudangList, formGudangId, profile?.default_gudang_id]);
-
-  // Handle URL query
-  useEffect(() => {
-    if (searchParams.get('action') === 'new') {
-      setIsModalOpen(true);
-    }
-  }, [searchParams]);
+  const defaultFormGudangId = useMemo(() => {
+    if (gudangList.length === 0) return '';
+    const userDef = profile?.default_gudang_id
+      ? gudangList.find((g) => g.id === profile.default_gudang_id)
+      : null;
+    const def = userDef || gudangList.find((g) => g.is_default) || gudangList[0];
+    return def?.id || '';
+  }, [gudangList, profile]);
+  const formGudangId = selectedFormGudangId || defaultFormGudangId;
 
   // Fetch Outbounds
   const statusParam = activeTab === 'ALL' ? undefined : activeTab;
@@ -123,7 +132,6 @@ function WarehouseOutboundContent() {
   // Search Items in Selected Warehouse
   useEffect(() => {
     if (!searchItem.trim() || !formGudangId) {
-      setItemSearchResults([]);
       return;
     }
     let cancelled = false;
@@ -132,13 +140,18 @@ function WarehouseOutboundContent() {
       .getStocksByGudang(formGudangId, { search: searchItem, limit: 8 })
       .then((res) => {
         if (cancelled) return;
-        setItemSearchResults(res.data?.data || []);
+        setRawItemSearchResults(res.data?.data || []);
       });
 
     return () => {
       cancelled = true;
     };
   }, [searchItem, formGudangId]);
+
+  const itemSearchResults = useMemo(
+    () => (!searchItem.trim() || !formGudangId ? [] : rawItemSearchResults),
+    [searchItem, formGudangId, rawItemSearchResults],
+  );
 
   // Cart Handlers
   const handleAddItemToCart = (item: any) => {
@@ -160,7 +173,7 @@ function WarehouseOutboundContent() {
       },
     ]);
     setSearchItem('');
-    setItemSearchResults([]);
+    setRawItemSearchResults([]);
   };
 
   const handleRemoveCartItem = (inventoryId: string) => {
@@ -213,9 +226,7 @@ function WarehouseOutboundContent() {
           ? 'Pengeluaran barang disetujui & stok fisik telah dipotong'
           : 'Draft pengajuan pengeluaran berhasil diajukan untuk ditinjau Supervisor',
       );
-      queryClient.invalidateQueries({ queryKey: ['warehouse-outbounds'] });
-      queryClient.invalidateQueries({ queryKey: ['warehouse-stocks'] });
-      queryClient.invalidateQueries({ queryKey: ['warehouse-summary'] });
+      invalidateWarehouseMutation(queryClient);
       setIsModalOpen(false);
       setCartItems([]);
       setFormCatatan('');
@@ -234,9 +245,7 @@ function WarehouseOutboundContent() {
     },
     onSuccess: () => {
       toast.success('Pengajuan pengeluaran telah disetujui, stok fisik dipotong & jurnal beban tercatat');
-      queryClient.invalidateQueries({ queryKey: ['warehouse-outbounds'] });
-      queryClient.invalidateQueries({ queryKey: ['warehouse-stocks'] });
-      queryClient.invalidateQueries({ queryKey: ['warehouse-summary'] });
+      invalidateWarehouseMutation(queryClient);
       setSelectedDoc(null);
     },
     onError: (err: any) => {
@@ -253,7 +262,7 @@ function WarehouseOutboundContent() {
     },
     onSuccess: () => {
       toast.info('Pengajuan pengeluaran barang ditolak');
-      queryClient.invalidateQueries({ queryKey: ['warehouse-outbounds'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.warehouseOps.outbounds });
       setSelectedDoc(null);
       setShowRejectInput(false);
       setRejectNote('');

@@ -65,14 +65,7 @@ export default function PromoEditor({ id }: { id?: string }) {
   const [editMode, setEditMode] = useState<'diskon' | null>(null);
   const [editValue, setEditValue] = useState<number>(0);
 
-  // Load Inventory for Fuzzy Search
-  const [inventoryData, setInventoryData] = useState<InventoryItem[]>([]);
-
   useEffect(() => {
-    inventoryApi.getAll().then((res) => {
-      if (res.data) setInventoryData(res.data);
-    });
-
     if (!isNew && id) {
       promoApi.getById(id).then((res) => {
         if (res.data) {
@@ -99,13 +92,13 @@ export default function PromoEditor({ id }: { id?: string }) {
         setSearchSelectedIndex(-1);
         return;
       }
-      const result = await inventoryApi.fuzzySearch(query, inventoryData);
+      const result = await inventoryApi.fuzzySearch(query);
       if (!result.error && result.data) {
         setInventorySearchResults(result.data as (InventoryItem & { similarity: number })[]);
         setShowAddDropdown(true);
       }
     },
-    [inventoryData],
+    [],
   );
 
   const debouncedSearch = useMemo(
@@ -145,13 +138,13 @@ export default function PromoEditor({ id }: { id?: string }) {
     const normalized = normalizeBarcode(input);
     if (!normalized) return;
 
-    const exactMatch = inventoryData.find((i) => i.kode_barcode === normalized);
-    if (exactMatch) {
-      handleAddResolvedItem(exactMatch);
+    const exactRes = await inventoryApi.getByExactBarcode(normalized);
+    if (exactRes.data && !exactRes.data.is_discontinued) {
+      handleAddResolvedItem(exactRes.data);
       return;
     }
 
-    const fuzzyResult = await inventoryApi.fuzzySearch(normalized, inventoryData);
+    const fuzzyResult = await inventoryApi.fuzzySearch(normalized);
     if (fuzzyResult.data && fuzzyResult.data.length > 0) {
       const match = fuzzyResult.data.find((i) => (i as any).similarity === 100);
       if (match) {
@@ -190,7 +183,6 @@ export default function PromoEditor({ id }: { id?: string }) {
 
       toast.success(isNew ? 'Promo berhasil dibuat' : 'Promo berhasil diperbarui');
       queryClient.invalidateQueries({ queryKey: queryKeys.promo.activeMap });
-      queryClient.invalidateQueries({ queryKey: ['activePromos'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.promo.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
 

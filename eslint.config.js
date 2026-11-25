@@ -9,7 +9,7 @@ module.exports = [
   prettierConfig,
   {
     rules: {
-      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/set-state-in-effect': 'error',
     },
   },
 ];

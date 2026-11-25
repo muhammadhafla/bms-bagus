@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { lokasiKerjaApi, LokasiKerja } from '@/lib/api/payroll/lokasi_kerja';
 import { IconMapPin, IconPlus, IconEdit } from '@tabler/icons-react';
 import { toast } from 'sonner';
+import { queryKeys } from '@/lib/queryKeys';
 
 import { Button, DataTable, Modal, TextInput, SelectInput, Badge, type Column } from '@/components/ui';
 
@@ -34,8 +35,8 @@ export default function LokasiKerjaAdminPage() {
       else {
         toast.success('Lokasi berhasil ditambahkan');
         setIsModalOpen(false);
-        queryClient.invalidateQueries({ queryKey: ['admin_lokasi_kerja'] });
-        queryClient.invalidateQueries({ queryKey: ['payroll', 'stores'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminLokasiKerja });
+        queryClient.invalidateQueries({ queryKey: queryKeys.payroll.stores() });
       }
     }
   });
@@ -47,8 +48,8 @@ export default function LokasiKerjaAdminPage() {
       else {
         toast.success('Lokasi berhasil diupdate');
         setIsModalOpen(false);
-        queryClient.invalidateQueries({ queryKey: ['admin_lokasi_kerja'] });
-        queryClient.invalidateQueries({ queryKey: ['payroll', 'stores'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminLokasiKerja });
+        queryClient.invalidateQueries({ queryKey: queryKeys.payroll.stores() });
       }
     }
   });

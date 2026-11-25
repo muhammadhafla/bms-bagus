@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { IconLock, IconEye, IconEyeOff, IconUser } from '@tabler/icons-react';
@@ -28,7 +29,9 @@ export function LoginForm() {
   const [identifierError, setIdentifierError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signIn, loading } = useAuthStore();
+  const { signIn, loading } = useAuthStore(
+    useShallow((state) => ({ signIn: state.signIn, loading: state.loading })),
+  );
   const identifierInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

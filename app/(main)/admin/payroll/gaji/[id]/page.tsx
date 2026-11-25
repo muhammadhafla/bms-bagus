@@ -14,6 +14,7 @@ import { id as localeId } from 'date-fns/locale';
 import { toast } from 'sonner';
 
 import { downloadOrShareFile } from '@/lib/utils/file-share';
+import { queryKeys } from '@/lib/queryKeys';
 import SlipGajiPreviewModal from '@/components/payroll/SlipGajiPreviewModal';
 import MutasiPreviewModal from '@/components/payroll/MutasiPreviewModal';
 
@@ -125,10 +126,10 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
       );
       setSelectedMutasi(null);
       setApproveMetode('TRANSFER');
-      queryClient.invalidateQueries({ queryKey: ['admin_payroll_mutasi'] });
-      queryClient.invalidateQueries({ queryKey: ['admin_payroll_saldo'] });
-      queryClient.invalidateQueries({ queryKey: ['kas_log'] });
-      queryClient.invalidateQueries({ queryKey: ['active-shifts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminMutasi });
+      queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminSaldo });
+      queryClient.invalidateQueries({ queryKey: queryKeys.cashFlow.kasLog });
+      queryClient.invalidateQueries({ queryKey: queryKeys.cashFlow.activeShifts });
     },
     onError: (err: any) => toast.error(err.message || 'Gagal menyetujui')
   });
@@ -138,7 +139,7 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
     onSuccess: () => {
       toast.success('Berhasil menolak penarikan');
       setSelectedMutasi(null);
-      queryClient.invalidateQueries({ queryKey: ['admin_payroll_mutasi'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminMutasi });
     },
     onError: (err: any) => toast.error(err.message || 'Gagal menolak')
   });
@@ -167,10 +168,10 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
       setIsCairkanOpen(false);
       setCairkanNominal('');
       setCairkanMetode('TRANSFER');
-      queryClient.invalidateQueries({ queryKey: ['admin_payroll_mutasi'] });
-      queryClient.invalidateQueries({ queryKey: ['admin_payroll_saldo'] });
-      queryClient.invalidateQueries({ queryKey: ['kas_log'] });
-      queryClient.invalidateQueries({ queryKey: ['active-shifts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminMutasi });
+      queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminSaldo });
+      queryClient.invalidateQueries({ queryKey: queryKeys.cashFlow.kasLog });
+      queryClient.invalidateQueries({ queryKey: queryKeys.cashFlow.activeShifts });
     },
     onError: (err: any) => toast.error(err.message || 'Gagal mencatat pencairan')
   });
@@ -205,8 +206,8 @@ export default function EmployeeMutasiDetail({ params }: { params: Promise<{ id:
       setIsBonusOpen(false);
       setBonusNominal('');
       setBonusKeterangan('Bonus Insentif');
-      queryClient.invalidateQueries({ queryKey: ['admin_payroll_mutasi'] });
-      queryClient.invalidateQueries({ queryKey: ['admin_payroll_saldo'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminMutasi });
+      queryClient.invalidateQueries({ queryKey: queryKeys.payroll.adminSaldo });
     },
     onError: (err: any) => toast.error(err.message || 'Gagal mencatat mutasi')
   });

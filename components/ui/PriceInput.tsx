@@ -73,20 +73,21 @@ export const PriceInput = ({
     return cleaned ? parseInt(cleaned, 10) : 0;
   }, []);
 
-  // Inisialisasi nilai awal
-  useEffect(() => {
-    if (!isFocused) {
-      setDisplayValue(value > 0 ? formatNumber(value) : '');
-    }
-  }, [value, formatNumber, isFocused]);
+  // Inisialisasi nilai tampil saat tidak fokus langsung diturunkan dari prop value
+  const effectiveDisplayValue = isFocused
+    ? displayValue
+    : value > 0
+      ? formatNumber(value)
+      : '';
 
   // Auto focus jika diperlukan
   useEffect(() => {
     if (autoFocus && inputRef.current) {
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         inputRef.current?.focus();
         inputRef.current?.select();
       }, 10);
+      return () => clearTimeout(timeoutId);
     }
   }, [autoFocus]);
 
@@ -137,11 +138,15 @@ export const PriceInput = ({
     [parseInput, formatNumber, min, max, onChange],
   );
 
-  // Handle fokus - select seluruh teks
-  const handleFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
-    setIsFocused(true);
-    e.target.select();
-  }, []);
+  // Handle fokus - seed displayValue dan select seluruh teks
+  const handleFocus = useCallback(
+    (e: React.FocusEvent<HTMLInputElement>) => {
+      setDisplayValue(value > 0 ? formatNumber(value) : '');
+      setIsFocused(true);
+      e.target.select();
+    },
+    [value, formatNumber],
+  );
 
   // Handle blur
   const handleBlur = useCallback(() => {
@@ -216,7 +221,7 @@ export const PriceInput = ({
           ref={inputRef}
           type="text"
           inputMode="numeric"
-          value={displayValue}
+          value={effectiveDisplayValue}
           onChange={handleChange}
           onFocus={handleFocus}
           onBlur={handleBlur}

@@ -10,6 +10,7 @@ import { useEffect, useRef } from 'react';
  */
 export function usePwaUpdate() {
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
+  const userTriggeredUpdateRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
@@ -17,6 +18,7 @@ export function usePwaUpdate() {
     }
 
     let isMounted = true;
+    let refreshing = false;
     let cleanupInterval: (() => void) | undefined;
 
     const applyWaitingWorker = () => {
@@ -25,6 +27,16 @@ export function usePwaUpdate() {
         reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       }
     };
+
+    const handleControllerChange = () => {
+      if (refreshing) return;
+      if (userTriggeredUpdateRef.current || document.visibilityState === 'hidden') {
+        refreshing = true;
+        window.location.reload();
+      }
+    };
+
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
 
     // When the tab is minimized, user switches apps, or tab is hidden, activate the waiting worker
     const handleVisibilityChange = () => {
@@ -84,6 +96,7 @@ export function usePwaUpdate() {
     return () => {
       isMounted = false;
       if (cleanupInterval) cleanupInterval();
+      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pagehide', handlePageHide);
     };
@@ -92,6 +105,7 @@ export function usePwaUpdate() {
   const updatePwa = () => {
     const reg = registrationRef.current;
     if (reg && reg.waiting) {
+      userTriggeredUpdateRef.current = true;
       reg.waiting.postMessage({ type: 'SKIP_WAITING' });
     } else {
       window.location.reload();

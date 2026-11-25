@@ -21,19 +21,6 @@ export const CheckboxInput = forwardRef<HTMLInputElement, CheckboxInputProps>(
     const generatedId = useId();
     const inputId = id || generatedId;
 
-    const handleClick = () => {
-      if (!disabled) {
-        onChange(!checked);
-      }
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        handleClick();
-      }
-    };
-
     return (
       <label
         htmlFor={inputId}
@@ -43,7 +30,7 @@ export const CheckboxInput = forwardRef<HTMLInputElement, CheckboxInputProps>(
           labelClassName,
         ].join(' ')}
       >
-        <div className="relative">
+        <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
           <input
             ref={ref}
             type="checkbox"
@@ -51,24 +38,20 @@ export const CheckboxInput = forwardRef<HTMLInputElement, CheckboxInputProps>(
             checked={checked}
             onChange={(e) => onChange(e.target.checked)}
             disabled={disabled}
-            className="sr-only"
+            className="peer absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
           />
-          <div
-            onClick={handleClick}
-            onKeyDown={handleKeyDown}
-            role="checkbox"
-            aria-checked={checked}
-            tabIndex={disabled ? -1 : 0}
+          <span
+            aria-hidden="true"
             className={[
-              'flex h-5 w-5 items-center justify-center rounded border-2 transition-all duration-200',
+              'pointer-events-none flex h-5 w-5 items-center justify-center rounded border-2 transition-all duration-200 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500 peer-focus-visible:ring-offset-2 dark:peer-focus-visible:ring-offset-neutral-900',
               checked
                 ? 'bg-brand-500 border-brand-500 dark:bg-brand-600 dark:border-brand-600'
-                : 'hover:border-brand-400 dark:hover:border-brand-500 border-neutral-300 bg-transparent dark:border-neutral-600',
+                : 'peer-hover:border-brand-400 dark:peer-hover:border-brand-500 border-neutral-300 bg-transparent dark:border-neutral-600',
               className,
             ].join(' ')}
           >
             {checked && <IconCheck className="h-3.5 w-3.5 text-white" strokeWidth={3} />}
-          </div>
+          </span>
         </div>
         {label && (
           <span className="font-medium text-neutral-700 select-none dark:text-neutral-300">

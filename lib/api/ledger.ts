@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { getLocalDateString } from '@/lib/utils';
 import { supabase } from './client';
 import { Database } from '@/types/supabase';
 
@@ -7,6 +7,34 @@ export type LedgerSumber = Database['public']['Enums']['ledger_sumber'];
 
 export type PengeluaranOperasional = Database['public']['Tables']['pengeluaran_operasional']['Row'];
 export type BukuBesar = Database['public']['Tables']['buku_besar']['Row'];
+
+export interface LedgerPaginatedItem {
+  id: string;
+  tanggal: string;
+  tipe_transaksi: string;
+  sumber: string;
+  referensi_id: string | null;
+  keterangan: string;
+  nominal: number;
+  created_by: string | null;
+  created_at: string;
+  gudang_id: string | null;
+  profiles: { nama: string | null } | null;
+  gudang: { id: string | null; nama: string | null; kode_gudang: string | null } | null;
+  saldo_berjalan: number;
+}
+
+export interface LedgerPaginatedResult {
+  items: LedgerPaginatedItem[];
+  total_count: number;
+  total_pemasukan: number;
+  total_pengeluaran: number;
+  opening_balance: number;
+  net_balance: number;
+  closing_balance: number;
+  page: number;
+  limit: number;
+}
 
 export const ledgerApi = {
   // Mengambil daftar Pengeluaran Operasional
@@ -99,6 +127,32 @@ export const ledgerApi = {
     return Number(data) || 0;
   },
 
+  // Mengambil Data Buku Besar terpaginasi + ringkasan agregat dari server
+  async getBukuBesarPaginated(params: {
+    startDate?: string;
+    endDate?: string;
+    tipe?: LedgerTipe;
+    sumber?: LedgerSumber;
+    search?: string;
+    gudangId?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<LedgerPaginatedResult> {
+    const { data, error } = await supabase.rpc('get_ledger_paginated', {
+      p_start_date: params.startDate || undefined,
+      p_end_date: params.endDate || undefined,
+      p_tipe: params.tipe || undefined,
+      p_sumber: params.sumber || undefined,
+      p_search: params.search || undefined,
+      p_gudang_id: params.gudangId || undefined,
+      p_page: params.page || 1,
+      p_limit: params.limit || 50,
+    });
+
+    if (error) throw error;
+    return data as unknown as LedgerPaginatedResult;
+  },
+
   // Mengambil Data Buku Besar dengan filter lengkap
   async getBukuBesar(
     startDate?: string,
@@ -147,7 +201,7 @@ export const ledgerApi = {
         sumber: params.sumber || 'MODAL',
         nominal: params.nominal,
         keterangan: params.keterangan,
-        tanggal: params.tanggal || format(new Date(), 'yyyy-MM-dd'),
+        tanggal: params.tanggal || getLocalDateString(),
         gudang_id: targetGudangId,
       }])
       .select()

@@ -26,12 +26,14 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import { DashboardStats, LowStockItem, RecentTransaction } from '@/lib/api';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/lib/auth';
 import { useState, useRef, useEffect } from 'react';
 import { TransactionModal } from './TransactionModal';
 import { formatTimeWIB, formatDateWIB } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
 import { HRAlerts } from '@/components/dashboard/HRAlerts';
+import { queryKeys } from '@/lib/queryKeys';
 import { inventoryApi } from '@/lib/api/inventory';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { posAuthApi } from '@/lib/api/pos-auth';
@@ -70,7 +72,14 @@ export function MobileLaunchpad({
   isLoading,
   onRefresh,
 }: MobileLaunchpadProps) {
-  const { profile, user, isKepalaGudang, isKepalaCabang } = useAuthStore();
+  const { profile, user, isKepalaGudang, isKepalaCabang } = useAuthStore(
+    useShallow((state) => ({
+      profile: state.profile,
+      user: state.user,
+      isKepalaGudang: state.isKepalaGudang,
+      isKepalaCabang: state.isKepalaCabang,
+    })),
+  );
   const canAccessPosAuth =
     isAdminUser ||
     (typeof isKepalaGudang === 'function' && isKepalaGudang()) ||
@@ -259,7 +268,7 @@ export function MobileLaunchpad({
     try {
       const res = await inventoryApi.snoozeLowStock(itemId, days);
       if (res.error) throw res.error;
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
       onRefresh();
     } catch (error) {
       console.error('Failed to snooze item:', error);
@@ -276,7 +285,7 @@ export function MobileLaunchpad({
     try {
       const res = await inventoryApi.toggleDiscontinued(itemId);
       if (res.error) throw res.error;
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
       onRefresh();
     } catch (error) {
       console.error('Failed to discontinue item:', error);

@@ -121,8 +121,8 @@ export default function WarehouseMasterPage() {
       toast.success(
         editingGudang ? 'Master gudang berhasil diubah' : 'Master gudang baru berhasil ditambahkan',
       );
-      queryClient.invalidateQueries({ queryKey: ['warehouse-list-master'] });
-      queryClient.invalidateQueries({ queryKey: ['warehouse-list'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.warehouseOps.masterList });
+      queryClient.invalidateQueries({ queryKey: queryKeys.warehouse.list });
       setIsModalOpen(false);
     },
     onError: (err: any) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useSyncExternalStore } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { mutasiApi, PayrollMutasi } from '@/lib/api/payroll';
@@ -11,8 +11,11 @@ import { id as localeId } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/lib/auth';
 import { useRealtimeQuery } from '@/lib/hooks/useRealtimeQuery';
+import { queryKeys } from '@/lib/queryKeys';
 
 import { Suspense } from 'react';
+
+const emptySubscribe = () => () => {};
 
 function DompetContent() {
   const router = useRouter();
@@ -20,11 +23,11 @@ function DompetContent() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const isMounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
 
   const page = Number(searchParams.get('page')) || 1;
   const limit = 20;
@@ -100,7 +103,7 @@ function DompetContent() {
       setIsModalOpen(false);
       setNominal('');
       setKeterangan('');
-      queryClient.invalidateQueries({ queryKey: ['payroll'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.payroll.all });
     },
     onError: (err: any) => {
       toast.error(err.message || 'Gagal mengajukan penarikan');

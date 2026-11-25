@@ -4,6 +4,7 @@ import { format, subDays } from 'date-fns';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { kasApi } from '@/lib/api';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/lib/auth';
 import { Button, FilterButton, AmbientLayout } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -26,12 +27,15 @@ import { CashFlowMobileList } from './components/CashFlowMobileList';
 import { ShiftSummaryAdminPanel } from './components/ShiftSummaryAdminPanel';
 
 import { gudangApi } from '@/lib/api/warehouse';
+import { queryKeys, invalidateFinanceMutation } from '@/lib/queryKeys';
 
 const PullToRefresh = dynamic(() => import('react-simple-pull-to-refresh'), { ssr: false });
 
 export default function CashFlowPage() {
   const queryClient = useQueryClient();
-  const { profile, isAdmin: checkIsAdmin } = useAuthStore();
+  const { profile, isAdmin: checkIsAdmin } = useAuthStore(
+    useShallow((state) => ({ profile: state.profile, isAdmin: state.isAdmin })),
+  );
   const isAdmin = checkIsAdmin();
   const currentUserId = profile?.id;
 
@@ -65,11 +69,13 @@ export default function CashFlowPage() {
   const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
 
   const [page, setPage] = useState(1);
+  const [prevFilters, setPrevFilters] = useState(filters);
   const LIMIT = 20;
 
-  useEffect(() => {
+  if (filters !== prevFilters) {
+    setPrevFilters(filters);
     setPage(1);
-  }, [filters]);
+  }
 
   const {
     data: kasLogData,
@@ -175,11 +181,7 @@ export default function CashFlowPage() {
   }, [defaultFilters]);
 
   const handleRefresh = useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['kas_log'] }),
-      queryClient.invalidateQueries({ queryKey: ['kas_summary'] }),
-      queryClient.invalidateQueries({ queryKey: ['shift_summary'] }),
-    ]);
+    await invalidateFinanceMutation(queryClient);
   }, [queryClient]);
 
   const activeFilters = useMemo(() => {

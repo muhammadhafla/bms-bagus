@@ -1,21 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { IconWifiOff } from '@tabler/icons-react';
 
 export default function OfflinePage() {
   const [isReloading, setIsReloading] = useState(false);
-
-  // Otomatis reload ketika koneksi kembali
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsReloading(true);
-      window.location.reload();
-    };
-
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
-  }, []);
 
   const handleRetry = () => {
     setIsReloading(true);

@@ -26,17 +26,19 @@ export default function EditStockBinModal({
   canEditThresholds,
   onSuccess,
 }: EditStockBinModalProps) {
+  const [prevItem, setPrevItem] = useState(item);
   const [rakLokasi, setRakLokasi] = useState('');
   const [minStok, setMinStok] = useState<number | string>(0);
   const [maxStok, setMaxStok] = useState<string>('');
 
-  useEffect(() => {
+  if (item !== prevItem) {
+    setPrevItem(item);
     if (item) {
       setRakLokasi(item.rak_lokasi || '');
       setMinStok(item.min_stok || 0);
       setMaxStok(item.max_stok ? String(item.max_stok) : '');
     }
-  }, [item]);
+  }
 
   const updateBinMutation = useMutation({
     mutationFn: async () => {

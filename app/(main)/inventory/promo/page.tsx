@@ -54,8 +54,20 @@ export default function PromoListPage() {
   }, []);
 
   useEffect(() => {
-    fetchPromos();
-  }, [fetchPromos]);
+    let active = true;
+    promoApi.getAll().then((result) => {
+      if (!active) return;
+      if (result.error) {
+        toast.error('Gagal memuat data promo');
+      } else {
+        setPromos(result.data || []);
+      }
+      setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const memberPromosCount = useMemo(() => {
     return promos.filter((p) => p.is_member_only).length;

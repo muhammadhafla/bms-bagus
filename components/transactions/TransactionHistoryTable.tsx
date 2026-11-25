@@ -53,11 +53,14 @@ export function TransactionHistoryTable<T extends { id: string }>({
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   const limit = propLimit || (isDesktop ? 50 : 20);
   const [page, setPage] = useState(1);
+  const filterKey = `${search ?? ''}|${startDate ?? ''}|${endDate ?? ''}|${gudangId ?? ''}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
 
   // Reset page to 1 when filters change
-  useEffect(() => {
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
     setPage(1);
-  }, [search, startDate, endDate, gudangId]);
+  }
 
   const offset = (page - 1) * limit;
 

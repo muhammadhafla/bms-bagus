@@ -22,6 +22,7 @@ import {
   getSuggestedCommands,
   RolePermissions,
 } from './commandItems';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore, useIsAdmin } from '@/lib/auth';
 import { useDarkMode } from '@/components/DarkModeProvider';
 import { useSidebarContext } from '@/components/layout/SidebarProvider';
@@ -35,9 +36,33 @@ type SelectableItem =
   | { type: 'recovery'; action: () => void; label: string; icon: React.ElementType };
 
 export function CommandPalette() {
+  const { isOpen, toggle } = useCommandPaletteStore();
+
+  // Keyboard shortcut: Ctrl+K or Cmd+K to toggle
+  useHotkeys(
+    ['ctrl+k', 'meta+k'],
+    (e) => {
+      e.preventDefault();
+      toggle();
+    },
+    { enableOnFormTags: true },
+  );
+
+  if (!isOpen) return null;
+
+  return <CommandPaletteDialog />;
+}
+
+function CommandPaletteDialog() {
   const router = useRouter();
-  const { isOpen, close, toggle } = useCommandPaletteStore();
-  const { user, hasRole, hasAnyRole } = useAuthStore();
+  const close = useCommandPaletteStore((state) => state.close);
+  const { user, hasRole, hasAnyRole } = useAuthStore(
+    useShallow((state) => ({
+      user: state.user,
+      hasRole: state.hasRole,
+      hasAnyRole: state.hasAnyRole,
+    })),
+  );
   const isAdminUser = useIsAdmin();
   const { theme, toggleTheme } = useDarkMode();
   const { setAutoHideEnabled } = useSidebarContext();
@@ -51,15 +76,13 @@ export function CommandPalette() {
   const listRef = useRef<HTMLDivElement>(null);
   const productSeqRef = useRef(0);
 
-  // Keyboard shortcut: Ctrl+K or Cmd+K to toggle, Esc to close
-  useHotkeys(['ctrl+k', 'meta+k'], (e) => {
-    e.preventDefault();
-    toggle();
-  }, { enableOnFormTags: true });
-
-  useHotkeys('escape', () => {
-    if (isOpen) close();
-  }, { enabled: isOpen, enableOnFormTags: true });
+  useHotkeys(
+    'escape',
+    () => {
+      close();
+    },
+    { enableOnFormTags: true },
+  );
 
   // Permissions context
   const rolePermissions: RolePermissions = useMemo(() => {
@@ -128,16 +151,20 @@ export function CommandPalette() {
     }, 300);
   }, []);
 
-  // When query changes, search products if query >= 2 chars
-  useEffect(() => {
-    setSelectedIndex(0);
-    if (query.trim().length >= 2) {
-      searchProductDebounced(query);
-    } else {
-      setProductResults([]);
-      setIsSearchingProduct(false);
-    }
-  }, [query, searchProductDebounced]);
+  const handleQueryChange = useCallback(
+    (nextQuery: string) => {
+      setQuery(nextQuery);
+      setSelectedIndex(0);
+      if (nextQuery.trim().length >= 2) {
+        searchProductDebounced(nextQuery);
+      } else {
+        searchProductDebounced.cancel();
+        setProductResults([]);
+        setIsSearchingProduct(false);
+      }
+    },
+    [searchProductDebounced],
+  );
 
   // Filter commands by query
   const matchedCommands = useMemo(() => {
@@ -199,18 +226,21 @@ export function CommandPalette() {
     return list;
   }, [menuCommands, actionCommands, productResults, isZeroResults, query, router, close]);
 
-  // Auto-focus input when opened & reset state
+  // Auto-focus input when opened & cleanup on unmount
   useEffect(() => {
-    if (isOpen) {
-      setQuery('');
-      setSelectedIndex(0);
-      setProductResults([]);
-      setIsSearchingProduct(false);
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 50);
-    }
-  }, [isOpen]);
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const timeoutId = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 50);
+
+    return () => {
+      clearTimeout(timeoutId);
+      searchProductDebounced.cancel();
+      if (previousFocus && typeof previousFocus.focus === 'function') {
+        previousFocus.focus();
+      }
+    };
+  }, [searchProductDebounced]);
 
   // Execute an item action
   const executeItem = useCallback(
@@ -267,9 +297,11 @@ export function CommandPalette() {
     }
   }, [selectedIndex]);
 
-  if (!isOpen) return null;
-
   let currentPointer = -1;
+  const activeOptionId =
+    selectableItems.length > 0 && selectedIndex < selectableItems.length
+      ? `command-palette-option-${selectedIndex}`
+      : undefined;
 
   return (
     <div
@@ -292,24 +324,28 @@ export function CommandPalette() {
       >
         {/* Search Input Area */}
         <div className="relative flex items-center border-b border-neutral-200/80 px-4 py-3 dark:border-neutral-800">
-          <IconSearch className="h-5 w-5 flex-shrink-0 text-neutral-400 dark:text-neutral-500" />
+          <IconSearch className="h-5 w-5 flex-shrink-0 text-neutral-400 dark:text-neutral-500" aria-hidden="true" />
           <input
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => handleQueryChange(e.target.value)}
             placeholder="Ketik nama menu, aksi, atau nama/barcode produk..."
             className="flex-1 bg-transparent px-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none dark:text-neutral-100 dark:placeholder:text-neutral-500"
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="command-palette-listbox"
             aria-autocomplete="list"
+            aria-activedescendant={activeOptionId}
           />
           {query ? (
             <button
               type="button"
-              onClick={() => setQuery('')}
-              className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+              onClick={() => handleQueryChange('')}
+              className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
               aria-label="Bersihkan pencarian"
             >
-              <IconX className="h-4 w-4" />
+              <IconX className="h-4 w-4" aria-hidden="true" />
             </button>
           ) : (
             <kbd className="rounded border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 text-[10px] font-mono font-medium text-neutral-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400">
@@ -319,7 +355,13 @@ export function CommandPalette() {
         </div>
 
         {/* Scrollable Results Area */}
-        <div ref={listRef} className="flex-1 overflow-y-auto p-2 scroll-smooth">
+        <div
+          id="command-palette-listbox"
+          ref={listRef}
+          role="listbox"
+          aria-label="Hasil pencarian perintah dan produk"
+          className="flex-1 overflow-y-auto p-2 scroll-smooth"
+        >
           {/* STATE 2: Empty initial query header */}
           {!query.trim() && (
             <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
@@ -343,7 +385,10 @@ export function CommandPalette() {
                 return (
                   <button
                     key={cmd.id}
+                    id={`command-palette-option-${currentPointer}`}
                     type="button"
+                    role="option"
+                    aria-selected={isSelected}
                     data-active={isSelected}
                     onClick={() => executeItem({ type: 'command', data: cmd })}
                     className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-all ${
@@ -395,7 +440,10 @@ export function CommandPalette() {
                 return (
                   <button
                     key={act.id}
+                    id={`command-palette-option-${currentPointer}`}
                     type="button"
+                    role="option"
+                    aria-selected={isSelected}
                     data-active={isSelected}
                     onClick={() => executeItem({ type: 'command', data: act })}
                     className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-all ${
@@ -452,7 +500,10 @@ export function CommandPalette() {
                 return (
                   <button
                     key={prod.id}
+                    id={`command-palette-option-${currentPointer}`}
                     type="button"
+                    role="option"
+                    aria-selected={isSelected}
                     data-active={isSelected}
                     onClick={() => executeItem({ type: 'product', data: prod })}
                     className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-all ${
@@ -516,7 +567,10 @@ export function CommandPalette() {
                   return (
                     <button
                       key={idx}
+                      id={`command-palette-option-${idx}`}
                       type="button"
+                      role="option"
+                      aria-selected={isSelected}
                       data-active={isSelected}
                       onClick={item.action}
                       className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium transition-all ${

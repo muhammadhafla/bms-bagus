@@ -300,6 +300,34 @@ export const stockOpnameApi = {
     return opnameResult;
   },
 
+  async bulkUpdateItems(
+    opnameId: string,
+    items: Array<{
+      id: string;
+      physical_stock: number;
+      reason?: string | null;
+      note?: string | null;
+    }>,
+  ) {
+    if (items.length === 0) {
+      return { data: { success: true, updated_count: 0 }, error: null };
+    }
+
+    return safeQuery<{ success: boolean; updated_count: number }>(
+      async () => {
+        const result = await supabase.rpc('bulk_update_opname_items', {
+          p_opname_id: opnameId,
+          p_items: items,
+        });
+        return {
+          data: result.data as { success: boolean; updated_count: number } | null,
+          error: result.error as Error | null,
+        };
+      },
+      { isMutation: true },
+    );
+  },
+
   async updateItem(
     itemId: string,
     data: Partial<{ physical_stock: number; system_stock: number; reason: string; note: string }>,

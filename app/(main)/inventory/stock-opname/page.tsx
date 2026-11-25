@@ -97,8 +97,29 @@ export default function StockOpnameListPage() {
   }, [page, selectedGudangFilter]);
 
   useEffect(() => {
-    fetchOpnames();
-  }, [fetchOpnames]);
+    let active = true;
+    stockOpnameApi
+      .getPaginated({
+        page,
+        limit: ITEMS_PER_PAGE,
+        gudangId: selectedGudangFilter || undefined,
+      })
+      .then((result) => {
+        if (!active) return;
+        if (!result.error && result.data) {
+          setOpnames(result.data);
+          setTotal(result.total);
+          setTotalPages(Math.ceil(result.total / ITEMS_PER_PAGE) || 1);
+          setError(null);
+        } else if (result.error) {
+          setError(result.error.message || API_ERROR_MESSAGES.FETCH_FAILED);
+        }
+        setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [page, selectedGudangFilter]);
 
   const handleOpenCreateModal = () => {
     const userDef = profile?.default_gudang_id

@@ -1,23 +1,23 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useSyncExternalStore } from 'react';
 import { IconSearch, IconCommand } from '@tabler/icons-react';
 import { useCommandPaletteStore } from './useCommandPaletteStore';
 import Tooltip from '@/components/ui/Tooltip';
+
+const emptySubscribe = () => () => {};
 
 interface CommandPaletteTriggerProps {
   collapsed?: boolean;
 }
 
 export function CommandPaletteTrigger({ collapsed = false }: CommandPaletteTriggerProps) {
-  const { open } = useCommandPaletteStore();
-  const [isMac, setIsMac] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.userAgent));
-    }
-  }, []);
+  const open = useCommandPaletteStore((state) => state.open);
+  const isMac = useSyncExternalStore(
+    emptySubscribe,
+    () => /(Mac|iPhone|iPod|iPad)/i.test(navigator.userAgent),
+    () => false,
+  );
 
   if (collapsed) {
     return (

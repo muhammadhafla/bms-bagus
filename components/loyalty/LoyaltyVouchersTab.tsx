@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { MemberVoucher } from '@/lib/types/loyalty';
@@ -17,19 +17,34 @@ import {
 } from '@tabler/icons-react';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { ModernPagination } from '@/components/ui';
 import { formatDateWIB } from '@/lib/utils';
 
 interface LoyaltyVouchersTabProps {
   vouchers: MemberVoucher[];
   onRefresh: () => void;
+  page: number;
+  totalCount: number;
+  limit: number;
+  onPageChange: (page: number) => void;
+  statusFilter: 'all' | 'active' | 'used' | 'expired';
+  onStatusFilterChange: (status: 'all' | 'active' | 'used' | 'expired') => void;
+  searchQuery: string;
+  onSearchQueryChange: (query: string) => void;
 }
 
 export default function LoyaltyVouchersTab({
   vouchers,
   onRefresh,
+  page,
+  totalCount,
+  limit,
+  onPageChange,
+  statusFilter,
+  onStatusFilterChange,
+  searchQuery,
+  onSearchQueryChange,
 }: LoyaltyVouchersTabProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'used' | 'expired'>('all');
   const [selectedBarcodeVoucher, setSelectedBarcodeVoucher] = useState<MemberVoucher | null>(null);
 
   // Operational dialogs
@@ -51,30 +66,8 @@ export default function LoyaltyVouchersTab({
     toast.success(`Kode voucher ${text} disalin`);
   };
 
-  const filteredVouchers = useMemo(() => {
-    return vouchers.filter((v) => {
-      const isExpired = new Date(v.expires_at) < new Date();
-      let actualStatus = v.status;
-      if (actualStatus === 'active' && isExpired) {
-        actualStatus = 'expired';
-      }
-
-      if (statusFilter !== 'all' && actualStatus !== statusFilter) {
-        return false;
-      }
-
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const codeMatch = v.voucher_code.toLowerCase().includes(q);
-        const memberName = v.members?.name?.toLowerCase() || '';
-        const memberPhone = v.members?.whatsapp_number?.toLowerCase() || '';
-        const titleMatch = v.title.toLowerCase().includes(q);
-        return codeMatch || memberName.includes(q) || memberPhone.includes(q) || titleMatch;
-      }
-
-      return true;
-    });
-  }, [vouchers, statusFilter, searchQuery]);
+  const filteredVouchers = vouchers;
+  const totalPages = Math.ceil(totalCount / limit) || 1;
 
   const handleMarkAsUsed = async () => {
     if (!markUsedConfirmVoucher) return;
@@ -142,7 +135,7 @@ export default function LoyaltyVouchersTab({
           ).map((t) => (
             <button
               key={t.key}
-              onClick={() => setStatusFilter(t.key)}
+              onClick={() => onStatusFilterChange(t.key)}
               className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
                 statusFilter === t.key
                   ? 'bg-white text-neutral-900 shadow-xs dark:bg-neutral-700 dark:text-white'
@@ -159,8 +152,8 @@ export default function LoyaltyVouchersTab({
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari kode (KB-...), nama, no WA..."
+            onChange={(e) => onSearchQueryChange(e.target.value)}
+            placeholder="Cari kode (KB-...) atau judul reward..."
             className="w-full rounded-lg border border-neutral-300 bg-white py-2 pl-9 pr-3 text-xs text-neutral-900 focus:border-brand-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
           />
         </div>
@@ -316,6 +309,16 @@ export default function LoyaltyVouchersTab({
             </tbody>
           </table>
         </div>
+        {totalCount > limit && (
+          <ModernPagination
+            page={page}
+            totalPages={totalPages}
+            total={totalCount}
+            limit={limit}
+            onPageChange={onPageChange}
+            className="rounded-none rounded-b-xl border-x-0 border-b-0"
+          />
+        )}
       </div>
 
       {/* Modal Tampilan Barcode / Verifikasi Fisik */}

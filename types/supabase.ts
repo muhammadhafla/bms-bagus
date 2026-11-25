@@ -3180,6 +3180,10 @@ export type Database = {
         Args: { p_ids: string[]; p_keputusan: string }
         Returns: number
       }
+      bulk_update_opname_items: {
+        Args: { p_items: Json; p_opname_id: string }
+        Returns: Json
+      }
       calculate_distance: {
         Args: { lat1: number; lat2: number; lon1: number; lon2: number }
         Returns: number
@@ -3457,6 +3461,19 @@ export type Database = {
         Args: { p_gudang_id?: string; p_start_date: string }
         Returns: number
       }
+      get_ledger_paginated: {
+        Args: {
+          p_end_date?: string
+          p_gudang_id?: string
+          p_limit?: number
+          p_page?: number
+          p_search?: string
+          p_start_date?: string
+          p_sumber?: string
+          p_tipe?: string
+        }
+        Returns: Json
+      }
       get_ledger_with_balance: {
         Args: {
           p_end_date?: string
@@ -3482,6 +3499,7 @@ export type Database = {
           tipe_transaksi: string
         }[]
       }
+      get_loyalty_dashboard_metrics: { Args: never; Returns: Json }
       get_low_stock_items: {
         Args: { p_search?: string }
         Returns: {

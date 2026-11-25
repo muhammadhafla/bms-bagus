@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { AmbientLayout } from '@/components/ui';
@@ -33,7 +34,15 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
-  const { user, profile, refreshSession, signOut, hasRole } = useAuthStore();
+  const { user, profile, refreshSession, signOut, hasRole } = useAuthStore(
+    useShallow((state) => ({
+      user: state.user,
+      profile: state.profile,
+      refreshSession: state.refreshSession,
+      signOut: state.signOut,
+      hasRole: state.hasRole,
+    })),
+  );
   const isAdminUser = useIsAdmin();
   const { theme, toggleTheme } = useDarkMode();
   const router = useRouter();
@@ -170,7 +179,12 @@ export default function ProfilePage() {
       <div className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <form onSubmit={handleSave} className="space-y-5">
           <div className="flex flex-col items-center gap-4 sm:flex-row">
-            <div className="relative cursor-pointer hover:opacity-90 transition-opacity" onClick={() => fileInputRef.current?.click()}>
+            <button
+              type="button"
+              aria-label="Ganti foto profil"
+              className="relative cursor-pointer rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+              onClick={() => fileInputRef.current?.click()}
+            >
               <div className="group relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-full border-4 border-neutral-100 bg-neutral-200 dark:border-neutral-800 dark:bg-neutral-800">
                 {avatarUrl ? (
                   <Image src={avatarUrl} alt="Avatar" fill className="object-cover" sizes="80px" />
@@ -191,7 +205,7 @@ export default function ProfilePage() {
               <div className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-neutral-700 shadow-sm dark:border-neutral-900 dark:bg-neutral-600">
                 <IconCamera className="h-3.5 w-3.5 text-white" />
               </div>
-            </div>
+            </button>
 
             <div className="text-center sm:text-left">
               <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">

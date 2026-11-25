@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { Drawer } from 'vaul';
 import { IconSearch, IconX } from '@tabler/icons-react';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+
+const emptySubscribe = () => () => {};
 
 interface MobileAutocompleteSheetProps {
   isOpen: boolean;
@@ -23,12 +25,12 @@ export function MobileAutocompleteSheet({
   placeholder = 'Cari...',
 }: MobileAutocompleteSheetProps) {
   const [search, setSearch] = useState('');
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
   const isDesktop = useMediaQuery('(min-width: 640px)');
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const filteredOptions = options.filter((opt) => opt.toLowerCase().includes(search.toLowerCase()));
 

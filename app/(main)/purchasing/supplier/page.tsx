@@ -90,8 +90,22 @@ export default function SupplierPage() {
   }, []);
 
   useEffect(() => {
-    fetchSuppliers();
-  }, [fetchSuppliers]);
+    let active = true;
+    supplierApi.getAll().then((result) => {
+      if (!active) return;
+      if (result.error) {
+        setError(result.error.message || 'Gagal memuat data supplier');
+        toast.error('Gagal memuat data supplier');
+      } else {
+        setSuppliers(result.data || []);
+        setError(null);
+      }
+      setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Handle Sort
   const handleSort = (key: string) => {
@@ -194,7 +208,6 @@ export default function SupplierPage() {
         toast.success('Supplier berhasil diperbarui');
         setSuppliers((prev) => prev.map((s) => (s.id === selectedSupplier.id ? result.data! : s)));
         queryClient.invalidateQueries({ queryKey: queryKeys.suppliers.all });
-        queryClient.invalidateQueries({ queryKey: ['suppliers'] });
         setModalOpen(false);
       }
     } else {
@@ -209,7 +222,6 @@ export default function SupplierPage() {
         toast.success('Supplier berhasil ditambahkan');
         setSuppliers((prev) => [result.data!, ...prev]);
         queryClient.invalidateQueries({ queryKey: queryKeys.suppliers.all });
-        queryClient.invalidateQueries({ queryKey: ['suppliers'] });
         setModalOpen(false);
       }
     }
@@ -233,7 +245,6 @@ export default function SupplierPage() {
       toast.success('Supplier berhasil dihapus');
       setSuppliers((prev) => prev.filter((s) => s.id !== supplierToDelete.id));
       queryClient.invalidateQueries({ queryKey: queryKeys.suppliers.all });
-      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
       // Adjust page if page becomes empty
       const updatedTotalItems = filteredAndSorted.length - 1;
       const maxPage = Math.ceil(updatedTotalItems / LIMIT) || 1;

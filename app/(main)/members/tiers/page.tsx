@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { IconSettings, IconChevronRight, IconShieldLock, IconArrowDown } from '@tabler/icons-react';
@@ -31,7 +32,14 @@ export default function MemberTiersPage() {
     tier: null,
   });
 
-  const { isAdmin, initialized, user, profile } = useAuthStore();
+  const { isAdmin, initialized, user, profile } = useAuthStore(
+    useShallow((state) => ({
+      isAdmin: state.isAdmin,
+      initialized: state.initialized,
+      user: state.user,
+      profile: state.profile,
+    })),
+  );
   const router = useRouter();
 
   useEffect(() => {
@@ -67,10 +75,35 @@ export default function MemberTiersPage() {
   }, []);
 
   useEffect(() => {
-    if (initialized && isAdmin()) {
-      fetchTiers();
-    }
-  }, [fetchTiers, initialized, isAdmin]);
+    if (!initialized || !isAdmin()) return;
+    let active = true;
+    supabase
+      .from('member_tiers')
+      .select('*')
+      .order('min_points_required', { ascending: true })
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          toast.error('Gagal memuat data tier');
+        } else {
+          setTiers(
+            (data || []).map((t) => ({
+              id: t.id,
+              name: t.name,
+              discount_percentage: t.discount_percentage ?? 0,
+              point_multiplier: t.point_multiplier ?? 1,
+              min_points_required: t.min_points_required ?? 0,
+              min_purchase_amount: t.min_purchase_amount ?? 0,
+              updated_at: t.updated_at || '',
+            })),
+          );
+        }
+        setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [initialized, isAdmin]);
 
   const isAuthFullyLoaded = initialized && (!user || profile !== null);
 

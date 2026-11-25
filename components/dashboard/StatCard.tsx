@@ -100,11 +100,8 @@ export function StatCard({
     danger: 'bg-accent-rose-50/60 dark:bg-accent-rose-900/20',
   };
 
-  return (
-    <div 
-      className={`group card-hover animate-fade-in-up relative overflow-hidden rounded-2xl ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
-      onClick={onClick}
-    >
+  const cardContent = (
+    <>
       {/* Soft background glow */}
       <div
         className={`absolute -top-4 -right-4 h-24 w-24 rounded-full opacity-20 blur-3xl transition-opacity duration-500 group-hover:opacity-40 ${iconBgClasses[variant]}`}
@@ -136,6 +133,24 @@ export function StatCard({
           </div>
         </div>
       </Card>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="group card-hover animate-fade-in-up relative w-full cursor-pointer overflow-hidden rounded-2xl text-left transition-shadow hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+      >
+        {cardContent}
+      </button>
+    );
+  }
+
+  return (
+    <div className="group card-hover animate-fade-in-up relative overflow-hidden rounded-2xl">
+      {cardContent}
     </div>
   );
 }
@@ -248,34 +263,46 @@ export function CompactStatCard({
   if (finalStringLength >= 14) textSizeClass = 'text-base sm:text-lg lg:text-xl';
   else if (finalStringLength >= 10) textSizeClass = 'text-lg sm:text-xl lg:text-2xl';
 
-  return (
-    <div onClick={onClick} className={onClick ? 'cursor-pointer' : ''}>
-      <Card
-        padding="none"
-        variant="flat"
-        className={`relative rounded-2xl ${bgColors[variant]} card-hover animate-fade-in-up border p-4 sm:p-5 ${onClick ? 'hover:shadow-md transition-shadow' : ''}`}
-      >
-        <div className="flex items-start gap-3 sm:gap-4">
-          <div className={`flex-shrink-0 rounded-xl p-2 sm:p-2.5 ${iconColors[variant]}`}>
-            <div className="[&>svg]:h-5 [&>svg]:w-5 sm:[&>svg]:h-6 sm:[&>svg]:w-6">{icon}</div>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-medium text-neutral-500 sm:text-sm dark:text-neutral-400">
-              {title}
-            </p>
-            <p
-              className={`mt-1 ${textSizeClass} truncate font-bold tracking-tight text-neutral-900 dark:text-white`}
-              title={`${prefix}${formatNumber(value)}${suffix}`}
-            >
-              {prefix}
-              {formatNumber(animatedValue)}
-              {suffix}
-            </p>
-          </div>
+  const cardInner = (
+    <Card
+      padding="none"
+      variant="flat"
+      className={`relative rounded-2xl ${bgColors[variant]} card-hover animate-fade-in-up border p-4 sm:p-5 ${onClick ? 'transition-shadow hover:shadow-md' : ''}`}
+    >
+      <div className="flex items-start gap-3 sm:gap-4">
+        <div className={`flex-shrink-0 rounded-xl p-2 sm:p-2.5 ${iconColors[variant]}`}>
+          <div className="[&>svg]:h-5 [&>svg]:w-5 sm:[&>svg]:h-6 sm:[&>svg]:w-6">{icon}</div>
         </div>
-      </Card>
-    </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-medium text-neutral-500 sm:text-sm dark:text-neutral-400">
+            {title}
+          </p>
+          <p
+            className={`mt-1 ${textSizeClass} truncate font-bold tracking-tight text-neutral-900 dark:text-white`}
+            title={`${prefix}${formatNumber(value)}${suffix}`}
+          >
+            {prefix}
+            {formatNumber(animatedValue)}
+            {suffix}
+          </p>
+        </div>
+      </div>
+    </Card>
   );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full cursor-pointer rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+      >
+        {cardInner}
+      </button>
+    );
+  }
+
+  return <div>{cardInner}</div>;
 }
 
 export function CompactStatCardSkeleton() {
